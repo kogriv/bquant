@@ -1,0 +1,132 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bquant"
+version = "0.0.1"
+description = "Quantitative research toolkit for financial markets"
+authors = [{name = "kogriv", email = "kogriv@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "pandas==2.3.1",
+    "numpy==2.3.2",
+    "matplotlib==3.10.5",
+    "seaborn==0.13.2",
+    "pandas-ta==0.3.14b0",
+    "statsmodels==0.14.5",
+    "scipy==1.16.1",
+    "scikit-learn==1.7.1",
+    "plotly==6.3.0",
+    "kaleido==1.0.0",
+    "ipywidgets==8.1.7",
+    "psutil>=5.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kogriv/bquant"
+Documentation = "https://bquant.readthedocs.io/"
+Repository = "https://github.com/kogriv/bquant.git"
+Issues = "https://github.com/kogriv/bquant/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "flake8>=3.8",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-copybutton>=0.5.0",
+    "myst-parser>=2.0.0",
+    "sphinx-autodoc-typehints>=1.25.0",
+]
+notebooks = [
+    "jupyter==1.1.1",
+    "ipywidgets==8.1.7",
+    "plotly==6.3.0",
+    "kaleido==1.0.0",
+]
+full = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "flake8>=3.8",
+    "jupyter==1.1.1",
+    "ipywidgets==8.1.7",
+    "plotly==6.3.0",
+    "kaleido==1.0.0",
+]
+
+[project.scripts]
+bquant = "bquant.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bquant*"]
+exclude = ["tests*", "docs*", "devref*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | venv_bquant_dell
+  )/
+)
+'''
+
+[tool.coverage.run]
+source = ["bquant"]
+omit = [
+    "*/tests/*",
+    "*/venv_bquant_dell/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
