@@ -591,18 +591,23 @@ def create_price_chart(data: pd.DataFrame, chart_type: str = 'line', **kwargs):
         **kwargs: Дополнительные параметры
     
     Returns:
-        Объект графика
+        Объект графика или None в случае ошибки
     """
-    charts = FinancialCharts()
-    
-    if chart_type == 'line':
-        return charts.create_line_chart(data, **kwargs)
-    elif chart_type == 'area':
-        return charts.create_area_chart(data, **kwargs)
-    elif chart_type == 'candlestick':
-        return charts.create_candlestick_chart(data, **kwargs)
-    else:
-        raise ValueError(f"Unknown chart type: {chart_type}")
+    try:
+        charts = FinancialCharts()
+        
+        if chart_type == 'line':
+            return charts.create_line_chart(data, **kwargs)
+        elif chart_type == 'area':
+            return charts.create_area_chart(data, **kwargs)
+        elif chart_type == 'candlestick':
+            return charts.create_candlestick_chart(data, **kwargs)
+        else:
+            logger.warning(f"Unknown chart type: {chart_type}")
+            return None
+    except Exception as e:
+        logger.warning(f"Failed to create chart: {e}")
+        return None
 
 
 # Экспорт

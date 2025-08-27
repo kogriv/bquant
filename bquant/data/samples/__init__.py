@@ -9,6 +9,7 @@ BQuant Sample Data API
 - list_datasets(): Список доступных датасетов
 - get_dataset_info(): Информация о конкретном датасете
 - validate_dataset(): Валидация целостности датасета
+- SampleDataGenerator: Генератор embedded данных
 
 Примеры использования:
     >>> from bquant.data.samples import get_sample_data, list_datasets
@@ -25,6 +26,11 @@ BQuant Sample Data API
     >>> datasets = list_datasets()
     >>> for dataset in datasets:
     ...     print(f"{dataset['name']}: {dataset['rows']} rows")
+    >>> 
+    >>> # Генерация embedded данных
+    >>> from bquant.data.samples import SampleDataGenerator
+    >>> generator = SampleDataGenerator()
+    >>> generator.generate_all()
 """
 
 import pandas as pd
@@ -51,6 +57,7 @@ from .utils import (
     get_data_info,
     compare_datasets
 )
+from .generator import SampleDataGenerator
 
 logger = get_logger(__name__)
 
@@ -426,6 +433,9 @@ __all__ = [
     'list_datasets', 
     'get_dataset_info',
     'validate_dataset',
+    
+    # Генератор
+    'SampleDataGenerator',
     
     # Дополнительные функции
     'get_sample_preview',
