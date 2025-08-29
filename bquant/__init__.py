@@ -5,7 +5,7 @@ A comprehensive toolkit for quantitative analysis of financial data,
 starting with MACD analysis and expandable to all aspects of market research.
 """
 
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 __author__ = "kogriv"
 __email__ = "kogriv@gmail.com"
 

@@ -18,7 +18,7 @@ Analysis модули содержат инструменты для стати�
 - **ZoneFeatures** - Характеристики зоны
 - **TransitionAnalysis** - Анализ переходов
 
-### 🏗️ [bquant.analysis.base](base.md) - Базовые классы анализа
+### 🏗️ [bquant.analysis (base)](base.md) - Базовые классы анализа
 - **BaseAnalyzer** - Базовый класс анализатора
 - **AnalysisResult** - Результат анализа
 - **AnalysisParams** - Параметры анализа
@@ -298,10 +298,10 @@ print("Statistical analysis exported to statistical_analysis.json")
 
 ## 🔗 Связанные разделы
 
-- **[Core Modules](../core/)** - Базовые модули
-- **[Data Modules](../data/)** - Модули данных
-- **[Indicators](../indicators/)** - Технические индикаторы
-- **[Visualization](../visualization/)** - Модули визуализации
+- **[Core Modules](../core/README.md)** - Базовые модули
+- **[Data Modules](../data/README.md)** - Модули данных
+- **[Indicators](../indicators/README.md)** - Технические индикаторы
+- **[Visualization](../visualization/README.md)** - Модули визуализации
 
 ## 📖 Детальная документация
 
@@ -327,4 +327,4 @@ print("Statistical analysis exported to statistical_analysis.json")
 
 ---
 
-**Следующий раздел:** [Visualization](../visualization/) 📊
+**Следующий раздел:** [Visualization](../visualization/README.md) 📊

@@ -7,9 +7,8 @@ Core модули содержат базовую функциональност
 ## 🗂️ Модули
 
 ### 🔧 [bquant.core.config](config.md) - Конфигурация и настройки
-- **ConfigManager** - Управление конфигурацией приложения
-- **Settings** - Настройки по умолчанию
-- **Environment** - Переменные окружения
+- Константы путей и конфигураций (PROJECT_ROOT, DATA_DIR, RESULTS_DIR, LOGGING, и др.)
+- Помощники: `get_data_path()`, `get_indicator_params()`, `get_analysis_params()`, `validate_timeframe()`, `get_results_path()`, `get_cache_config()`
 
 ### ⚠️ [bquant.core.exceptions](exceptions.md) - Исключения и ошибки
 - **BQuantError** - Базовое исключение BQuant
@@ -18,28 +17,28 @@ Core модули содержат базовую функциональност
 - **VisualizationError** - Ошибки визуализации
 
 ### 📝 [bquant.core.logging_config](logging.md) - Настройка логирования
-- **setup_logging()** - Настройка системы логирования
-- **get_logger()** - Получение логгера
-- **LogLevels** - Уровни логирования
+- `setup_logging()` — инициализация логирования
+- `get_logger()` — получение логгера (с контекстом)
+- Декораторы и контекст логирования
 
 ### ⚡ [bquant.core.performance](performance.md) - Производительность и профилирование
-- **performance_monitor** - Декоратор для профилирования
-- **performance_context** - Контекстный менеджер
-- **CacheManager** - Управление кэшем
+- Декоратор `@performance_monitor` и контекст `performance_context`
+- Глобальный монитор `PerformanceMonitor`, сбор и экспорт метрик
+- Оптимизированные индикаторы (NumPy): `sma`, `ema`, `rsi`, `macd`, `bollinger_bands`
 
 ### 🛠️ [bquant.core.utils](utils.md) - Утилиты и вспомогательные функции
-- **data_utils** - Утилиты для работы с данными
-- **math_utils** - Математические утилиты
-- **validation_utils** - Утилиты валидации
+- `setup_project_logging()`, `calculate_returns()`, `normalize_data()`
+- `save_results()`, `validate_ohlcv_columns()`, `create_timestamp()`
+- `memory_usage_info()`, `ensure_directory()`
 
 ## 🔍 Быстрый поиск
 
 ### По функциональности
 
 #### Конфигурация
-- `ConfigManager.get_setting()` - Получение настройки
-- `ConfigManager.set_setting()` - Установка настройки
-- `ConfigManager.load_config()` - Загрузка конфигурации
+- `get_data_path()` - Получение пути к данным
+- `validate_timeframe()` - Проверка таймфрейма
+- `get_indicator_params()` - Параметры индикатора
 
 #### Логирование
 - `setup_logging()` - Настройка логирования
@@ -49,24 +48,23 @@ Core модули содержат базовую функциональност
 #### Производительность
 - `@performance_monitor` - Декоратор профилирования
 - `performance_context()` - Контекстный менеджер
-- `CacheManager.get()` - Получение из кэша
+- `get_performance_monitor().get_stats()` - Получение метрик
 
 #### Утилиты
-- `validate_dataframe()` - Валидация DataFrame
-- `calculate_statistics()` - Расчет статистики
-- `format_number()` - Форматирование чисел
+- `validate_ohlcv_columns()` - Проверка структуры данных
+- `calculate_returns()` - Доходности (simple/log)
+- `normalize_data()` - Нормализация данных
 
 ### По типу
 
 #### 🏗️ Классы
-- `ConfigManager` - Управление конфигурацией
-- `CacheManager` - Управление кэшем
 - `BQuantError` - Базовое исключение
+- `PerformanceMonitor` - Сбор метрик
 
 #### 🔧 Функции
 - `setup_logging()` - Настройка логирования
 - `get_logger()` - Получение логгера
-- `validate_dataframe()` - Валидация данных
+- `validate_ohlcv_columns()` - Валидация данных
 
 #### 📋 Исключения
 - `BQuantError` - Базовое исключение
@@ -78,19 +76,13 @@ Core модули содержат базовую функциональност
 ### Конфигурация
 
 ```python
-from bquant.core.config import ConfigManager
+from bquant.core.config import get_data_path, validate_timeframe
 
-# Создание менеджера конфигурации
-config = ConfigManager()
+# Проверка таймфрейма
+validate_timeframe('1h')
 
-# Получение настройки
-cache_enabled = config.get_setting('cache.enabled', default=True)
-
-# Установка настройки
-config.set_setting('performance.timeout', 30)
-
-# Загрузка конфигурации из файла
-config.load_config('config.yaml')
+# Путь к данным TradingView/OANDA для XAUUSD 1h
+path = get_data_path('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
 ```
 
 ### Логирование
@@ -149,26 +141,21 @@ except BQuantError as e:
 ### Утилиты
 
 ```python
-from bquant.core.utils import validate_dataframe, calculate_statistics
+from bquant.core.utils import validate_ohlcv_columns, calculate_returns
 
-# Валидация DataFrame
-is_valid = validate_dataframe(df, required_columns=['open', 'high', 'low', 'close'])
+check = validate_ohlcv_columns(df)
+if not check['is_valid']:
+    raise DataError('; '.join(check['messages']))
 
-if not is_valid:
-    raise DataError("Invalid DataFrame format")
-
-# Расчет статистики
-stats = calculate_statistics(df['close'])
-print(f"Mean: {stats['mean']:.2f}")
-print(f"Std: {stats['std']:.2f}")
+ret = calculate_returns(df['close'], method='log')
 ```
 
 ## 🔗 Связанные разделы
 
-- **[Data Modules](../data/)** - Модули для работы с данными
-- **[Indicators](../indicators/)** - Технические индикаторы
-- **[Analysis](../analysis/)** - Аналитические модули
-- **[Visualization](../visualization/)** - Модули визуализации
+- **[Data Modules](../data/README.md)** - Модули для работы с данными
+- **[Indicators](../indicators/README.md)** - Технические индикаторы
+- **[Analysis](../analysis/README.md)** - Аналитические модули
+- **[Visualization](../visualization/README.md)** - Модули визуализации
 
 ## 📖 Детальная документация
 
@@ -180,4 +167,4 @@ print(f"Std: {stats['std']:.2f}")
 
 ---
 
-**Следующий раздел:** [Data Modules](../data/) 📊
+**Следующий раздел:** [Data Modules](../data/README.md) 📊

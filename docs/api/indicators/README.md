@@ -7,22 +7,19 @@ Indicators модули содержат технические индикато
 ## 🗂️ Модули
 
 ### 🏗️ [bquant.indicators.base](base.md) - Базовые классы индикаторов
-- **BaseIndicator** - Базовый класс для всех индикаторов
-- **IndicatorResult** - Результат расчета индикатора
-- **IndicatorParams** - Параметры индикатора
-- **IndicatorRegistry** - Реестр индикаторов
+- **BaseIndicator** / **PreloadedIndicator** / **LibraryIndicator**
+- **IndicatorResult** - результат расчёта индикатора
+- **IndicatorConfig**/**IndicatorSource** - конфигурация/источник данных
+- **IndicatorFactory** - фабрика индикаторов
 
-### 📈 [bquant.indicators.macd](macd.md) - MACD индикатор
-- **MACDZoneAnalyzer** - Анализатор MACD с зонами
-- **calculate_macd()** - Расчет MACD значений
-- **identify_zones()** - Идентификация зон
-- **ZoneAnalysisResult** - Результат анализа зон
+### 📈 [bquant.indicators.macd](macd.md) - MACD индикатор и зоны
+- **MACDZoneAnalyzer** - анализ зон MACD
+- **ZoneInfo**/**ZoneAnalysisResult** - модели результатов
+- Вспомогательные функции: `create_macd_analyzer()`, `analyze_macd_zones()`
 
-### 🏭 [bquant.indicators.factory](factory.md) - Фабрика индикаторов
-- **IndicatorFactory** - Фабрика для создания индикаторов
-- **register_indicator()** - Регистрация индикатора
-- **create_indicator()** - Создание индикатора
-- **list_indicators()** - Список доступных индикаторов
+### 🏭 [bquant.indicators.factory](factory.md) - Фабрика и библиотека индикаторов
+- **IndicatorFactory**: `register_indicator()`, `register_library_function()`, `create_indicator()`, `list_indicators()`, `get_indicator_info()`
+- Библиотека: `register_builtin_indicators()`, `get_builtin_indicators()`, `create_indicator()`
 
 ## 🔍 Быстрый поиск
 
@@ -41,10 +38,10 @@ Indicators модули содержат технические индикато
 - `BaseIndicator.set_params()` - Установка параметров
 
 #### Фабрика индикаторов
-- `IndicatorFactory.create()` - Создание индикатора
-- `IndicatorFactory.register()` - Регистрация индикатора
-- `IndicatorFactory.list()` - Список индикаторов
-- `IndicatorFactory.get_info()` - Информация об индикаторе
+- `IndicatorFactory.create_indicator()` - Создание индикатора
+- `IndicatorFactory.register_indicator()` - Регистрация индикатора
+- `IndicatorFactory.list_indicators()` - Список индикаторов
+- `IndicatorFactory.get_indicator_info()` - Информация об индикаторе
 
 ### По типу
 
@@ -62,7 +59,7 @@ Indicators модули содержат технические индикато
 
 #### 📋 Типы данных
 - `IndicatorResult` - Результат индикатора
-- `IndicatorParams` - Параметры индикатора
+- `IndicatorConfig` - Конфигурация индикатора
 - `ZoneAnalysisResult` - Результат анализа зон
 - `ZoneInfo` - Информация о зоне
 
@@ -92,9 +89,10 @@ print(f"Статистика: {result.statistics}")
 
 # Анализ отдельных зон
 for zone in result.zones:
-    print(f"Зона {zone.zone_type}: {zone.start_date} - {zone.end_date}")
-    print(f"  Длительность: {zone.duration}")
-    print(f"  Амплитуда: {zone.amplitude:.4f}")
+    print(f"Зона {zone.type}: {zone.start_time} - {zone.end_time}")
+    print(f"  Длительность (bars): {zone.duration}")
+    if zone.features:
+        print(f"  MACD амплитуда: {zone.features['macd_amplitude']:.4f}")
 ```
 
 ### Создание собственного индикатора
@@ -283,10 +281,10 @@ print("Analysis exported to macd_analysis.json")
 
 ## 🔗 Связанные разделы
 
-- **[Core Modules](../core/)** - Базовые модули
-- **[Data Modules](../data/)** - Модули данных
-- **[Analysis](../analysis/)** - Аналитические модули
-- **[Visualization](../visualization/)** - Модули визуализации
+- **[Core Modules](../core/README.md)** - Базовые модули
+- **[Data Modules](../data/README.md)** - Модули данных
+- **[Analysis](../analysis/README.md)** - Аналитические модули
+- **[Visualization](../visualization/README.md)** - Модули визуализации
 
 ## 📖 Детальная документация
 
@@ -312,4 +310,4 @@ print("Analysis exported to macd_analysis.json")
 
 ---
 
-**Следующий раздел:** [Analysis](../analysis/) 🔬
+**Следующий раздел:** [Analysis](../analysis/README.md) 🔬

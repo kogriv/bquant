@@ -6,258 +6,207 @@ Data модули обеспечивают работу с финансовым�
 
 ## 🗂️ Модули
 
-### 📥 [bquant.data.loader](loader.md) - Загрузка данных
-- **load_ohlcv_data()** - Универсальная загрузка OHLCV из CSV с автопарсингом дат
-- **load_symbol_data()** - Загрузка по символу и таймфрейму через config
-- **load_xauusd_data()** - Быстрая загрузка данных XAUUSD
-- **load_all_data_files()** - Загрузка всех файлов из директории
-- **get_data_info()** - Информация о загруженных данных
-- **get_available_symbols()** / **get_available_timeframes()** - Доступные символы/таймфреймы
+### 📥 [bquant.data.loader](loader.md) — Загрузка данных
+- `load_ohlcv_data()` — загрузка OHLCV из CSV с автопарсингом дат
+- `load_symbol_data()` — загрузка по символу и таймфрейму через config
+- `load_xauusd_data()` — быстрая загрузка данных XAUUSD
+- `load_all_data_files()` — загрузка всех CSV из `DATA_DIR` (без рекурсии)
+- `get_data_info()` — информация о загруженных данных
+- `get_available_symbols()` / `get_available_timeframes()` — доступные символы/таймфреймы
 
-### 🔄 [bquant.data.processor](processor.md) - Обработка данных
-- **clean_ohlcv_data()** - Очистка данных с удалением выбросов
-- **remove_price_outliers()** - Удаление ценовых выбросов
-- **calculate_derived_indicators()** - Расчет производных индикаторов
-- **resample_ohlcv()** - Изменение временного интервала
-- **normalize_prices()** - Нормализация цен
-- **detect_market_sessions()** - Определение торговых сессий
-- **add_technical_features()** - Добавление технических признаков
-- **prepare_data_for_analysis()** - Комплексная подготовка для анализа
+### 🔄 [bquant.data.processor](processor.md) — Обработка данных
+- `clean_ohlcv_data()` — очистка данных с удалением выбросов
+- `remove_price_outliers()` — удаление ценовых выбросов
+- `calculate_derived_indicators()` — расчет производных индикаторов
+- `resample_ohlcv()` — изменение временного интервала
+- `normalize_prices()` — нормализация цен
+- `detect_market_sessions()` — определение торговых сессий
+- `add_technical_features()` — добавление технических признаков
+- `create_lagged_features()` — генерация лаговых признаков
+- `prepare_data_for_analysis()` — комплексная подготовка для анализа
 
-### ✅ [bquant.data.validator](validator.md) - Валидация данных
-- **validate_ohlcv_data()** - Валидация OHLCV с детальными проверками
-- **validate_data_completeness()** - Проверка полноты данных
-- **validate_price_consistency()** - Проверка логической связности цен
-- **validate_time_series_continuity()** - Проверка непрерывности временных рядов
-- **validate_statistical_properties()** - Проверка статистических свойств
+### ✅ [bquant.data.validator](validator.md) — Валидация данных
+- `validate_ohlcv_data()` — валидация OHLCV с детальными проверками
+- `validate_data_completeness()` — проверка полноты данных
+- `validate_price_consistency()` — проверка логической связности цен
+- `validate_time_series_continuity()` — проверка непрерывности временных рядов
+- `validate_statistical_properties()` — проверка статистических свойств
 
-### 📊 [bquant.data.samples](samples.md) - Sample данные
-- **get_sample_data()** - Получение embedded данных в pandas/dict формате
-- **list_datasets()** - Список доступных датасетов с метаданными
-- **get_dataset_info()** - Детальная информация о датасете
-- **validate_dataset()** - Валидация целостности датасета
-- **get_sample_preview()** - Предварительный просмотр данных
-- **find_datasets()** - Поиск по критериям (symbol, timeframe, source)
-- **compare_sample_datasets()** - Сравнение датасетов
-- **SampleDataGenerator** - Генератор embedded данных
+### 📊 [bquant.data.samples](samples.md) — Sample данные
+- `get_sample_data()` — получение embedded данных в pandas/dict формате
+- `list_datasets()` / `list_dataset_names()` — список доступных датасетов
+- `get_dataset_info()` — детальная информация о датасете
+- `validate_dataset()` — валидация целостности датасета
+- `get_sample_preview()` — предварительный просмотр данных
+- `find_datasets()` — поиск по критериям (symbol, timeframe, source)
+- `compare_sample_datasets()` — сравнение датасетов
+- `get_data_statistics()` — статистика по датасету
+- `convert_to_dataframe()` / `convert_to_list_of_dicts()` — конвертация формата
+- `load_sample_data` — алиас `get_sample_data` (обратная совместимость)
+- `SampleDataGenerator` — генератор embedded данных
 
-### 📋 [bquant.data.schemas](schemas.md) - Схемы данных
-- **OHLCVRecord** - Dataclass для OHLCV записи с валидацией
-- **DataSourceConfig** - Конфигурация источника данных
-- **ValidationResult** - Результат валидации с errors/warnings
-- **DataSchema** / **OHLCVSchema** / **IndicatorSchema** - Схемы для разных типов данных
-- **get_schema()** / **validate_with_schema()** - Функции работы со схемами
+### 📋 [bquant.data.schemas](schemas.md) — Схемы данных
+- `OHLCVRecord` — Dataclass для OHLCV записи с валидацией
+- `DataSourceConfig` — конфигурация источника данных
+- `ValidationResult` — результат валидации (как структура данных)
+- `DataSchema` / `OHLCVSchema` / `IndicatorSchema` — базовые схемы
+- Предопределенные схемы: `OHLCV_SCHEMA`, `MACD_SCHEMA`, `RSI_SCHEMA`
+- `get_schema()` / `validate_with_schema()` — функции работы со схемами (пока stub)
 
 ## 🔍 Быстрый поиск
 
 ### По функциональности
 
 #### Загрузка данных
-- `load_ohlcv_data()` - Загрузка OHLCV из файла
-- `load_tradingview_data()` - Загрузка из TradingView
-- `load_metatrader_data()` - Загрузка из MetaTrader
-- `DataLoader.load()` - Универсальная загрузка
+- `load_ohlcv_data()` — Загрузка OHLCV из файла
+- `load_symbol_data()` — Загрузка по символу/таймфрейму
+- `load_xauusd_data()` — Быстрый хелпер для XAUUSD
+- `load_all_data_files()` — Пакетная загрузка CSV из `DATA_DIR`
 
 #### Обработка данных
-- `clean_ohlcv_data()` - Очистка данных
-- `prepare_data_for_analysis()` - Подготовка к анализу
-- `resample_data()` - Изменение интервала
-- `remove_outliers()` - Удаление выбросов
+- `clean_ohlcv_data()` — Очистка данных
+- `prepare_data_for_analysis()` — Подготовка к анализу
+- `resample_ohlcv()` — Изменение интервала
+- `remove_price_outliers()` — Удаление выбросов
+- `calculate_derived_indicators()` — Производные индикаторы
+- `normalize_prices()` — Нормализация цен
+- `detect_market_sessions()` — Сессии
+- `add_technical_features()` — Техпризнаки
+- `create_lagged_features()` — Лаги
 
 #### Валидация данных
-- `validate_ohlcv_data()` - Валидация OHLCV
-- `check_data_integrity()` - Проверка целостности
-- `validate_dataframe()` - Валидация DataFrame
-- `check_missing_values()` - Проверка пропусков
+- `validate_ohlcv_data()` — Валидация OHLCV
+- `validate_data_completeness()` — Полнота
+- `validate_price_consistency()` — Логика цен
+- `validate_time_series_continuity()` — Непрерывность ряда
+- `validate_statistical_properties()` — Статистика
 
 #### Sample данные
-- `get_sample_data()` - Получение sample данных
-- `list_dataset_names()` - Список datasets
-- `get_dataset_info()` - Информация о dataset
-- `convert_to_dataframe()` - Конвертация в DataFrame
+- `get_sample_data()` — Получение sample данных
+- `list_datasets()` / `list_dataset_names()` — Список datasets
+- `get_dataset_info()` — Информация о dataset
+- `get_data_statistics()` — Статистика по датасету
+- `convert_to_dataframe()` / `convert_to_list_of_dicts()` — Конвертация формата
 
 ### По типу
 
-#### 🏗️ Классы
-- `DataLoader` - Загрузчик данных
-- `DataProcessor` - Процессор данных
-- `DataValidator` - Валидатор данных
-- `SampleDataManager` - Менеджер sample данных
+#### 🏗️ Классы/структуры
+- `OHLCVRecord`, `DataSourceConfig`, `ValidationResult`, `SampleDataGenerator`
 
 #### 🔧 Функции
-- `load_ohlcv_data()` - Загрузка OHLCV
-- `clean_ohlcv_data()` - Очистка данных
-- `validate_ohlcv_data()` - Валидация данных
-- `get_sample_data()` - Получение sample данных
+- `load_ohlcv_data()`, `clean_ohlcv_data()`, `validate_ohlcv_data()`, `get_sample_data()`
 
 #### 📋 Типы данных
-- `OHLCVRecord` - Запись OHLCV
-- `DataSourceConfig` - Конфигурация источника
-- `ValidationResult` - Результат валидации
-- `DataSchema` - Схема данных
+- `DataSchema`, `OHLCVSchema`, `IndicatorSchema`, предопределенные `OHLCV_SCHEMA/MACD_SCHEMA/RSI_SCHEMA`
 
 ## 💡 Примеры использования
 
 ### Загрузка данных
 
 ```python
-from bquant.data.loader import load_ohlcv_data, load_tradingview_data
+from bquant.data.loader import load_ohlcv_data, load_symbol_data, load_xauusd_data
 
-# Загрузка из CSV файла
-data = load_ohlcv_data('data.csv', 
-                       date_column='time',
-                       ohlcv_columns=['open', 'high', 'low', 'close', 'volume'])
+# Загрузка из CSV файла (с указанием контекста)
+data = load_ohlcv_data('data.csv', symbol='XAUUSD', timeframe='1H')
 
-# Загрузка из TradingView
-tv_data = load_tradingview_data('XAUUSD', '1h', period='1M')
+# Загрузка по символу/таймфрейму через конфиг
+tv_data = load_symbol_data('XAUUSD', '1H', data_source='tradingview', quote_provider='oanda')
 
-# Загрузка из MetaTrader
-mt_data = load_metatrader_data('XAUUSD', 'M15', start_date='2024-01-01')
+# Быстрая загрузка XAUUSD
+xau = load_xauusd_data('1H')
 ```
 
 ### Обработка данных
 
 ```python
-from bquant.data.processor import clean_ohlcv_data, prepare_data_for_analysis
+from bquant.data.processor import (
+    clean_ohlcv_data, prepare_data_for_analysis, resample_ohlcv,
+    remove_price_outliers
+)
 
 # Очистка данных
-clean_data = clean_ohlcv_data(data, 
-                             remove_outliers=True,
-                             fill_missing='forward')
+clean_data = clean_ohlcv_data(data, remove_outliers=True, fill_method='forward')
 
 # Подготовка для анализа
-analysis_data = prepare_data_for_analysis(clean_data,
-                                         add_technical_features=True,
-                                         normalize=True)
+analysis_data = prepare_data_for_analysis(clean_data, add_tech_features=True, normalize=True)
 
 # Изменение временного интервала
-hourly_data = resample_data(data, '1H')
-daily_data = resample_data(data, '1D')
+hourly_data = resample_ohlcv(data, '1H')
+daily_data = resample_ohlcv(data, '1D')
 ```
 
 ### Валидация данных
 
 ```python
-from bquant.data.validator import validate_ohlcv_data, check_data_integrity
+from bquant.data.validator import (
+    validate_ohlcv_data, validate_data_completeness
+)
 
 # Валидация OHLCV данных
 validation_result = validate_ohlcv_data(data)
 
-if not validation_result.is_valid:
-    print(f"Validation errors: {validation_result.errors}")
-    print(f"Warnings: {validation_result.warnings}")
+if not validation_result['is_valid']:
+    print(f"Validation errors: {validation_result['issues']}")
+    print(f"Warnings: {validation_result['warnings']}")
 
-# Проверка целостности
-integrity_check = check_data_integrity(data)
-print(f"Data integrity: {integrity_check.is_valid}")
+# Проверка полноты
+completeness = validate_data_completeness(data)
+print(f"Data completeness: {completeness['is_complete']}")
 ```
 
 ### Sample данные
 
 ```python
-from bquant.data.samples import get_sample_data, list_dataset_names, get_dataset_info
-
-# Получение списка доступных datasets
-datasets = list_dataset_names()
-print(f"Available datasets: {datasets}")
-
-# Получение информации о dataset
-info = get_dataset_info('tv_xauusd_1h')
-print(f"Dataset info: {info}")
-
-# Загрузка sample данных
-data = get_sample_data('tv_xauusd_1h')
-print(f"Loaded {len(data)} records")
-
-# Конвертация в DataFrame
-df = convert_to_dataframe(data)
-print(f"DataFrame shape: {df.shape}")
-```
-
-### Работа с DataLoader
-
-```python
-from bquant.data.loader import DataLoader
-
-# Создание загрузчика
-loader = DataLoader()
-
-# Настройка параметров
-loader.set_source('csv')
-loader.set_columns(date_col='time', 
-                   ohlcv_cols=['open', 'high', 'low', 'close', 'volume'])
-
-# Загрузка данных
-data = loader.load('data.csv')
-
-# Проверка загруженных данных
-print(f"Data shape: {data.shape}")
-print(f"Columns: {data.columns.tolist()}")
-```
-
-### Работа с DataProcessor
-
-```python
-from bquant.data.processor import DataProcessor
-
-# Создание процессора
-processor = DataProcessor()
-
-# Настройка параметров обработки
-processor.set_cleaning_options(remove_outliers=True, 
-                              fill_missing='forward',
-                              min_volume=0)
-
-# Обработка данных
-processed_data = processor.process(data)
-
-# Получение статистики обработки
-stats = processor.get_processing_stats()
-print(f"Processing stats: {stats}")
-```
-
-### Работа с DataValidator
-
-```python
-from bquant.data.validator import DataValidator
-
-# Создание валидатора
-validator = DataValidator()
-
-# Настройка правил валидации
-validator.set_validation_rules(
-    check_ohlcv_consistency=True,
-    check_volume_positive=True,
-    check_date_order=True,
-    min_records=100
+from bquant.data.samples import (
+    get_sample_data, list_datasets, list_dataset_names, get_dataset_info,
+    convert_to_dataframe, convert_to_list_of_dicts, get_data_statistics
 )
 
-# Валидация данных
-result = validator.validate(data)
+# Список доступных datasets
+datasets_summary = list_datasets()
+names = list_dataset_names()
 
-# Анализ результатов
-if result.is_valid:
-    print("Data is valid!")
-else:
-    print(f"Validation failed: {result.errors}")
-    print(f"Warnings: {result.warnings}")
+# Информация о датасете
+info = get_dataset_info('tv_xauusd_1h')
+
+# Загрузка sample данных (по умолчанию DataFrame)
+df = get_sample_data('tv_xauusd_1h')
+
+# Загрузка как список словарей и конвертация в DataFrame
+data_list = get_sample_data('tv_xauusd_1h', format='dict')
+df2 = convert_to_dataframe(data_list, 'tv_xauusd_1h')
+
+# Обратная конвертация
+data_list2 = convert_to_list_of_dicts(df, 'tv_xauusd_1h')
+
+# Статистика по данным
+stats = get_data_statistics('tv_xauusd_1h')
+```
+
+### Генератор Sample данных
+
+```python
+from bquant.data.samples import SampleDataGenerator
+
+generator = SampleDataGenerator()
+# generator.generate_all()  # создаст embedded-файлы согласно конфигурации
 ```
 
 ## 🔗 Связанные разделы
 
-- **[Core Modules](../core/)** - Базовые модули
-- **[Indicators](../indicators/)** - Технические индикаторы
-- **[Analysis](../analysis/)** - Аналитические модули
-- **[Visualization](../visualization/)** - Модули визуализации
+- **[Core Modules](../core/README.md)** — Базовые модули
+- **[Indicators](../indicators/README.md)** — Технические индикаторы
+- **[Analysis](../analysis/README.md)** — Аналитические модули
+- **[Visualization](../visualization/README.md)** — Модули визуализации
 
 ## 📖 Детальная документация
 
-- **[Loader Module](loader.md)** - Подробная документация загрузки данных
-- **[Processor Module](processor.md)** - Документация обработки данных
-- **[Validator Module](validator.md)** - Документация валидации данных
-- **[Samples Module](samples.md)** - Документация sample данных
-- **[Schemas Module](schemas.md)** - Документация схем данных
+- Loader: loader.md — загрузка данных (файлы, символ/таймфрейм, списки доступных)
+- Processor: processor.md — очистка, ресемплинг, производные индикаторы
+- Validator: validator.md — комплексная валидация, полнота, логика цен, непрерывность
+- Schemas: schemas.md — схемы данных и предопределённые схемы
+- Samples: samples.md — API sample‑данных (структура, функции, примеры)
 
 ---
 
-**Следующий раздел:** [Indicators](../indicators/) 📈
+**Следующий раздел:** [Indicators](../indicators/README.md) 📈
