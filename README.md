@@ -4,12 +4,13 @@
 
 ## 🔧 Key Features
 
-- **Universal configuration system** - support for multiple data sources and brokers
-- **Multi-level analysis** - technical, statistical, graphical, candlestick, time series
-- **ML readiness** - structure for machine learning (stubs)
-- **Visualization tools** - charts and reports
-- **Research environment** - notebooks and experiments
-- **Automated pipelines** - ready-to-use analysis scripts
+- **Universal Configuration System**: Flexible settings for data sources, indicators, and analysis.
+- **Advanced Analysis Engine**: In-depth statistical analysis, hypothesis testing, and a powerful engine for analyzing trading zones (MACD, Support/Resistance).
+- **Extensible Indicator Library**: Includes optimized built-in indicators (MACD, RSI, etc.) and supports external libraries like `pandas-ta` and `TA-Lib`.
+- **ML Readiness**: A modular structure prepared for future machine learning integration.
+- **Rich Visualization Tools**: Create interactive financial charts (candlestick, line) and statistical plots with Plotly and Matplotlib.
+- **Performance-Oriented**: Features a two-level caching system (memory & disk) and performance monitoring tools.
+- **Command-Line Interface**: Provides a simple CLI for quick analysis and data management.
 
 ## 🚀 Quick Start
 
@@ -26,27 +27,31 @@ pip install -e .[dev,notebooks]
 ### Basic Usage
 
 ```python
-from bquant.data import load_symbol_data
-from bquant.indicators import MACDAnalyzer
+from bquant.data.samples import get_sample_data
+from bquant.indicators import MACDZoneAnalyzer
 
-# Load data
-data = load_symbol_data('XAUUSD', '1h')
+# Load sample data
+data = get_sample_data('tv_xauusd_1h')
 
 # Analyze MACD zones
-analyzer = MACDAnalyzer(data, fast=8, slow=21)
-zones = analyzer.identify_zones()
+# The analyzer automatically calculates MACD and other required indicators
+analyzer = MACDZoneAnalyzer()
+zones = analyzer.identify_zones(data)
 
-print(f"Found {len(zones)} zones")
+print(f"Found {len(zones)} MACD zones")
 ```
 
 ### Command Line
 
 ```bash
-# Analyze single instrument
-bquant-analyze XAUUSD
+# List available sample datasets
+bquant list
 
-# Batch analysis
-bquant-batch EURUSD GBPUSD XAUUSD
+# Analyze a dataset using default settings
+bquant analyze tv_xauusd_1h
+
+# Analyze and save the chart to a file
+bquant analyze mt_xauusd_m15 -o chart.html
 ```
 
 ## 📋 Project Structure
@@ -66,19 +71,19 @@ This is a monorepo that contains:
 
 ```bash
 # Create virtual environment
-python -m venv venv_bquant_dell
+python -m venv .venv
 
 # Activate (Windows)
-venv_bquant_dell\Scripts\activate
+.venv\Scripts\activate
 
 # Activate (Linux/Mac)
-source venv_bquant_dell/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Install in development mode
-pip install -e .[dev]
+# Install in development mode with all extras
+pip install -e .[full]
 ```
 
 ### Running tests
@@ -95,9 +100,9 @@ pytest tests/ -v
 
 ## 🎯 Roadmap
 
-- **Phase 1**: Core functionality (data, MACD analysis, statistics)
-- **Phase 2**: Extended visualization, time series, other indicators
-- **Phase 3**: Full ML, chart patterns, automation
+- **Phase 1 (Completed)**: Core functionality (data loading, processing, validation), advanced MACD analysis, and statistical engine.
+- **Phase 2 (In Progress)**: Extended visualization options, implementation of Time Series and other indicator analysis modules (currently stubs).
+- **Phase 3 (Planned)**: Full machine learning integration, chart pattern recognition, and enhanced automation pipelines.
 
 ## 📄 License
 
