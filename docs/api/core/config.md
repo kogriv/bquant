@@ -36,6 +36,26 @@
 - `get_cache_config() -> Dict[str, Any]`
   - Копия конфигурации кэша.
 
+## Управление директориями
+
+Новые функции для динамического управления путями директорий:
+
+### Getter функции
+- `get_data_dir() -> Path` — Получить текущий путь к директории данных
+- `get_results_dir() -> Path` — Получить путь к директории результатов  
+- `get_notebooks_dir() -> Path` — Получить путь к директории ноутбуков
+- `get_processed_data_dir() -> Path` — Получить путь к директории обработанных данных
+
+### Setter функции
+- `set_data_dir(path) -> None` — Установить новый путь к директории данных
+- `set_results_dir(path) -> None` — Установить путь к директории результатов
+- `set_notebooks_dir(path) -> None` — Установить путь к директории ноутбуков  
+- `set_processed_data_dir(path) -> None` — Установить путь к директории обработанных данных
+
+### Утилиты
+- `reset_directories_to_defaults() -> None` — Сбросить все пути к значениям по умолчанию
+- `get_directory_status() -> Dict[str, Any]` — Получить информацию о текущих путях
+
 ## Примеры
 
 Получение пути к данным TradingView:
@@ -67,4 +87,24 @@ macd_params = get_indicator_params('macd', fast=8)
 from bquant.core.config import get_results_path
 
 csv_path = get_results_path('zone_analysis_2025-08-29', file_type='csv')
+```
+
+Управление директориями:
+```python
+from bquant.core.config import (
+    get_data_dir, set_data_dir, get_directory_status, reset_directories_to_defaults
+)
+
+# Получить текущий путь к данным
+current_data_dir = get_data_dir()
+
+# Установить кастомный путь
+set_data_dir('/custom/data/path')
+
+# Проверить статус всех директорий
+status = get_directory_status()
+print(status['data_dir']['is_custom'])  # True
+
+# Сбросить к умолчаниям
+reset_directories_to_defaults()
 ```

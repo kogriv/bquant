@@ -10,6 +10,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Union
 import warnings
+import chardet
 
 from ..core.config import (
     DATA_DIR, get_data_path, validate_timeframe,
@@ -23,6 +24,170 @@ from ..core.logging_config import get_logger
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
+
+
+def _detect_file_encoding(file_path: Path) -> str:
+    """
+    Detect file encoding using chardet library.
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        Detected encoding string
+        
+    Raises:
+        DataLoadingError: If encoding cannot be detected
+    """
+    try:
+        # Read a sample of the file to detect encoding
+        with open(file_path, 'rb') as f:
+            raw_data = f.read(10000)  # Read first 10KB
+        
+        if not raw_data:
+            raise DataLoadingError(f"File is empty: {file_path}")
+        
+        # Detect encoding
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+        confidence = result['confidence']
+        
+        if not encoding or confidence < 0.7:
+            # Fallback to common encodings
+            common_encodings = ['utf-8', 'windows-1252', 'cp1252', 'iso-8859-1', 'utf-16']
+            for enc in common_encodings:
+                try:
+                    with open(file_path, 'r', encoding=enc) as f:
+                        f.read(1000)  # Test read
+                    encoding = enc
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if not encoding:
+                raise DataLoadingError(f"Could not detect encoding for file: {file_path}")
+        
+        return encoding
+        
+    except Exception as e:
+        raise DataLoadingError(f"Error detecting file encoding: {e}")
+
+
+def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_context) -> Optional[pd.DataFrame]:
+    """
+    Try to read CSV file with specific encoding and date parsing.
+    
+    Args:
+        file_path: Path to CSV file
+        encoding: File encoding to use
+        logger_with_context: Logger with context
+        
+    Returns:
+        DataFrame if successful, None otherwise
+    """
+    date_formats = [
+        '%Y-%m-%d %H:%M:%S',
+        '%Y.%m.%d %H:%M:%S', 
+        '%Y-%m-%d'
+    ]
+    
+    # Попытка 1: Стандартный формат с заголовками
+    for i, date_format in enumerate(date_formats):
+        try:
+            if i == 0:  # Первая попытка с автоопределением индекса
+                df = pd.read_csv(file_path, index_col=0, parse_dates=True, date_format=date_format, encoding=encoding)
+            else:  # Остальные попытки
+                df = pd.read_csv(file_path, parse_dates=['time'], date_format=date_format, encoding=encoding)
+                if 'time' in df.columns:
+                    df.set_index('time', inplace=True)
+            
+            # Проверяем, что это не MetaTrader формат без заголовков
+            if not _is_mt_format_without_headers(df):
+                return df
+        except (ValueError, TypeError, UnicodeDecodeError):
+            continue
+    
+    # Попытка 2: MetaTrader формат без заголовков
+    try:
+        # Читаем первые несколько строк для определения структуры
+        sample_df = pd.read_csv(file_path, header=None, nrows=5, encoding=encoding)
+        
+        if _is_mt_format_without_headers(sample_df):
+            logger_with_context.info("Detected MetaTrader format without headers")
+            
+            # Определяем количество колонок и маппинг
+            num_cols = len(sample_df.columns)
+            if num_cols >= 6:
+                # Стандартный MT формат: time, open, high, low, close, volume
+                column_names = ['time', 'open', 'high', 'low', 'close', 'volume']
+                if num_cols > 6:
+                    # Дополнительные колонки (spread, etc.)
+                    column_names.extend([f'col_{i}' for i in range(6, num_cols)])
+                
+                # Читаем весь файл с правильными именами колонок
+                df = pd.read_csv(file_path, header=None, names=column_names, encoding=encoding)
+                
+                # Устанавливаем время как индекс
+                df.set_index('time', inplace=True)
+                
+                # Парсим время
+                if df.index.dtype == 'object':
+                    df.index = pd.to_datetime(df.index)
+                
+                return df
+    except Exception:
+        pass
+    
+    # Попытка 3: Автоопределение без парсинга дат
+    try:
+        df = pd.read_csv(file_path, index_col=0, parse_dates=True, encoding=encoding)
+        if df.index.dtype == 'object':
+            df.index = pd.to_datetime(df.index)
+        return df
+    except (ValueError, TypeError, UnicodeDecodeError):
+        try:
+            df = pd.read_csv(file_path, parse_dates=['time'], encoding=encoding)
+            if 'time' in df.columns:
+                df.set_index('time', inplace=True)
+                if df.index.dtype == 'object':
+                    df.index = pd.to_datetime(df.index)
+            return df
+        except (ValueError, TypeError, UnicodeDecodeError):
+            pass
+    
+    return None
+
+
+def _is_mt_format_without_headers(df: pd.DataFrame) -> bool:
+    """
+    Detect if DataFrame is in MetaTrader format without headers.
+    
+    Args:
+        df: DataFrame to check
+        
+    Returns:
+        True if it's MT format without headers
+    """
+    if df.empty or len(df.columns) < 6:
+        return False
+    
+    # Проверяем первые несколько колонок на числовые значения
+    # MT формат: время (строка), open, high, low, close, volume (числа)
+    try:
+        # Первая колонка должна быть строкой (время)
+        first_col = df.iloc[:, 0]
+        if not all(isinstance(str(val), str) for val in first_col.dropna()):
+            return False
+        
+        # Колонки 1-5 должны быть числовыми (open, high, low, close, volume)
+        numeric_cols = df.iloc[:, 1:6]
+        for col in numeric_cols.columns:
+            if not pd.to_numeric(numeric_cols[col], errors='coerce').notna().all():
+                return False
+        
+        return True
+    except Exception:
+        return False
 
 
 def load_ohlcv_data(
@@ -68,33 +233,40 @@ def load_ohlcv_data(
                 {'file_path': str(file_path), 'symbol': symbol, 'timeframe': timeframe}
             )
         
-        # Try to read CSV file
+        # Try to read CSV file with encoding detection
         try:
-            # Попробуем различные форматы даты
-            date_parsers = [
-                lambda x: pd.to_datetime(x, format='%Y-%m-%d %H:%M:%S'),
-                lambda x: pd.to_datetime(x, format='%Y.%m.%d %H:%M:%S'),
-                lambda x: pd.to_datetime(x, format='%Y-%m-%d'),
-                lambda x: pd.to_datetime(x, infer_datetime_format=True)
-            ]
+            # Detect file encoding
+            encoding = _detect_file_encoding(file_path)
+            logger_with_context.info(f"Detected encoding: {encoding}")
             
-            df = None
-            for i, date_parser in enumerate(date_parsers):
-                try:
-                    if i == 0:  # Первая попытка с автоопределением индекса
-                        df = pd.read_csv(file_path, index_col=0, parse_dates=True, date_parser=date_parser)
-                    else:  # Остальные попытки
-                        df = pd.read_csv(file_path, parse_dates=['time'], date_parser=date_parser)
-                        if 'time' in df.columns:
-                            df.set_index('time', inplace=True)
-                    break
-                except (ValueError, TypeError):
-                    continue
+            # Try to read with detected encoding
+            df = _try_read_csv_with_encoding(file_path, encoding, logger_with_context)
             
-            # Если все форматы не сработали, читаем без парсинга дат
+            # If failed, try common encodings as fallback
             if df is None:
-                df = pd.read_csv(file_path, index_col=0)
-                logger_with_context.warning("Could not parse dates automatically")
+                common_encodings = ['utf-8', 'windows-1252', 'cp1252', 'iso-8859-1', 'utf-16']
+                for fallback_encoding in common_encodings:
+                    if fallback_encoding != encoding:
+                        logger_with_context.info(f"Trying fallback encoding: {fallback_encoding}")
+                        df = _try_read_csv_with_encoding(file_path, fallback_encoding, logger_with_context)
+                        if df is not None:
+                            break
+            
+            # If still failed, try without date parsing
+            if df is None:
+                try:
+                    df = pd.read_csv(file_path, index_col=0, encoding=encoding)
+                    logger_with_context.warning("Could not parse dates automatically")
+                except Exception:
+                    # Last resort: try without index_col
+                    try:
+                        df = pd.read_csv(file_path, encoding=encoding)
+                        logger_with_context.warning("Could not set index automatically")
+                    except Exception as e:
+                        raise DataLoadingError(
+                            f"Failed to read CSV file with any encoding: {e}",
+                            {'file_path': str(file_path), 'error': str(e)}
+                        )
                 
         except Exception as e:
             raise DataLoadingError(

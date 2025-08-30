@@ -1,0 +1,159 @@
+🗂️ Log started: 2025-08-30 18:01:50
+📝 Output will be written to: /mnt/c/Users/user/Documents/Pro/bquant/research/notebooks/01_data_log.txt
+🚀 Starting BQuant Data Module Testing
+==================================================
+📋 STEP 0: Environment Setup
+------------------------------
+📁 Project root: /mnt/c/Users/user/Documents/Pro/bquant
+🐍 Python path: /mnt/c/Users/user/Documents/Pro/bquant
+📊 Pandas version: 2.3.1
+
+============================================================
+============================================================
+
+📋 STEP 1: Logging Setup
+-------------------------
+✅ Logging configured: WARNING+ to console, INFO+ to file
+
+============================================================
+============================================================
+
+📋 STEP 2: BQuant Module Imports
+---------------------------------
+✅ BQuant modules imported successfully
+
+============================================================
+============================================================
+
+📋 STEP 3: Data Directory Setup
+------------------------------
+🔧 Current data dir: /mnt/c/Users/user/Documents/Pro/bquant/data
+✅ New data directory: /mnt/c/Users/user/Documents/Pro/bquant/data/row
+✅ Directory exists: True
+
+📄 Found 4 CSV files:
+    OANDA_XAUUSD, 15.csv (3.38 MB)
+    OANDA_XAUUSD, 1D.csv (1.93 MB)
+    OANDA_XAUUSD, 60.csv (3.54 MB)
+    XAUUSDH1.csv (11.36 MB)
+
+============================================================
+============================================================
+
+📋 STEP 4: Test OANDA CSV Loading
+-----------------------------------
+🧪 Test 1: Loading OANDA_XAUUSD, 60.csv
+=============================================
+File path: /mnt/c/Users/user/Documents/Pro/bquant/data/row/OANDA_XAUUSD, 60.csv
+File exists: True
+✅ Data loaded successfully!
+Shape: (21357, 14)
+Columns: ['open', 'high', 'low', 'close', 'volume', 'accumulation/distribution', 'macd', 'signal', 'rsi', 'rsi-based ma', 'regular bullish', 'regular bullish label', 'regular bearish', 'regular bearish label']
+Date range: 2022-01-03 06:00:00+07:00 to 2025-08-12 13:00:00+07:00
+
+First 3 rows:
+                               open      high  ...  regular bearish  regular bearish label
+time                                           ...                                        
+2022-01-03 06:00:00+07:00  1828.775  1831.835  ...              NaN                    NaN
+2022-01-03 07:00:00+07:00  1828.510  1831.095  ...              NaN                    NaN
+2022-01-03 08:00:00+07:00  1830.370  1831.646  ...              NaN                    NaN
+
+[3 rows x 14 columns]
+
+📊 Data Info:
+  Rows: 21357
+  Memory usage: 2.44 MB
+  Missing values: {'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0, 'accumulation/distribution': 0, 'macd': 25, 'signal': 33, 'rsi': 14, 'rsi-based ma': 27, 'regular bullish': 21357, 'regular bullish label': 21357, 'regular bearish': 21357, 'regular bearish label': 21357}
+
+============================================================
+============================================================
+
+📋 STEP 5: Test MetaTrader CSV Loading
+-------------------------------------
+🧪 Test 2: Loading XAUUSDH1.csv
+===================================
+File path: /mnt/c/Users/user/Documents/Pro/bquant/data/row/XAUUSDH1.csv
+File exists: True
+✅ Data loaded successfully!
+Shape: (85689, 6)
+Columns: ['open', 'high', 'low', 'close', 'volume', 'col_6']
+Date range: 2000-06-20 00:00:00 to 2025-08-22 16:00:00
+
+First 3 rows:
+              open    high     low   close  volume  col_6
+time                                                     
+2000-06-20  285.25  288.10  284.85  286.75     501      0
+2000-06-21  285.75  288.05  285.10  286.40     526      0
+2000-06-22  285.65  289.95  284.40  285.90    1086      0
+
+📊 Data Info:
+  Rows: 85689
+  Memory usage: 4.58 MB
+  Missing values: {'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0, 'col_6': 0}
+
+============================================================
+============================================================
+
+📋 STEP 6: Data Sources Comparison
+-----------------------------------
+🧪 Test 3: Comparing Data Sources
+===================================
+📊 Data Comparison:
+  OANDA shape: (21357, 14)
+  MetaTrader shape: (85689, 6)
+
+📋 Columns:
+  Common columns: ['close', 'high', 'low', 'open', 'volume']
+  OANDA only: ['accumulation/distribution', 'macd', 'regular bearish', 'regular bearish label', 'regular bullish', 'regular bullish label', 'rsi', 'rsi-based ma', 'signal']
+  MetaTrader only: ['col_6']
+
+📅 Time Ranges:
+  OANDA: 2022-01-03 06:00:00+07:00 to 2025-08-12 13:00:00+07:00
+  MetaTrader: 2000-06-20 00:00:00 to 2025-08-22 16:00:00
+
+💰 Close Price Stats:
+  OANDA - Mean: 2227.76, Std: 493.64
+  MetaTrader - Mean: 1613.26, Std: 509.81
+
+============================================================
+============================================================
+
+📋 STEP 7: Available Data Overview
+-----------------------------------
+🧪 Test 4: Data Overview
+=========================
+📈 Available symbols: ['XAUUSD']
+
+📊 Symbol Details:
+  XAUUSD: ['15', '1D', '60', 'H1']
+
+📁 Total CSV files in directory: 4
+
+============================================================
+============================================================
+
+📋 STEP 8: Testing Summary
+---------------------------
+🎯 Data Module Testing Results:
+===================================
+✅ OANDA data loaded successfully
+✅ MetaTrader data loaded successfully
+
+📊 Summary:
+  Successfully loaded: 2/2 datasets
+  Available symbols: 1
+  CSV files found: 4
+
+🚀 Next Steps:
+- Test data validation functions
+- Test data processing functions
+- Test sample data functionality
+- Performance testing
+
+✅ Data module basic testing completed!
+
+============================================================
+============================================================
+
+🏁 Script finished successfully!
+🏁 Log ended: 2025-08-30 18:03:12

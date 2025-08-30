@@ -99,19 +99,25 @@ class ContextualLogger:
 
 def setup_logging(
     level: str = None,
+    console_level: str = None,
+    file_level: str = None,
     log_to_file: bool = None,
     log_file: Union[str, Path] = None,
     use_colors: bool = True,
+    console_enabled: bool = True,
     reset_loggers: bool = False
 ) -> logging.Logger:
     """
     Настроить систему логгирования BQuant
     
     Args:
-        level: Уровень логгирования
+        level: Общий уровень логгирования (если не указаны отдельные)
+        console_level: Уровень для консольного вывода (INFO, WARNING, ERROR, etc.)
+        file_level: Уровень для файлового логгирования
         log_to_file: Логгировать в файл
         log_file: Путь к файлу логов
-        use_colors: Использовать цветовое выделение
+        use_colors: Использовать цветовое выделение в консоли
+        console_enabled: Включить консольный вывод
         reset_loggers: Сбросить существующие логгеры
     
     Returns:
@@ -119,6 +125,8 @@ def setup_logging(
     """
     # Получаем настройки из конфигурации
     level = level or LOGGING['level']
+    console_level = console_level or level
+    file_level = file_level or level
     log_to_file = log_to_file if log_to_file is not None else LOGGING['file_logging']
     log_file = log_file or LOGGING['log_file']
     
@@ -146,22 +154,25 @@ def setup_logging(
                 'datefmt': '%Y-%m-%d %H:%M:%S'
             }
         },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'level': level,
-                'formatter': 'console',
-                'stream': sys.stdout
-            }
-        },
+        'handlers': {},
         'loggers': {
             'bquant': {
-                'level': level,
-                'handlers': ['console'],
+                'level': 'DEBUG',  # Общий уровень - самый низкий, обработчики фильтруют
+                'handlers': [],
                 'propagate': False
             }
         }
     }
+    
+    # Добавляем консольный обработчик если включен
+    if console_enabled:
+        config['handlers']['console'] = {
+            'class': 'logging.StreamHandler',
+            'level': console_level,
+            'formatter': 'console',
+            'stream': sys.stdout
+        }
+        config['loggers']['bquant']['handlers'].append('console')
     
     # Добавляем файловый обработчик если нужно
     if log_to_file:
@@ -171,7 +182,7 @@ def setup_logging(
         
         config['handlers']['file'] = {
             'class': 'logging.handlers.RotatingFileHandler',
-            'level': level,
+            'level': file_level,
             'formatter': 'file',
             'filename': str(log_file),
             'maxBytes': 10 * 1024 * 1024,  # 10MB
@@ -189,9 +200,10 @@ def setup_logging(
     logger = logging.getLogger('bquant')
     
     # Логгируем успешную инициализацию
-    logger.info(f"Система логгирования BQuant инициализирована (уровень: {level})")
+    if console_enabled:
+        logger.info(f"Система логгирования BQuant инициализирована (консоль: {console_level})")
     if log_to_file:
-        logger.info(f"Логи сохраняются в файл: {log_file}")
+        logger.info(f"Логи сохраняются в файл: {log_file} (уровень: {file_level})")
     
     return logger
 
@@ -366,3 +378,98 @@ def critical(message: str, **context):
     """Быстрое critical сообщение"""
     logger = get_logger('bquant.quick', context if context else None)
     logger.critical(message)
+
+
+# ============================================================================
+# PRESET CONFIGURATIONS - Готовые конфигурации для разных сценариев
+# ============================================================================
+
+def setup_notebook_logging(
+    console_level: str = "WARNING",
+    file_level: str = "INFO",
+    log_file: Union[str, Path] = None
+) -> logging.Logger:
+    """
+    Настройка логгирования для Jupyter ноутбуков.
+    
+    По умолчанию: WARNING+ в консоль, INFO+ в файл
+    
+    Args:
+        console_level: Уровень для консоли (по умолчанию WARNING)
+        file_level: Уровень для файла (по умолчанию INFO) 
+        log_file: Путь к файлу логов (по умолчанию project/logs/notebook.log)
+    
+    Returns:
+        Настроенный логгер
+    """
+    if log_file is None:
+        log_file = PROJECT_ROOT / "logs" / "notebook.log"
+    
+    return setup_logging(
+        console_level=console_level,
+        file_level=file_level,
+        log_to_file=True,
+        log_file=log_file,
+        use_colors=False,  # Отключить цвета в ноутбуке
+        reset_loggers=True
+    )
+
+
+def setup_development_logging() -> logging.Logger:
+    """
+    Настройка логгирования для разработки.
+    
+    DEBUG во все обработчики, цветовое выделение
+    
+    Returns:
+        Настроенный логгер
+    """
+    return setup_logging(
+        console_level="DEBUG",
+        file_level="DEBUG", 
+        log_to_file=True,
+        log_file=PROJECT_ROOT / "logs" / "development.log",
+        use_colors=True,
+        reset_loggers=True
+    )
+
+
+def setup_production_logging(log_file: Union[str, Path] = None) -> logging.Logger:
+    """
+    Настройка логгирования для продакшена.
+    
+    Только файловое логгирование, INFO+
+    
+    Args:
+        log_file: Путь к файлу логов
+        
+    Returns:
+        Настроенный логгер
+    """
+    if log_file is None:
+        log_file = PROJECT_ROOT / "logs" / "production.log"
+        
+    return setup_logging(
+        console_enabled=False,  # Отключить консоль
+        file_level="INFO",
+        log_to_file=True,
+        log_file=log_file,
+        reset_loggers=True
+    )
+
+
+def setup_quiet_logging() -> logging.Logger:
+    """
+    Тихое логгирование - только ERROR+ в консоль, INFO+ в файл.
+    
+    Returns:
+        Настроенный логгер
+    """
+    return setup_logging(
+        console_level="ERROR",
+        file_level="INFO",
+        log_to_file=True, 
+        log_file=PROJECT_ROOT / "logs" / "quiet.log",
+        use_colors=False,
+        reset_loggers=True
+    )

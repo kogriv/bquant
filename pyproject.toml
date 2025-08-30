@@ -32,7 +32,8 @@ dependencies = [
     "kaleido==1.0.0",
     "ipywidgets==8.1.7",
     "psutil>=5.9.0",
-    "nbformat>=4.2.0",
+            "nbformat>=4.2.0",
+        "chardet>=5.0.0",
 ]
 
 [project.urls]

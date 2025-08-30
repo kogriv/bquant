@@ -6,7 +6,7 @@ Universal configuration supporting multiple instruments, indicators, and analysi
 
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 
 # ============================================================================
 # PROJECT STRUCTURE
@@ -326,3 +326,184 @@ def get_cache_config() -> Dict[str, Any]:
         Словарь с настройками кэширования
     """
     return CACHE_CONFIG.copy()
+
+
+# ============================================================================
+# DIRECTORY MANAGEMENT FUNCTIONS
+# ============================================================================
+
+# Global variables для runtime изменения путей
+_runtime_data_dir: Optional[Path] = None
+_runtime_results_dir: Optional[Path] = None
+_runtime_notebooks_dir: Optional[Path] = None
+_runtime_processed_data_dir: Optional[Path] = None
+
+
+def get_data_dir() -> Path:
+    """
+    Получить текущий путь к директории данных.
+    
+    Returns:
+        Path к директории данных (runtime или default)
+    """
+    return _runtime_data_dir if _runtime_data_dir is not None else DATA_DIR
+
+
+def set_data_dir(path: Union[str, Path]) -> None:
+    """
+    Установить новый путь к директории данных.
+    
+    Args:
+        path: Новый путь к директории данных
+        
+    Raises:
+        ValueError: Если путь не является директорией
+    """
+    global _runtime_data_dir
+    new_path = Path(path)
+    
+    if new_path.exists() and not new_path.is_dir():
+        raise ValueError(f"Path {path} exists but is not a directory")
+    
+    # Создаем директорию если её нет
+    new_path.mkdir(exist_ok=True, parents=True)
+    _runtime_data_dir = new_path
+
+
+def get_results_dir() -> Path:
+    """
+    Получить текущий путь к директории результатов.
+    
+    Returns:
+        Path к директории результатов (runtime или default)
+    """
+    return _runtime_results_dir if _runtime_results_dir is not None else RESULTS_DIR
+
+
+def set_results_dir(path: Union[str, Path]) -> None:
+    """
+    Установить новый путь к директории результатов.
+    
+    Args:
+        path: Новый путь к директории результатов
+        
+    Raises:
+        ValueError: Если путь не является директорией
+    """
+    global _runtime_results_dir
+    new_path = Path(path)
+    
+    if new_path.exists() and not new_path.is_dir():
+        raise ValueError(f"Path {path} exists but is not a directory")
+    
+    # Создаем директорию если её нет
+    new_path.mkdir(exist_ok=True, parents=True)
+    _runtime_results_dir = new_path
+
+
+def get_notebooks_dir() -> Path:
+    """
+    Получить текущий путь к директории ноутбуков.
+    
+    Returns:
+        Path к директории ноутбуков (runtime или default)
+    """
+    return _runtime_notebooks_dir if _runtime_notebooks_dir is not None else NOTEBOOKS_DIR
+
+
+def set_notebooks_dir(path: Union[str, Path]) -> None:
+    """
+    Установить новый путь к директории ноутбуков.
+    
+    Args:
+        path: Новый путь к директории ноутбуков
+        
+    Raises:
+        ValueError: Если путь не является директорией
+    """
+    global _runtime_notebooks_dir
+    new_path = Path(path)
+    
+    if new_path.exists() and not new_path.is_dir():
+        raise ValueError(f"Path {path} exists but is not a directory")
+    
+    # Создаем директорию если её нет
+    new_path.mkdir(exist_ok=True, parents=True)
+    _runtime_notebooks_dir = new_path
+
+
+def get_processed_data_dir() -> Path:
+    """
+    Получить текущий путь к директории обработанных данных.
+    
+    Returns:
+        Path к директории обработанных данных (runtime или default)
+    """
+    return _runtime_processed_data_dir if _runtime_processed_data_dir is not None else PROCESSED_DATA_DIR
+
+
+def set_processed_data_dir(path: Union[str, Path]) -> None:
+    """
+    Установить новый путь к директории обработанных данных.
+    
+    Args:
+        path: Новый путь к директории обработанных данных
+        
+    Raises:
+        ValueError: Если путь не является директорией
+    """
+    global _runtime_processed_data_dir
+    new_path = Path(path)
+    
+    if new_path.exists() and not new_path.is_dir():
+        raise ValueError(f"Path {path} exists but is not a directory")
+    
+    # Создаем директорию если её нет
+    new_path.mkdir(exist_ok=True, parents=True)
+    _runtime_processed_data_dir = new_path
+
+
+def reset_directories_to_defaults() -> None:
+    """
+    Сбросить все пути директорий к значениям по умолчанию.
+    """
+    global _runtime_data_dir, _runtime_results_dir, _runtime_notebooks_dir, _runtime_processed_data_dir
+    _runtime_data_dir = None
+    _runtime_results_dir = None
+    _runtime_notebooks_dir = None
+    _runtime_processed_data_dir = None
+
+
+def get_directory_status() -> Dict[str, Any]:
+    """
+    Получить информацию о текущих путях директорий.
+    
+    Returns:
+        Словарь с информацией о директориях
+    """
+    return {
+        'data_dir': {
+            'current': str(get_data_dir()),
+            'default': str(DATA_DIR),
+            'is_custom': _runtime_data_dir is not None,
+            'exists': get_data_dir().exists()
+        },
+        'results_dir': {
+            'current': str(get_results_dir()),
+            'default': str(RESULTS_DIR),
+            'is_custom': _runtime_results_dir is not None,
+            'exists': get_results_dir().exists()
+        },
+        'notebooks_dir': {
+            'current': str(get_notebooks_dir()),
+            'default': str(NOTEBOOKS_DIR),
+            'is_custom': _runtime_notebooks_dir is not None,
+            'exists': get_notebooks_dir().exists()
+        },
+        'processed_data_dir': {
+            'current': str(get_processed_data_dir()),
+            'default': str(PROCESSED_DATA_DIR),
+            'is_custom': _runtime_processed_data_dir is not None,
+            'exists': get_processed_data_dir().exists()
+        }
+    }
