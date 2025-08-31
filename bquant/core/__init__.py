@@ -59,6 +59,10 @@ from .numpy_fix import (
     nan
 )
 
+from .nb import (
+    NotebookSimulator
+)
+
 __all__ = [
     # Config
     "get_data_path",
@@ -108,5 +112,8 @@ __all__ = [
     "check_numpy_compatibility",
     "ensure_numpy_compatibility",
     "NaN",
-    "nan"
+    "nan",
+    
+    # Notebook-style scripts
+    "NotebookSimulator"
 ]

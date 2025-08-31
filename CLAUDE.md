@@ -1,0 +1,1 @@
+Use rules from [VIBE.md](VIBE.md)

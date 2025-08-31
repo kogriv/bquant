@@ -13,7 +13,7 @@ import warnings
 import chardet
 
 from ..core.config import (
-    DATA_DIR, get_data_path, validate_timeframe,
+    DATA_DIR, get_data_dir, get_data_path, validate_timeframe,
     DATA_VALIDATION, SUPPORTED_TIMEFRAMES, TIMEFRAME_MAPPING
 )
 from ..core.exceptions import (
@@ -363,13 +363,13 @@ def load_all_data_files(data_dir: Optional[Path] = None) -> Dict[str, pd.DataFra
     Load all available data files from data directory.
     
     Args:
-        data_dir: Directory to search for data files (default: DATA_DIR)
+        data_dir: Directory to search for data files (default: from get_data_dir())
     
     Returns:
         Dictionary with symbol_timeframe as key and DataFrame as value
     """
     if data_dir is None:
-        data_dir = DATA_DIR
+        data_dir = get_data_dir()
     
     all_data = {}
     
@@ -449,13 +449,13 @@ def get_available_symbols(data_dir: Optional[Path] = None) -> List[str]:
     Get list of available symbols in data directory.
     
     Args:
-        data_dir: Directory to search (default: DATA_DIR)
+        data_dir: Directory to search (default: from get_data_dir())
     
     Returns:
         List of available symbols
     """
     if data_dir is None:
-        data_dir = DATA_DIR
+        data_dir = get_data_dir()
     
     symbols = set()
     
@@ -476,13 +476,13 @@ def get_available_timeframes(symbol: str, data_dir: Optional[Path] = None) -> Li
     
     Args:
         symbol: Trading symbol
-        data_dir: Directory to search (default: DATA_DIR)
+        data_dir: Directory to search (default: from get_data_dir())
     
     Returns:
         List of available timeframes for the symbol
     """
     if data_dir is None:
-        data_dir = DATA_DIR
+        data_dir = get_data_dir()
     
     timeframes = set()
     

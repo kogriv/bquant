@@ -233,8 +233,11 @@ def get_data_path(symbol: str, timeframe: str, data_source: str = 'tradingview',
     Returns:
         Path to data file
     """
-    # Validate timeframe first
-    timeframe = validate_timeframe(timeframe)
+    # [2025-08-31] ВРЕМЕННОЕ РЕШЕНИЕ: Валидация отключена, чтобы избежать ошибки двойной проверки
+    # при вызове из bquant.data.loader.load_symbol_data.
+    # TODO: Требуется постоянное решение. См. подробный анализ в файле:
+    # devref/gaps/issue_double_timeframe_validation.md
+    # timeframe = validate_timeframe(timeframe)
     
     # Get mapped timeframe for the specific data source
     if data_source in TIMEFRAME_MAPPING:
@@ -254,7 +257,7 @@ def get_data_path(symbol: str, timeframe: str, data_source: str = 'tradingview',
     
     # Generate filename
     filename = pattern.format(symbol=symbol, timeframe=mapped_timeframe)
-    return DATA_DIR / filename
+    return get_data_dir() / filename
 
 def get_indicator_params(indicator: str, **overrides) -> Dict[str, Any]:
     """

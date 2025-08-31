@@ -31,6 +31,12 @@ Core модули содержат базовую функциональност
 - `save_results()`, `validate_ohlcv_columns()`, `create_timestamp()`
 - `memory_usage_info()`, `ensure_directory()`
 
+### 📓 [bquant.core.nb](nb.md) - Notebook-Style Scripts API
+- **NotebookRunner** - Класс для управления пошаговым выполнением скриптов
+- Утилиты логирования: `log()`, `success()`, `error()`, `warning()`, `info()`
+- Интерактивное управление: `step()`, `wait()`, `substep()`
+- Парсинг аргументов: `create_argument_parser()`, `create_runner_from_args()`
+
 ## 🔍 Быстрый поиск
 
 ### По функциональности
@@ -55,11 +61,17 @@ Core модули содержат базовую функциональност
 - `calculate_returns()` - Доходности (simple/log)
 - `normalize_data()` - Нормализация данных
 
+#### Notebook-style скрипты
+- `NotebookRunner()` - Создание runner для скрипта
+- `step()` / `wait()` - Пошаговое выполнение
+- `success()` / `error()` - Логирование с эмодзи
+
 ### По типу
 
 #### 🏗️ Классы
 - `BQuantError` - Базовое исключение
 - `PerformanceMonitor` - Сбор метрик
+- `NotebookRunner` - Управление notebook-style скриптами
 
 #### 🔧 Функции
 - `setup_logging()` - Настройка логирования
@@ -150,6 +162,29 @@ if not check['is_valid']:
 ret = calculate_returns(df['close'], method='log')
 ```
 
+### Notebook-style скрипты
+
+```python
+from bquant.core.nb import NotebookRunner, create_argument_parser
+
+# Создание и настройка runner
+runner = NotebookRunner("Data Analysis Script")
+runner.setup_logging('analysis.log')
+
+# Пошаговое выполнение
+runner.step("Loading Data")
+# код загрузки данных
+runner.success("Data loaded successfully")
+runner.wait()
+
+runner.step("Processing Data")
+# код обработки
+runner.success("Processing completed")
+runner.wait()
+
+runner.finish()
+```
+
 ## 🔗 Связанные разделы
 
 - **[Data Modules](../data/README.md)** - Модули для работы с данными
@@ -164,6 +199,7 @@ ret = calculate_returns(df['close'], method='log')
 - **[Logging Module](logging.md)** - Документация логирования
 - **[Performance Module](performance.md)** - Документация производительности
 - **[Utils Module](utils.md)** - Документация утилит
+- **[Notebook-Style API](nb.md)** - Документация notebook-style скриптов
 
 ---
 

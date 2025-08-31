@@ -1,0 +1,270 @@
+[LOG] Log started: 2025-08-31 14:49:40
+[OUTPUT] Output will be written to: 01_data_loader_log.txt
+[>>] Starting Демонстрация работы модуля bquant.data.loader
+=================================================================
+[SCRIPT] Демонстрация работы модуля bquant.data.loader
+[DATE] Started: 2025-08-31 14:49:40
+=================================================================
+================================================================================
+[STEP] STEP 1: Шаг 1: Работа с встроенными sample-данными
+--------------------------------------------------
+[INFO] API bquant.data.samples - это самый простой способ получить данные для тестов и примеров.
+[INFO] 1.1. Список доступных встроенных датасетов:
+[
+  {
+    "name": "tv_xauusd_1h",
+    "title": "TradingView XAUUSD 1H",
+    "description": "Часовые данные XAUUSD с техническими индикаторами",
+    "symbol": "XAUUSD",
+    "timeframe": "1H",
+    "rows": 1000,
+    "columns_count": 15,
+    "size_kb": 542.4,
+    "source": "TradingView via OANDA",
+    "updated": "2025-08-25 18:38:50"
+  },
+  {
+    "name": "mt_xauusd_m15",
+    "title": "MetaTrader XAUUSD 15M",
+    "description": "15-минутные данные XAUUSD с базовыми метриками",
+    "symbol": "XAUUSD",
+    "timeframe": "15M",
+    "rows": 1000,
+    "columns_count": 7,
+    "size_kb": 202.5,
+    "source": "MetaTrader",
+    "updated": "2025-08-25 18:38:51"
+  }
+]
+[OK] Listing available datasets completed successfully
+[INFO] 1.2. Получение информации о конкретном датасете (tv_xauusd_1h):
+{
+  "name": "TradingView XAUUSD 1H",
+  "description": "Часовые данные XAUUSD с техническими индикаторами",
+  "source": "TradingView via OANDA",
+  "symbol": "XAUUSD",
+  "timeframe": "1H",
+  "rows": 1000,
+  "columns": [
+    "time",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "accumulation_distribution",
+    "macd",
+    "signal",
+    "rsi",
+    "rsi_based_ma",
+    "regular_bullish",
+    "regular_bullish_label",
+    "regular_bearish",
+    "regular_bearish_label"
+  ],
+  "period_start": "2025-06-11T20:00:00+07:00",
+  "period_end": "2025-08-12T13:00:00+07:00",
+  "license": "Open data, free for research and educational use",
+  "disclaimer": "For demonstration purposes only. Not for production trading.",
+  "file_module": "embedded.tv_xauusd_1h",
+  "size_bytes": 555425,
+  "updated": "2025-08-25 18:38:50",
+  "original_filename": "OANDA_XAUUSD, 60.csv"
+}
+[OK] Getting dataset info completed successfully
+[INFO] 1.3. Загрузка встроенного датасета 'tv_xauusd_1h' как DataFrame:
+                       time      open      high       low     close   volume  accumulation_distribution      macd    signal        rsi  rsi_based_ma regular_bullish regular_bullish_label regular_bearish regular_bearish_label
+0 2025-06-11 20:00:00+07:00  3336.940  3344.770  3327.950  3330.000  54323.0               6.642770e+06  1.940145  2.765371  47.827521     55.231967            None                  None            None                  None
+1 2025-06-11 21:00:00+07:00  3329.980  3341.310  3328.575  3337.635  37324.0               6.658553e+06  2.030300  2.618357  53.656385     55.138886            None                  None            None                  None
+2 2025-06-11 22:00:00+07:00  3337.715  3342.930  3329.655  3333.220  22725.0               6.648033e+06  1.725604  2.439806  50.166113     55.035372            None                  None            None                  None
+3 2025-06-11 23:00:00+07:00  3333.265  3334.570  3328.185  3330.390  16495.0               6.642931e+06  1.241461  2.200137  48.010293     54.292673            None                  None            None                  None
+4 2025-06-12 00:00:00+07:00  3330.410  3331.435  3319.380  3324.365  21476.0               6.639217e+06  0.367373  1.833584  43.704225     53.189298            None                  None            None                  None
+[OK] Loading TradingView sample data completed successfully
+[INFO] 1.4. Загрузка встроенного датасета 'mt_xauusd_m15' и просмотр информации о нем:
+{
+  "rows": 1000,
+  "columns": [
+    "time",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "spread"
+  ],
+  "date_range": {
+    "start": 0,
+    "end": 999
+  },
+  "memory_usage_mb": 0.053531646728515625,
+  "missing_values": {
+    "time": 0,
+    "open": 0,
+    "high": 0,
+    "low": 0,
+    "close": 0,
+    "volume": 0,
+    "spread": 0
+  },
+  "data_types": {
+    "time": "datetime64[ns]",
+    "open": "float64",
+    "high": "float64",
+    "low": "float64",
+    "close": "float64",
+    "volume": "float64",
+    "spread": "float64"
+  }
+}
+[OK] Loading MetaTrader sample data completed successfully
+
+============================================================
+============================================================
+
+================================================================================
+[STEP] STEP 2: Шаг 2: Загрузка сырых CSV файлов напрямую
+-------------------------------------------------
+[INFO] Функция load_ohlcv_data() является основной и может загружать CSV файлы, автоматически определяя их формат (OANDA/TradingView или MetaTrader).
+[INFO] Путь к директории с сырыми данными: C:\Users\Ivan\Documents\pro\bquant\data\row
+[INFO] 2.1. Загружаем файл MetaTrader: C:\Users\Ivan\Documents\pro\bquant\data\row\XAUUSDH1.csv
+              open    high     low   close  volume  col_6
+time                                                     
+2000-06-20  285.25  288.10  284.85  286.75     501      0
+2000-06-21  285.75  288.05  285.10  286.40     526      0
+2000-06-22  285.65  289.95  284.40  285.90    1086      0
+2000-06-23  285.05  287.15  282.20  283.40     826      0
+2000-06-26  282.90  285.20  281.55  284.20     601      0
+{
+  "rows": 85689,
+  "columns": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "col_6"
+  ],
+  "date_range": {
+    "start": "2000-06-20 00:00:00",
+    "end": "2025-08-22 16:00:00"
+  },
+  "memory_usage_mb": 4.576286315917969,
+  "missing_values": {
+    "open": 0,
+    "high": 0,
+    "low": 0,
+    "close": 0,
+    "volume": 0,
+    "col_6": 0
+  },
+  "data_types": {
+    "open": "float64",
+    "high": "float64",
+    "low": "float64",
+    "close": "float64",
+    "volume": "int64",
+    "col_6": "int64"
+  }
+}
+[OK] Loading raw MetaTrader file completed successfully
+[INFO] 2.2. Загружаем файл TradingView: C:\Users\Ivan\Documents\pro\bquant\data\row\OANDA_XAUUSD, 60.csv
+                               open      high       low     close  volume  accumulation/distribution  macd  signal  rsi  rsi-based ma  regular bullish  regular bullish label  regular bearish  regular bearish label
+time                                                                                                                                                                                                                 
+2022-01-03 06:00:00+07:00  1828.775  1831.835  1828.090  1828.510     687                -532.906542   NaN     NaN  NaN           NaN              NaN                    NaN              NaN                    NaN
+2022-01-03 07:00:00+07:00  1828.510  1831.095  1827.126  1830.370     998                 100.492803   NaN     NaN  NaN           NaN              NaN                    NaN              NaN                    NaN
+2022-01-03 08:00:00+07:00  1830.370  1831.646  1827.705  1828.915    1032                -297.800016   NaN     NaN  NaN           NaN              NaN                    NaN              NaN                    NaN
+2022-01-03 09:00:00+07:00  1828.915  1828.955  1825.710  1826.240     737                -794.054254   NaN     NaN  NaN           NaN              NaN                    NaN              NaN                    NaN
+2022-01-03 10:00:00+07:00  1826.240  1826.976  1824.285  1825.820     624                -706.170196   NaN     NaN  NaN           NaN              NaN                    NaN              NaN                    NaN
+{
+  "rows": 21357,
+  "columns": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "accumulation/distribution",
+    "macd",
+    "signal",
+    "rsi",
+    "rsi-based ma",
+    "regular bullish",
+    "regular bullish label",
+    "regular bearish",
+    "regular bearish label"
+  ],
+  "date_range": {
+    "start": "2022-01-03 06:00:00+07:00",
+    "end": "2025-08-12 13:00:00+07:00"
+  },
+  "memory_usage_mb": 2.4441146850585938,
+  "missing_values": {
+    "open": 0,
+    "high": 0,
+    "low": 0,
+    "close": 0,
+    "volume": 0,
+    "accumulation/distribution": 0,
+    "macd": 25,
+    "signal": 33,
+    "rsi": 14,
+    "rsi-based ma": 27,
+    "regular bullish": 21357,
+    "regular bullish label": 21357,
+    "regular bearish": 21357,
+    "regular bearish label": 21357
+  },
+  "data_types": {
+    "open": "float64",
+    "high": "float64",
+    "low": "float64",
+    "close": "float64",
+    "volume": "int64",
+    "accumulation/distribution": "float64",
+    "macd": "float64",
+    "signal": "float64",
+    "rsi": "float64",
+    "rsi-based ma": "float64",
+    "regular bullish": "float64",
+    "regular bullish label": "float64",
+    "regular bearish": "float64",
+    "regular bearish label": "float64"
+  }
+}
+[OK] Loading raw TradingView file completed successfully
+
+============================================================
+============================================================
+
+================================================================================
+[STEP] STEP 3: Шаг 3: Использование конфигурационных хелперов для гибкой загрузки
+--------------------------------------------------------------------------
+[INFO] Функция load_symbol_data() использует config.py для поиска файлов. По умолчанию она ищет в /data. Мы временно изменим путь на /data/row, чтобы продемонстрировать гибкость системы конфигурации.
+[INFO] Текущая директория данных: C:\Users\Ivan\Documents\pro\bquant\data
+[INFO] Временно изменили директорию данных на: C:\Users\Ivan\Documents\pro\bquant\data\row
+[INFO] 3.1. Теперь load_symbol_data сможет найти файлы в data/row
+[INFO] Загрузка XAUUSD 1h (metatrader) через хелпер:
+              open    high     low   close  volume  col_6
+time                                                     
+2000-06-20  285.25  288.10  284.85  286.75     501      0
+2000-06-21  285.75  288.05  285.10  286.40     526      0
+2000-06-22  285.65  289.95  284.40  285.90    1086      0
+2000-06-23  285.05  287.15  282.20  283.40     826      0
+2000-06-26  282.90  285.20  281.55  284.20     601      0
+[OK] Loading with load_symbol_data helper completed successfully
+[INFO] 3.2. Получение списка доступных символов и таймфреймов из новой директории:
+Доступные символы: ['XAUUSD']
+Доступные таймфреймы для XAUUSD: ['1D', '60', 'H1', 'M15']
+[OK] Getting available symbols and timeframes completed successfully
+[INFO] 3.3. Загрузка всех файлов из директории data/row:
+Загружено 4 наборов данных:
+  - XAUUSD_1D: 14568 строк
+  - XAUUSD_60: 21357 строк
+  - XAUUSD_H1: 85689 строк
+  - XAUUSD_M15: 100000 строк
+[OK] Loading all data files from directory completed successfully
+[INFO] Вернули директорию данных к значению по умолчанию: C:\Users\Ivan\Documents\pro\bquant\data
+
+[END] Script finished successfully!
+[END] Log ended: 2025-08-31 14:49:51
+[TIME] Duration: 0:00:11.059627
