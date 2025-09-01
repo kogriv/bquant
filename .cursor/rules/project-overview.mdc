@@ -1,0 +1,72 @@
+# BQuant Project Overview
+
+BQuant is a quantitative research toolkit for financial markets, built with Python 3.11+. The project focuses on MACD zone analysis as the primary use case but is designed as a modular, extensible framework.
+
+## Project Structure
+- **`bquant/`** - Main Python package containing all modules
+- **`research/`** - Jupyter notebooks and experimental code
+- **`scripts/`** - Automation and utility scripts
+- **`data/`** - Data storage (raw and processed)
+- **`tests/`** - Comprehensive test suite
+- **`docs/`** - Sphinx documentation
+- **`changelogs/`** - Detailed change tracking logs
+
+## Key Modules
+
+### Core (`bquant/core/`)
+- **`config.py`**: Universal configuration system with timeframe mapping for different data providers
+- **`nb.py`**: NotebookSimulator class for creating notebook-style Python scripts with step-by-step execution
+- **`cache.py`**: Two-level caching system (memory + disk) for performance optimization
+- **`performance.py`**: Performance monitoring and optimization utilities
+- **`logging_config.py`**: Centralized logging configuration
+- **`exceptions.py`**: Custom exception hierarchy for different error types
+
+### Data Layer (`bquant/data/`)
+- **`loader.py`**: CSV data loading with automatic format detection (OANDA, MetaTrader)
+- **`processor.py`**: Data processing and indicator calculation pipeline
+- **`samples/`**: Embedded sample datasets for testing and examples
+- **`validator.py`**: Data validation and quality checks
+- **`schemas.py`**: Data structure definitions
+
+### Indicators (`bquant/indicators/`)
+- **`macd.py`**: Advanced MACD analyzer with zone detection, clustering, and statistical analysis
+- **`calculators.py`**: Core indicator calculation functions
+- **`base.py`**: Base classes for custom indicators
+- **`library.py`**: Integration with pandas-ta and TA-Lib
+
+### Analysis (`bquant/analysis/`)
+- **`zones/`**: Zone analysis algorithms (sequence analysis, feature extraction)
+- **`statistical/`**: Statistical analysis and hypothesis testing
+- **`technical/`**: Technical analysis modules (mostly stubs for future implementation)
+
+### Visualization (`bquant/visualization/`)
+- **`charts.py`**: Financial chart creation with Plotly
+- **`zones.py`**: Zone-specific visualization tools
+- **`themes.py`**: Chart themes and styling
+
+## Key Design Patterns
+
+### NotebookSimulator Pattern
+For research scripts, use the NotebookSimulator class to create notebook-style execution with step-by-step execution, automatic CLI argument parsing, and rich logging.
+
+### Configuration Pattern
+Use the centralized configuration system for paths, parameters, and settings.
+
+### Sample Data Pattern
+Always use sample data for examples and tests from `bquant.data.samples`.
+
+### Performance Monitoring
+Use built-in performance monitoring for analysis functions.
+
+## Development Guidelines
+- Use Python 3.11+ features
+- Follow PEP 8 with Black formatting (88 character line length)
+- Comprehensive testing with pytest
+- Document all public APIs
+- Use type hints where appropriate
+- Maintain changelog entries for all changes
+- Use embedded sample data, never hardcode external file paths
+description:
+globs:
+alwaysApply: true
+---

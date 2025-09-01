@@ -55,10 +55,10 @@ def main():
     nb.step("BQuant Logging Setup")
     
     with nb.error_handling("BQuant logging setup"):
-        from bquant.core.logging_config import setup_notebook_logging
+        from bquant.core.logging_config import setup_logging
         
         # Настраиваем логирование для BQuant
-        bquant_logger = setup_notebook_logging()
+        bquant_logger = setup_logging(profile='research')
         nb.success("BQuant logging configured: WARNING+ to console, INFO+ to file")
     
     nb.wait()

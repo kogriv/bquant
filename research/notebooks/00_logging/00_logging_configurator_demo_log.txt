@@ -1,0 +1,14 @@
+[LOG] Log started: 2025-09-01 16:07:59
+[OUTPUT] Output will be written to: research\notebooks\00_logging_configurator_demo_log.txt
+[>>] Starting Демо продвинутых паттернов
+==================================================
+[SCRIPT] Демо продвинутых паттернов
+[DATE] Started: 2025-09-01 16:07:59
+==================================================
+[INFO] Настройка: дифференцированные уровни для разных типов модулей
+================================================================================
+[STEP] STEP 1: Тестирование дифференцированного логирования
+----------------------------------------------------
+[FAIL] Data loader ERROR: Data file not found: test.csv (Details: file_path=test.csv, symbol=XAUUSD, timeframe=1h)
+[WARN] MACD WARNING: Calculation failed for macd: Failed to calculate MACD: Insufficient data for macd: 3 < 35 (Details: indicator=macd, records=3, required=35) (Details: indicator=macd, fast_period=12, slow_period=26, signal_period=9) (Details: indicator=macd, parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9})
+[OK] Zones INFO: анализ завершен

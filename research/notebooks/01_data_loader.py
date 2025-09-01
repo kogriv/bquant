@@ -10,12 +10,19 @@
 from pathlib import Path
 import pandas as pd
 import json
+import logging
+
+# НАСТРОЙКА ЛОГИРОВАНИЯ ДО ИМПОРТА МОДУЛЕЙ
+from bquant.core.logging_config import setup_logging
+setup_logging(profile='research')
+
 
 from bquant.core.nb import NotebookSimulator
 from bquant.core.config import get_data_dir, set_data_dir, reset_directories_to_defaults
 from bquant.data.loader import (
     load_ohlcv_data,
     load_symbol_data,
+    load_xauusd_data,
     load_all_data_files,
     get_data_info,
     get_available_symbols,
@@ -31,6 +38,11 @@ from bquant.data.samples import (
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 200)
 
+# Настройка логирования для демонстрации (единый API)
+# Используем профиль 'research' для скрытия технических деталей
+# from bquant.core.logging_config import setup_logging
+# setup_logging(profile='research')
+
 # Инициализируем симулятор. Описание берется как первый аргумент.
 nb = NotebookSimulator("Демонстрация работы модуля bquant.data.loader")
 
@@ -40,22 +52,26 @@ nb.step("Шаг 1: Работа с встроенными sample-данными"
 nb.info("API bquant.data.samples - это самый простой способ получить данные для тестов и примеров.")
 
 with nb.error_handling("Listing available datasets"):
-    nb.info("1.1. Список доступных встроенных датасетов:")
+    nb.info("-"*60)
+    nb.info("1.1. list_datasets() - Список доступных встроенных датасетов:")
     all_datasets = list_datasets()
     nb.log(json.dumps(all_datasets, indent=2, ensure_ascii=False))
 
 with nb.error_handling("Getting dataset info"):
-    nb.info("1.2. Получение информации о конкретном датасете (tv_xauusd_1h):")
+    nb.info("-"*60)
+    nb.info("1.2. get_dataset_info('tv_xauusd_1h') - Получение информации о конкретном датасете (tv_xauusd_1h):")
     info = get_dataset_info('tv_xauusd_1h')
     nb.log(json.dumps(info, indent=2, ensure_ascii=False))
 
 with nb.error_handling("Loading TradingView sample data"):
-    nb.info("1.3. Загрузка встроенного датасета 'tv_xauusd_1h' как DataFrame:")
+    nb.info("-"*60)
+    nb.info("1.3. get_sample_data('tv_xauusd_1h') - Загрузка встроенного датасета 'tv_xauusd_1h' как DataFrame:")
     df_sample_tv = get_sample_data('tv_xauusd_1h')
     nb.log(df_sample_tv.head().to_string())
 
 with nb.error_handling("Loading MetaTrader sample data"):
-    nb.info("1.4. Загрузка встроенного датасета 'mt_xauusd_m15' и просмотр информации о нем:")
+    nb.info("-"*60)
+    nb.info("1.4. get_sample_data('mt_xauusd_m15') - Загрузка встроенного датасета 'mt_xauusd_m15' и просмотр информации о нем:")
     df_sample_mt = get_sample_data('mt_xauusd_m15')
     nb.log(json.dumps(get_data_info(df_sample_mt), indent=2, ensure_ascii=False, default=str))
 
@@ -112,6 +128,13 @@ with nb.error_handling("Loading with load_symbol_data helper"):
     df_helper_mt = load_symbol_data("XAUUSD", "1h", data_source='metatrader')
     nb.info("Загрузка XAUUSD 1h (metatrader) через хелпер:")
     nb.log(df_helper_mt.head().to_string())
+
+with nb.error_handling("Loading with load_xauusd_data convenience function"):
+    nb.info("3.1.1. Использование convenience функции load_xauusd_data для быстрой загрузки:")
+    df_xauusd_convenience = load_xauusd_data("1h")
+    nb.log(f"Загружено через load_xauusd_data('1h'): {len(df_xauusd_convenience)} строк")
+    nb.log(f"Первые 3 строки:")
+    nb.log(df_xauusd_convenience.head(3).to_string())
 
 with nb.error_handling("Getting available symbols and timeframes"):
     nb.info("3.2. Получение списка доступных символов и таймфреймов из новой директории:")

@@ -1,0 +1,40 @@
+# Visualization Guidelines for BQuant
+
+## Chart Types
+- Use `bquant.visualization.charts` for financial charts
+- Implement candlestick charts with proper OHLC data
+- Support line charts for indicators and time series
+- Use `bquant.visualization.zones` for zone visualization
+- Implement statistical plots in `bquant.visualization.statistical`
+
+## Plotting Libraries
+- Primary: Plotly for interactive charts (web export capability)
+- Secondary: Matplotlib for static plots and publication
+- Use `bquant.visualization.themes` for consistent styling
+- Support both light and dark themes
+- Ensure accessibility and readability
+
+## Chart Configuration
+- Use consistent color schemes from themes
+- Implement proper axis labeling and titles
+- Add legends for multiple data series
+- Support zoom and pan interactions
+- Include data source attribution
+
+## Export and Sharing
+- Support HTML export for web sharing
+- Generate static images (PNG, SVG) for publications
+- Use `kaleido` for static image generation
+- Implement chart saving functionality
+- Support different output formats
+
+## Performance
+- Optimize chart rendering for large datasets
+- Use downsampling for high-frequency data
+- Implement lazy loading for complex charts
+- Cache chart configurations
+- Monitor memory usage during chart generation
+description:
+globs:
+alwaysApply: true
+---

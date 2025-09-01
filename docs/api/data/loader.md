@@ -48,6 +48,31 @@ datasets = load_all_data_files()
 print(list(datasets.keys()))
 ```
 
+## Логирование {#logging}
+
+Модуль использует контекстное логирование с детальными техническими сообщениями:
+
+```python
+# Пример вывода логгера
+10:54:37 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Loading data from: /path/to/file.csv
+10:54:37 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Detected encoding: ascii
+10:54:39 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Successfully loaded 21357 rows of data
+```
+
+**Управление уровнем логирования:**
+
+```python
+import logging
+
+# Скрыть технические детали загрузчика
+logging.getLogger('bquant.data.loader').setLevel(logging.WARNING)
+
+# Или для всех data модулей
+logging.getLogger('bquant.data').setLevel(logging.WARNING)
+```
+
+**См. подробности:** [Управление логированием](../core/logging.md#управление-логированием-в-многомодульных-проектах)
+
 ## Замечания
 
 - При `validate_data=True` используются внутренние проверки структуры (OHLCV) и консистентности.

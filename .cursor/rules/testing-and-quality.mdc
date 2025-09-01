@@ -1,0 +1,46 @@
+# Testing and Quality Guidelines for BQuant
+
+## Test Structure
+- Use `tests/unit/` for unit tests
+- Use `tests/integration/` for integration tests
+- Use `tests/fixtures/` for test data and fixtures
+- Follow pytest conventions and naming
+
+## Test Coverage
+- Aim for high test coverage (>90%)
+- Test all public APIs
+- Test edge cases and error conditions
+- Use `pytest-cov` for coverage reporting
+- Test both success and failure paths
+
+## Test Data
+- Use sample data from `bquant.data.samples`
+- Create realistic test datasets
+- Test with different data formats
+- Validate test data quality
+- Use fixtures for reusable test data
+
+## Performance Testing
+- Test with large datasets
+- Monitor memory usage during tests
+- Test caching mechanisms
+- Profile slow operations
+- Use `bquant.core.performance` tools
+
+## Code Quality
+- Use Black for code formatting
+- Use flake8 for linting
+- Run tests before committing
+- Maintain consistent code style
+- Document complex test scenarios
+
+## Continuous Integration
+- Tests must pass in CI/CD pipeline
+- Run tests on multiple Python versions
+- Check code coverage in CI
+- Validate documentation builds
+- Test installation and packaging
+description:
+globs:
+alwaysApply: true
+---

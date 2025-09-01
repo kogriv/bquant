@@ -6,6 +6,7 @@
 
 import logging
 import logging.config
+import logging.handlers
 import sys
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
@@ -105,7 +106,11 @@ def setup_logging(
     log_file: Union[str, Path] = None,
     use_colors: bool = True,
     console_enabled: bool = True,
-    reset_loggers: bool = False
+    reset_loggers: bool = False,
+    # Новые параметры для модульного контроля
+    modules_config: Optional[Dict[str, Dict[str, str]]] = None,
+    profile: Optional[str] = None,
+    exceptions: Optional[Dict[str, str]] = None
 ) -> logging.Logger:
     """
     Настроить систему логгирования BQuant
@@ -119,6 +124,11 @@ def setup_logging(
         use_colors: Использовать цветовое выделение в консоли
         console_enabled: Включить консольный вывод
         reset_loggers: Сбросить существующие логгеры
+        modules_config: Модульная настройка логгирования
+            {'bquant.data': {'console': 'WARNING', 'file': 'INFO'}}
+        profile: Предустановленный профиль ('research', 'debug', etc.)
+        exceptions: Исключения для конкретных логгеров
+            {'bquant.data.loader': 'ERROR'}
     
     Returns:
         Корневой логгер BQuant
@@ -198,6 +208,10 @@ def setup_logging(
     
     # Получаем корневой логгер
     logger = logging.getLogger('bquant')
+    
+    # Применяем модульные настройки если указаны
+    if modules_config or profile or exceptions:
+        _apply_modular_config(modules_config, profile, exceptions, console_level, file_level)
     
     # Логгируем успешную инициализацию
     if console_enabled:
@@ -381,95 +395,354 @@ def critical(message: str, **context):
 
 
 # ============================================================================
-# PRESET CONFIGURATIONS - Готовые конфигурации для разных сценариев
+# АРХИТЕКТУРНЫЙ РЕФАКТОРИНГ: УДАЛЕНЫ ИЗБЫТОЧНЫЕ ФУНКЦИИ
 # ============================================================================
+#
+# УСТАРЕЛИ (удалены для чистоты архитектуры):
+# - setup_notebook_logging() 
+# - setup_development_logging()
+# - setup_production_logging()  
+# - setup_quiet_logging()
+#
+# НОВЫЙ ЕДИНЫЙ API:
+# setup_logging(profile='research')      # для notebook сценариев
+# setup_logging(profile='verbose')       # для development
+# setup_logging(profile='critical')      # для production
+# setup_logging(profile='clean')         # для quiet сценариев
+#
+# ПРИЧИНА УДАЛЕНИЯ:
+# - 4 функции делали одно и то же с разными дефолтами
+# - Нарушение принципа DRY и архитектурное засорение
+# - Усложнение поддержки (изменения в 4 местах)
+# - Профили в data лучше чем функции в code
+#
 
-def setup_notebook_logging(
-    console_level: str = "WARNING",
-    file_level: str = "INFO",
-    log_file: Union[str, Path] = None
-) -> logging.Logger:
-    """
-    Настройка логгирования для Jupyter ноутбуков.
+
+# =============================================================================
+# МОДУЛЬНАЯ НАСТРОЙКА ЛОГИРОВАНИЯ
+# =============================================================================
+
+# Предустановленные профили логирования
+LOGGING_PROFILES = {
+    "research": {
+        "description": "Для research скриптов - скрыть технические детали",
+        "modules_config": {
+            "bquant.data": {"console": "WARNING", "file": "INFO"},
+            "bquant.data.loader": {"console": "WARNING", "file": "INFO"},
+            "bquant.data.processor": {"console": "WARNING", "file": "INFO"},
+            "bquant.data.validator": {"console": "WARNING", "file": "INFO"},
+            "bquant.indicators": {"console": "WARNING", "file": "INFO"}, 
+            "bquant.analysis": {"console": "INFO", "file": "INFO"}
+        }
+    },
     
-    По умолчанию: WARNING+ в консоль, INFO+ в файл
+    "clean": {
+        "description": "Минимум шума - только ошибки в консоль",
+        "modules_config": {
+            "bquant.data": {"console": "ERROR", "file": "INFO"},
+            "bquant.indicators": {"console": "ERROR", "file": "INFO"},
+            "bquant.analysis": {"console": "ERROR", "file": "INFO"}
+        }
+    },
+    
+    "debug": {
+        "description": "Все детали для отладки",
+        "modules_config": {
+            "bquant": {"console": "DEBUG", "file": "DEBUG"}
+        }
+    },
+    
+    "verbose": {
+        "description": "Максимум информации везде",
+        "modules_config": {
+            "bquant": {"console": "DEBUG", "file": "DEBUG"}
+        }
+    },
+    
+    "focused": {
+        "description": "Детали только для core, остальное - стандартно",
+        "modules_config": {
+            "bquant.core": {"console": "DEBUG", "file": "DEBUG"},
+            "bquant.data": {"console": "INFO", "file": "DEBUG"},
+            "bquant.indicators": {"console": "INFO", "file": "DEBUG"}
+        }
+    },
+    
+    "critical": {
+        "description": "Только критические события",
+        "modules_config": {
+            "bquant": {"console": "ERROR", "file": "ERROR"}
+        }
+    },
+    
+    "audit": {
+        "description": "Полный аудит в файл, минимум в консоль",
+        "modules_config": {
+            "bquant": {"console": "ERROR", "file": "INFO"}
+        }
+    }
+}
+
+
+def _apply_modular_config(
+    modules_config: Optional[Dict[str, Dict[str, str]]] = None,
+    profile: Optional[str] = None, 
+    exceptions: Optional[Dict[str, str]] = None,
+    default_console_level: str = "INFO",
+    default_file_level: str = "INFO"
+):
+    """
+    Применить модульную настройку логирования.
     
     Args:
-        console_level: Уровень для консоли (по умолчанию WARNING)
-        file_level: Уровень для файла (по умолчанию INFO) 
-        log_file: Путь к файлу логов (по умолчанию project/logs/notebook.log)
-    
-    Returns:
-        Настроенный логгер
+        modules_config: Настройки модулей
+        profile: Предустановленный профиль
+        exceptions: Исключения для конкретных логгеров
+        default_console_level: Уровень консоли по умолчанию
+        default_file_level: Уровень файла по умолчанию
     """
-    if log_file is None:
-        log_file = PROJECT_ROOT / "logs" / "notebook.log"
+    # Начинаем с профиля если указан
+    final_config = {}
+    if profile and profile in LOGGING_PROFILES:
+        final_config = LOGGING_PROFILES[profile]["modules_config"].copy()
     
-    return setup_logging(
-        console_level=console_level,
-        file_level=file_level,
-        log_to_file=True,
-        log_file=log_file,
-        use_colors=False,  # Отключить цвета в ноутбуке
-        reset_loggers=True
-    )
-
-
-def setup_development_logging() -> logging.Logger:
-    """
-    Настройка логгирования для разработки.
+    # Добавляем/перезаписываем настройки модулей
+    if modules_config:
+        for module_name, module_settings in modules_config.items():
+            if module_name not in final_config:
+                final_config[module_name] = {}
+            final_config[module_name].update(module_settings)
     
-    DEBUG во все обработчики, цветовое выделение
-    
-    Returns:
-        Настроенный логгер
-    """
-    return setup_logging(
-        console_level="DEBUG",
-        file_level="DEBUG", 
-        log_to_file=True,
-        log_file=PROJECT_ROOT / "logs" / "development.log",
-        use_colors=True,
-        reset_loggers=True
-    )
-
-
-def setup_production_logging(log_file: Union[str, Path] = None) -> logging.Logger:
-    """
-    Настройка логгирования для продакшена.
-    
-    Только файловое логгирование, INFO+
-    
-    Args:
-        log_file: Путь к файлу логов
+    # Применяем настройки к логгерам
+    for module_name, settings in final_config.items():
+        logger = logging.getLogger(module_name)
         
-    Returns:
-        Настроенный логгер
-    """
-    if log_file is None:
-        log_file = PROJECT_ROOT / "logs" / "production.log"
+        # Настраиваем обработчики если они есть
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+                # Console handler
+                if "console" in settings:
+                    handler.setLevel(getattr(logging, settings["console"].upper()))
+            elif isinstance(handler, (logging.FileHandler, logging.handlers.RotatingFileHandler)):
+                # File handler  
+                if "file" in settings:
+                    handler.setLevel(getattr(logging, settings["file"].upper()))
         
-    return setup_logging(
-        console_enabled=False,  # Отключить консоль
-        file_level="INFO",
-        log_to_file=True,
-        log_file=log_file,
-        reset_loggers=True
-    )
-
-
-def setup_quiet_logging() -> logging.Logger:
-    """
-    Тихое логгирование - только ERROR+ в консоль, INFO+ в файл.
+        # Если у логгера нет собственных обработчиков, он использует родительские
+        # В этом случае настраиваем сам логгер
+        if not logger.handlers:
+            console_level = settings.get("console", default_console_level)
+            # Устанавливаем уровень логгера на минимальный из console/file
+            file_level = settings.get("file", default_file_level)
+            min_level = min(
+                getattr(logging, console_level.upper()),
+                getattr(logging, file_level.upper())
+            )
+            logger.setLevel(min_level)
+        
+        # ДОПОЛНИТЕЛЬНО: Настраиваем все дочерние логгеры для этого модуля
+        # Это важно для случаев когда логгер не имеет собственных обработчиков
+        if "console" in settings:
+            console_level = getattr(logging, settings["console"].upper())
+            # Находим все дочерние логгеры и устанавливаем им уровень
+            for logger_name in logging.getLogger().manager.loggerDict.keys():
+                if logger_name.startswith(module_name + "."):
+                    child_logger = logging.getLogger(logger_name)
+                    # Устанавливаем уровень только если у дочернего логгера нет собственных обработчиков
+                    if not child_logger.handlers:
+                        child_logger.setLevel(console_level)
+            
+            # КРИТИЧНО: Настраиваем фильтры для корневого логгера bquant
+            # чтобы он не пропускал сообщения от дочерних логгеров с низким уровнем
+            root_logger = logging.getLogger('bquant')
+            for handler in root_logger.handlers:
+                if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+                    # Создаем фильтр для скрытия сообщений от указанного модуля
+                    class ModuleLevelFilter(logging.Filter):
+                        def __init__(self, module_name, min_level):
+                            self.module_name = module_name
+                            self.min_level = min_level
+                        
+                        def filter(self, record):
+                            # Если сообщение от указанного модуля, проверяем уровень
+                            if record.name.startswith(self.module_name):
+                                return record.levelno >= self.min_level
+                            # Остальные сообщения пропускаем
+                            return True
+                    
+                    # Добавляем фильтр к обработчику
+                    handler.addFilter(ModuleLevelFilter(module_name, console_level))
     
-    Returns:
-        Настроенный логгер
+    # Применяем исключения
+    if exceptions:
+        for logger_name, level in exceptions.items():
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(getattr(logging, level.upper()))
+
+
+# =============================================================================
+# FLUENT API
+# =============================================================================
+
+class LoggingConfigurator:
     """
-    return setup_logging(
-        console_level="ERROR",
-        file_level="INFO",
-        log_to_file=True, 
-        log_file=PROJECT_ROOT / "logs" / "quiet.log",
-        use_colors=False,
-        reset_loggers=True
-    )
+    Fluent API для сложной настройки логирования.
+    
+    Examples:
+        # Базовая настройка с профилем
+        LoggingConfigurator().preset('notebook').apply()
+        
+        # Сложная настройка
+        LoggingConfigurator()
+            .preset('research')
+            .module('bquant.data').console('WARNING').file('INFO')
+            .module('bquant.indicators').console('ERROR')
+            .exception('bquant.data.loader', 'DEBUG')
+            .apply()
+    """
+    
+    def __init__(self):
+        self.config = {
+            'preset_type': 'notebook',  # По умолчанию
+            'preset_profile': None,
+            'modules_config': {},
+            'exceptions': {},
+            'custom_params': {}
+        }
+        self._current_module = None
+    
+    def preset(self, preset_type: str, profile: Optional[str] = None):
+        """
+        Установить базовый preset.
+        
+        Args:
+            preset_type: Тип preset ('notebook', 'development', 'production', 'quiet')
+            profile: Профиль для preset ('research', 'debug', etc.)
+        
+        Returns:
+            self для chaining
+        """
+        valid_presets = ['notebook', 'development', 'production', 'quiet']
+        if preset_type not in valid_presets:
+            raise ValueError(f"Invalid preset type. Valid options: {valid_presets}")
+        
+        self.config['preset_type'] = preset_type
+        self.config['preset_profile'] = profile
+        return self
+    
+    def module(self, module_name: str):
+        """
+        Начать настройку конкретного модуля.
+        
+        Args:
+            module_name: Имя модуля (например, 'bquant.data')
+            
+        Returns:
+            self для chaining
+        """
+        self._current_module = module_name
+        if module_name not in self.config['modules_config']:
+            self.config['modules_config'][module_name] = {}
+        return self
+    
+    def console(self, level: str):
+        """
+        Настроить уровень консоли для текущего модуля.
+        
+        Args:
+            level: Уровень логирования ('DEBUG', 'INFO', 'WARNING', 'ERROR')
+            
+        Returns:
+            self для chaining
+        """
+        if self._current_module is None:
+            raise ValueError("Call module() first to specify which module to configure")
+        
+        self.config['modules_config'][self._current_module]['console'] = level.upper()
+        return self
+    
+    def file(self, level: str):
+        """
+        Настроить уровень файла для текущего модуля.
+        
+        Args:
+            level: Уровень логирования ('DEBUG', 'INFO', 'WARNING', 'ERROR')
+            
+        Returns:
+            self для chaining  
+        """
+        if self._current_module is None:
+            raise ValueError("Call module() first to specify which module to configure")
+        
+        self.config['modules_config'][self._current_module]['file'] = level.upper()
+        return self
+    
+    def exception(self, logger_name: str, level: str):
+        """
+        Добавить исключение для конкретного логгера.
+        
+        Args:
+            logger_name: Полное имя логгера (например, 'bquant.data.loader')
+            level: Уровень логирования
+            
+        Returns:
+            self для chaining
+        """
+        self.config['exceptions'][logger_name] = level.upper()
+        return self
+    
+    def param(self, key: str, value: Any):
+        """
+        Добавить кастомный параметр.
+        
+        Args:
+            key: Имя параметра
+            value: Значение параметра
+            
+        Returns:
+            self для chaining
+        """
+        self.config['custom_params'][key] = value
+        return self
+    
+    def apply(self) -> logging.Logger:
+        """
+        Применить настройки логирования.
+        
+        Returns:
+            Настроенный логгер
+        """
+        preset_type = self.config['preset_type']
+        profile = self.config['preset_profile']
+        modules_config = self.config['modules_config'] if self.config['modules_config'] else None
+        exceptions = self.config['exceptions'] if self.config['exceptions'] else None
+        custom_params = self.config['custom_params']
+        
+        # Используем единую функцию setup_logging() с соответствующими параметрами
+        # preset_type определяет базовые настройки, которые применяются через profile
+        if preset_type == 'notebook':
+            # Для notebook сценариев используем research профиль по умолчанию
+            if not profile:
+                profile = 'research'
+        elif preset_type == 'development':
+            # Для development сценариев используем verbose профиль по умолчанию
+            if not profile:
+                profile = 'verbose'
+        elif preset_type == 'production':
+            # Для production сценариев используем critical профиль по умолчанию
+            if not profile:
+                profile = 'critical'
+        elif preset_type == 'quiet':
+            # Для quiet сценариев используем clean профиль по умолчанию
+            if not profile:
+                profile = 'clean'
+        else:
+            raise ValueError(f"Unknown preset type: {preset_type}")
+        
+        # Вызываем единую функцию setup_logging()
+        return setup_logging(
+            profile=profile,
+            modules_config=modules_config,
+            exceptions=exceptions,
+            **custom_params
+        )

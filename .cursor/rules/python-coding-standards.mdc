@@ -1,0 +1,47 @@
+# Python Coding Standards for BQuant
+
+## Code Style
+- Follow PEP 8 with Black formatting (88 character line length)
+- Use type hints for function parameters and return values
+- Use f-strings for string formatting (Python 3.6+)
+- Use snake_case for variables and functions
+- Use PascalCase for classes
+- Use UPPER_CASE for constants
+
+## Import Organization
+```python
+# Standard library imports
+import os
+import sys
+from typing import List, Dict, Optional
+
+# Third-party imports
+import pandas as pd
+import numpy as np
+
+# Local imports
+from bquant.core.config import get_data_path
+from bquant.data.loader import DataLoader
+```
+
+## Documentation
+- Use docstrings for all public functions and classes
+- Follow Google docstring format
+- Include type information in docstrings
+- Document exceptions that may be raised
+
+## Error Handling
+- Use custom exceptions from `bquant.core.exceptions`
+- Provide meaningful error messages
+- Use logging for debugging and monitoring
+- Handle edge cases gracefully
+
+## Performance
+- Use the performance monitoring tools in `bquant.core.performance`
+- Implement caching where appropriate using `bquant.core.cache`
+- Profile code before optimization
+- Use vectorized operations with pandas/numpy when possible
+description:
+globs:
+alwaysApply: true
+---

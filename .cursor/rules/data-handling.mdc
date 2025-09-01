@@ -1,0 +1,59 @@
+# Data Handling Guidelines for BQuant
+
+## Data Loading
+- Use `bquant.data.loader.DataLoader` for consistent data loading
+- Support multiple data formats (CSV, JSON, etc.)
+- Handle missing data gracefully
+- Validate data structure using `bquant.data.validator`
+- Use sample data from `bquant.data.samples` for testing
+
+## Supported Data Sources
+- **OANDA** (via TradingView): `OANDA_SYMBOL, TIMEFRAME.csv`
+- **MetaTrader**: `SYMBOLTIMEFRAME.csv` (e.g., `XAUUSDH1.csv`)
+
+## Timeframe Conventions
+The system uses universal timeframe mapping:
+- Minutes: `1m`, `5m`, `15m`, `30m`
+- Hours: `1h`, `4h`, `12h`
+- Daily+: `1d`, `1w`, `1M`
+
+## Column Standards
+Expected OHLCV columns: `['time', 'open', 'high', 'low', 'close', 'volume']`
+Additional columns preserved but not required.
+
+## Data Processing
+- Use `bquant.data.processor` for data transformations
+- Maintain data integrity during processing
+- Use pandas operations for efficiency
+- Handle timezone conversions properly
+- Preserve original data when possible
+
+## Data Validation
+- Validate data types and ranges
+- Check for required columns
+- Ensure data quality before analysis
+- Use schema validation from `bquant.data.schemas`
+- Log validation errors for debugging
+
+## File Management
+- Store raw data in `data/row/`
+- Store processed data in `data/processed/`
+- Use consistent naming conventions
+- Handle file paths using `bquant.core.config.get_data_path()`
+- Implement proper error handling for file operations
+
+## Performance Considerations
+- Use chunked processing for large datasets
+- Implement caching for frequently accessed data
+- Monitor memory usage during data operations
+- Use appropriate data types (e.g., categorical for strings)
+
+## Critical Rules
+- **ALWAYS use sample data from `bquant.data.samples` for examples and tests**
+- **NEVER hardcode paths to external CSV files**
+- **NEVER assume external data files exist**
+- Use `get_sample_data('tv_xauusd_1h')` or `get_sample_data('mt_xauusd_m15')` for testing
+description:
+globs:
+alwaysApply: true
+---

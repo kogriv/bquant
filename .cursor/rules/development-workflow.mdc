@@ -1,0 +1,67 @@
+# Development Workflow for BQuant
+
+## Environment Setup
+- Use virtual environments (`venv_bquant_of_win` for Windows, `venv_bquant_of_lin` for Linux)
+- Activate virtual environment before running any commands
+- Install dependencies with `pip install -e .[full]` for development
+- Use Python 3.11+ for development
+
+## Development Process
+- Work on feature branches
+- Write tests before implementing features
+- Update documentation for new features
+- Add changelog entries for all changes
+- Use conventional commit messages
+
+## Code Review
+- Self-review before submitting
+- Ensure all tests pass
+- Check code coverage
+- Validate documentation builds
+- Run linting and formatting tools
+
+## Documentation
+- Update API documentation for new features
+- Add examples in `examples/` directory
+- Update tutorials and user guides
+- Maintain changelog entries
+- Document breaking changes
+
+## Release Process
+- Update version in `pyproject.toml`
+- Update changelog with release notes
+- Tag releases in git
+- Build and test packages
+- Update documentation on ReadTheDocs
+
+## Changelog Management
+BQuant uses a two-level changelog system:
+1. **Daily Change Trace Logs** - Detailed real-time tracking in `changelogs/CHANGE_TRACE_LOG_YYYY-MM-DD.md`
+2. **Main Changelog** - Curated user-facing changelog in `CHANGELOG.md`
+
+**Key Rules:**
+- One file per date (append to existing file, never create duplicates)
+- Use structured format: `[HH:MM:SS] [status] [type] [description]`
+- Transfer to main changelog when 5+ significant changes accumulate
+
+## Troubleshooting
+- Check logs in `logs/` directory
+- Use `bquant.core.logging_config` for debugging
+- Monitor performance with `bquant.core.performance`
+- Validate data with `bquant.data.validator`
+- Use sample data for testing
+
+## Critical Development Rules
+- **ALWAYS use sample data from `bquant.data.samples` for examples and tests**
+- **NEVER hardcode paths to external CSV files**
+- **NEVER assume external data files exist**
+- Use custom exceptions from `bquant.core.exceptions`
+- Wrap critical operations in try-catch blocks
+- Use the NotebookSimulator's `error_handling()` context manager for research scripts
+- Use caching for expensive operations
+- Monitor performance with the built-in tools
+- Prefer vectorized pandas operations over loops
+description:
+globs:
+alwaysApply: true
+---

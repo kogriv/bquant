@@ -113,12 +113,69 @@ def test_logging_module():
     
     print("✅ get_logger() возвращает корректный логгер")
     
-    # Тест настройки логгирования
+    # Тест базовой настройки логгирования
     setup_logging(level='DEBUG')
     logger = get_logger('test_logger')
     logger.info("Test log message")
     
     print("✅ setup_logging() настраивает логгирование")
+    
+    # Тест профилей логирования
+    print("\n📋 Тестирование профилей логирования:")
+    
+    # Тест профиля 'research'
+    setup_logging(profile='research')
+    research_logger = get_logger('bquant.data.test')
+    research_logger.info("Research profile test message")
+    print("✅ Профиль 'research' работает")
+    
+    # Тест профиля 'clean'
+    setup_logging(profile='clean')
+    clean_logger = get_logger('bquant.indicators.test')
+    clean_logger.info("Clean profile test message")
+    print("✅ Профиль 'clean' работает")
+    
+    # Тест профиля 'debug'
+    setup_logging(profile='debug')
+    debug_logger = get_logger('bquant.test')
+    debug_logger.debug("Debug profile test message")
+    print("✅ Профиль 'debug' работает")
+    
+    # Тест модульной настройки
+    print("\n📋 Тестирование модульной настройки:")
+    setup_logging(
+        modules_config={
+            'bquant.test.module1': {'console': 'WARNING', 'file': 'INFO'},
+            'bquant.test.module2': {'console': 'ERROR', 'file': 'DEBUG'}
+        }
+    )
+    module1_logger = get_logger('bquant.test.module1')
+    module2_logger = get_logger('bquant.test.module2')
+    module1_logger.info("Module1 test message")
+    module2_logger.debug("Module2 test message")
+    print("✅ Модульная настройка работает")
+    
+    # Тест исключений
+    print("\n📋 Тестирование исключений:")
+    setup_logging(
+        profile='research',
+        exceptions={
+            'bquant.test.special': 'DEBUG'
+        }
+    )
+    special_logger = get_logger('bquant.test.special')
+    special_logger.debug("Special logger debug message")
+    print("✅ Исключения работают")
+    
+    # Тест LoggingConfigurator
+    print("\n📋 Тестирование LoggingConfigurator:")
+    from bquant.core.logging_config import LoggingConfigurator
+    
+    configurator = LoggingConfigurator()
+    configurator.preset('notebook', 'research').apply()
+    configurator_logger = get_logger('bquant.test.configurator')
+    configurator_logger.info("Configurator test message")
+    print("✅ LoggingConfigurator работает")
 
 
 def test_utils_module():

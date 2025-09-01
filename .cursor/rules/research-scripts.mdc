@@ -1,0 +1,83 @@
+# Research Scripts Guidelines for BQuant
+
+## NotebookSimulator Pattern
+Research scripts in `research/notebooks/` use the NotebookSimulator pattern. These are Python files that simulate Jupyter notebook behavior with automatic CLI argument parsing, step-by-step execution, rich logging, error handling, and automatic cleanup.
+
+## Basic Usage
+```python
+from bquant.core.nb import NotebookSimulator
+
+nb = NotebookSimulator("My Analysis Description")
+nb.step("Data Loading")
+# your code here
+nb.wait()
+nb.finish()
+```
+
+## Key Features
+- **Step-by-step execution** with automatic progress tracking
+- **CLI argument parsing** for command-line execution
+- **Rich logging** with automatic timestamps and step information
+- **Error handling** with context managers
+- **Automatic cleanup** of resources
+
+## Step Management
+- Use `nb.step("Description")` to mark major steps
+- Use `nb.wait()` to pause execution and wait for user input
+- Use `nb.finish()` to complete the script
+- Each step is automatically logged and timed
+
+## Error Handling
+Use the NotebookSimulator's error handling context manager:
+```python
+with nb.error_handling():
+    # critical operations that might fail
+    risky_operation()
+```
+
+## CLI Integration
+Scripts automatically support command-line arguments:
+```bash
+python research/notebooks/my_analysis.py --help
+python research/notebooks/my_analysis.py --data-source tv_xauusd_1h
+```
+
+## Data Loading
+- Always use sample data from `bquant.data.samples`
+- Never hardcode file paths
+- Use the configuration system for data sources
+- Validate data before processing
+
+## Performance Monitoring
+Integrate with the performance monitoring system:
+```python
+from bquant.core.performance import performance_monitor, performance_context
+
+@performance_monitor
+def my_analysis_function(data):
+    # your analysis code
+    pass
+
+# Or use as context manager
+with performance_context("My Operation"):
+    # time-intensive code
+    pass
+```
+
+## Logging and Output
+- Use the built-in logging system
+- Generate charts and save them to `results/charts/`
+- Create comprehensive analysis reports
+- Log all important findings and metrics
+
+## Best Practices
+- Keep scripts focused on single analysis tasks
+- Use descriptive step names
+- Handle errors gracefully
+- Document all assumptions and parameters
+- Test scripts with different data sources
+- Use the caching system for expensive operations
+description:
+globs:
+alwaysApply: true
+---

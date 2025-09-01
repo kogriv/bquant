@@ -1,0 +1,55 @@
+# Indicators and Analysis Guidelines for BQuant
+
+## Indicator Development
+- Extend `bquant.indicators.base.BaseIndicator` for new indicators
+- Implement required methods: `calculate()`, `validate()`, `get_params()`
+- Use `bquant.indicators.calculators` for common calculations
+- Support parameter customization through configuration
+- Cache indicator results when appropriate
+
+## MACD Analysis
+- Use `bquant.indicators.macd.MACDZoneAnalyzer` as reference implementation
+- Implement zone identification algorithms with clustering and statistical analysis
+- Calculate statistical significance of zones
+- Support multiple timeframe analysis
+- Generate comprehensive zone reports
+
+## Analysis Engine
+- Use `bquant.analysis.zones` for zone-based analysis (sequence analysis, feature extraction)
+- Implement hypothesis testing in `bquant.analysis.statistical`
+- Use `bquant.analysis.technical` for technical analysis
+- Support candlestick pattern recognition
+- Implement time series analysis tools
+
+## Performance Optimization
+- Use vectorized operations with pandas/numpy
+- Implement efficient algorithms for large datasets
+- Use the caching system from `bquant.core.cache`
+- Profile analysis functions for bottlenecks
+- Consider parallel processing for complex calculations
+
+## Extensibility
+- Design indicators to be configurable
+- Support custom parameter sets
+- Allow for easy integration of external libraries (pandas-ta, TA-Lib)
+- Maintain consistent interfaces across indicators
+- Document all public methods and parameters
+
+## Research Scripts
+- Use `NotebookSimulator` pattern for research scripts in `research/notebooks/`
+- Implement step-by-step execution with automatic CLI argument parsing
+- Use rich logging and error handling
+- Follow the pattern:
+```python
+from bquant.core.nb import NotebookSimulator
+
+nb = NotebookSimulator("My Analysis Description")
+nb.step("Data Loading")
+# your code here
+nb.wait()
+nb.finish()
+```
+description:
+globs:
+alwaysApply: true
+---

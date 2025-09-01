@@ -339,6 +339,25 @@ nb.finish()
 6. **Тестируйте в разных режимах** - с `--trap` и `--no-trap`
 7. **Не создавайте функцию main()** - размещайте код в корне модуля
 
+### Логирование {#logging}
+
+**Интеграция с системой логирования:**
+
+NotebookSimulator использует собственный логгер для пользовательских сообщений, но может конфликтовать с техническими логгерами модулей. Для предотвращения дублирования логов:
+
+```python
+import logging
+from bquant.core.nb import NotebookSimulator
+
+# Скрыть технические логи для чистого вывода
+logging.getLogger('bquant.data').setLevel(logging.WARNING)
+logging.getLogger('bquant.indicators').setLevel(logging.WARNING)
+
+nb = NotebookSimulator("My Analysis")
+```
+
+**См. подробности:** [Управление логированием](logging.md#управление-логированием-в-многомодульных-проектах)
+
 ### Ограничения
 
 - Файлы логирования открываются в режиме перезаписи ('w')
