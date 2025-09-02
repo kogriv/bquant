@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-09-02 15:33:02
-[OUTPUT] Output will be written to: research\notebooks\01_data_log.txt
+[LOG] Log started: 2025-09-02 16:47:14
+[OUTPUT] Output will be written to: 01_data_log.txt
 [>>] Starting Демонстрация работы модуля bquant.data.loader
 =================================================================
 [SCRIPT] Демонстрация работы модуля bquant.data.loader
-[DATE] Started: 2025-09-02 15:33:02
+[DATE] Started: 2025-09-02 16:47:14
 =================================================================
 ================================================================================
 [STEP] STEP 1: Определение рабочей директории, получение списка доступных символов и таймфреймов
@@ -11,21 +11,19 @@
 [INFO] API bquant.data.loader - это основной модуль для загрузки данных.
 [INFO] ------------------------------------------------------------
 [INFO] 1.1. get_data_dir() - Текущая рабочая директория:
-[INFO] C:\Users\g\Documents\pro\bquant\data
-[OK] Listing available data directory completed successfully
-[INFO] ------------------------------------------------------------
-[INFO] 1.2. set_data_dir() - Установка рабочей директории:
-[INFO] C:\Users\g\Documents\pro\bquant\data\raw
-[OK] Setting data directory completed successfully
-[INFO] 2.1. Загружаем файл MetaTrader: C:\Users\g\Documents\pro\bquant\data\raw\XAUUSDH1.csv
-[FAIL] Файл не найден: C:\Users\g\Documents\pro\bquant\data\raw\XAUUSDH1.csv
-[INFO] ------------------------------------------------------------
-[INFO] 1.2. get_available_symbols() - Список доступных символов:
-[]
-[OK] Listing available symbols completed successfully
-[INFO] ------------------------------------------------------------
-[INFO] 1.3. get_available_timeframes() - Список доступных таймфреймов:
-[]
-[OK] Listing available timeframes completed successfully
+[FAIL] Listing available data directory failed: unsupported operand type(s) for +: 'WindowsPath' and 'str'
 
-============================================================
+--- TRACEBACK ---
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\bquant\core\nb.py", line 385, in error_handling
+    yield
+  File "C:\Users\Ivan\Documents\pro\bquant\research\notebooks\01_data.py", line 53, in <module>
+    nb.log(get_data_dir())
+    ~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Ivan\Documents\pro\bquant\bquant\core\nb.py", line 204, in log
+    self.log_file.write(message + '\n')
+                        ~~~~~~~~^~~~~~
+TypeError: unsupported operand type(s) for +: 'WindowsPath' and 'str'
+
+--- END TRACEBACK ---
+

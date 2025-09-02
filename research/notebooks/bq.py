@@ -41,26 +41,35 @@ pd.set_option('display.width', 200)
 
 
 # Инициализируем симулятор. Описание берется как первый аргумент.
-nb = NotebookSimulator("Демонстрация работы модуля bquant.data.loader")
+nb = NotebookSimulator("Демонстрация работы пакета bquant")
 
-nb.step("Определение рабочей директории, получение списка доступных символов и таймфреймов")
+nb.step("Определение рабочей директории, получение списка доступных символов и таймфреймов, загрузка данных")
 
 nb.info("API bquant.data.loader - это основной модуль для загрузки данных.")
 
+nb.substep("Определение рабочей директории")
 with nb.error_handling("Listing available data directory"):
-    nb.info("-"*60)
     nb.info("1.1. get_data_dir() - Текущая рабочая директория:")
-    nb.log(get_data_dir())
+    nb.log(str(get_data_dir()))
 
 with nb.error_handling("Setting data directory"):
-    nb.info("-"*60)
     nb.info("1.2. set_data_dir() - Установка рабочей директории:")
     raw_data_path = get_data_dir() / "raw"
     set_data_dir(raw_data_path)
-    nb.log(get_data_dir())
+    nb.log(str(get_data_dir()))
+with nb.error_handling("Listing available symbols"):
+    nb.info("1.2. get_available_symbols() - Список доступных символов:")
+    symbols = get_available_symbols()
+    nb.log(json.dumps(symbols, indent=2, ensure_ascii=False))
 
+with nb.error_handling("Listing available timeframes"):
+    nb.info("1.3. get_available_timeframes() - Список доступных таймфреймов:")
+    timeframes = get_available_timeframes("XAUUSD")
+    nb.log(json.dumps(timeframes, indent=2, ensure_ascii=False))
+
+nb.substep("Загрузка данных")
 mt_file_path = raw_data_path / 'XAUUSDH1.csv'
-nb.info(f"2.1. Загружаем файл MetaTrader: {mt_file_path}")
+nb.info(f"Загружаем файл MetaTrader: {mt_file_path}")
 if mt_file_path.exists():
     with nb.error_handling("Loading raw MetaTrader file"):
         df_raw_mt = load_ohlcv_data(mt_file_path, symbol="XAUUSD", timeframe="H1")
@@ -69,16 +78,14 @@ if mt_file_path.exists():
 else:
     nb.error(f"Файл не найден: {mt_file_path}")
 
-with nb.error_handling("Listing available symbols"):
-    nb.info("-"*60)
-    nb.info("1.2. get_available_symbols() - Список доступных символов:")
-    symbols = get_available_symbols()
-    nb.log(json.dumps(symbols, indent=2, ensure_ascii=False))
+nb.wait()
 
-with nb.error_handling("Listing available timeframes"):
-    nb.info("-"*60)
-    nb.info("1.3. get_available_timeframes() - Список доступных таймфреймов:")
-    timeframes = get_available_timeframes("XAUUSD")
-    nb.log(json.dumps(timeframes, indent=2, ensure_ascii=False))
+nb.step("Работа с индикаторами")
+
+nb.info("BQuant поддерживает источники: PRELOADED, LIBRARY, CUSTOM")
 
 nb.wait()
+
+nb.step("Работа с стратегиями")
+
+nb.info("Работа с стратегиями")
