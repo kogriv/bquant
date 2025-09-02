@@ -1,34 +1,31 @@
-[LOG] Log started: 2025-09-01 15:31:18
+[LOG] Log started: 2025-09-02 15:33:02
 [OUTPUT] Output will be written to: research\notebooks\01_data_log.txt
-[>>] Starting BQuant Data Module Testing
-==================================================
-[SCRIPT] BQuant Data Module Testing
-[DATE] Started: 2025-09-01 15:31:18
-==================================================
+[>>] Starting Демонстрация работы модуля bquant.data.loader
+=================================================================
+[SCRIPT] Демонстрация работы модуля bquant.data.loader
+[DATE] Started: 2025-09-02 15:33:02
+=================================================================
 ================================================================================
-[STEP] STEP 1: Environment Setup
-------------------------------
-[INFO] Project root: C:\Users\user\Documents\Pro\bquant
-[INFO] Python path: C:\Users\user\Documents\Pro\bquant
-[INFO] Pandas version: 2.3.2
-[OK] Pandas import check completed successfully
+[STEP] STEP 1: Определение рабочей директории, получение списка доступных символов и таймфреймов
+-----------------------------------------------------------------------------------------
+[INFO] API bquant.data.loader - это основной модуль для загрузки данных.
+[INFO] ------------------------------------------------------------
+[INFO] 1.1. get_data_dir() - Текущая рабочая директория:
+[INFO] C:\Users\g\Documents\pro\bquant\data
+[OK] Listing available data directory completed successfully
+[INFO] ------------------------------------------------------------
+[INFO] 1.2. set_data_dir() - Установка рабочей директории:
+[INFO] C:\Users\g\Documents\pro\bquant\data\raw
+[OK] Setting data directory completed successfully
+[INFO] 2.1. Загружаем файл MetaTrader: C:\Users\g\Documents\pro\bquant\data\raw\XAUUSDH1.csv
+[FAIL] Файл не найден: C:\Users\g\Documents\pro\bquant\data\raw\XAUUSDH1.csv
+[INFO] ------------------------------------------------------------
+[INFO] 1.2. get_available_symbols() - Список доступных символов:
+[]
+[OK] Listing available symbols completed successfully
+[INFO] ------------------------------------------------------------
+[INFO] 1.3. get_available_timeframes() - Список доступных таймфреймов:
+[]
+[OK] Listing available timeframes completed successfully
 
 ============================================================
-============================================================
-
-================================================================================
-[STEP] STEP 2: BQuant Logging Setup
-------------------------------
-[OK] BQuant logging configured: WARNING+ to console, INFO+ to file
-[OK] BQuant logging setup completed successfully
-
-============================================================
-============================================================
-
-================================================================================
-[STEP] STEP 3: BQuant Module Imports
-------------------------------
-[FAIL] Import error: No module named 'chardet'
-[FAIL] Make sure all dependencies are installed
-[END] Log ended: 2025-09-01 15:31:35
-[TIME] Duration: 0:00:17.295826
