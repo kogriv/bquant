@@ -69,14 +69,8 @@ with nb.error_handling("Listing available timeframes"):
 
 nb.substep("Загрузка данных")
 mt_file_path = raw_data_path / 'XAUUSDH1.csv'
-nb.info(f"Загружаем файл MetaTrader: {mt_file_path}")
-if mt_file_path.exists():
-    with nb.error_handling("Loading raw MetaTrader file"):
-        df_raw_mt = load_ohlcv_data(mt_file_path, symbol="XAUUSD", timeframe="H1")
-        nb.log(df_raw_mt.head().to_string())
-        nb.log(json.dumps(get_data_info(df_raw_mt), indent=2, default=str))
-else:
-    nb.error(f"Файл не найден: {mt_file_path}")
+df_sample_tv = get_sample_data('tv_xauusd_1h')
+nb.log(df_sample_tv.head().to_string())
 
 nb.wait()
 
@@ -84,8 +78,20 @@ nb.step("Работа с индикаторами")
 
 nb.info("BQuant поддерживает источники: PRELOADED, LIBRARY, CUSTOM")
 
+# Демонстрация PRELOADED MACD индикатора
+nb.substep("PRELOADED MACD индикатор")
+
+from bquant.indicators.preloaded import MACDPreloadedIndicator
+
+# Создаем индикатор
+macd = MACDPreloadedIndicator(required_columns=['macd','signal'])
+nb.log(f"Created indicator: {macd.name}")
+
+# Извлекаем данные
+nb.info("Extracting MACD data:")
+macd_result = macd.calculate(df_sample_tv)
+
+# Значения
+nb.log(macd_result.data.tail().to_string())
+
 nb.wait()
-
-nb.step("Работа с стратегиями")
-
-nb.info("Работа с стратегиями")

@@ -17,6 +17,11 @@ Indicators модули содержат технические индикато
 - **ZoneInfo**/**ZoneAnalysisResult** - модели результатов
 - Вспомогательные функции: `create_macd_analyzer()`, `analyze_macd_zones()`
 
+### 🔄 [bquant.indicators.preloaded](preloaded.md) - PRELOADED индикаторы
+- **MACDPreloadedIndicator** - извлечение готовых MACD значений
+- Работа с предобработанными данными
+- Анализ трендов и пересечений
+
 ### 🏭 [bquant.indicators.factory](factory.md) - Фабрика и библиотека индикаторов
 - **IndicatorFactory**: `register_indicator()`, `register_library_function()`, `create_indicator()`, `list_indicators()`, `get_indicator_info()`
 - Библиотека: `register_builtin_indicators()`, `get_builtin_indicators()`, `create_indicator()`
@@ -31,11 +36,20 @@ Indicators модули содержат технические индикато
 - `identify_zones()` - Идентификация зон
 - `analyze_zone_features()` - Анализ характеристик зон
 
+#### PRELOADED индикаторы
+- `MACDPreloadedIndicator.calculate()` - Извлечение готовых значений
+- `MACDPreloadedIndicator.is_trending_up()` - Анализ восходящего тренда
+- `MACDPreloadedIndicator.is_trending_down()` - Анализ нисходящего тренда
+- `MACDPreloadedIndicator.get_crossovers()` - Определение пересечений
+- `MACDPreloadedIndicator.get_statistics()` - Статистика по данным
+
 #### Базовые индикаторы
 - `BaseIndicator.calculate()` - Расчет индикатора
 - `BaseIndicator.validate_data()` - Валидация данных
 - `BaseIndicator.get_params()` - Получение параметров
 - `BaseIndicator.set_params()` - Установка параметров
+- `BaseIndicator.get_info()` - Информация об индикаторе (class method)
+- `BaseIndicator.get_default_columns()` - Колонки по умолчанию (class method)
 
 #### Фабрика индикаторов
 - `IndicatorFactory.create_indicator()` - Создание индикатора
@@ -47,6 +61,8 @@ Indicators модули содержат технические индикато
 
 #### 🏗️ Классы
 - `BaseIndicator` - Базовый класс индикатора
+- `PreloadedIndicator` - Базовый класс для PRELOADED индикаторов
+- `MACDPreloadedIndicator` - PRELOADED MACD индикатор
 - `MACDZoneAnalyzer` - Анализатор MACD
 - `IndicatorFactory` - Фабрика индикаторов
 - `IndicatorRegistry` - Реестр индикаторов
@@ -64,6 +80,71 @@ Indicators модули содержат технические индикато
 - `ZoneInfo` - Информация о зоне
 
 ## 💡 Примеры использования
+
+### PRELOADED MACD индикатор
+
+```python
+from bquant.indicators.preloaded import MACDPreloadedIndicator
+from bquant.data.samples import get_sample_data
+
+# Загрузка данных с готовыми MACD значениями
+data = get_sample_data('tv_xauusd_1h')
+
+# Создание PRELOADED индикатора
+macd_indicator = MACDPreloadedIndicator()
+
+# Получение информации о классе
+info = MACDPreloadedIndicator.get_info()
+default_cols = MACDPreloadedIndicator.get_default_columns()
+
+print(f"Indicator type: {info['type']}")
+print(f"Default columns: {default_cols}")
+print(f"Required fields: {info['required_fields']}")
+
+# Извлечение данных
+result = macd_indicator.calculate(data)
+print(f"Extracted columns: {list(result.data.columns)}")
+
+# Анализ трендов
+trending_up = macd_indicator.is_trending_up(data, column='macd')
+trending_down = macd_indicator.is_trending_down(data, column='macd')
+print(f"MACD trending up: {trending_up}")
+print(f"MACD trending down: {trending_down}")
+
+# Анализ пересечений
+crossovers = macd_indicator.get_crossovers(data)
+print(f"Bullish crossovers: {crossovers['bullish_crossovers']}")
+print(f"Bearish crossovers: {crossovers['bearish_crossovers']}")
+
+# Статистика
+stats = macd_indicator.get_statistics(data)
+for col, col_stats in stats.items():
+    print(f"{col}: min={col_stats['min']:.4f}, max={col_stats['max']:.4f}")
+```
+
+### PRELOADED индикатор с кастомными колонками
+
+```python
+from bquant.indicators.preloaded import MACDPreloadedIndicator
+
+# Создание индикатора только для MACD линии
+macd_only = MACDPreloadedIndicator(required_columns=['macd'])
+
+# Создание индикатора для всех доступных колонок
+macd_full = MACDPreloadedIndicator(required_columns=['macd', 'signal', 'histogram'])
+
+# Валидация данных
+try:
+    is_valid = macd_full.validate_data(data)
+    print("Data validation passed")
+except ValueError as e:
+    print(f"Validation failed: {e}")
+
+# Работа с доступными колонками
+if macd_only.validate_data(data):
+    result = macd_only.calculate(data)
+    print(f"Single column result: {list(result.data.columns)}")
+```
 
 ### MACD анализ с зонами
 
@@ -161,15 +242,20 @@ print(f"SMA info: {info}")
 
 ```python
 from bquant.indicators import MACDZoneAnalyzer
+from bquant.indicators.preloaded import MACDPreloadedIndicator
 from bquant.indicators.factory import IndicatorFactory
 
 # Создание нескольких индикаторов
 factory = IndicatorFactory()
 factory.register_indicator(SimpleMovingAverage)
 
-# MACD анализ
+# PRELOADED MACD анализ
+macd_preloaded = MACDPreloadedIndicator()
+macd_result = macd_preloaded.calculate(data)
+
+# MACD зоны анализ
 macd_analyzer = MACDZoneAnalyzer()
-macd_result = macd_analyzer.analyze_complete(data)
+macd_zones_result = macd_analyzer.analyze_complete(data)
 
 # SMA анализ
 sma = factory.create('SMA', period=20)
@@ -177,8 +263,9 @@ sma_result = sma.calculate(data)
 
 # Комбинированный анализ
 combined_analysis = {
-    'macd_zones': len(macd_result.zones),
-    'macd_statistics': macd_result.statistics,
+    'preloaded_macd_columns': list(macd_result.data.columns),
+    'macd_zones': len(macd_zones_result.zones),
+    'macd_statistics': macd_zones_result.statistics,
     'sma_current': sma_result.values.iloc[-1],
     'sma_trend': 'up' if sma_result.values.iloc[-1] > sma_result.values.iloc[-2] else 'down'
 }
@@ -290,6 +377,7 @@ print("Analysis exported to macd_analysis.json")
 
 - **[Base Module](base.md)** - Подробная документация базовых классов
 - **[MACD Module](macd.md)** - Документация MACD индикатора
+- **[PRELOADED Module](preloaded.md)** - Документация PRELOADED индикаторов
 - **[Factory Module](factory.md)** - Документация фабрики индикаторов
 
 ## 🚀 Руководство по расширению
@@ -301,12 +389,20 @@ print("Analysis exported to macd_analysis.json")
 3. **Валидация данных**
 4. **Регистрация в фабрике**
 
+### Создание PRELOADED индикатора
+
+1. **Наследование от PreloadedIndicator**
+2. **Реализация get_default_columns() и get_info() class methods**
+3. **Настройка гибких required_columns**
+4. **Реализация аналитических методов (тренды, пересечения)**
+
 ### Лучшие практики
 
 - Используйте NumPy для быстрых вычислений
 - Валидируйте входные данные
 - Документируйте параметры и результаты
 - Тестируйте индикатор на различных данных
+- Реализуйте class methods для информации и конфигурации по умолчанию
 
 ---
 

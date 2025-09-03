@@ -23,6 +23,7 @@
 ### 📈 [Indicators](indicators/README.md) - Технические индикаторы
 - **bquant.indicators.base** - Базовые классы индикаторов
 - **bquant.indicators.macd** - MACD индикатор с анализом зон
+- **bquant.indicators.preloaded** - PRELOADED индикаторы для готовых данных
 - **bquant.indicators.factory** - Фабрика индикаторов
 
 ### 🔬 [Analysis](analysis/README.md) - Аналитические модули
@@ -47,6 +48,7 @@
 
 #### 📈 Технические индикаторы
 - `bquant.indicators.MACDZoneAnalyzer` - Анализатор MACD с зонами
+- `bquant.indicators.MACDPreloadedIndicator` - PRELOADED MACD индикатор
 - `bquant.indicators.BaseIndicator` - Базовый класс индикатора
 - `bquant.indicators.IndicatorFactory` - Фабрика индикаторов
 
@@ -64,6 +66,8 @@
 
 #### 🏗️ Классы
 - `BaseIndicator` - Базовый класс для индикаторов
+- `PreloadedIndicator` - Базовый класс для PRELOADED индикаторов
+- `MACDPreloadedIndicator` - PRELOADED MACD индикатор
 - `MACDZoneAnalyzer` - Анализатор MACD
 - `FinancialCharts` - Создание графиков
 - `ZoneFeaturesAnalyzer` - Анализ характеристик зон

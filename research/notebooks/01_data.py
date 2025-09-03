@@ -20,7 +20,7 @@ setup_logging(profile='research')
 
 from bquant.core.nb import NotebookSimulator
 from bquant.core.config import get_data_dir, set_data_dir, reset_directories_to_defaults
-from bquant.data.loader import (
+        from bquant.data.loader import (
     load_ohlcv_data,
     load_symbol_data,
     load_xauusd_data,
@@ -66,7 +66,7 @@ if mt_file_path.exists():
         df_raw_mt = load_ohlcv_data(mt_file_path, symbol="XAUUSD", timeframe="H1")
         nb.log(df_raw_mt.head().to_string())
         nb.log(json.dumps(get_data_info(df_raw_mt), indent=2, default=str))
-else:
+    else:
     nb.error(f"Файл не найден: {mt_file_path}")
 
 with nb.error_handling("Listing available symbols"):
@@ -80,5 +80,5 @@ with nb.error_handling("Listing available timeframes"):
     nb.info("1.3. get_available_timeframes() - Список доступных таймфреймов:")
     timeframes = get_available_timeframes("XAUUSD")
     nb.log(json.dumps(timeframes, indent=2, ensure_ascii=False))
-
-nb.wait()
+    
+    nb.wait()
