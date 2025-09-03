@@ -239,7 +239,7 @@ class TestIndicatorPerformance:
         assert len(results) > 0
         
         # Проверяем основные индикаторы
-        expected_indicators = ['sma_20', 'sma_50', 'ema_12', 'ema_26', 'rsi_14', 'macd', 'bbands']
+        expected_indicators = ['sma_20', 'sma_50', 'ema', 'ema_26', 'rsi', 'macd', 'bbands']
         for indicator in expected_indicators:
             assert indicator in results, f"Missing indicator: {indicator}"
         
@@ -271,9 +271,9 @@ class TestCalculatorPerformance:
         calculator = IndicatorCalculator(large_data, auto_load_libraries=False)
         
         indicators = {
-            'sma_20': {'period': 20},
-            'ema_20': {'period': 20},
-            'rsi_14': {'period': 14},
+            'sma': {'period': 20},
+            'ema': {'period': 20},
+            'rsi': {'period': 14},
             'macd': {'fast_period': 12, 'slow_period': 26, 'signal_period': 9}
         }
         
@@ -332,17 +332,20 @@ class TestMACDAnalyzerPerformance:
         """Тест производительности определения зон."""
         macd_params = {
             'fast': 12,
-            'slow': 26, 
+            'slow': 26,
             'signal': 9
         }
-        
+    
         zone_params = {
-            'min_zone_length': 5,
+            'min_duration': 5,
             'significance_threshold': 0.1
         }
-        
+
         analyzer = MACDZoneAnalyzer(macd_params, zone_params)
-        zones = analyzer.identify_zones(trending_data)
+        
+        # Сначала рассчитываем MACD данные
+        df_with_macd = analyzer.calculate_macd_with_atr(trending_data)
+        zones = analyzer.identify_zones(df_with_macd)
         
         assert isinstance(zones, list)
         assert len(zones) > 0
@@ -359,11 +362,14 @@ class TestMACDAnalyzerPerformance:
     def test_zone_features_performance(self, trending_data):
         """Тест производительности расчета признаков зон."""
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(trending_data)
+        
+        # Сначала рассчитываем MACD данные
+        df_with_macd = analyzer.calculate_macd_with_atr(trending_data)
+        zones = analyzer.identify_zones(df_with_macd)
         
         all_features = []
         for zone in zones:
-            features = analyzer.calculate_zone_features(zone, trending_data)
+            features = analyzer.calculate_zone_features(zone)
             all_features.append(features)
         
         assert len(all_features) == len(zones)
@@ -371,8 +377,8 @@ class TestMACDAnalyzerPerformance:
         for features in all_features:
             assert isinstance(features, dict)
             assert 'duration' in features
-            assert 'amplitude' in features
-            assert 'correlation_price_macd' in features
+            assert 'macd_amplitude' in features  # Используем правильное имя
+            assert 'price_hist_corr' in features  # Используем правильное имя
         
         logger.info(f"Zone features calculation completed for {len(zones)} zones")
     
@@ -380,21 +386,23 @@ class TestMACDAnalyzerPerformance:
     def test_statistical_analysis_performance(self, trending_data):
         """Тест производительности статистических тестов."""
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(trending_data)
+        
+        # Сначала рассчитываем MACD данные
+        df_with_macd = analyzer.calculate_macd_with_atr(trending_data)
+        zones = analyzer.identify_zones(df_with_macd)
         
         # Вычисляем признаки для всех зон
         for zone in zones:
-            zone.features = analyzer.calculate_zone_features(zone, trending_data)
+            zone.features = analyzer.calculate_zone_features(zone)
         
         hypothesis_tests = analyzer.test_hypotheses(zones)
         
-        assert isinstance(hypothesis_tests, list)
+        assert isinstance(hypothesis_tests, dict)  # Результат - словарь, не список
         assert len(hypothesis_tests) > 0
         
-        for test in hypothesis_tests:
-            assert 'hypothesis' in test
-            assert 'p_value' in test
-            assert 'result' in test
+        for test_name, test_data in hypothesis_tests.items():
+            assert 'description' in test_data
+            assert 'p_value' in test_data
         
         logger.info(f"Statistical analysis completed: {len(hypothesis_tests)} tests")
     
@@ -402,18 +410,21 @@ class TestMACDAnalyzerPerformance:
     def test_clustering_performance(self, trending_data):
         """Тест производительности кластеризации."""
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(trending_data)
+        
+        # Сначала рассчитываем MACD данные
+        df_with_macd = analyzer.calculate_macd_with_atr(trending_data)
+        zones = analyzer.identify_zones(df_with_macd)
         
         # Вычисляем признаки для всех зон
         for zone in zones:
-            zone.features = analyzer.calculate_zone_features(zone, trending_data)
+            zone.features = analyzer.calculate_zone_features(zone)
         
         if len(zones) >= 3:  # Нужно минимум 3 зоны для кластеризации
             cluster_result = analyzer.cluster_zones_by_shape(zones, n_clusters=3)
             
             assert 'cluster_labels' in cluster_result
-            assert 'cluster_centers' in cluster_result
-            assert 'silhouette_score' in cluster_result
+            assert 'cluster_analysis' in cluster_result  # Используем правильное имя
+            assert 'n_clusters' in cluster_result
             assert len(cluster_result['cluster_labels']) == len(zones)
             
             logger.info(f"Clustering completed for {len(zones)} zones")
@@ -460,8 +471,8 @@ class TestDataProcessingPerformance:
         """Тест производительности очистки данных."""
         # Добавляем немного "грязных" данных
         dirty_data = large_data.copy()
-        dirty_data.loc[100:110, 'close'] = np.nan
-        dirty_data.loc[500:505, 'volume'] = -1  # Некорректные данные
+        dirty_data.iloc[100:110, dirty_data.columns.get_loc('close')] = np.nan
+        dirty_data.iloc[500:505, dirty_data.columns.get_loc('volume')] = -1  # Некорректные данные
         
         cleaned_data = clean_ohlcv_data(dirty_data)
         

@@ -618,7 +618,7 @@ def run_all_hypothesis_tests(zones_features: List[Dict[str, Any]], alpha: float 
     return analysis_result.results
 
 
-def test_single_hypothesis(zones_features: List[Dict[str, Any]], 
+def run_single_hypothesis_test(zones_features: List[Dict[str, Any]], 
                           test_type: str, 
                           alpha: float = 0.05) -> HypothesisTestResult:
     """
@@ -653,5 +653,5 @@ __all__ = [
     'HypothesisTestResult',
     'HypothesisTestSuite',
     'run_all_hypothesis_tests',
-    'test_single_hypothesis'
+    'run_single_hypothesis_test'
 ]

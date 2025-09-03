@@ -208,7 +208,8 @@ def get_available_themes() -> List[str]:
     if not _themes_available:
         return ['default']
     
-    return ChartThemes.get_available_themes()
+    from .themes import get_available_themes as themes_get_available
+    return themes_get_available()
 
 
 def set_default_theme(theme_name: str) -> bool:

@@ -114,7 +114,7 @@ class MACDAnalysisScript:
         except Exception as e:
             self.logger.error(f"MACD analysis failed for {symbol}: {e}")
             if verbose:
-                print(f"❌ Analysis failed: {e}")
+                print(f"[ERROR] Analysis failed: {e}")
             raise
     
     def _load_data(
@@ -535,7 +535,7 @@ Examples:
     
     try:
         if args.dry_run:
-            print(f"✅ Dry run: Would analyze {args.symbol} {args.timeframe}")
+            print(f"[OK] Dry run: Would analyze {args.symbol} {args.timeframe}")
             print(f"   Sample data: {args.sample_data}")
             print(f"   Output format: {args.output_format}")
             return 0
@@ -557,7 +557,7 @@ Examples:
         return 0
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[ERROR] Error: {e}")
         logger.error(f"MACD analysis script failed: {e}", exc_info=True)
         return 1
 

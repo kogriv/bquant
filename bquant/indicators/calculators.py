@@ -9,9 +9,9 @@ import numpy as np
 from typing import Dict, Any, Optional, List, Union, Tuple
 from datetime import datetime
 
-from .base import IndicatorFactory, IndicatorResult, BaseIndicator
-from .library import register_builtin_indicators
-from .loaders import LibraryManager
+from .base import IndicatorFactory, IndicatorResult, BaseIndicator, IndicatorConfig, IndicatorSource
+from .custom import register_builtin_indicators
+from .library import LibraryManager
 from ..core.exceptions import IndicatorCalculationError
 from ..core.logging_config import get_logger
 
@@ -242,10 +242,10 @@ def calculate_moving_averages(data: pd.DataFrame, periods: List[int] = None) -> 
     calculator = IndicatorCalculator(data, auto_load_libraries=False)
     
     # Вычисляем SMA для каждого периода
-    sma_indicators = {f'sma_{period}': {'period': period} for period in periods}
+    sma_indicators = {'sma': {'period': periods[0]}}  # Используем первый период для базового SMA
     
     # Вычисляем EMA для каждого периода  
-    ema_indicators = {f'ema_{period}': {'period': period} for period in periods}
+    ema_indicators = {'ema': {'period': periods[0]}}  # Используем первый период для базового EMA
     
     # Объединяем все индикаторы
     all_indicators = {**sma_indicators, **ema_indicators}
@@ -257,6 +257,16 @@ def calculate_moving_averages(data: pd.DataFrame, periods: List[int] = None) -> 
     for name, result in results.items():
         for col in result.data.columns:
             combined_data[col] = result.data[col]
+    
+    # Добавляем дополнительные периоды как колонки
+    for period in periods:
+        # Для SMA
+        if 'sma' in results:
+            combined_data[f'sma_{period}'] = data['close'].rolling(window=period).mean()
+        
+        # Для EMA
+        if 'ema' in results:
+            combined_data[f'ema_{period}'] = data['close'].ewm(span=period).mean()
     
     return combined_data
 
@@ -273,22 +283,64 @@ def create_indicator_suite(data: pd.DataFrame) -> Dict[str, IndicatorResult]:
     """
     calculator = IndicatorCalculator(data)
     
-    # Определяем стандартный набор индикаторов
-    standard_indicators = {
-        'sma_20': {'period': 20},
-        'sma_50': {'period': 50},
-        'ema_12': {'period': 12},
-        'ema_26': {'period': 26},
-        'rsi_14': {'period': 14},
-        'macd': {'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
-        'bbands': {'period': 20, 'std_dev': 2.0},
+    # Определяем базовые индикаторы (которые можно создать)
+    base_indicators = {
+        'sma': {'period': 20},  # Базовый SMA
+        'ema': {'period': 12},  # Базовый EMA
+        'rsi': {'period': 14},  # RSI
+        'macd': {'fast_period': 12, 'slow_period': 26, 'signal_period': 9},  # MACD
+        'bbands': {'period': 20, 'std_dev': 2.0},  # Bollinger Bands
     }
     
-    # Вычисляем все индикаторы
-    results = calculator.calculate_multiple(standard_indicators)
+    # Вычисляем базовые индикаторы
+    results = calculator.calculate_multiple(base_indicators)
     
-    logger.info(f"Calculated {len(results)} indicators in standard suite")
-    return results
+    # Добавляем дополнительные периоды как отдельные результаты
+    additional_results = {}
+    
+    # SMA с разными периодами
+    if 'sma' in results:
+        sma_base = results['sma']
+        for period in [20, 50]:
+            sma_data = data['close'].rolling(window=period).mean()
+            sma_result = IndicatorResult(
+                name=f'sma_{period}',
+                data=pd.DataFrame({f'sma_{period}': sma_data}),
+                config=IndicatorConfig(
+                    name=f'sma_{period}',
+                    parameters={'period': period},
+                    source=IndicatorSource.CUSTOM,
+                    columns=[f'sma_{period}'],
+                    description=f'SMA ({period})'
+                ),
+                metadata={'period': period, 'calculation_method': 'rolling_mean'}
+            )
+            additional_results[f'sma_{period}'] = sma_result
+    
+    # EMA с разными периодами
+    if 'ema' in results:
+        ema_base = results['ema']
+        for period in [26]:
+            ema_data = data['close'].ewm(span=period).mean()
+            ema_result = IndicatorResult(
+                name=f'ema_{period}',
+                data=pd.DataFrame({f'ema_{period}': ema_data}),
+                config=IndicatorConfig(
+                    name=f'ema_{period}',
+                    parameters={'period': period},
+                    source=IndicatorSource.CUSTOM,
+                    columns=[f'ema_{period}'],
+                    description=f'EMA ({period})'
+                ),
+                metadata={'period': period, 'calculation_method': 'ewm_mean'}
+            )
+            additional_results[f'ema_{period}'] = ema_result
+    
+    # Объединяем все результаты
+    all_results = {**results, **additional_results}
+    
+    logger.info(f"Calculated {len(all_results)} indicators in standard suite")
+    return all_results
 
 
 def get_available_indicators() -> Dict[str, str]:

@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 from bquant.data.samples import get_sample_data, list_dataset_names, validate_dataset_name
 from bquant.indicators import MACDZoneAnalyzer
-from bquant.analysis.statistical import run_all_hypothesis_tests, test_single_hypothesis
+from bquant.analysis.statistical import run_all_hypothesis_tests, run_single_hypothesis_test
 from bquant.visualization import FinancialCharts, create_financial_chart
 
 
@@ -316,7 +316,7 @@ class TestScriptsIntegration:
             try:
                 # Выполняем скрипт в dry-run режиме
                 result = subprocess.run(
-                    ["python", str(script_path)] + args,
+                    [sys.executable, str(script_path)] + args,
                     cwd=str(project_root),
                     capture_output=True,
                     text=True,

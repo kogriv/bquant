@@ -49,14 +49,14 @@ from .library import (
 #     validate_indicator_data
 # )
 
-# MACD analyzer (временно закомментировано до исправления зависимостей)
-# from .macd import (
-#     ZoneInfo,
-#     ZoneAnalysisResult,
-#     MACDZoneAnalyzer,
-#     create_macd_analyzer,
-#     analyze_macd_zones
-# )
+# MACD analyzer
+from .macd import (
+    ZoneInfo,
+    ZoneAnalysisResult,
+    MACDZoneAnalyzer,
+    create_macd_analyzer,
+    analyze_macd_zones
+)
 
 # PRELOADED indicators
 from .preloaded import (
@@ -115,4 +115,11 @@ __all__ = [
     "load_pandas_ta",
     "load_talib",
     "load_all_indicators",
+    
+    # MACD analyzer
+    "ZoneInfo",
+    "ZoneAnalysisResult", 
+    "MACDZoneAnalyzer",
+    "create_macd_analyzer",
+    "analyze_macd_zones",
 ]

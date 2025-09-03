@@ -15,7 +15,7 @@ from bquant.analysis.statistical.hypothesis_testing import (
     HypothesisTestResult,
     HypothesisTestSuite,
     run_all_hypothesis_tests,
-    test_single_hypothesis
+    run_single_hypothesis_test
 )
 from bquant.analysis.statistical import run_all_hypothesis_tests as imported_run_all
 from bquant.core.exceptions import StatisticalAnalysisError
@@ -154,7 +154,7 @@ class TestHypothesisTestSuite:
         assert result.test_type == "Independent t-test"
         assert isinstance(result.statistic, float)
         assert isinstance(result.p_value, float)
-        assert isinstance(result.significant, bool)
+        assert isinstance(result.significant, (bool, np.bool_))
         assert result.sample_size > 0
         
         # Проверяем метаданные
@@ -332,14 +332,14 @@ class TestConvenienceFunctions:
         test_types = ['duration', 'slope', 'asymmetry', 'sequence', 'volatility']
         
         for test_type in test_types:
-            result = test_single_hypothesis(test_zones, test_type, alpha=0.05)
+            result = run_single_hypothesis_test(test_zones, test_type, alpha=0.05)
             assert isinstance(result, HypothesisTestResult)
             assert result.alpha == 0.05
     
     def test_unknown_test_type(self, test_zones):
         """Тест с неизвестным типом теста."""
         with pytest.raises(ValueError, match="Unknown test type"):
-            test_single_hypothesis(test_zones, 'unknown_test', alpha=0.05)
+            run_single_hypothesis_test(test_zones, 'unknown_test', alpha=0.05)
 
 
 class TestCompatibilityWithOriginal:

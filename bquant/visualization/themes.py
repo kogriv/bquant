@@ -183,7 +183,7 @@ class ChartThemes:
             gridcolor=colors.get('grid', '#eeeeee'),
             linecolor=colors.get('axis_line', '#cccccc'),
             tickcolor=colors.get('tick', '#cccccc'),
-            titlefont=dict(color=colors.get('text', '#000000')),
+            title=dict(font=dict(color=colors.get('text', '#000000'))),
             tickfont=dict(color=colors.get('text', '#000000'))
         )
         

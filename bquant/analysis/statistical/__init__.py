@@ -386,7 +386,7 @@ try:
         HypothesisTestResult,
         HypothesisTestSuite,
         run_all_hypothesis_tests,
-        test_single_hypothesis
+        run_single_hypothesis_test
     )
     _hypothesis_testing_available = True
 except ImportError as e:
@@ -410,5 +410,5 @@ if _hypothesis_testing_available:
         'HypothesisTestResult',
         'HypothesisTestSuite', 
         'run_all_hypothesis_tests',
-        'test_single_hypothesis'
+        'run_single_hypothesis_test'
     ])

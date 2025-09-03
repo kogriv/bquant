@@ -542,6 +542,20 @@ class CustomIndicator(BaseIndicator):
         except Exception as e:
             self.logger.error(f"Failed to check trend for column '{column}': {e}")
             return False
+    
+    def calculate_with_cache(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
+        """
+        Вычисление индикатора с поддержкой кэширования.
+        
+        Args:
+            data: DataFrame с данными
+            **kwargs: Дополнительные параметры
+        
+        Returns:
+            IndicatorResult с результатами
+        """
+        # Для CustomIndicator просто вызываем calculate, кэширование не реализовано
+        return self.calculate(data, **kwargs)
 
 
 class LibraryIndicator(BaseIndicator):
@@ -837,7 +851,28 @@ class IndicatorFactory:
             Экземпляр индикатора
         """
         logger.warning("create_indicator() is deprecated, use create() instead")
-        return cls.create('custom', name, **kwargs)
+        # Пытаемся определить тип индикатора автоматически
+        name_lower = name.lower()
+        
+        # Проверяем, есть ли индикатор в реестре
+        if name_lower in cls._registry:
+            indicator_class = cls._registry[name_lower]
+            if issubclass(indicator_class, PreloadedIndicator):
+                return cls._create_preloaded(name, **kwargs)
+            elif issubclass(indicator_class, CustomIndicator):
+                return cls._create_custom(name, **kwargs)
+            elif issubclass(indicator_class, LibraryIndicator):
+                return cls._create_library('talib', name, **kwargs)  # По умолчанию talib
+        
+        # Если не найден в реестре, пробуем создать как CUSTOM
+        try:
+            return cls._create_custom(name, **kwargs)
+        except KeyError:
+            # Если не получилось как CUSTOM, пробуем как PRELOADED
+            try:
+                return cls._create_preloaded(name, **kwargs)
+            except KeyError:
+                raise KeyError(f"Indicator '{name}' not found in any source")
     
     @classmethod
     def list_indicators(cls) -> Dict[str, str]:

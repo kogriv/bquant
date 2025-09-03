@@ -800,7 +800,7 @@ Examples:
     
     try:
         if args.dry_run:
-            print(f"✅ Dry run: Would analyze batch processing")
+            print(f"[OK] Dry run: Would analyze batch processing")
             print(f"   Symbols: {symbols or 'auto-detect'}")
             print(f"   Timeframes: {timeframes or 'auto-detect'}")
             print(f"   Sample data: {args.sample_data}")
@@ -831,7 +831,7 @@ Examples:
         return 0
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[ERROR] Error: {e}")
         logger.error(f"Batch analysis script failed: {e}", exc_info=True)
         return 1
 

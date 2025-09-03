@@ -24,6 +24,9 @@ __all__ = [
     "BollingerBands",
     
     # Custom indicators (to be added by users)
+    
+    # Registration function
+    "register_builtin_indicators",
 ]
 
 # Auto-register built-in indicators
@@ -37,8 +40,39 @@ try:
     IndicatorFactory.register_indicator("macd", MACD)
     IndicatorFactory.register_indicator("bbands", BollingerBands)
     
-    print(f"✅ Registered {len(__all__)} BUILTIN indicators in custom module")
+    print(f"[OK] Registered {len(__all__)} BUILTIN indicators in custom module")
     
 except Exception as e:
-    print(f"⚠️ Warning: Failed to auto-register BUILTIN indicators: {e}")
+    print(f"[WARNING] Failed to auto-register BUILTIN indicators: {e}")
     pass  # Ignore errors during auto-registration
+
+
+def register_builtin_indicators():
+    """
+    Регистрация всех встроенных индикаторов в фабрике.
+    
+    Returns:
+        int: Количество зарегистрированных индикаторов
+    """
+    from ..base import IndicatorFactory
+    
+    registered_count = 0
+    
+    try:
+        IndicatorFactory.register_indicator("sma", SimpleMovingAverage)
+        registered_count += 1
+        IndicatorFactory.register_indicator("ema", ExponentialMovingAverage)
+        registered_count += 1
+        IndicatorFactory.register_indicator("rsi", RelativeStrengthIndex)
+        registered_count += 1
+        IndicatorFactory.register_indicator("macd", MACD)
+        registered_count += 1
+        IndicatorFactory.register_indicator("bbands", BollingerBands)
+        registered_count += 1
+        
+        print(f"[OK] Registered {registered_count} BUILTIN indicators via function")
+        return registered_count
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to register BUILTIN indicators: {e}")
+        return registered_count

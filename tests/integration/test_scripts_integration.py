@@ -33,7 +33,7 @@ class TestScriptsExecution:
         
         # 1. Тест dry-run режима
         result = subprocess.run(
-            ["python", str(script_path), "XAUUSD", "1h", "--dry-run"],
+            [sys.executable, str(script_path), "XAUUSD", "1h", "--dry-run"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
@@ -45,7 +45,7 @@ class TestScriptsExecution:
         
         # 2. Тест с sample данными
         result = subprocess.run(
-            ["python", str(script_path), "tv_xauusd_1h", "1h", "--sample-data"],
+            [sys.executable, str(script_path), "tv_xauusd_1h", "1h", "--sample-data"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
@@ -66,7 +66,7 @@ class TestScriptsExecution:
         
         try:
             result = subprocess.run(
-                ["python", str(script_path), "tv_xauusd_1h", "1h", "--sample-data", 
+                [sys.executable, str(script_path), "tv_xauusd_1h", "1h", "--sample-data", 
                  "--output", output_file, "--output-format", "json"],
                 cwd=str(project_root),
                 capture_output=True,
@@ -114,7 +114,7 @@ class TestScriptsExecution:
         
         # 1. Тест dry-run режима
         result = subprocess.run(
-            ["python", str(script_path), "XAUUSD", "1h", "--dry-run"],
+            [sys.executable, str(script_path), "XAUUSD", "1h", "--dry-run"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
@@ -126,7 +126,7 @@ class TestScriptsExecution:
         
         # 2. Тест с sample данными
         result = subprocess.run(
-            ["python", str(script_path), "tv_xauusd_1h", "1h", "--sample-data"],
+            [sys.executable, str(script_path), "tv_xauusd_1h", "1h", "--sample-data"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
@@ -143,7 +143,7 @@ class TestScriptsExecution:
         
         # 3. Тест с конкретными тестами
         result = subprocess.run(
-            ["python", str(script_path), "tv_xauusd_1h", "1h", "--sample-data", 
+            [sys.executable, str(script_path), "tv_xauusd_1h", "1h", "--sample-data", 
              "--tests", "duration", "--alpha", "0.05"],
             cwd=str(project_root),
             capture_output=True,
@@ -174,7 +174,7 @@ class TestScriptsExecution:
         
         # 1. Тест dry-run режима
         result = subprocess.run(
-            ["python", str(script_path), "--sample-data", "--dry-run"],
+            [sys.executable, str(script_path), "--sample-data", "--dry-run"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
@@ -186,7 +186,7 @@ class TestScriptsExecution:
         
         # 2. Тест с sample данными (небольшой batch)
         result = subprocess.run(
-            ["python", str(script_path), "--sample-data", "--all-datasets", "--no-hypotheses"],
+            [sys.executable, str(script_path), "--sample-data", "--all-datasets", "--no-hypotheses"],
             cwd=str(project_root),
             capture_output=True,
             text=True,
@@ -203,7 +203,7 @@ class TestScriptsExecution:
         
         # 3. Тест конфигурационного режима (dry-run с параметрами)
         result = subprocess.run(
-            ["python", str(script_path), "--symbols", "XAUUSD", "--timeframes", "1h", 
+            [sys.executable, str(script_path), "--symbols", "XAUUSD", "--timeframes", "1h", 
              "--sample-data", "--dry-run"],
             cwd=str(project_root),
             capture_output=True,
@@ -257,7 +257,7 @@ class TestScriptsIntegrationWithComponents:
             for dataset_name in dataset_names[:2]:  # Тестируем первые 2 dataset'а
                 try:
                     result = subprocess.run(
-                        ["python", str(script_path), dataset_name, "1h"] + base_args,
+                        [sys.executable, str(script_path), dataset_name, "1h"] + base_args,
                         cwd=str(project_root),
                         capture_output=True,
                         text=True,
@@ -309,7 +309,7 @@ class TestScriptsIntegrationWithComponents:
                 start_time = time.time()
                 
                 result = subprocess.run(
-                    ["python", str(script_path)] + args,
+                    [sys.executable, str(script_path)] + args,
                     cwd=str(project_root),
                     capture_output=True,
                     text=True,
@@ -380,7 +380,7 @@ class TestScriptsOutputIntegration:
             
             try:
                 result = subprocess.run(
-                    ["python", str(script_path), "tv_xauusd_1h", "1h", "--sample-data",
+                    [sys.executable, str(script_path), "tv_xauusd_1h", "1h", "--sample-data",
                      "--output", output_file, "--output-format", output_format],
                     cwd=str(project_root),
                     capture_output=True,
@@ -468,7 +468,7 @@ class TestScriptsOutputIntegration:
         for args, scenario_name in error_scenarios:
             try:
                 result = subprocess.run(
-                    ["python", str(script_path)] + args,
+                    [sys.executable, str(script_path)] + args,
                     cwd=str(project_root),
                     capture_output=True,
                     text=True,

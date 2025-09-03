@@ -27,7 +27,7 @@ sys.path.insert(0, str(project_root))
 from bquant.core.logging_config import get_logger
 from bquant.data.samples import get_sample_data, list_dataset_names, validate_dataset_name
 from bquant.indicators import MACDZoneAnalyzer
-from bquant.analysis.statistical import run_all_hypothesis_tests, test_single_hypothesis
+from bquant.analysis.statistical import run_all_hypothesis_tests, run_single_hypothesis_test
 
 logger = get_logger(__name__)
 
@@ -128,7 +128,7 @@ class HypothesisTestingScript:
                 for test_name in tests_to_run:
                     if test_name in self.available_tests:
                         try:
-                            result = test_single_hypothesis(
+                            result = run_single_hypothesis_test(
                                 zones_info, test_name, alpha=alpha
                             )
                             test_results[test_name] = result
@@ -721,7 +721,7 @@ Available Tests:
     
     try:
         if args.dry_run:
-            print(f"✅ Dry run: Would test hypotheses for {args.symbol} {args.timeframe}")
+            print(f"[OK] Dry run: Would test hypotheses for {args.symbol} {args.timeframe}")
             print(f"   Sample data: {args.sample_data}")
             print(f"   Tests: {tests_list or 'default'}")
             print(f"   All tests: {args.all_tests}")
@@ -747,7 +747,7 @@ Available Tests:
         return 0
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[ERROR] Error: {e}")
         logger.error(f"Hypothesis testing script failed: {e}", exc_info=True)
         return 1
 
