@@ -132,13 +132,57 @@ def sma_library_function(data, period=20, **kwargs):
         f'sma_{period}': sma_values
     }, index=data.index)
 
-# Создаем LIBRARY индикатор
+# Создаем функцию для расчета MACD (имитация внешней библиотеки)
+def macd_library_function(data, fast_period=12, slow_period=26, signal_period=9, **kwargs):
+    """Функция MACD для демонстрации LibraryIndicator"""
+    if 'close' not in data.columns:
+        raise ValueError("Data must contain 'close' column")
+    
+    close_prices = data['close'].values
+    
+    # Простая реализация EMA
+    def ema(prices, period):
+        alpha = 2.0 / (period + 1)
+        ema_values = np.zeros_like(prices)
+        ema_values[0] = prices[0]
+        for i in range(1, len(prices)):
+            ema_values[i] = alpha * prices[i] + (1 - alpha) * ema_values[i-1]
+        return ema_values
+    
+    # Рассчитываем EMA
+    ema_fast = ema(close_prices, fast_period)
+    ema_slow = ema(close_prices, slow_period)
+    
+    # MACD линия
+    macd_line = ema_fast - ema_slow
+    
+    # Signal линия (EMA от MACD)
+    signal_line = ema(macd_line, signal_period)
+    
+    # Histogram
+    histogram = macd_line - signal_line
+    
+    return pd.DataFrame({
+        'macd': macd_line,
+        'signal': signal_line,
+        'histogram': histogram
+    }, index=data.index)
+
+# Создаем LIBRARY индикатор SMA
 sma_library = LibraryIndicator(
     name="sma_library",
     library_func=sma_library_function,
     parameters={'period': 20}
 )
-nb.log(f"Created LIBRARY indicator: {sma_library.name}")
+nb.log(f"Created LIBRARY SMA indicator: {sma_library.name}")
+
+# Создаем LIBRARY индикатор MACD
+macd_library = LibraryIndicator(
+    name="macd_library",
+    library_func=macd_library_function,
+    parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9}
+)
+nb.log(f"Created LIBRARY MACD indicator: {macd_library.name}")
 
 # Рассчитываем SMA
 nb.info("Calculating SMA using library function:")
@@ -146,9 +190,18 @@ sma_library_result = sma_library.calculate(df_sample_tv)
 nb.log(f"Calculated {len(sma_library_result.data)} rows")
 nb.log(f"Columns: {list(sma_library_result.data.columns)}")
 
+# Рассчитываем MACD
+nb.info("Calculating MACD using library function:")
+macd_library_result = macd_library.calculate(df_sample_tv)
+nb.log(f"Calculated {len(macd_library_result.data)} rows")
+nb.log(f"Columns: {list(macd_library_result.data.columns)}")
+
 # Значения
 nb.log("Sample SMA values:")
 nb.log(sma_library_result.data.tail().to_string())
+
+nb.log("Sample MACD values:")
+nb.log(macd_library_result.data.tail().to_string())
 
 # Демонстрация доступа к исходной функции
 nb.info("Accessing native library function:")
@@ -455,25 +508,31 @@ nb.info("Comparison of all three approaches:")
 
 # Создаем таблицу сравнения
 comparison_data = {
-    'Approach': ['PRELOADED', 'LIBRARY', 'CUSTOM', 'FACTORY'],
-    'Indicator': ['MACD', 'SMA', 'RSI', 'SMA+MACD'],
+    'Approach': ['PRELOADED', 'LIBRARY_SMA', 'LIBRARY_MACD', 'CUSTOM_RSI', 'CUSTOM_MACD', 'FACTORY'],
+    'Indicator': ['MACD', 'SMA', 'MACD', 'RSI', 'MACD', 'MACD'],
     'Columns': [
         str(list(macd_preloaded_result.data.columns)),
         str(list(sma_library_result.data.columns)),
+        str(list(macd_library_result.data.columns)),
         str(list(rsi_custom_result.data.columns)),
-        str(list(sma_factory_result.data.columns))
+        str(list(macd_custom_result.data.columns)),
+        str(list(macd_factory_result.data.columns))
     ],
     'Rows': [
         len(macd_preloaded_result.data),
         len(sma_library_result.data),
+        len(macd_library_result.data),
         len(rsi_custom_result.data),
-        len(sma_factory_result.data)
+        len(macd_custom_result.data),
+        len(macd_factory_result.data)
     ],
     'Source': [
         macd_preloaded_result.metadata.get('source', 'unknown'),
         sma_library_result.metadata.get('source', 'unknown'),
+        macd_library_result.metadata.get('source', 'unknown'),
         rsi_custom_result.metadata.get('source', 'unknown'),
-        sma_factory_result.metadata.get('source', 'unknown')
+        macd_custom_result.metadata.get('source', 'unknown'),
+        macd_factory_result.metadata.get('source', 'unknown')
     ]
 }
 
@@ -483,17 +542,135 @@ nb.log(comparison_df.to_string(index=False))
 
 # Анализ производительности
 nb.info("Performance analysis:")
-nb.log(f"PRELOADED: {len(macd_preloaded_result.data)} rows - {macd_preloaded_result.metadata.get('source', 'unknown')}")
-nb.log(f"LIBRARY: {len(sma_library_result.data)} rows - {sma_library_result.metadata.get('source', 'unknown')}")
-nb.log(f"CUSTOM: {len(rsi_custom_result.data)} rows - {rsi_custom_result.metadata.get('source', 'unknown')}")
-nb.log(f"FACTORY: {len(sma_factory_result.data)} rows - {sma_factory_result.metadata.get('source', 'unknown')}")
+nb.log(f"PRELOADED MACD: {len(macd_preloaded_result.data)} rows - {macd_preloaded_result.metadata.get('source', 'unknown')}")
+nb.log(f"LIBRARY SMA: {len(sma_library_result.data)} rows - {sma_library_result.metadata.get('source', 'unknown')}")
+nb.log(f"LIBRARY MACD: {len(macd_library_result.data)} rows - {macd_library_result.metadata.get('source', 'unknown')}")
+nb.log(f"CUSTOM RSI: {len(rsi_custom_result.data)} rows - {rsi_custom_result.metadata.get('source', 'unknown')}")
+nb.log(f"CUSTOM MACD: {len(macd_custom_result.data)} rows - {macd_custom_result.metadata.get('source', 'unknown')}")
+nb.log(f"FACTORY MACD: {len(macd_factory_result.data)} rows - {macd_factory_result.metadata.get('source', 'unknown')}")
 
 # Дополнительная информация о метаданных
 nb.info("Metadata analysis:")
-nb.log(f"PRELOADED metadata keys: {list(macd_preloaded_result.metadata.keys())}")
-nb.log(f"LIBRARY metadata keys: {list(sma_library_result.metadata.keys())}")
-nb.log(f"CUSTOM metadata keys: {list(rsi_custom_result.metadata.keys())}")
-nb.log(f"FACTORY metadata keys: {list(sma_factory_result.metadata.keys())}")
+nb.log(f"PRELOADED MACD metadata keys: {list(macd_preloaded_result.metadata.keys())}")
+nb.log(f"LIBRARY SMA metadata keys: {list(sma_library_result.metadata.keys())}")
+nb.log(f"LIBRARY MACD metadata keys: {list(macd_library_result.metadata.keys())}")
+nb.log(f"CUSTOM RSI metadata keys: {list(rsi_custom_result.metadata.keys())}")
+nb.log(f"CUSTOM MACD metadata keys: {list(macd_custom_result.metadata.keys())}")
+nb.log(f"FACTORY MACD metadata keys: {list(macd_factory_result.metadata.keys())}")
+
+nb.wait()
+
+# Детальное сравнение значений MACD для всех подходов
+nb.substep("Детальное сравнение значений MACD")
+
+nb.info("Теперь сравним значения MACD, рассчитанные разными способами:")
+
+# Создаем сводную таблицу для сравнения MACD значений
+nb.info("Создаем сводную таблицу MACD значений:")
+
+# Получаем последние 15 значений для лучшего сравнения
+last_n = 15
+
+# Объединяем все MACD данные в одну таблицу
+comparison_macd_df = pd.DataFrame()
+
+# PRELOADED MACD
+if 'macd' in macd_preloaded_result.data.columns:
+    comparison_macd_df['PRELOADED_MACD'] = macd_preloaded_result.data['macd']
+    comparison_macd_df['PRELOADED_Signal'] = macd_preloaded_result.data.get('signal', np.nan)
+    comparison_macd_df['PRELOADED_Histogram'] = macd_preloaded_result.data.get('histogram', np.nan)
+
+# LIBRARY MACD
+if 'macd' in macd_library_result.data.columns:
+    comparison_macd_df['LIBRARY_MACD'] = macd_library_result.data['macd']
+    comparison_macd_df['LIBRARY_Signal'] = macd_library_result.data.get('signal', np.nan)
+    comparison_macd_df['LIBRARY_Histogram'] = macd_library_result.data.get('histogram', np.nan)
+
+# CUSTOM MACD
+if 'macd' in macd_custom_result.data.columns:
+    comparison_macd_df['CUSTOM_MACD'] = macd_custom_result.data['macd']
+    comparison_macd_df['CUSTOM_Signal'] = macd_custom_result.data.get('signal', np.nan)
+    comparison_macd_df['CUSTOM_Histogram'] = macd_custom_result.data.get('histogram', np.nan)
+
+# FACTORY MACD
+if 'macd' in macd_factory_result.data.columns:
+    comparison_macd_df['FACTORY_MACD'] = macd_factory_result.data['macd']
+    comparison_macd_df['FACTORY_Signal'] = macd_factory_result.data.get('signal', np.nan)
+    comparison_macd_df['FACTORY_Histogram'] = macd_factory_result.data.get('histogram', np.nan)
+
+# Показываем последние значения
+nb.log(f"MACD Values Comparison (last {last_n} values):")
+nb.log(comparison_macd_df.tail(last_n).to_string())
+
+# Анализ различий
+nb.info("Анализ различий между подходами:")
+
+# Сравниваем доступные колонки
+available_macd_columns = {
+    'PRELOADED': list(macd_preloaded_result.data.columns),
+    'LIBRARY': list(macd_library_result.data.columns),
+    'CUSTOM': list(macd_custom_result.data.columns),
+    'FACTORY': list(macd_factory_result.data.columns)
+}
+
+nb.log("Available MACD columns for each approach:")
+for approach, columns in available_macd_columns.items():
+    nb.log(f"  {approach}: {columns}")
+
+# Статистика по MACD значениям
+nb.info("MACD Line Statistics by approach:")
+
+macd_stats = {}
+for approach in ['PRELOADED', 'LIBRARY', 'CUSTOM', 'FACTORY']:
+    col_name = f'{approach}_MACD'
+    if col_name in comparison_macd_df.columns:
+        values = comparison_macd_df[col_name].dropna()
+        if len(values) > 0:
+            macd_stats[approach] = {
+                'count': len(values),
+                'min': values.min(),
+                'max': values.max(),
+                'mean': values.mean(),
+                'std': values.std()
+            }
+
+for approach, stats in macd_stats.items():
+    nb.log(f"  {approach}: count={stats['count']}, min={stats['min']:.6f}, max={stats['max']:.6f}, mean={stats['mean']:.6f}, std={stats['std']:.6f}")
+
+# Корреляционный анализ
+nb.info("Correlation analysis between different MACD implementations:")
+
+macd_only_df = comparison_macd_df[[col for col in comparison_macd_df.columns if 'MACD' in col and not col.endswith('_Signal') and not col.endswith('_Histogram')]]
+if len(macd_only_df.columns) > 1:
+    correlation_matrix = macd_only_df.corr()
+    nb.log("MACD correlation matrix:")
+    nb.log(correlation_matrix.to_string())
+
+# Детальное сравнение последних значений
+nb.info("Detailed comparison of recent MACD values:")
+
+recent_data = comparison_macd_df.tail(5)
+for i, (idx, row) in enumerate(recent_data.iterrows()):
+    nb.log(f"  Index {idx}:")
+    for col in recent_data.columns:
+        if not pd.isna(row[col]):
+            nb.log(f"    {col}: {row[col]:.6f}")
+    
+    # Вычисляем различия между подходами
+    macd_values = {}
+    for approach in ['PRELOADED', 'LIBRARY', 'CUSTOM', 'FACTORY']:
+        col_name = f'{approach}_MACD'
+        if col_name in row and not pd.isna(row[col_name]):
+            macd_values[approach] = row[col_name]
+    
+    if len(macd_values) > 1:
+        nb.log("    Differences:")
+        approaches = list(macd_values.keys())
+        for i in range(len(approaches)):
+            for j in range(i+1, len(approaches)):
+                approach1, approach2 = approaches[i], approaches[j]
+                diff = abs(macd_values[approach1] - macd_values[approach2])
+                nb.log(f"      {approach1} vs {approach2}: {diff:.6f}")
 
 nb.wait()
 
