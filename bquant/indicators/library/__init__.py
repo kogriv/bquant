@@ -10,7 +10,7 @@ from .pandas_ta import PandasTALoader
 from .talib import TALibLoader
 
 # Library management
-from .manager import LibraryManager, load_pandas_ta, load_talib, load_all_indicators, create_library_indicator
+from .manager import LibraryManager, load_pandas_ta, load_talib, load_all_indicators
 
 __all__ = [
     # External library loaders
@@ -22,7 +22,7 @@ __all__ = [
     "load_pandas_ta",
     "load_talib",
     "load_all_indicators",
-    "create_library_indicator",
+
 ]
 
 # Auto-load external libraries

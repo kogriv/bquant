@@ -217,16 +217,4 @@ def load_all_indicators() -> Dict[str, int]:
     return LibraryManager.load_all_libraries()
 
 
-def create_library_indicator(library_name: str, indicator_name: str, **kwargs):
-    """
-    Создать индикатор из внешней библиотеки.
-    
-    Args:
-        library_name: Название библиотеки
-        indicator_name: Название индикатора
-        **kwargs: Параметры индикатора
-    
-    Returns:
-        Экземпляр индикатора
-    """
-    return LibraryManager.create_indicator(library_name, indicator_name, **kwargs)
+

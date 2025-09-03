@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from bquant.indicators.base import BaseIndicator, IndicatorSource, IndicatorFactory
 from bquant.indicators import (
     IndicatorConfig, IndicatorResult, SimpleMovingAverage, MACD,
-    calculate_indicator, calculate_macd, get_available_indicators
+    MACDPreloadedIndicator
 )
 
 
@@ -71,9 +71,9 @@ class TestIndicatorBase:
         assert IndicatorSource.CUSTOM == "custom"
         """
         # Проверяем enum IndicatorSource
-        assert IndicatorSource.PRELOADED == "preloaded"
-        assert IndicatorSource.LIBRARY == "library"
-        assert IndicatorSource.CUSTOM == "custom"
+        assert IndicatorSource.PRELOADED.value == "preloaded"
+        assert IndicatorSource.LIBRARY.value == "library"
+        assert IndicatorSource.CUSTOM.value == "custom"
         
         print("✅ test_base_indicator: IndicatorSource enum работает корректно")
     
@@ -88,8 +88,8 @@ class TestIndicatorBase:
         # Создаем тестовые данные вместо загрузки XAUUSD
         data = create_test_data(100)
         
-        # Создаем индикатор через фабрику
-        indicator = IndicatorFactory.create_indicator('macd', data)
+        # Создаем индикатор через фабрику (старый метод для совместимости)
+        indicator = IndicatorFactory.create_indicator('macd', fast_period=12, slow_period=26, signal_period=9)
         assert indicator is not None
         
         # Проверяем, что это BaseIndicator
@@ -122,7 +122,8 @@ class TestIndicatorBase:
             name="test",
             parameters={},
             source=IndicatorSource.PRELOADED,
-            columns=['test_value']
+            columns=['test_value'],
+            description="Test indicator"
         )
         
         result_data = pd.DataFrame({'test_value': np.random.randn(50)}, index=data.index)
@@ -199,44 +200,48 @@ class TestBuiltinIndicators:
 class TestHighLevelFunctions:
     """Тесты для высокоуровневых функций."""
     
-    def test_calculate_indicator_function(self):
-        """Тест функции calculate_indicator."""
+    def test_indicator_factory_new_interface(self):
+        """Тест нового интерфейса IndicatorFactory.create()."""
         data = create_test_data(100)
         
-        result = calculate_indicator(data, 'sma', period=20)
+        # Тестируем создание через новый интерфейс
+        sma = IndicatorFactory.create('custom', 'sma', period=20)
+        result = sma.calculate(data)
         
         assert isinstance(result, IndicatorResult)
         assert result.name == 'sma'
         assert 'sma_20' in result.data.columns
         
-        print("✅ test_calculate_indicator_function: calculate_indicator работает")
+        print("✅ test_indicator_factory_new_interface: IndicatorFactory.create работает")
     
-    def test_calculate_macd_function(self):
-        """Тест convenience функции calculate_macd."""
+    def test_preloaded_indicator(self):
+        """Тест PRELOADED индикатора."""
         data = create_test_data(100)
+        # Добавляем колонки для PRELOADED MACD
+        data['macd'] = np.random.randn(100).cumsum()
+        data['signal'] = np.random.randn(100).cumsum()
         
-        macd_data = calculate_macd(data, fast=12, slow=26, signal=9)
+        macd_preloaded = IndicatorFactory.create('preloaded', 'macd', required_columns=['macd', 'signal'])
+        result = macd_preloaded.calculate(data)
         
-        assert isinstance(macd_data, pd.DataFrame)
-        assert 'macd' in macd_data.columns
-        assert 'macd_signal' in macd_data.columns
-        assert 'macd_hist' in macd_data.columns
+        assert isinstance(result, IndicatorResult)
+        assert result.name == 'macd_preloaded'
         
-        print("✅ test_calculate_macd_function: calculate_macd работает корректно")
+        print("✅ test_preloaded_indicator: PRELOADED индикатор работает корректно")
     
-    def test_get_available_indicators(self):
-        """Тест получения списка доступных индикаторов."""
-        indicators = get_available_indicators()
+    def test_indicator_factory_listing(self):
+        """Тест получения списка индикаторов через IndicatorFactory."""
+        all_indicators = IndicatorFactory.list_indicators()
         
-        assert isinstance(indicators, dict)
-        assert len(indicators) > 0
+        assert isinstance(all_indicators, dict)
+        assert len(all_indicators) > 0
         
         # Проверяем, что встроенные индикаторы есть в списке
-        expected_indicators = ['sma', 'ema', 'rsi', 'macd', 'bbands']
+        expected_indicators = ['sma', 'ema', 'rsi', 'macd', 'bbands', 'macd_preloaded']
         for indicator in expected_indicators:
-            assert indicator in indicators
+            assert indicator in all_indicators
         
-        print(f"✅ test_get_available_indicators: Найдено {len(indicators)} индикаторов")
+        print(f"✅ test_indicator_factory_listing: Найдено {len(all_indicators)} индикаторов")
 
 
 class TestIndicatorValidation:

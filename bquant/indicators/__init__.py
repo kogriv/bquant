@@ -32,8 +32,7 @@ from .library import (
     LibraryManager,
     load_pandas_ta,
     load_talib,
-    load_all_indicators,
-    create_library_indicator
+    load_all_indicators
 )
 
 # High-level calculators (временно закомментировано до Этапа 4)
@@ -64,12 +63,29 @@ from .preloaded import (
     MACDPreloadedIndicator
 )
 
-# Auto-register built-in indicators
-try:
-    # register_builtin_indicators() # This line is commented out as per the edit hint
-    pass  # Ignore errors during auto-registration
-except Exception:
-    pass  # Ignore errors during auto-registration
+# Auto-register all indicators
+def _register_all_indicators():
+    """Регистрирует все доступные индикаторы в IndicatorFactory."""
+    try:
+        # Регистрируем PRELOADED индикаторы
+        IndicatorFactory.register_indicator('macd_preloaded', MACDPreloadedIndicator)
+        
+        # Регистрируем CUSTOM индикаторы
+        IndicatorFactory.register_indicator('sma', SimpleMovingAverage)
+        IndicatorFactory.register_indicator('ema', ExponentialMovingAverage)
+        IndicatorFactory.register_indicator('rsi', RelativeStrengthIndex)
+        IndicatorFactory.register_indicator('macd', MACD)
+        IndicatorFactory.register_indicator('bbands', BollingerBands)
+        
+        # LIBRARY индикаторы регистрируются автоматически при загрузке
+        # через соответствующие загрузчики
+        
+    except Exception as e:
+        # Игнорируем ошибки при авторегистрации
+        pass
+
+# Выполняем авторегистрацию при импорте модуля
+_register_all_indicators()
 
 __all__ = [
     # Base classes
@@ -99,5 +115,4 @@ __all__ = [
     "load_pandas_ta",
     "load_talib",
     "load_all_indicators",
-    "create_library_indicator",
 ]

@@ -1,82 +1,58 @@
 """
-Base classes and architecture for BQuant indicators
+Base classes for BQuant indicators - Updated version with new IndicatorFactory
 
-This module provides the foundation for all technical indicators in BQuant.
+This module contains the base classes for all indicators in BQuant.
 """
 
 import pandas as pd
 import numpy as np
 from abc import ABC, abstractmethod
-from enum import Enum
-from typing import Dict, Any, Optional, List, Union, Type, Callable
+from typing import Dict, Any, Optional, List, Type, Callable
 from dataclasses import dataclass
-from datetime import datetime
+from enum import Enum
 
-from ..core.exceptions import IndicatorCalculationError
-from ..core.logging_config import get_logger
-from ..core.cache import cached, get_cache_manager
+from bquant.core.logging_config import get_logger
+from bquant.core.exceptions import IndicatorCalculationError
 
-# Получаем логгер для модуля
 logger = get_logger(__name__)
 
 
 class IndicatorSource(Enum):
-    """
-    Источники индикаторов для BQuant.
-    
-    PRELOADED - предзагруженные индикаторы (встроенные в BQuant)
-    LIBRARY - индикаторы из внешних библиотек (pandas-ta, talib)
-    CUSTOM - пользовательские индикаторы
-    """
-    PRELOADED = "preloaded"
-    LIBRARY = "library"
-    CUSTOM = "custom"
+    """Источники индикаторов."""
+    PRELOADED = "preloaded"  # Готовые данные
+    CUSTOM = "custom"         # Собственная реализация
+    LIBRARY = "library"       # Внешняя библиотека
 
 
 @dataclass
 class IndicatorConfig:
-    """
-    Конфигурация для индикаторов.
-    
-    Attributes:
-        name: Название индикатора
-        parameters: Параметры индикатора
-        source: Источник индикатора
-        columns: Ожидаемые колонки результата
-        description: Описание индикатора
-    """
+    """Конфигурация индикатора."""
     name: str
     parameters: Dict[str, Any]
     source: IndicatorSource
     columns: List[str]
-    description: str = ""
+    description: str
 
 
 @dataclass
 class IndicatorResult:
-    """
-    Результат вычисления индикатора.
-    
-    Attributes:
-        name: Название индикатора
-        data: DataFrame с результатами
-        config: Конфигурация индикатора
-        metadata: Дополнительная информация
-    """
+    """Результат расчета индикатора."""
     name: str
     data: pd.DataFrame
     config: IndicatorConfig
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
 
 
 class BaseIndicator(ABC):
     """
-    Базовый класс для всех индикаторов BQuant.
-    
-    Этот класс определяет общий интерфейс для всех технических индикаторов.
+    Базовый абстрактный класс для всех индикаторов.
     """
     
-    def __init__(self, name: str, config: Optional[IndicatorConfig] = None):
+    def __init__(self, name: str, config: IndicatorConfig):
         """
         Инициализация базового индикатора.
         
@@ -85,128 +61,13 @@ class BaseIndicator(ABC):
             config: Конфигурация индикатора
         """
         self.name = name
-        self.config = config or IndicatorConfig(
-            name=name,
-            parameters={},
-            source=IndicatorSource.CUSTOM,
-            columns=[],
-            description=""
-        )
-        self.logger = get_logger(f"{__name__}.{name}")
-        
-        # Кэширование результатов
-        self._cache = {}
-        self._cache_enabled = True
+        self.config = config
+        self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
     
     @abstractmethod
     def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
         """
-        Абстрактный метод для вычисления индикатора.
-        
-        Args:
-            data: DataFrame с ценовыми данными
-            **kwargs: Дополнительные параметры
-        
-        Returns:
-            IndicatorResult с результатами вычисления
-        """
-        pass
-    
-    def validate_data(self, data: pd.DataFrame) -> bool:
-        """
-        Валидация входных данных.
-        
-        Args:
-            data: DataFrame для валидации
-        
-        Returns:
-            True если данные корректны
-            
-        Raises:
-            IndicatorCalculationError: Если данные некорректны
-        """
-        if data.empty:
-            raise IndicatorCalculationError(
-                f"Empty DataFrame provided for indicator {self.name}",
-                {'indicator': self.name}
-            )
-        
-        # Проверка минимального количества записей
-        min_records = self.get_min_records()
-        if len(data) < min_records:
-            raise IndicatorCalculationError(
-                f"Insufficient data for {self.name}: {len(data)} < {min_records}",
-                {'indicator': self.name, 'records': len(data), 'required': min_records}
-            )
-        
-        # Проверка обязательных колонок
-        required_columns = self.get_required_columns()
-        missing_columns = [col for col in required_columns if col not in data.columns]
-        if missing_columns:
-            raise IndicatorCalculationError(
-                f"Missing required columns for {self.name}: {missing_columns}",
-                {'indicator': self.name, 'missing_columns': missing_columns}
-            )
-        
-        return True
-    
-    def get_min_records(self) -> int:
-        """
-        Минимальное количество записей для вычисления индикатора.
-        
-        Returns:
-            Минимальное количество записей
-        """
-        return 1
-    
-    def get_required_columns(self) -> List[str]:
-        """
-        Обязательные колонки для вычисления индикатора.
-        
-        Returns:
-            Список обязательных колонок
-        """
-        return ['close']
-    
-    @classmethod
-    def get_default_columns(cls) -> List[str]:
-        """
-        Возвращает колонки по умолчанию для индикатора.
-        
-        Returns:
-            Список колонок по умолчанию
-        """
-        raise NotImplementedError
-    
-    @classmethod
-    def get_info(cls) -> Dict[str, Any]:
-        """
-        Возвращает информацию об индикаторе.
-        
-        Returns:
-            Словарь с информацией об индикаторе
-        """
-        raise NotImplementedError
-    
-    def enable_cache(self, enabled: bool = True):
-        """Включить/выключить кэширование результатов."""
-        self._cache_enabled = enabled
-        if not enabled:
-            self._cache.clear()
-    
-    def clear_cache(self):
-        """Очистить кэш результатов."""
-        self._cache.clear()
-    
-    def _get_cache_key(self, data: pd.DataFrame, **kwargs) -> str:
-        """Генерация ключа для кэширования."""
-        data_hash = pd.util.hash_pandas_object(data).sum()
-        params_str = str(sorted(kwargs.items()))
-        return f"{self.name}_{data_hash}_{hash(params_str)}"
-    
-    def calculate_with_cache(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
-        """
-        Вычисление индикатора с кэшированием.
+        Вычисление индикатора.
         
         Args:
             data: DataFrame с данными
@@ -215,60 +76,316 @@ class BaseIndicator(ABC):
         Returns:
             IndicatorResult с результатами
         """
-        # Используем новую систему кэширования
-        cache_manager = get_cache_manager()
+        pass
+    
+    def validate_data(self, data: pd.DataFrame) -> bool:
+        """
+        Валидация входных данных.
         
-        # Генерируем ключ кэша
-        func_name = f"{self.__class__.__name__}.calculate"
-        cache_key = cache_manager.memory_cache._generate_key(func_name, (data,), kwargs)
+        Args:
+            data: DataFrame с данными
         
-        # Проверяем кэш
-        cached_result = cache_manager.get(cache_key)
-        if cached_result is not None:
-            self.logger.debug(f"Cache hit for {self.name}")
-            return cached_result
+        Returns:
+            True если данные валидны
+        """
+        try:
+            # Проверяем наличие необходимых колонок
+            required_columns = self.get_required_columns()
+            if required_columns:
+                missing_columns = [col for col in required_columns if col not in data.columns]
+                if missing_columns:
+                    self.logger.error(f"Missing required columns: {missing_columns}")
+                    return False
+            
+            # Проверяем минимальное количество записей
+            min_records = self.get_min_records()
+            if min_records and len(data) < min_records:
+                self.logger.error(f"Insufficient data: {len(data)} records, need at least {min_records}")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Data validation failed: {e}")
+            return False
+    
+    def get_required_columns(self) -> List[str]:
+        """
+        Получить список необходимых колонок.
         
-        # Вычисляем результат
-        self.logger.debug(f"Cache miss for {self.name}, calculating...")
-        result = self.calculate(data, **kwargs)
+        Returns:
+            Список названий колонок
+        """
+        return []
+    
+    def get_min_records(self) -> int:
+        """
+        Получить минимальное количество записей.
         
-        # Сохраняем в кэш (время жизни 1 час)
-        cache_manager.put(cache_key, result, ttl=3600, disk=True)
+        Returns:
+            Минимальное количество записей
+        """
+        return 0
+    
+    def get_output_columns(self) -> List[str]:
+        """
+        Получить список выходных колонок.
         
-        return result
+        Returns:
+            Список названий колонок
+        """
+        return self.config.columns
+    
+    @classmethod
+    def get_default_columns(cls) -> List[str]:
+        """
+        Получить список колонок по умолчанию.
+        
+        Returns:
+            Список названий колонок
+        """
+        raise NotImplementedError("Subclasses must implement get_default_columns")
+    
+    @classmethod
+    def get_info(cls) -> Dict[str, Any]:
+        """
+        Получить информацию о классе.
+        
+        Returns:
+            Словарь с информацией о классе
+        """
+        raise NotImplementedError("Subclasses must implement get_info")
 
 
 class PreloadedIndicator(BaseIndicator):
     """
-    Базовый класс для предзагруженных (встроенных) индикаторов BQuant.
+    Базовый класс для PRELOADED индикаторов.
+    
+    Эти индикаторы извлекают готовые значения из данных,
+    которые уже были рассчитаны ранее.
     """
     
-    def __init__(self, name: str, parameters: Dict[str, Any] = None):
+    def __init__(self, name: str, config: IndicatorConfig):
         """
-        Инициализация предзагруженного индикатора.
+        Инициализация PRELOADED индикатора.
         
         Args:
             name: Название индикатора
-            parameters: Параметры индикатора
+            config: Конфигурация индикатора
         """
-        config = IndicatorConfig(
-            name=name,
-            parameters=parameters or {},
-            source=IndicatorSource.PRELOADED,
-            columns=self.get_output_columns(),
-            description=self.get_description()
-        )
         super().__init__(name, config)
     
-    @abstractmethod
-    def get_output_columns(self) -> List[str]:
-        """Возвращает список выходных колонок индикатора."""
-        pass
+    def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
+        """
+        Извлечение готовых значений из данных.
+        
+        Args:
+            data: DataFrame с данными
+            **kwargs: Дополнительные параметры
+        
+        Returns:
+            IndicatorResult с извлеченными значениями
+        """
+        try:
+            self.validate_data(data)
+            
+            # Извлекаем необходимые колонки
+            required_columns = self.get_required_columns()
+            if not required_columns:
+                raise ValueError("No required columns specified")
+            
+            # Проверяем наличие колонок в данных
+            missing_columns = [col for col in required_columns if col not in data.columns]
+            if missing_columns:
+                raise ValueError(f"Missing columns in data: {missing_columns}")
+            
+            # Извлекаем данные
+            result_data = data[required_columns].copy()
+            
+            # Переименовываем колонки если нужно
+            output_columns = self.get_output_columns()
+            if len(output_columns) == len(required_columns):
+                result_data.columns = output_columns
+            
+            return IndicatorResult(
+                name=self.name,
+                data=result_data,
+                config=self.config,
+                metadata={
+                    'extracted_columns': required_columns,
+                    'source': 'preloaded',
+                    'calculation_method': 'extraction'
+                }
+            )
+            
+        except Exception as e:
+            raise IndicatorCalculationError(f"Failed to extract PRELOADED data: {e}")
     
-    @abstractmethod
-    def get_description(self) -> str:
-        """Возвращает описание индикатора."""
-        pass
+    def get_statistics(self, data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Получить статистику по данным индикатора.
+        
+        Args:
+            data: DataFrame с данными
+        
+        Returns:
+            Словарь со статистикой
+        """
+        try:
+            result = self.calculate(data)
+            result_data = result.data
+            
+            stats = {}
+            for col in result_data.columns:
+                col_data = result_data[col].dropna()
+                if len(col_data) > 0:
+                    stats[col] = {
+                        'count': len(col_data),
+                        'min': float(col_data.min()),
+                        'max': float(col_data.max()),
+                        'mean': float(col_data.mean()),
+                        'std': float(col_data.std()),
+                        'median': float(col_data.median()),
+                        'nan_count': result_data[col].isnull().sum()
+                    }
+            
+            return stats
+            
+        except Exception as e:
+            self.logger.error(f"Failed to calculate statistics: {e}")
+            return {}
+    
+    def is_trending_up(self, data: pd.DataFrame, column: str = None, threshold: float = 0.0) -> bool:
+        """
+        Проверяет, растет ли указанная колонка (тренд вверх).
+        
+        Args:
+            data: DataFrame с данными
+            column: Колонка для анализа тренда. Если None, используется первая колонка
+            threshold: Порог для определения роста (по умолчанию 0.0)
+        
+        Returns:
+            True если колонка растет выше порога
+        """
+        try:
+            result = self.calculate(data)
+            
+            # Определяем колонку для анализа
+            if column is None:
+                column = result.data.columns[0]  # Используем первую колонку по умолчанию
+            
+            if column not in result.data.columns:
+                self.logger.error(f"Column '{column}' not found in data. Available: {list(result.data.columns)}")
+                return False
+            
+            values = result.data[column].dropna()
+            
+            if len(values) < 2:
+                return False
+            
+            # Проверяем последние значения
+            recent_values = values.tail(2)
+            return recent_values.iloc[-1] > recent_values.iloc[-2] and recent_values.iloc[-1] > threshold
+            
+        except Exception as e:
+            self.logger.error(f"Failed to check trend for column '{column}': {e}")
+            return False
+    
+    def is_trending_down(self, data: pd.DataFrame, column: str = None, threshold: float = 0.0) -> bool:
+        """
+        Проверяет, падает ли указанная колонка (тренд вниз).
+        
+        Args:
+            data: DataFrame с данными
+            column: Колонка для анализа тренда. Если None, используется первая колонка
+            threshold: Порог для определения падения (по умолчанию 0.0)
+        
+        Returns:
+            True если колонка падает ниже порога
+        """
+        try:
+            result = self.calculate(data)
+            
+            # Определяем колонку для анализа
+            if column is None:
+                column = result.data.columns[0]  # Используем первую колонку по умолчанию
+            
+            if column not in result.data.columns:
+                self.logger.error(f"Column '{column}' not found in data. Available: {list(result.data.columns)}")
+                return False
+            
+            values = result.data[column].dropna()
+            
+            if len(values) < 2:
+                return False
+            
+            # Проверяем последние значения
+            recent_values = values.tail(2)
+            return recent_values.iloc[-1] < recent_values.iloc[-2] and recent_values.iloc[-1] < threshold
+            
+        except Exception as e:
+            self.logger.error(f"Failed to check trend for column '{column}': {e}")
+            return False
+    
+    def get_crossovers(self, data: pd.DataFrame, column1: str = None, column2: str = None, 
+                       lookback: int = 5) -> Dict[str, List[int]]:
+        """
+        Определяет пересечения между двумя колонками.
+        
+        Args:
+            data: DataFrame с данными
+            column1: Первая колонка для анализа
+            column2: Вторая колонка для анализа
+            lookback: Количество периодов для анализа
+        
+        Returns:
+            Словарь с индексами пересечений
+        """
+        try:
+            result = self.calculate(data)
+            
+            # Определяем колонки для анализа
+            if column1 is None:
+                column1 = result.data.columns[0]
+            if column2 is None and len(result.data.columns) > 1:
+                column2 = result.data.columns[1]
+            else:
+                column2 = column1
+            
+            if column1 not in result.data.columns or column2 not in result.data.columns:
+                self.logger.error(f"Columns not found: {column1}, {column2}")
+                return {'bullish': [], 'bearish': []}
+            
+            # Получаем данные
+            series1 = result.data[column1].dropna()
+            series2 = result.data[column2].dropna()
+            
+            if len(series1) < lookback or len(series2) < lookback:
+                return {'bullish': [], 'bearish': []}
+            
+            # Анализируем пересечения
+            bullish_crosses = []
+            bearish_crosses = []
+            
+            for i in range(lookback, len(series1)):
+                # Бычье пересечение: series1 пересекает series2 снизу вверх
+                if (series1.iloc[i-1] <= series2.iloc[i-1] and 
+                    series1.iloc[i] > series2.iloc[i]):
+                    bullish_crosses.append(i)
+                
+                # Медвежье пересечение: series1 пересекает series2 сверху вниз
+                elif (series1.iloc[i-1] >= series2.iloc[i-1] and 
+                      series1.iloc[i] < series2.iloc[i]):
+                    bearish_crosses.append(i)
+            
+            return {
+                'bullish': bullish_crosses,
+                'bearish': bearish_crosses
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to calculate crossovers: {e}")
+            return {'bullish': [], 'bearish': []}
 
 
 class CustomIndicator(BaseIndicator):
@@ -304,6 +421,20 @@ class CustomIndicator(BaseIndicator):
     @abstractmethod
     def get_description(self) -> str:
         """Возвращает описание индикатора."""
+        pass
+    
+    @abstractmethod
+    def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
+        """
+        Вычисление индикатора.
+        
+        Args:
+            data: DataFrame с данными
+            **kwargs: Дополнительные параметры
+        
+        Returns:
+            IndicatorResult с результатами
+        """
         pass
     
     def get_statistics(self, data: pd.DataFrame) -> Dict[str, Any]:
@@ -411,50 +542,38 @@ class CustomIndicator(BaseIndicator):
         except Exception as e:
             self.logger.error(f"Failed to check trend for column '{column}': {e}")
             return False
-    
-    @abstractmethod
-    def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
-        """
-        Вычисление индикатора.
-        
-        Args:
-            data: DataFrame с данными
-            **kwargs: Дополнительные параметры
-        
-        Returns:
-            IndicatorResult с результатами
-        """
-        pass
 
 
 class LibraryIndicator(BaseIndicator):
     """
     Базовый класс для индикаторов из внешних библиотек.
+    
+    Этот класс оборачивает функции из внешних библиотек (TA-Lib, pandas-ta)
+    и предоставляет единый интерфейс для их использования.
     """
     
     def __init__(self, name: str, library_func: Callable, parameters: Dict[str, Any] = None):
         """
-        Инициализация индикатора из библиотеки.
+        Инициализация библиотечного индикатора.
         
         Args:
             name: Название индикатора
-            library_func: Функция из библиотеки
-            parameters: Параметры для функции
+            library_func: Функция из внешней библиотеки
+            parameters: Параметры индикатора
         """
-        self.library_func = library_func
-        
         config = IndicatorConfig(
             name=name,
             parameters=parameters or {},
             source=IndicatorSource.LIBRARY,
-            columns=[],  # Будет определено динамически
+            columns=[f"{name}_value"],
             description=f"Library indicator: {name}"
         )
         super().__init__(name, config)
+        self.library_func = library_func
     
     def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
         """
-        Вычисление индикатора через библиотечную функцию.
+        Вычисление индикатора через внешнюю библиотеку.
         
         Args:
             data: DataFrame с данными
@@ -466,26 +585,20 @@ class LibraryIndicator(BaseIndicator):
         try:
             self.validate_data(data)
             
-            # Объединяем параметры из конфига и kwargs
-            params = {**self.config.parameters, **kwargs}
+            # Объединяем параметры
+            all_params = {**self.config.parameters, **kwargs}
             
-            self.logger.info(f"Calculating {self.name} using library function")
+            # Вызываем функцию библиотеки
+            result = self.library_func(data, **all_params)
             
-            # Вызываем библиотечную функцию
-            result_data = self.library_func(data, **params)
-            
-            # Убеждаемся, что результат - DataFrame
-            if not isinstance(result_data, pd.DataFrame):
-                if isinstance(result_data, pd.Series):
-                    result_data = result_data.to_frame(name=self.name)
-                else:
-                    raise IndicatorCalculationError(
-                        f"Library function returned unexpected type: {type(result_data)}",
-                        {'indicator': self.name}
-                    )
-            
-            # Обновляем конфигурацию с фактическими колонками
-            self.config.columns = list(result_data.columns)
+            # Обрабатываем результат
+            if isinstance(result, pd.DataFrame):
+                result_data = result
+            elif isinstance(result, pd.Series):
+                result_data = pd.DataFrame({f"{self.name}_value": result})
+            else:
+                # Для других типов результатов создаем DataFrame
+                result_data = pd.DataFrame({f"{self.name}_value": result})
             
             return IndicatorResult(
                 name=self.name,
@@ -493,16 +606,23 @@ class LibraryIndicator(BaseIndicator):
                 config=self.config,
                 metadata={
                     'library_function': str(self.library_func),
-                    'calculation_time': datetime.now(),
-                    'data_shape': result_data.shape
+                    'source': 'library',
+                    'calculation_method': 'external_library'
                 }
             )
             
         except Exception as e:
-            raise IndicatorCalculationError(
-                f"Failed to calculate {self.name}: {e}",
-                {'indicator': self.name, 'error': str(e)}
-            )
+            raise IndicatorCalculationError(f"Failed to calculate library indicator: {e}")
+    
+    @property
+    def native_indicator(self):
+        """
+        Доступ к исходной функции библиотеки.
+        
+        Returns:
+            Исходная функция из внешней библиотеки
+        """
+        return self.library_func
 
 
 class IndicatorFactory:
@@ -540,9 +660,173 @@ class IndicatorFactory:
         logger.info(f"Registered library function: {name}")
     
     @classmethod
+    def create(cls, source: str, indicator: str, **params) -> BaseIndicator:
+        """
+        Единый метод создания индикаторов.
+        
+        Args:
+            source: Источник индикатора ('preloaded', 'custom', 'talib', 'pandas_ta')
+            indicator: Название индикатора
+            **params: Параметры индикатора
+        
+        Returns:
+            Экземпляр индикатора
+        
+        Raises:
+            ValueError: Если указан неизвестный источник
+            KeyError: Если индикатор не найден
+        """
+        source_lower = source.lower()
+        
+        try:
+            if source_lower == 'preloaded':
+                return cls._create_preloaded(indicator, **params)
+            elif source_lower == 'custom':
+                return cls._create_custom(indicator, **params)
+            elif source_lower in ['talib', 'pandas_ta']:
+                return cls._create_library(source_lower, indicator, **params)
+            else:
+                raise ValueError(f"Unknown source: {source}. Available sources: preloaded, custom, talib, pandas_ta")
+        except Exception as e:
+            logger.error(f"Failed to create indicator {indicator} from {source}: {e}")
+            raise
+    
+    @classmethod
+    def _create_preloaded(cls, indicator: str, **params) -> BaseIndicator:
+        """
+        Создание PRELOADED индикатора.
+        
+        Args:
+            indicator: Название индикатора
+            **params: Параметры индикатора
+        
+        Returns:
+            Экземпляр PRELOADED индикатора
+        """
+        indicator_lower = indicator.lower()
+        
+        # Ищем в зарегистрированных индикаторах
+        if indicator_lower in cls._registry:
+            indicator_class = cls._registry[indicator_lower]
+            # Проверяем, что это PRELOADED индикатор
+            if issubclass(indicator_class, PreloadedIndicator):
+                return indicator_class(**params)
+            else:
+                logger.warning(f"Indicator {indicator} is not PRELOADED type")
+        
+        # Если не найден, пробуем создать по шаблону
+        if indicator_lower == 'macd':
+            from .preloaded.macd import MACDPreloadedIndicator
+            return MACDPreloadedIndicator(**params)
+        
+        raise KeyError(f"PRELOADED indicator '{indicator}' not found")
+    
+    @classmethod
+    def _create_custom(cls, indicator: str, **params) -> BaseIndicator:
+        """
+        Создание CUSTOM индикатора.
+        
+        Args:
+            indicator: Название индикатора
+            **params: Параметры индикатора
+        
+        Returns:
+            Экземпляр CUSTOM индикатора
+        """
+        indicator_lower = indicator.lower()
+        
+        # Ищем в зарегистрированных индикаторах
+        if indicator_lower in cls._registry:
+            indicator_class = cls._registry[indicator_lower]
+            # Проверяем, что это CUSTOM индикатор
+            if issubclass(indicator_class, CustomIndicator):
+                return indicator_class(**params)
+            else:
+                logger.warning(f"Indicator {indicator} is not CUSTOM type")
+        
+        # Если не найден, пробуем создать по шаблону
+        if indicator_lower == 'sma':
+            from .custom.sma import SimpleMovingAverage
+            return SimpleMovingAverage(**params)
+        elif indicator_lower == 'ema':
+            from .custom.ema import ExponentialMovingAverage
+            return ExponentialMovingAverage(**params)
+        elif indicator_lower == 'rsi':
+            from .custom.rsi import RelativeStrengthIndex
+            return RelativeStrengthIndex(**params)
+        elif indicator_lower == 'macd':
+            from .custom.macd import MACD
+            return MACD(**params)
+        elif indicator_lower == 'bbands':
+            from .custom.bollinger import BollingerBands
+            return BollingerBands(**params)
+        
+        raise KeyError(f"CUSTOM indicator '{indicator}' not found")
+    
+    @classmethod
+    def _create_library(cls, source: str, indicator: str, **params) -> BaseIndicator:
+        """
+        Создание LIBRARY индикатора.
+        
+        Args:
+            source: Источник библиотеки ('talib', 'pandas_ta')
+            indicator: Название индикатора
+            **params: Параметры индикатора
+        
+        Returns:
+            Экземпляр LIBRARY индикатора
+        """
+        indicator_lower = indicator.lower()
+        
+        # Ищем в зарегистрированных индикаторах
+        if indicator_lower in cls._registry:
+            indicator_class = cls._registry[indicator_lower]
+            # Проверяем, что это LIBRARY индикатор
+            if issubclass(indicator_class, LibraryIndicator):
+                return indicator_class(**params)
+            else:
+                logger.warning(f"Indicator {indicator} is not LIBRARY type")
+        
+        # Если не найден, пробуем создать по шаблону
+        if source == 'talib':
+            if indicator_lower == 'sma':
+                from .library.talib import TALibSMA
+                return TALibSMA(**params)
+            elif indicator_lower == 'ema':
+                from .library.talib import TALibEMA
+                return TALibEMA(**params)
+            elif indicator_lower == 'rsi':
+                from .library.talib import TALibRSI
+                return TALibRSI(**params)
+            elif indicator_lower == 'macd':
+                from .library.talib import TALibMACD
+                return TALibMACD(**params)
+            elif indicator_lower == 'bbands':
+                from .library.talib import TALibBBands
+                return TALibBBands(**params)
+        elif source == 'pandas_ta':
+            if indicator_lower == 'sma':
+                from .library.pandas_ta import PandasTASMA
+                return PandasTASMA(**params)
+            elif indicator_lower == 'ema':
+                from .library.pandas_ta import PandasTAEMA
+                return PandasTAEMA(**params)
+            elif indicator_lower == 'rsi':
+                from .library.pandas_ta import PandasTARSI
+                return PandasTARSI(**params)
+            elif indicator_lower == 'macd':
+                from .library.pandas_ta import PandasTAMACD
+                return PandasTAMACD(**params)
+            elif indicator_lower == 'bbands':
+                from .library.pandas_ta import PandasTABBands
+                return PandasTABBands(**params)
+        
+        raise KeyError(f"LIBRARY indicator '{indicator}' from '{source}' not found")
+    
+    @classmethod
     def create_indicator(cls, name: str, data: pd.DataFrame = None, **kwargs) -> BaseIndicator:
         """
-        Создание индикатора по имени.
+        Создание индикатора по имени (устаревший метод, используйте create()).
         
         Args:
             name: Название индикатора
@@ -552,23 +836,8 @@ class IndicatorFactory:
         Returns:
             Экземпляр индикатора
         """
-        name_lower = name.lower()
-        
-        # Сначала ищем в зарегистрированных индикаторах
-        if name_lower in cls._registry:
-            return cls._registry[name_lower](**kwargs)
-        
-        # Затем ищем в библиотечных функциях
-        if name_lower in cls._library_functions:
-            return LibraryIndicator(
-                name=name,
-                library_func=cls._library_functions[name_lower],
-                parameters=kwargs
-            )
-        
-        # Если не найден, возвращаем заглушку
-        logger.warning(f"Indicator {name} not found, creating stub")
-        return _StubIndicator(name, **kwargs)
+        logger.warning("create_indicator() is deprecated, use create() instead")
+        return cls.create('custom', name, **kwargs)
     
     @classmethod
     def list_indicators(cls) -> Dict[str, str]:
@@ -580,11 +849,21 @@ class IndicatorFactory:
         """
         indicators = {}
         
+        # Добавляем PRELOADED индикаторы
         for name in cls._registry:
-            indicators[name] = "preloaded"
+            indicator_class = cls._registry[name]
+            if issubclass(indicator_class, PreloadedIndicator):
+                indicators[name] = "preloaded"
+            elif issubclass(indicator_class, CustomIndicator):
+                indicators[name] = "custom"
+            elif issubclass(indicator_class, LibraryIndicator):
+                indicators[name] = "library"
+            else:
+                indicators[name] = "unknown"
         
+        # Добавляем библиотечные функции
         for name in cls._library_functions:
-            indicators[name] = "library"
+            indicators[name] = "library_function"
         
         return indicators
     
@@ -603,23 +882,66 @@ class IndicatorFactory:
         
         if name_lower in cls._registry:
             indicator_class = cls._registry[name_lower]
+            
+            # Определяем тип индикатора
+            if issubclass(indicator_class, PreloadedIndicator):
+                source = "preloaded"
+            elif issubclass(indicator_class, CustomIndicator):
+                source = "custom"
+            elif issubclass(indicator_class, LibraryIndicator):
+                source = "library"
+            else:
+                source = "unknown"
+            
+            # Создаем экземпляр для получения описания
+            try:
+                # Пытаемся создать экземпляр с параметрами по умолчанию
+                instance = indicator_class()
+                description = instance.get_description()
+            except Exception:
+                description = 'No description'
+            
             return {
                 'name': name,
-                'source': 'preloaded',
+                'source': source,
                 'class': indicator_class.__name__,
-                'description': getattr(indicator_class, 'get_description', lambda: 'No description')()
+                'description': description
             }
         
         if name_lower in cls._library_functions:
             func = cls._library_functions[name_lower]
             return {
                 'name': name,
-                'source': 'library',
+                'source': 'library_function',
                 'function': str(func),
                 'description': getattr(func, '__doc__', 'No description')
             }
         
         return None
+    
+    @classmethod
+    def get_indicators_by_source(cls, source: str) -> List[str]:
+        """
+        Получить список индикаторов по источнику.
+        
+        Args:
+            source: Источник индикаторов ('preloaded', 'custom', 'library')
+        
+        Returns:
+            Список названий индикаторов
+        """
+        source_lower = source.lower()
+        indicators = []
+        
+        for name, indicator_class in cls._registry.items():
+            if source_lower == 'preloaded' and issubclass(indicator_class, PreloadedIndicator):
+                indicators.append(name)
+            elif source_lower == 'custom' and issubclass(indicator_class, CustomIndicator):
+                indicators.append(name)
+            elif source_lower == 'library' and issubclass(indicator_class, LibraryIndicator):
+                indicators.append(name)
+        
+        return indicators
 
 
 class _StubIndicator(BaseIndicator):
@@ -628,7 +950,13 @@ class _StubIndicator(BaseIndicator):
     """
     
     def __init__(self, name: str, **kwargs):
-        super().__init__(name)
+        super().__init__(name, IndicatorConfig(
+            name=name,
+            parameters=kwargs,
+            source=IndicatorSource.CUSTOM,
+            columns=[f"{name}_value"],
+            description=f"Stub indicator: {name}"
+        ))
         self.parameters = kwargs
     
     def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
