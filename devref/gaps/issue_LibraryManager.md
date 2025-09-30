@@ -374,7 +374,7 @@ class PandasTALoader:
 ### 3. IndicatorFactory создает индикаторы
 ```python
 # Пользователь создает индикатор
-macd = IndicatorFactory.create('pandas_ta_macd', fast=12, slow=26, signal=9)
+macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
 ```
 
 ## 🏗️ Архитектурные принципы
@@ -450,6 +450,23 @@ results = LibraryManager.load_all_libraries()
 print(f"Результаты загрузки: {results}")
 ```
 
+### Создание библиотечного индикатора через LibraryManager
+```python
+from bquant.indicators import LibraryManager
+
+# Простой способ получить индикатор из библиотеки: метод сам проверяет доступность
+# и делегирует создание IndicatorFactory
+macd = LibraryManager.create_indicator('pandas_ta', 'macd', fast=12, slow=26, signal=9)
+print(macd)
+
+# Можно так же создавать и другие индикаторы, не заботясь о префиксах "library_indicator"
+rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
+print(rsi)
+```
+
+> 💡 `LibraryManager.create_indicator()` — именно тот "простой способ" получить библиотечный индикатор,
+> который обещает менеджер: он скрывает детали префиксов и напрямую использует `IndicatorFactory`.
+
 ## 🔍 Примеры использования IndicatorFactory
 
 ### Создание индикатора через IndicatorFactory
@@ -458,16 +475,16 @@ from bquant.indicators import IndicatorFactory
 
 # Создать MACD индикатор из pandas_ta
 try:
-    macd = IndicatorFactory.create('pandas_ta_macd', fast=12, slow=26, signal=9)
+    macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
     print(f"Создан индикатор: {macd.name}")
 except Exception as e:
     print(f"Ошибка создания: {e}")
 
 # Создать PRELOADED индикатор
-sma = IndicatorFactory.create('sma', length=20)
+sma = IndicatorFactory.create('preloaded', 'sma', length=20)
 
 # Создать CUSTOM индикатор
-custom_macd = IndicatorFactory.create('macd', fast=10, slow=20, signal=5)
+custom_macd = IndicatorFactory.create('custom', 'macd', fast=10, slow=20, signal=5)
 ```
 
 ### Автоматическое обнаружение новых индикаторов
@@ -476,7 +493,7 @@ custom_macd = IndicatorFactory.create('macd', fast=10, slow=20, signal=5)
 # Никаких изменений в коде не требуется!
 
 # Например, если в pandas-ta появился новый индикатор 'kst':
-# IndicatorFactory.create('pandas_ta_kst', ...) - автоматически работает
+# IndicatorFactory.create('pandas_ta', 'kst', ...) - автоматически работает
 ```
 
 ## 🔄 Полный пример работы
@@ -488,13 +505,13 @@ LibraryManager.load_all_libraries()
 # Результат: {'pandas_ta': 150, 'talib': 0}  # 150 индикаторов из pandas-ta
 
 # 2. Индикаторы автоматически зарегистрированы в IndicatorFactory
-available = IndicatorFactory.get_available_indicators()
+available = IndicatorFactory.list_indicators()
 print(f"Доступно индикаторов: {len(available)}")
 # Вывод: Доступно индикаторов: 155 (5 PRELOADED + 150 pandas_ta)
 
 # 3. Создание индикаторов
-macd = IndicatorFactory.create('pandas_ta_macd', fast=12, slow=26, signal=9)
-rsi = IndicatorFactory.create('pandas_ta_rsi', length=14)
+macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
+rsi = IndicatorFactory.create('pandas_ta', 'rsi', length=14)
 ```
 
 ## 📝 Заключение
