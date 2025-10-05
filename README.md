@@ -41,6 +41,22 @@ zones = analyzer.identify_zones(data)
 print(f"Found {len(zones)} MACD zones")
 ```
 
+#### pandas-ta indicators in one line
+
+```python
+from bquant.indicators import LibraryManager
+
+# Load external libraries (pandas-ta, TA-Lib when installed)
+LibraryManager.load_all_libraries()
+
+# "Simple way" to access any pandas-ta indicator discovered dynamically
+rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
+result = rsi.calculate(data)
+print(result.data.tail())
+```
+
+See the [LibraryManager documentation](docs/api/indicators/library_manager.md) for more examples.
+
 ### Command Line
 
 ```bash

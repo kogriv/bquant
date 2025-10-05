@@ -1,52 +1,77 @@
 # Фабрика и библиотека индикаторов
 
-## IndicatorFactory (bquant.indicators.base)
+## IndicatorFactory (`bquant.indicators.base`)
 
-Методы (классовые):
-- `register_indicator(name, indicator_class)` — регистрирует класс индикатора
-- `register_library_function(name, func)` — регистрирует функцию из внешней библиотеки
-- `create_indicator(name, **kwargs) -> BaseIndicator` — создаёт индикатор
-- `list_indicators() -> Dict[str, str]` — список доступных индикаторов (preloaded|library)
-- `get_indicator_info(name) -> Optional[Dict]` — информация об индикаторе
+`IndicatorFactory` — центральный реестр индикаторов BQuant. Он хранит классы для всех типов индикаторов
+(встроенные PRELOADED, пользовательские CUSTOM и обёртки внешних библиотек) и предоставляет единый интерфейс
+создания экземпляров.
 
-Пример:
+### Основные методы
+
+- `register_indicator(name, indicator_class)` — сохраняет класс индикатора в реестре. Используется как при ручной
+  регистрации пользовательских индикаторов, так и загрузчиками внешних библиотек.
+- `register_library_function(name, func)` — сохраняет оригинальную функцию библиотеки для обратных ссылок.
+  Динамический загрузчик `pandas-ta` вызывает его для каждой обнаруженной функции.
+- `create(source, indicator, **params) -> BaseIndicator` — современный интерфейс создания индикатора. Принимает
+  источник (`preloaded`, `custom`, `pandas_ta`, `talib`) и имя индикатора без префиксов.
+- `create_indicator(name, **kwargs)` — устаревшая оболочка, совместимая со старым API. В новых сценариях предпочтительно
+  использовать `create()`.
+- `list_indicators() -> Dict[str, str]` — возвращает реестр индикаторов и их тип (preloaded/custom/library).
+- `get_indicator_info(name) -> Optional[Dict]` — предоставляет подробную информацию об индикаторе, если она определена
+  в классе.
+
+### Как работает реестр
+
+- **PRELOADED/CUSTOM индикаторы** регистрируются под своим именем (например, `sma`, `macd_preloaded`).
+- **LIBRARY индикаторы** регистрируются с ключом `{library}_{indicator}` (например, `pandas_ta_macd`). Динамические
+  загрузчики (`PandasTALoader`, `TALibLoader`) создают наследников `LibraryIndicator` на лету и добавляют их в реестр.
+- `LibraryManager` управляет загрузкой внешних библиотек и вызывает `IndicatorFactory.register_indicator()` для всех
+  найденных обёрток. Благодаря этому `IndicatorFactory.create('pandas_ta', name, **params)` доступен без ручного кода.
+
+### Пример: создание индикаторов
+
 ```python
-from bquant.indicators.base import IndicatorFactory
+from bquant.indicators import IndicatorFactory, LibraryManager
 
-IndicatorFactory.register_indicator('SMA', SimpleMovingAverage)
-ind = IndicatorFactory.create_indicator('SMA', period=10)
-res = ind.calculate(df)
+# PRELOADED и CUSTOM индикаторы регистрируются автоматически при импорте пакета
+macd_preloaded = IndicatorFactory.create('preloaded', 'macd_preloaded')
+custom_sma = IndicatorFactory.create('custom', 'sma', period=20)
+
+# Загружаем внешние библиотеки (pandas-ta, TA-Lib)
+LibraryManager.load_all_libraries()
+
+# Создаём индикаторы из pandas-ta без ручной регистрации
+macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
+rsi = IndicatorFactory.create('pandas_ta', 'rsi', length=14)
 ```
 
-## Библиотека встроенных индикаторов (bquant.indicators.library)
+### Пример: получение метаданных
 
-Экспортируемые:
-- `SimpleMovingAverage`, `ExponentialMovingAverage`, `RelativeStrengthIndex`, `MACD`, `BollingerBands`
-- Регистрация/получение: `register_builtin_indicators()`, `get_builtin_indicators()`, `create_indicator(name, **params)`
-
-Пример:
 ```python
-from bquant.indicators.library import register_builtin_indicators, create_indicator
+from bquant.indicators import IndicatorFactory
 
-register_builtin_indicators()
-sma = create_indicator('sma', period=20)
-res = sma.calculate(df)
+info = IndicatorFactory.get_indicator_info('pandas_ta_macd')
+print(info['description'])
+print(info['parameters'])
 ```
 
-## Утилиты расчёта (bquant.indicators.calculators)
+## Встроенные индикаторы (`bquant.indicators`)
 
-- `calculate_indicator(name, df, **kwargs)`
-- `calculate_macd(df, fast=12, slow=26, signal=9)`
-- `calculate_rsi(df, period=14)`
-- `calculate_bollinger_bands(df, period=20, std_dev=2)`
-- `calculate_moving_averages(df, periods=(20,50,200))`
-- `create_indicator_suite(df, indicators: Dict[str, Dict])`
-- `get_available_indicators()`
-- `validate_indicator_data(df)`
+При импорте `bquant.indicators` вызывается вспомогательная функция `_register_all_indicators()`, которая:
 
-## Загрузчики внешних библиотек (bquant.indicators.loaders)
+1. Регистрирует PRELOADED индикаторы (например, `MACDPreloadedIndicator`).
+2. Добавляет CUSTOM реализации (SMA, EMA, RSI, MACD, Bollinger Bands).
+3. Делегирует загрузку внешних библиотек `LibraryManager.load_all_libraries()`.
 
-- `load_pandas_ta()`, `load_talib()` — загрузка библиотек
-- `PandasTALoader`, `TALibLoader`, `LibraryManager`
-- `load_all_indicators()` — регистрация доступных функций в фабрике
+Благодаря этому любой индикатор можно создать одной строкой через `IndicatorFactory.create()` или «простой способ»
+через `LibraryManager.create_indicator()`.
 
+## Загрузчики внешних библиотек
+
+- `PandasTALoader` автоматически обнаруживает десятки функций `pandas-ta`, создаёт для них обёртки и регистрирует их в
+  `IndicatorFactory`.
+- `TALibLoader` выполняет аналогичную задачу для `TA-Lib` (при наличии зависимости).
+- `LibraryManager` отвечает за последовательную загрузку, логирование и предоставление информации о доступных
+  индикаторах пользователю.
+
+Подробнее о менеджере библиотек см. в разделе [LibraryManager](library_manager.md).

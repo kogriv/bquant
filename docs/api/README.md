@@ -25,6 +25,7 @@
 - **bquant.indicators.macd** - MACD индикатор с анализом зон
 - **bquant.indicators.preloaded** - PRELOADED индикаторы для готовых данных
 - **bquant.indicators.factory** - Фабрика индикаторов
+- **bquant.indicators.library_manager** - Управление внешними библиотеками (pandas-ta, TA-Lib)
 
 ### 🔬 [Analysis](analysis/README.md) - Аналитические модули
 - **bquant.analysis.statistical** - Статистический анализ
