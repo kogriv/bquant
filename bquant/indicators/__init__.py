@@ -1,8 +1,6 @@
-"""
-BQuant Indicators Module
+"""BQuant Indicators Module."""
 
-Technical indicators calculation and analysis.
-"""
+from bquant.core.logging_config import get_logger
 
 # Base classes and architecture
 from .base import (
@@ -63,29 +61,49 @@ from .preloaded import (
     MACDPreloadedIndicator
 )
 
+logger = get_logger(__name__)
+
 # Auto-register all indicators
 def _register_all_indicators():
     """Регистрирует все доступные индикаторы в IndicatorFactory."""
     try:
         # Регистрируем PRELOADED индикаторы
         IndicatorFactory.register_indicator('macd_preloaded', MACDPreloadedIndicator)
-        
+
         # Регистрируем CUSTOM индикаторы
         IndicatorFactory.register_indicator('sma', SimpleMovingAverage)
         IndicatorFactory.register_indicator('ema', ExponentialMovingAverage)
         IndicatorFactory.register_indicator('rsi', RelativeStrengthIndex)
         IndicatorFactory.register_indicator('macd', MACD)
         IndicatorFactory.register_indicator('bbands', BollingerBands)
-        
-        # LIBRARY индикаторы регистрируются автоматически при загрузке
-        # через соответствующие загрузчики
-        
+
+        # Загружаем индикаторы внешних библиотек через LibraryManager
+        library_results = LibraryManager.load_all_libraries()
+        logger.info("Loaded external libraries: %s", library_results)
+
     except Exception as e:
-        # Игнорируем ошибки при авторегистрации
-        pass
+        logger.warning("Failed to register some indicators: %s", e)
+
+
+def _check_library_availability():
+    """Записывает информацию о доступности внешних библиотек."""
+    for lib_name in LibraryManager.get_available_libraries():
+        info = LibraryManager.get_library_info(lib_name)
+        if info.get('available'):
+            count = info.get('indicators_count', 0)
+            logger.info(
+                "Library %s available with %s indicators", lib_name, count
+            )
+        else:
+            logger.warning(
+                "Library %s unavailable: %s",
+                lib_name,
+                info.get('error', 'unknown reason'),
+            )
 
 # Выполняем авторегистрацию при импорте модуля
 _register_all_indicators()
+_check_library_availability()
 
 __all__ = [
     # Base classes

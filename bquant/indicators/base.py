@@ -792,15 +792,14 @@ class IndicatorFactory:
         """
         indicator_lower = indicator.lower()
         
-        # Ищем в зарегистрированных индикаторах
-        if indicator_lower in cls._registry:
-            indicator_class = cls._registry[indicator_lower]
-            # Проверяем, что это LIBRARY индикатор
+        # Ищем в зарегистрированных индикаторах с учетом источника
+        registry_key = f"{source}_{indicator_lower}"
+        if registry_key in cls._registry:
+            indicator_class = cls._registry[registry_key]
             if issubclass(indicator_class, LibraryIndicator):
                 return indicator_class(**params)
-            else:
-                logger.warning(f"Indicator {indicator} is not LIBRARY type")
-        
+            logger.warning(f"Indicator {indicator} is not LIBRARY type")
+
         # Если не найден, пробуем создать по шаблону
         if source == 'talib':
             if indicator_lower == 'sma':
@@ -818,23 +817,6 @@ class IndicatorFactory:
             elif indicator_lower == 'bbands':
                 from .library.talib import TALibBBands
                 return TALibBBands(**params)
-        elif source == 'pandas_ta':
-            if indicator_lower == 'sma':
-                from .library.pandas_ta import PandasTASMA
-                return PandasTASMA(**params)
-            elif indicator_lower == 'ema':
-                from .library.pandas_ta import PandasTAEMA
-                return PandasTAEMA(**params)
-            elif indicator_lower == 'rsi':
-                from .library.pandas_ta import PandasTARSI
-                return PandasTARSI(**params)
-            elif indicator_lower == 'macd':
-                from .library.pandas_ta import PandasTAMACD
-                return PandasTAMACD(**params)
-            elif indicator_lower == 'bbands':
-                from .library.pandas_ta import PandasTABBands
-                return PandasTABBands(**params)
-        
         raise KeyError(f"LIBRARY indicator '{indicator}' from '{source}' not found")
     
     @classmethod
@@ -862,7 +844,7 @@ class IndicatorFactory:
             elif issubclass(indicator_class, CustomIndicator):
                 return cls._create_custom(name, **kwargs)
             elif issubclass(indicator_class, LibraryIndicator):
-                return cls._create_library('talib', name, **kwargs)  # По умолчанию talib
+                return indicator_class(**kwargs)
         
         # Если не найден в реестре, пробуем создать как CUSTOM
         try:
@@ -898,8 +880,8 @@ class IndicatorFactory:
         
         # Добавляем библиотечные функции
         for name in cls._library_functions:
-            indicators[name] = "library_function"
-        
+            indicators.setdefault(name, "library_function")
+
         return indicators
     
     @classmethod
