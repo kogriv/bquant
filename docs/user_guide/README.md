@@ -26,7 +26,7 @@
 - MACD анализ
 - Анализ зон
 - Создание индикаторов
-- Интерпретация результатов
+- «Простой способ» работы с pandas-ta через [LibraryManager](../api/indicators/library_manager.md)
 
 ### 📊 [Visualization](../api/visualization/README.md) - Визуализация
 - Создание графиков
@@ -80,7 +80,7 @@ pip install pandas numpy matplotlib seaborn plotly
 1. **[Quick Start](quick_start.md)** - Быстрый старт
 2. **[Core Concepts](../api/core/README.md)** - Основные концепции
 3. **[Data Management](../api/data/README.md)** - Работа с данными
-4. **[Technical Analysis aka Indicators](../api/indicators/README.m)** - Индикаторы
+4. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Индикаторы и LibraryManager
 5. **[Visualization](../api/visualization/README.md)** - Визуализация
 6. **[Statistical Analysis](../api/analysis/README.md)** - Статистический анализ
 

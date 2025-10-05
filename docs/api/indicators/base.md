@@ -17,10 +17,11 @@
   - Работает с уже готовыми данными
   - Извлекает значения без пересчета
   - Поддерживает гибкую настройку колонок
-- `LibraryIndicator(BaseIndicator)` — обёртка над функциями внешних библиотек
+- `LibraryIndicator(BaseIndicator)` — обёртка над функциями внешних библиотек (pandas-ta, TA-Lib и др.)
 - `IndicatorFactory`
   - Регистрация: `register_indicator(name, cls)`, `register_library_function(name, func)`
-  - Создание: `create_indicator(name, **kwargs) -> BaseIndicator`
+  - Создание: `create(source, indicator, **params) -> BaseIndicator`
+  - Совместимость: `create_indicator(name, **kwargs)` (устаревший интерфейс)
   - Справка: `list_indicators() -> Dict[str,str]`, `get_indicator_info(name) -> Optional[Dict]`
 
 ## Class Methods
@@ -111,11 +112,35 @@ class RSI(PreloadedIndicator):
 ```python
 from bquant.indicators.base import IndicatorFactory
 
-IndicatorFactory.register_indicator('SMA', SMA)
-IndicatorFactory.register_indicator('RSI', RSI)
+# Регистрация пользовательского индикатора (при необходимости)
+IndicatorFactory.register_indicator('custom_sma', SMA)
 
-ind = IndicatorFactory.create_indicator('SMA', period=10)
-res = ind.calculate(df)
+# Создание PRELOADED/CUSTOM индикаторов через современный интерфейс
+sma = IndicatorFactory.create('custom', 'custom_sma', period=10)
+result = sma.calculate(df)
+```
+
+## LibraryManager и динамические индикаторы
+
+`LibraryIndicator` используется для обёрток внешних библиотек. После рефакторинга `LibraryManager`
+обнаружение и регистрация индикаторов `pandas-ta` выполняются автоматически: достаточно вызвать загрузку библиотеки,
+и все совместимые функции станут доступны через `IndicatorFactory.create()` и `LibraryManager.create_indicator()`.
+
+```python
+from bquant.indicators import LibraryManager, IndicatorFactory
+
+# Загружаем все доступные библиотеки (pandas-ta, TA-Lib)
+load_results = LibraryManager.load_all_libraries()
+print(load_results['pandas_ta'])  # Количество зарегистрированных функций
+
+# Создаём индикатор pandas-ta без ручной регистрации
+macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
+
+# Альтернатива: «простой способ» напрямую через менеджер
+rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
+
+macd_result = macd.calculate(df)
+rsi_result = rsi.calculate(df)
 ```
 
 ## См. также

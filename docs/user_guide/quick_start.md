@@ -91,6 +91,24 @@ fig = charts.plot_macd_with_zones(data, zones)
 fig.show()
 ```
 
+### 6. Подключение внешних индикаторов одной командой
+
+```python
+from bquant.indicators import LibraryManager
+
+# Загружаем внешние библиотеки (pandas-ta и TA-Lib при наличии)
+LibraryManager.load_all_libraries()
+
+# «Простой способ»: создаём индикатор pandas-ta без ручной регистрации
+rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
+rsi_result = rsi.calculate(data)
+
+print(rsi_result.data.tail())
+```
+
+> ℹ️ Подробности и дополнительные примеры смотрите в разделе
+> [LibraryManager — управление внешними индикаторами](../api/indicators/library_manager.md).
+
 ## 📊 Полный пример
 
 ```python
