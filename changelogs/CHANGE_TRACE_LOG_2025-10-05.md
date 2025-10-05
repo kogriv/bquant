@@ -1,0 +1,5 @@
+[09:05:12] [not_included] [Technical] Stage 1 LibraryManager refactor: removed automatic pandas-ta loader instantiation so indicators no longer self-register on import and verified manual bootstrap path.
+[09:12:47] [not_included] [Added] Stage 2 LibraryManager refactor: implemented dynamic pandas-ta discovery/registration that generates LibraryIndicator wrappers from function signatures and plugged them into the factory lookup.
+[09:20:03] [not_included] [Changed] Stage 3 LibraryManager refactor: routed indicator initialization through LibraryManager.load_all_libraries() with availability logging to centralize external library setup.
+[09:33:18] [not_included] [Technical] Stage 4 LibraryManager refactor: introduced unit tests covering dynamic pandas-ta registration, logging hooks, error propagation, and LibraryManager access.
+[09:45:56] [not_included] [Changed] Stage 5 LibraryManager refactor: refreshed API docs, guides, README, and examples to describe the new LibraryManager workflow and “simple way” to load pandas-ta indicators.
