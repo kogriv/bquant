@@ -418,6 +418,10 @@ macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
   - Вместо `_register_sma`/`_register_macd` и т.д. работает единая регистрация.
 - [x] Синхронизировать регистрацию индикаторов с результатами `_discover_all_functions()` (регистрировать все найденные функции, а не только 5 оберток)
   - Универсальная регистрация охватывает 158 функций pandas-ta (подтверждено автоматическим тестом).
+- [ ] Заменить хардкод в `pandas_ta.py` на динамическое обнаружение
+- [ ] Реализовать методы `_discover_all_functions()`, `_analyze_function_dynamically()`, `_create_indicator_class_dynamically()`
+- [ ] Убрать все методы `_register_*` и заменить на универсальный `register_indicators()`
+- [ ] Синхронизировать регистрацию индикаторов с результатами `_discover_all_functions()` (регистрировать все найденные функции, а не только 5 оберток)
 
 ### Этап 3: Интеграция LibraryManager (2-3 часа)
 - [ ] Модифицировать `_register_all_indicators()` в `__init__.py`
