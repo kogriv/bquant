@@ -418,10 +418,3 @@ __all__ = [
     'PandasTALoader',
     'PandasTAMACD'
 ]
-
-# Инициализируем загрузчик и регистрируем индикаторы при импорте модуля
-try:
-    loader = PandasTALoader()
-    loader.register_indicators()
-except Exception as e:
-    logger.warning(f"Failed to initialize pandas-ta loader: {e}")
