@@ -22,9 +22,9 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from bquant.indicators import (
-    calculate_indicator, calculate_macd, calculate_rsi, 
+    calculate_indicator, calculate_macd, calculate_rsi,
     calculate_bollinger_bands, calculate_moving_averages,
-    get_available_indicators
+    get_available_indicators, LibraryManager
 )
 from bquant.core.config import get_indicator_params
 from bquant.data.loader import create_sample_data
@@ -107,7 +107,21 @@ def demonstrate_basic_indicators():
     for indicator in available_indicators:
         print(f"   ✓ {indicator}")
     
-    # 3. Рассчитываем скользящие средние
+    # 3. Загружаем внешние библиотеки и создаём индикатор pandas-ta
+    print(f"\n🔌 Индикаторы pandas-ta через LibraryManager:")
+    load_results = LibraryManager.load_all_libraries()
+    print(f"   Доступные библиотеки: {load_results}")
+
+    try:
+        ta_rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
+        ta_rsi_result = ta_rsi.calculate(data)
+        latest_ta_rsi = ta_rsi_result.data.iloc[-1]
+        print(f"   ✅ pandas-ta RSI: {latest_ta_rsi.iloc[0]:.2f}")
+    except Exception as e:
+        print(f"   ⚠️ Не удалось создать индикатор pandas-ta: {e}")
+        ta_rsi_result = None
+
+    # 4. Рассчитываем скользящие средние
     print(f"\n📊 Расчет скользящих средних:")
     try:
         ma_data = calculate_moving_averages(data, periods=[10, 20, 50])
@@ -122,7 +136,7 @@ def demonstrate_basic_indicators():
     except Exception as e:
         print(f"   ❌ Ошибка расчета SMA: {e}")
     
-    # 4. Рассчитываем RSI
+    # 5. Рассчитываем RSI
     print(f"\n📈 Расчет RSI:")
     try:
         rsi_params = get_indicator_params('rsi')
@@ -144,7 +158,7 @@ def demonstrate_basic_indicators():
     except Exception as e:
         print(f"   ❌ Ошибка расчета RSI: {e}")
     
-    # 5. Рассчитываем MACD
+    # 6. Рассчитываем MACD
     print(f"\n📉 Расчет MACD:")
     try:
         macd_params = get_indicator_params('macd')
@@ -172,7 +186,7 @@ def demonstrate_basic_indicators():
     except Exception as e:
         print(f"   ❌ Ошибка расчета MACD: {e}")
     
-    # 6. Рассчитываем Bollinger Bands
+    # 7. Рассчитываем Bollinger Bands
     print(f"\n📊 Расчет Bollinger Bands:")
     try:
         bb_data = calculate_bollinger_bands(data, period=20, std_dev=2)
@@ -197,7 +211,7 @@ def demonstrate_basic_indicators():
     except Exception as e:
         print(f"   ❌ Ошибка расчета Bollinger Bands: {e}")
     
-    # 7. Комбинированный анализ
+    # 8. Комбинированный анализ
     print(f"\n🎯 Комбинированный технический анализ:")
     try:
         # Собираем все индикаторы
@@ -258,11 +272,14 @@ def demonstrate_basic_indicators():
     except Exception as e:
         print(f"   ❌ Ошибка комбинированного анализа: {e}")
     
-    # 8. Сводная информация
+    # 9. Сводная информация
     print(f"\n📋 Сводка расчетов:")
     print(f"   ✅ Количество индикаторов: {len(available_indicators)}")
     print(f"   ✅ Период анализа: {len(data)} баров")
     print(f"   ✅ Временной диапазон: {data.index[-1] - data.index[0]}")
+
+    if ta_rsi_result is not None:
+        print(f"   📘 Подробности: см. docs/api/indicators/library_manager.md")
     
     return combined_data
 
