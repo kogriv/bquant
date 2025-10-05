@@ -844,7 +844,7 @@ class IndicatorFactory:
             elif issubclass(indicator_class, CustomIndicator):
                 return cls._create_custom(name, **kwargs)
             elif issubclass(indicator_class, LibraryIndicator):
-                return cls._create_library('talib', name, **kwargs)  # По умолчанию talib
+                return indicator_class(**kwargs)
         
         # Если не найден в реестре, пробуем создать как CUSTOM
         try:
@@ -880,8 +880,8 @@ class IndicatorFactory:
         
         # Добавляем библиотечные функции
         for name in cls._library_functions:
-            indicators[name] = "library_function"
-        
+            indicators.setdefault(name, "library_function")
+
         return indicators
     
     @classmethod
