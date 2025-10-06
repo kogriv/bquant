@@ -70,6 +70,7 @@ class ZoneAnalysisResult:
         hypothesis_tests: Результаты тестов гипотез
         clustering: Результаты кластеризации
         sequence_analysis: Анализ последовательностей зон
+        data: DataFrame с MACD индикаторами (для визуализации)
         metadata: Метаданные анализа
     """
     zones: List[ZoneInfo]
@@ -77,6 +78,7 @@ class ZoneAnalysisResult:
     hypothesis_tests: Dict[str, Any]
     clustering: Optional[Dict[str, Any]] = None
     sequence_analysis: Optional[Dict[str, Any]] = None
+    data: Optional[pd.DataFrame] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -657,6 +659,7 @@ class MACDZoneAnalyzer:
                     zones=[],
                     statistics={},
                     hypothesis_tests={},
+                    data=df_with_indicators,
                     metadata={'warning': 'No zones identified'}
                 )
             
@@ -697,6 +700,7 @@ class MACDZoneAnalyzer:
                 hypothesis_tests=hypothesis_tests,
                 clustering=clustering,
                 sequence_analysis=sequence_analysis,
+                data=df_with_indicators,
                 metadata=metadata
             )
             

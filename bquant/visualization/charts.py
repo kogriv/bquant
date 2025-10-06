@@ -472,11 +472,22 @@ class FinancialCharts(ChartBuilder):
         # Добавляем зоны если есть
         if zones_data:
             for i, zone in enumerate(zones_data):
-                if 'start_time' in zone and 'end_time' in zone:
+                # Поддержка как словарей, так и dataclass объектов ZoneInfo
+                if isinstance(zone, dict):
+                    start_time = zone.get('start_time')
+                    end_time = zone.get('end_time')
+                    zone_type = zone.get('type')
+                else:
+                    # Для dataclass объектов (ZoneInfo)
+                    start_time = getattr(zone, 'start_time', None)
+                    end_time = getattr(zone, 'end_time', None)
+                    zone_type = getattr(zone, 'type', None)
+                
+                if start_time and end_time:
                     fig.add_vrect(
-                        x0=zone['start_time'],
-                        x1=zone['end_time'],
-                        fillcolor='lightblue' if zone.get('type') == 'bull' else 'lightpink',
+                        x0=start_time,
+                        x1=end_time,
+                        fillcolor='lightblue' if zone_type == 'bull' else 'lightpink',
                         opacity=0.3,
                         layer="below",
                         line_width=0,

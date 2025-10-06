@@ -355,6 +355,17 @@ class PandasTALoader:
 
         def get_required_columns(self) -> List[str]:
             return required_columns
+        
+        def get_statistics(self, data: pd.DataFrame) -> pd.DataFrame:
+            """Получить статистику по результатам индикатора."""
+            try:
+                result = self.calculate(data)
+                if result.data is not None and not result.data.empty:
+                    return result.data.describe()
+                return pd.DataFrame()
+            except Exception:
+                # Если расчет не удался, возвращаем пустой DataFrame
+                return pd.DataFrame()
 
         def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
             if not self.validate_data(data):
@@ -418,6 +429,7 @@ class PandasTALoader:
             "__init__": __init__,
             "calculate": calculate,
             "get_required_columns": get_required_columns,
+            "get_statistics": get_statistics,
             "__module__": __name__,
         }
 

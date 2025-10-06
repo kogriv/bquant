@@ -377,7 +377,7 @@ def create_test_ohlcv_data(rows: int = 100) -> pd.DataFrame:
     """
     np.random.seed(42)
     
-    dates = pd.date_range('2024-01-01', periods=rows, freq='H')
+    dates = pd.date_range('2024-01-01', periods=rows, freq='h')
     
     # Генерируем цены с небольшой волатильностью
     base_price = 100.0

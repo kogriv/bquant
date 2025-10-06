@@ -9,20 +9,20 @@ import numpy as np
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
 
-def create_sample_ohlcv_data(periods: int = 100, freq: str = 'H') -> pd.DataFrame:
+def create_sample_ohlcv_data(periods: int = 100, freq: str = 'h') -> pd.DataFrame:
     """
     Создать sample OHLCV данные для тестирования.
     
     Args:
         periods: Количество периодов
-        freq: Частота данных ('H', 'D', etc.)
+        freq: Частота данных ('h', 'D', etc.)
     
     Returns:
         DataFrame с OHLCV данными
     """
     # Создаем временной индекс
     end_date = datetime.now()
-    start_date = end_date - timedelta(hours=periods if freq == 'H' else periods*24)
+    start_date = end_date - timedelta(hours=periods if freq == 'h' else periods*24)
     date_range = pd.date_range(start=start_date, end=end_date, freq=freq)[:periods]
     
     # Генерируем случайные цены с трендом

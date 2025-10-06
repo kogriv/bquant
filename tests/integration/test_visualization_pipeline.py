@@ -126,13 +126,14 @@ class TestVisualizationPipeline:
         analyzer = MACDZoneAnalyzer()
         analysis_result = analyzer.analyze_complete(data)
         zones = analysis_result.zones
+        data_with_macd = analysis_result.data  # Данные с MACD индикаторами
         
         # 3. Визуализация MACD с зонами
         try:
             charts = FinancialCharts()
             
-            # Создаем базовый MACD график
-            fig = charts.plot_macd_with_zones(data, zones)
+            # Создаем базовый MACD график с данными, содержащими MACD индикаторы
+            fig = charts.plot_macd_with_zones(data_with_macd, zones)
             assert fig is not None, "MACD with zones chart should be created"
             
             macd_viz_success = True
@@ -198,12 +199,18 @@ class TestVisualizationPipeline:
                 )
                 assert fig is not None, "Histogram should be created"
             
-            # Scatter plot для возвратов vs продолжительности
+            # Scatter plot для возвратов vs продолжительности - создаем DataFrame
             returns = [f['price_return'] for f in zones_features if 'price_return' in f]
             if durations and returns and len(durations) == len(returns):
+                # Создаем DataFrame для scatter plot
+                scatter_data = pd.DataFrame({
+                    'duration': durations,
+                    'returns': returns
+                })
                 fig = stat_plots.create_scatter_plot(
-                    durations, 
-                    returns,
+                    scatter_data,
+                    x_column='duration',
+                    y_column='returns',
                     title="Duration vs Returns"
                 )
                 assert fig is not None, "Scatter plot should be created"
@@ -222,9 +229,15 @@ class TestVisualizationPipeline:
                              if zone.get('type') == 'bear' and 'duration' in f]
             
             if bull_durations and bear_durations:
+                # Создаем DataFrame для box plot
+                box_data = pd.DataFrame({
+                    'duration': bull_durations + bear_durations,
+                    'type': ['Bull'] * len(bull_durations) + ['Bear'] * len(bear_durations)
+                })
                 fig = stat_plots.create_box_plot(
-                    [bull_durations, bear_durations],
-                    labels=['Bull Zones', 'Bear Zones'],
+                    box_data,
+                    y_column='duration',
+                    x_column='type',
                     title="Zone Duration Comparison"
                 )
                 assert fig is not None, "Box plot should be created"
@@ -269,7 +282,7 @@ class TestVisualizationPipeline:
                         try:
                             themed_fig = charts.create_line_chart(
                                 sample_ohlcv_data,
-                                'close',
+                                columns=['close'],  # Передаем как список
                                 title=f"Test Chart - {theme_name} Theme"
                             )
                             
@@ -290,7 +303,7 @@ class TestVisualizationPipeline:
             # 3. Базовая проверка создания графика без тем
             fig = charts.create_line_chart(
                 sample_ohlcv_data,
-                'close',
+                columns=['close'],  # Передаем как список
                 title="Basic Chart"
             )
             assert fig is not None, "Basic chart should be created"
@@ -355,8 +368,8 @@ class TestVisualizationIntegration:
             visualization_results['main_chart'] = False
         
         try:
-            # График MACD с зонами
-            macd_chart = charts.plot_macd_with_zones(data, analysis_result.zones)
+            # График MACD с зонами (используем данные с MACD индикаторами из анализа)
+            macd_chart = charts.plot_macd_with_zones(analysis_result.data, analysis_result.zones)
             visualization_results['macd_chart'] = macd_chart is not None
             
         except Exception as e:
