@@ -71,7 +71,7 @@ class IndicatorCalculator:
             self.logger.info(f"Calculating indicator: {indicator_name}")
             
             # Создаем индикатор через фабрику
-            indicator = IndicatorFactory.create_indicator(indicator_name, self.data, **kwargs)
+            indicator = IndicatorFactory.create('custom', indicator_name, **kwargs)
             
             # Вычисляем результат
             result = indicator.calculate_with_cache(self.data, **kwargs)
@@ -370,7 +370,7 @@ def validate_indicator_data(data: pd.DataFrame, indicator_name: str, **kwargs) -
         True if data is valid for the indicator
     """
     try:
-        indicator = IndicatorFactory.create_indicator(indicator_name, **kwargs)
+        indicator = IndicatorFactory.create('custom', indicator_name, **kwargs)
         return indicator.validate_data(data)
     except Exception as e:
         logger.warning(f"Data validation failed for {indicator_name}: {e}")

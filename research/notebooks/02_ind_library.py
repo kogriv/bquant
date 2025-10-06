@@ -26,7 +26,7 @@ setup_logging(profile='research')
 
 from bquant.core.nb import NotebookSimulator
 from bquant.data.samples import get_sample_data
-from bquant.indicators.library import (
+from bquant.indicators.custom import (
     SimpleMovingAverage,
     ExponentialMovingAverage,
     RelativeStrengthIndex,

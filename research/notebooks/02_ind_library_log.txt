@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-09-02 11:12:33
+[LOG] Log started: 2025-10-06 13:33:06
 [OUTPUT] Output will be written to: research\notebooks\02_ind_library_log.txt
 [>>] Starting Демонстрация работы встроенных индикаторов bquant.indicators.library
 ========================================================================================
 [SCRIPT] Демонстрация работы встроенных индикаторов bquant.indicators.library
-[DATE] Started: 2025-09-02 11:12:33
+[DATE] Started: 2025-10-06 13:33:06
 ========================================================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Загрузка тестовых данных
@@ -31,17 +31,177 @@
 Зарегистрировано 5 встроенных индикаторов
 [INFO] 2.2. Проверка доступных индикаторов:
 Доступные индикаторы в системе:
-  - sma: preloaded
-  - ema: preloaded
-  - rsi: preloaded
-  - macd: preloaded
-  - bbands: preloaded
+  - sma: custom
+  - ema: custom
+  - rsi: custom
+  - macd: custom
+  - bbands: custom
+  - macd_preloaded: preloaded
+  - pandas_ta_aberration: library
+  - pandas_ta_accbands: library
+  - pandas_ta_ad: library
+  - pandas_ta_adosc: library
+  - pandas_ta_adx: library
+  - pandas_ta_alligator: library
+  - pandas_ta_alma: library
+  - pandas_ta_alphatrend: library
+  - pandas_ta_amat: library
+  - pandas_ta_ao: library
+  - pandas_ta_aobv: library
+  - pandas_ta_apo: library
+  - pandas_ta_aroon: library
+  - pandas_ta_atr: library
+  - pandas_ta_atrts: library
+  - pandas_ta_bbands: library
+  - pandas_ta_bias: library
+  - pandas_ta_bop: library
+  - pandas_ta_brar: library
+  - pandas_ta_candle_color: library
+  - pandas_ta_cci: library
+  - pandas_ta_cdl: library
+  - pandas_ta_cdl_doji: library
+  - pandas_ta_cdl_inside: library
+  - pandas_ta_cdl_pattern: library
+  - pandas_ta_cdl_z: library
+  - pandas_ta_cfo: library
+  - pandas_ta_cg: library
+  - pandas_ta_chandelier_exit: library
+  - pandas_ta_chop: library
+  - pandas_ta_cksp: library
+  - pandas_ta_cmf: library
+  - pandas_ta_cmo: library
+  - pandas_ta_coppock: library
+  - pandas_ta_crsi: library
+  - pandas_ta_cti: library
+  - pandas_ta_decay: library
+  - pandas_ta_decreasing: library
+  - pandas_ta_dema: library
+  - pandas_ta_dm: library
+  - pandas_ta_donchian: library
+  - pandas_ta_dpo: library
+  - pandas_ta_drawdown: library
+  - pandas_ta_ebsw: library
+  - pandas_ta_efi: library
+  - pandas_ta_ema: library
+  - pandas_ta_entropy: library
+  - pandas_ta_eom: library
+  - pandas_ta_er: library
+  - pandas_ta_eri: library
+  - pandas_ta_exhc: library
+  - pandas_ta_fisher: library
+  - pandas_ta_fwma: library
+  - pandas_ta_ha: library
+  - pandas_ta_high_low_range: library
+  - pandas_ta_hilo: library
+  - pandas_ta_hl2: library
+  - pandas_ta_hlc3: library
+  - pandas_ta_hma: library
+  - pandas_ta_ht_trendline: library
+  - pandas_ta_hwc: library
+  - pandas_ta_hwma: library
+  - pandas_ta_ichimoku: library
+  - pandas_ta_increasing: library
+  - pandas_ta_inertia: library
+  - pandas_ta_jma: library
+  - pandas_ta_kama: library
+  - pandas_ta_kc: library
+  - pandas_ta_kdj: library
+  - pandas_ta_kst: library
+  - pandas_ta_kurtosis: library
+  - pandas_ta_kvo: library
+  - pandas_ta_linreg: library
+  - pandas_ta_log_return: library
+  - pandas_ta_ma: library
+  - pandas_ta_macd: library
+  - pandas_ta_mad: library
+  - pandas_ta_mama: library
+  - pandas_ta_massi: library
+  - pandas_ta_mcgd: library
+  - pandas_ta_median: library
+  - pandas_ta_mfi: library
+  - pandas_ta_midpoint: library
+  - pandas_ta_midprice: library
+  - pandas_ta_mom: library
+  - pandas_ta_natr: library
+  - pandas_ta_nvi: library
+  - pandas_ta_obv: library
+  - pandas_ta_ohlc4: library
+  - pandas_ta_pdist: library
+  - pandas_ta_percent_return: library
+  - pandas_ta_pgo: library
+  - pandas_ta_pivots: library
+  - pandas_ta_ppo: library
+  - pandas_ta_psar: library
+  - pandas_ta_psl: library
+  - pandas_ta_pvo: library
+  - pandas_ta_pvol: library
+  - pandas_ta_pvr: library
+  - pandas_ta_pvt: library
+  - pandas_ta_pwma: library
+  - pandas_ta_qqe: library
+  - pandas_ta_qstick: library
+  - pandas_ta_quantile: library
+  - pandas_ta_real_body: library
+  - pandas_ta_reflex: library
+  - pandas_ta_rma: library
+  - pandas_ta_roc: library
+  - pandas_ta_rsi: library
+  - pandas_ta_rsx: library
+  - pandas_ta_rvgi: library
+  - pandas_ta_rvi: library
+  - pandas_ta_rwi: library
+  - pandas_ta_sinwma: library
+  - pandas_ta_skew: library
+  - pandas_ta_slope: library
+  - pandas_ta_sma: library
+  - pandas_ta_smc: library
+  - pandas_ta_smi: library
+  - pandas_ta_smma: library
+  - pandas_ta_squeeze: library
+  - pandas_ta_squeeze_pro: library
+  - pandas_ta_ssf: library
+  - pandas_ta_ssf3: library
+  - pandas_ta_stc: library
+  - pandas_ta_stdev: library
+  - pandas_ta_stoch: library
+  - pandas_ta_stochf: library
+  - pandas_ta_stochrsi: library
+  - pandas_ta_supertrend: library
+  - pandas_ta_swma: library
+  - pandas_ta_t3: library
+  - pandas_ta_tema: library
+  - pandas_ta_thermo: library
+  - pandas_ta_tmo: library
+  - pandas_ta_tos_stdevall: library
+  - pandas_ta_trendflex: library
+  - pandas_ta_trima: library
+  - pandas_ta_trix: library
+  - pandas_ta_true_range: library
+  - pandas_ta_tsi: library
+  - pandas_ta_tsv: library
+  - pandas_ta_ttm_trend: library
+  - pandas_ta_ui: library
+  - pandas_ta_uo: library
+  - pandas_ta_variance: library
+  - pandas_ta_vhf: library
+  - pandas_ta_vidya: library
+  - pandas_ta_vortex: library
+  - pandas_ta_vp: library
+  - pandas_ta_vwap: library
+  - pandas_ta_vwma: library
+  - pandas_ta_wcp: library
+  - pandas_ta_willr: library
+  - pandas_ta_wma: library
+  - pandas_ta_zigzag: library
+  - pandas_ta_zlma: library
+  - pandas_ta_zscore: library
 [INFO] 2.3. Анализ типов зарегистрированных индикаторов:
 Типы зарегистрированных индикаторов:
-  - Moving Averages: 2
-  - RSI: 1
-  - MACD: 1
-  - Bollinger Bands: 1
+  - Moving Averages: 6
+  - RSI: 4
+  - MACD: 3
+  - Bollinger Bands: 2
+  - Other: 149
 [OK] Registering builtin indicators completed successfully
 ================================================================================
 [STEP] STEP 3: Шаг 3: Работа с SimpleMovingAverage
@@ -343,20 +503,20 @@
 [INFO] Сравниваем производительность различных встроенных индикаторов.
 [INFO] 8.1. Тестирование производительности SMA:
 Производительность SMA:
-  - SMA(5): 0.0041 сек, 243309 записей/сек
-  - SMA(10): 0.0026 сек, 378931 записей/сек
-  - SMA(20): 0.0082 сек, 122220 записей/сек
-  - SMA(50): 0.0051 сек, 197981 записей/сек
+  - SMA(5): 0.0009 сек, 1138952 записей/сек
+  - SMA(10): 0.0008 сек, 1256281 записей/сек
+  - SMA(20): 0.0007 сек, 1488095 записей/сек
+  - SMA(50): 0.0006 сек, 1572327 записей/сек
 [INFO] 8.2. Тестирование производительности EMA:
 Производительность EMA:
-  - EMA(12): 0.0086 сек, 115929 записей/сек
-  - EMA(26): 0.0032 сек, 312891 записей/сек
-  - EMA(50): 0.0032 сек, 309598 записей/сек
+  - EMA(12): 0.0008 сек, 1272265 записей/сек
+  - EMA(26): 0.0006 сек, 1600000 записей/сек
+  - EMA(50): 0.0034 сек, 294898 записей/сек
 [INFO] 8.3. Сравнение общей производительности:
 Общая производительность:
-  - Самый быстрый: 10 (0.0026 сек)
-  - Самый медленный: 12 (0.0086 сек)
-  - Разница в скорости: 3.27x
+  - Самый быстрый: 26 (0.0006 сек)
+  - Самый медленный: 50 (0.0034 сек)
+  - Разница в скорости: 5.43x
 [OK] Testing indicator performance completed successfully
 ================================================================================
 [STEP] STEP 9: Шаг 9: Создание комплексных наборов индикаторов
@@ -433,16 +593,16 @@
       - Коэффициент вариации: 0.0095
   - ema_12:
     * ema_12:
-      - Среднее: 3350.5748
-      - Стандартное отклонение: 34.1342
+      - Среднее: 3350.5202
+      - Стандартное отклонение: 34.1269
       - Выбросы (z-score > 3): 0
       - Коэффициент вариации: 0.0102
   - ema_26:
     * ema_26:
-      - Среднее: 3350.5513
-      - Стандартное отклонение: 32.4457
+      - Среднее: 3350.2966
+      - Стандартное отклонение: 32.2980
       - Выбросы (z-score > 3): 0
-      - Коэффициент вариации: 0.0097
+      - Коэффициент вариации: 0.0096
   - rsi_14:
     * rsi_14:
       - Среднее: 50.6339
@@ -532,5 +692,5 @@
 [INFO] Это демонстрирует мощь и надежность встроенных индикаторов BQuant для технического анализа.
 
 [END] Script finished successfully!
-[END] Log ended: 2025-09-02 11:12:35
-[TIME] Duration: 0:00:01.514823
+[END] Log ended: 2025-10-06 13:33:06
+[TIME] Duration: 0:00:00.451486

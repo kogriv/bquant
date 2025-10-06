@@ -644,7 +644,7 @@ with nb.error_handling("Integration with other indicators"):
     
     # Создаем DataFrame с основными индикаторами
     try:
-        from bquant.indicators.library import SimpleMovingAverage, RelativeStrengthIndex, BollingerBands
+        from bquant.indicators.custom import SimpleMovingAverage, RelativeStrengthIndex, BollingerBands
         
         # Рассчитываем базовые индикаторы
         sma_20 = SimpleMovingAverage(period=20).calculate(df_sample)
