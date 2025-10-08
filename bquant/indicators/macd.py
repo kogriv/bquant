@@ -629,6 +629,87 @@ class MACDZoneAnalyzer:
                 {'zones_count': len(zones), 'n_clusters': n_clusters}
             )
     
+    def _zone_to_dict(self, zone: ZoneInfo) -> Dict[str, Any]:
+        """
+        Конвертация ZoneInfo в формат для модульных анализаторов.
+        
+        Вспомогательный метод для интеграции с bquant.analysis.zones модулями.
+        
+        Args:
+            zone: Объект ZoneInfo для конвертации
+            
+        Returns:
+            Словарь с данными зоны в формате для анализаторов
+        """
+        return {
+            'zone_id': zone.zone_id,
+            'type': zone.type,
+            'duration': zone.duration,
+            'data': zone.data,
+            # Добавляем features если есть
+            **(zone.features or {})
+        }
+    
+    def _features_to_dict(self, features) -> Dict[str, Any]:
+        """
+        Конвертация ZoneFeatures в словарь.
+        
+        Args:
+            features: Объект ZoneFeatures или объект с методом to_dict()
+            
+        Returns:
+            Словарь с признаками зоны
+        """
+        if hasattr(features, 'to_dict'):
+            return features.to_dict()
+        return dict(features)
+    
+    def _adapt_statistics_format(self, stats_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Адаптация формата статистик из модульного анализатора в формат старой версии.
+        
+        Преобразует вложенную структуру из ZoneFeaturesAnalyzer в плоский формат,
+        совместимый с analyze_complete().
+        
+        Args:
+            stats_data: Вложенная структура статистик из ZoneFeaturesAnalyzer
+            
+        Returns:
+            Плоский словарь статистик в формате старой версии
+        """
+        adapted = {}
+        
+        # Общая статистика (распаковываем из total_statistics)
+        if 'total_statistics' in stats_data:
+            total = stats_data['total_statistics']
+            adapted['total_zones'] = total.get('total_zones', 0)
+            adapted['bull_zones'] = total.get('bull_zones_count', 0)
+            adapted['bear_zones'] = total.get('bear_zones_count', 0)
+            adapted['bull_ratio'] = total.get('bull_ratio', 0)
+            adapted['bear_ratio'] = total.get('bear_ratio', 0)
+        
+        # Статистика по длительности
+        if 'duration_distribution' in stats_data:
+            adapted['duration_stats'] = stats_data['duration_distribution']
+        
+        # Статистика по доходности
+        if 'return_distribution' in stats_data:
+            adapted['return_stats'] = stats_data['return_distribution']
+        
+        # Статистика по амплитуде MACD
+        if 'macd_amplitude_distribution' in stats_data:
+            adapted['macd_amplitude_stats'] = stats_data['macd_amplitude_distribution']
+        
+        # Статистика по амплитуде гистограммы
+        if 'hist_amplitude_distribution' in stats_data:
+            adapted['hist_amplitude_stats'] = stats_data['hist_amplitude_distribution']
+        
+        # Дополнительные метрики
+        if 'additional_metrics' in stats_data:
+            adapted.update(stats_data['additional_metrics'])
+        
+        return adapted
+    
     @performance_monitor()
     def analyze_complete(self, df: pd.DataFrame, 
                         perform_clustering: bool = True,
@@ -717,6 +798,164 @@ class MACDZoneAnalyzer:
                     'data_shape': df.shape,
                     'macd_params': self.macd_params,
                     'zone_params': self.zone_params
+                }
+            )
+    
+    @performance_monitor()
+    def analyze_complete_modular(self, df: pd.DataFrame,
+                                 perform_clustering: bool = True,
+                                 n_clusters: int = 3) -> ZoneAnalysisResult:
+        """
+        Полный анализ зон с использованием модульных анализаторов.
+        
+        Новая версия - использует bquant.analysis.* вместо внутренних методов.
+        Предназначена для постепенного перехода на модульную архитектуру.
+        
+        Args:
+            df: DataFrame с OHLCV данными
+            perform_clustering: Выполнять ли кластеризацию
+            n_clusters: Количество кластеров для кластеризации
+            
+        Returns:
+            Объект ZoneAnalysisResult с полными результатами анализа
+            
+        Note:
+            Этот метод использует те же алгоритмы что и analyze_complete(),
+            но делегирует работу модульным анализаторам из bquant.analysis.*
+        """
+        try:
+            logger.info("Starting modular MACD zone analysis")
+            
+            # 1. Расчет индикаторов и определение зон (без изменений)
+            df_with_indicators = self.calculate_macd_with_atr(df)
+            zones = self.identify_zones(df_with_indicators)
+            
+            if not zones:
+                logger.warning("No zones identified")
+                return ZoneAnalysisResult(
+                    zones=[],
+                    statistics={},
+                    hypothesis_tests={},
+                    data=df_with_indicators,
+                    metadata={
+                        'warning': 'No zones identified',
+                        'modular_version': True
+                    }
+                )
+            
+            # 2. Расчет признаков через ZoneFeaturesAnalyzer
+            from ..analysis.zones import ZoneFeaturesAnalyzer
+            features_analyzer = ZoneFeaturesAnalyzer(
+                min_duration=self.zone_params['min_duration']
+            )
+            
+            zones_features = []
+            for zone in zones:
+                zone_dict = self._zone_to_dict(zone)
+                zone_features = features_analyzer.extract_zone_features(zone_dict)
+                zone.features = self._features_to_dict(zone_features)  # Сохраняем в zone
+                zones_features.append(zone_features)
+            
+            # 3. Статистический анализ через ZoneFeaturesAnalyzer
+            statistics_result = features_analyzer.analyze_zones_distribution(
+                [self._features_to_dict(f) for f in zones_features]
+            )
+            # Извлекаем данные из AnalysisResult и адаптируем формат
+            if hasattr(statistics_result, 'results'):
+                stats_data = statistics_result.results
+                # Преобразуем вложенную структуру в плоский формат для совместимости
+                statistics = self._adapt_statistics_format(stats_data)
+            else:
+                statistics = statistics_result
+            
+            # 4. Тестирование гипотез через HypothesisTestSuite
+            from ..analysis.statistical import HypothesisTestSuite
+            test_suite = HypothesisTestSuite(alpha=0.05)
+            
+            hypothesis_tests = {}
+            # Подготавливаем данные для тестов с маппингом полей
+            features_dicts = []
+            for f in zones_features:
+                f_dict = self._features_to_dict(f)
+                # Добавляем 'type' как alias для 'zone_type' для совместимости с HypothesisTestSuite
+                if 'zone_type' in f_dict and 'type' not in f_dict:
+                    f_dict['type'] = f_dict['zone_type']
+                features_dicts.append(f_dict)
+            
+            # H1: Длительность vs доходность
+            try:
+                h1_result = test_suite.test_zone_duration_hypothesis(features_dicts)
+                hypothesis_tests['zone_duration'] = h1_result.to_dict()
+            except Exception as e:
+                logger.warning(f"H1 test failed: {e}")
+                hypothesis_tests['zone_duration'] = {'error': str(e)}
+            
+            # H3: Асимметрия bull/bear
+            try:
+                h3_result = test_suite.test_bull_bear_asymmetry_hypothesis(features_dicts)
+                hypothesis_tests['bull_bear_asymmetry'] = h3_result.to_dict()
+            except Exception as e:
+                logger.warning(f"H3 test failed: {e}")
+                hypothesis_tests['bull_bear_asymmetry'] = {'error': str(e)}
+            
+            # 5. Анализ последовательностей через ZoneSequenceAnalyzer
+            from ..analysis.zones import ZoneSequenceAnalyzer
+            sequence_analyzer = ZoneSequenceAnalyzer(min_sequence_length=3)
+            
+            sequence_result = sequence_analyzer.analyze_zone_transitions(zones_features)
+            sequence_analysis = sequence_result.results
+            
+            # 6. Кластеризация через ZoneSequenceAnalyzer
+            clustering = None
+            if perform_clustering and len(zones) >= n_clusters:
+                try:
+                    cluster_result = sequence_analyzer.cluster_zones(
+                        zones_features,
+                        n_clusters=n_clusters
+                    )
+                    clustering = cluster_result.results
+                except Exception as e:
+                    logger.warning(f"Clustering failed: {e}")
+                    clustering = None
+            
+            # 7. Формирование результата (тот же формат!)
+            metadata = {
+                'analysis_timestamp': datetime.now().isoformat(),
+                'data_period': {
+                    'start': df.index[0].isoformat() if hasattr(df.index[0], 'isoformat') else str(df.index[0]),
+                    'end': df.index[-1].isoformat() if hasattr(df.index[-1], 'isoformat') else str(df.index[-1]),
+                    'total_bars': len(df)
+                },
+                'macd_params': self.macd_params,
+                'zone_params': self.zone_params,
+                'clustering_performed': clustering is not None,
+                'modular_version': True  # Флаг новой версии
+            }
+            
+            result = ZoneAnalysisResult(
+                zones=zones,
+                statistics=statistics,
+                hypothesis_tests=hypothesis_tests,
+                clustering=clustering,
+                sequence_analysis=sequence_analysis,
+                data=df_with_indicators,
+                metadata=metadata
+            )
+            
+            logger.info(f"Modular analysis finished: {len(zones)} zones, "
+                       f"{len(hypothesis_tests)} hypothesis tests, "
+                       f"clustering: {clustering is not None}")
+            
+            return result
+            
+        except Exception as e:
+            raise AnalysisError(
+                f"Failed to complete modular MACD zone analysis: {e}",
+                {
+                    'data_shape': df.shape,
+                    'macd_params': self.macd_params,
+                    'zone_params': self.zone_params,
+                    'modular_version': True
                 }
             )
 

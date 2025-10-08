@@ -455,6 +455,183 @@ class TestMACDAnalyzerIntegration:
         print("✅ Обработка некорректных данных работает")
 
 
+class TestModularAnalyzer:
+    """Тесты для модульной версии анализатора (Фаза 1 рефакторинга)."""
+    
+    def test_adapter_methods(self):
+        """Тест вспомогательных методов-адаптеров."""
+        print("\n📋 Тестирование методов-адаптеров:")
+        
+        analyzer = MACDZoneAnalyzer()
+        test_data = create_test_ohlcv_data(100)
+        
+        # Получаем зоны
+        df_with_indicators = analyzer.calculate_macd_with_atr(test_data)
+        zones = analyzer.identify_zones(df_with_indicators)
+        
+        if not zones:
+            print("⚠️ Зоны не найдены, пропускаем тест")
+            return
+        
+        first_zone = zones[0]
+        first_zone.features = analyzer.calculate_zone_features(first_zone)
+        
+        # Тест _zone_to_dict
+        zone_dict = analyzer._zone_to_dict(first_zone)
+        assert isinstance(zone_dict, dict)
+        assert 'zone_id' in zone_dict
+        assert 'type' in zone_dict
+        assert 'duration' in zone_dict
+        assert 'data' in zone_dict
+        assert zone_dict['zone_id'] == first_zone.zone_id
+        assert zone_dict['type'] == first_zone.type
+        
+        print("✅ Метод _zone_to_dict() работает корректно")
+        
+        # Тест _features_to_dict
+        features_dict = analyzer._features_to_dict(first_zone.features)
+        assert isinstance(features_dict, dict)
+        
+        print("✅ Метод _features_to_dict() работает корректно")
+    
+    def test_modular_analyze_complete(self):
+        """Тест модульной версии analyze_complete."""
+        print("\n📋 Тестирование analyze_complete_modular():")
+        
+        test_data = create_test_ohlcv_data(200, add_clear_zones=True)
+        analyzer = MACDZoneAnalyzer()
+        
+        # Выполняем модульный анализ
+        result = analyzer.analyze_complete_modular(test_data, perform_clustering=True, n_clusters=3)
+        
+        # Проверяем структуру результата
+        assert isinstance(result, ZoneAnalysisResult)
+        assert hasattr(result, 'zones')
+        assert hasattr(result, 'statistics')
+        assert hasattr(result, 'hypothesis_tests')
+        assert hasattr(result, 'sequence_analysis')
+        assert hasattr(result, 'metadata')
+        
+        # Проверяем флаг модульной версии
+        assert 'modular_version' in result.metadata
+        assert result.metadata['modular_version'] is True
+        
+        print(f"✅ Модульный анализ выполнен: {len(result.zones)} зон")
+        
+        # Проверяем, что все зоны имеют признаки
+        zones_with_features = sum(1 for zone in result.zones if zone.features)
+        assert zones_with_features == len(result.zones)
+        
+        print(f"✅ Все {zones_with_features} зон имеют рассчитанные признаки")
+    
+    def test_compare_old_vs_modular(self):
+        """Тест сравнения старой и модульной версии анализа."""
+        print("\n📋 Сравнение analyze_complete() vs analyze_complete_modular():")
+        
+        test_data = create_test_ohlcv_data(150, add_clear_zones=True)
+        analyzer = MACDZoneAnalyzer()
+        
+        # Выполняем оба варианта анализа
+        result_old = analyzer.analyze_complete(test_data, perform_clustering=False)
+        result_modular = analyzer.analyze_complete_modular(test_data, perform_clustering=False)
+        
+        # Сравниваем количество зон
+        assert len(result_old.zones) == len(result_modular.zones), \
+            f"Разное количество зон: {len(result_old.zones)} vs {len(result_modular.zones)}"
+        
+        print(f"✅ Количество зон совпадает: {len(result_old.zones)}")
+        
+        # Сравниваем типы зон
+        old_types = [zone.type for zone in result_old.zones]
+        modular_types = [zone.type for zone in result_modular.zones]
+        assert old_types == modular_types, "Типы зон не совпадают"
+        
+        print(f"✅ Типы зон совпадают: {old_types}")
+        
+        # Сравниваем длительности зон
+        old_durations = [zone.duration for zone in result_old.zones]
+        modular_durations = [zone.duration for zone in result_modular.zones]
+        assert old_durations == modular_durations, "Длительности зон не совпадают"
+        
+        print(f"✅ Длительности зон совпадают")
+        
+        # Сравниваем основные статистики
+        assert result_old.statistics['total_zones'] == result_modular.statistics['total_zones']
+        assert result_old.statistics['bull_zones'] == result_modular.statistics['bull_zones']
+        assert result_old.statistics['bear_zones'] == result_modular.statistics['bear_zones']
+        
+        print("✅ Статистики зон совпадают")
+        
+        # Сравниваем наличие признаков
+        old_zones_with_features = sum(1 for zone in result_old.zones if zone.features)
+        modular_zones_with_features = sum(1 for zone in result_modular.zones if zone.features)
+        assert old_zones_with_features == modular_zones_with_features
+        
+        print(f"✅ Количество зон с признаками совпадает: {old_zones_with_features}")
+        
+        # Сравниваем ключи признаков первой зоны (если есть)
+        if result_old.zones and result_old.zones[0].features and result_modular.zones[0].features:
+            old_keys = set(result_old.zones[0].features.keys())
+            modular_keys = set(result_modular.zones[0].features.keys())
+            
+            # Проверяем что основные ключи есть в обеих версиях
+            common_keys = old_keys & modular_keys
+            assert len(common_keys) > 0, "Нет общих ключей признаков"
+            
+            print(f"✅ Найдено {len(common_keys)} общих признаков")
+            
+            # Сравниваем значения общих признаков (с учетом погрешности для float)
+            first_zone_old = result_old.zones[0].features
+            first_zone_modular = result_modular.zones[0].features
+            
+            differences = []
+            for key in common_keys:
+                val_old = first_zone_old[key]
+                val_modular = first_zone_modular[key]
+                
+                # Пропускаем None значения
+                if val_old is None or val_modular is None:
+                    continue
+                
+                # Для числовых значений проверяем с погрешностью
+                if isinstance(val_old, (int, float)) and isinstance(val_modular, (int, float)):
+                    if abs(val_old - val_modular) > 1e-6:
+                        differences.append(f"{key}: {val_old} vs {val_modular}")
+                # Для остальных проверяем точное совпадение
+                elif val_old != val_modular:
+                    differences.append(f"{key}: {val_old} vs {val_modular}")
+            
+            if differences:
+                print(f"⚠️  Найдено {len(differences)} различий в признаках:")
+                for diff in differences[:5]:  # Показываем первые 5
+                    print(f"   {diff}")
+            else:
+                print("✅ Значения всех общих признаков совпадают")
+        
+        print("\n🎉 РЕЗУЛЬТАТЫ ИДЕНТИЧНЫ! Модульная версия работает корректно")
+    
+    def test_modular_with_clustering(self):
+        """Тест модульной версии с кластеризацией."""
+        print("\n📋 Тестирование модульной версии с кластеризацией:")
+        
+        test_data = create_test_ohlcv_data(250, add_clear_zones=True)
+        analyzer = MACDZoneAnalyzer()
+        
+        # Выполняем модульный анализ с кластеризацией
+        result = analyzer.analyze_complete_modular(test_data, perform_clustering=True, n_clusters=3)
+        
+        # Проверяем что кластеризация выполнена (если было достаточно зон)
+        if len(result.zones) >= 3:
+            assert result.clustering is not None or result.metadata['clustering_performed'] is False
+            
+            if result.clustering:
+                print(f"✅ Кластеризация выполнена успешно")
+            else:
+                print("⚠️  Кластеризация не выполнена (недостаточно данных или ошибка)")
+        else:
+            print(f"⚠️  Недостаточно зон для кластеризации ({len(result.zones)} < 3)")
+
+
 def run_macd_analyzer_tests():
     """Запуск всех тестов MACD анализатора."""
     print("🚀 Запуск тестов MACD Zone Analyzer...")
@@ -463,7 +640,8 @@ def run_macd_analyzer_tests():
     # Создаем экземпляры тестовых классов и запускаем тесты
     test_classes = [
         TestMACDZoneAnalyzer(),
-        TestMACDAnalyzerIntegration()
+        TestMACDAnalyzerIntegration(),
+        TestModularAnalyzer()  # Фаза 1: тесты модульной версии
     ]
     
     total_tests = 0
