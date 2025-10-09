@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from ...core.logging_config import get_logger
 from ...core.exceptions import AnalysisError
+from ...core.config import create_swing_strategy, create_divergence_strategy, create_shape_strategy, create_volume_strategy
 from .. import AnalysisResult, BaseAnalyzer
 
 # Получаем логгер для модуля
@@ -78,29 +79,63 @@ class ZoneFeatures:
 
 class ZoneFeaturesAnalyzer(BaseAnalyzer):
     """
-    Анализатор характеристик торговых зон.
+    Анализатор характеристик торговых зон с поддержкой стратегий.
     
     Предоставляет методы для:
     - Извлечения признаков зон
     - Анализа распределения характеристик
     - Статистического анализа зон
     - Сравнительного анализа типов зон
+    
+    Поддерживает расширяемую архитектуру метрик через Strategy Pattern (Phase 3.0+).
     """
     
-    def __init__(self, min_duration: int = 2, min_amplitude: float = 0.001):
+    def __init__(self, 
+                 min_duration: int = 2, 
+                 min_amplitude: float = 0.001,
+                 swing_strategy=None,
+                 divergence_strategy=None,
+                 shape_strategy=None,
+                 volume_strategy=None):
         """
         Инициализация анализатора.
         
         Args:
             min_duration: Минимальная длительность зоны
             min_amplitude: Минимальная амплитуда для значимой зоны
+            swing_strategy: Стратегия расчета свингов (по умолчанию из config)
+            divergence_strategy: Стратегия расчета дивергенций (по умолчанию из config)
+            shape_strategy: Стратегия расчета формы (по умолчанию из config)
+            volume_strategy: Стратегия расчета объема (по умолчанию из config)
+        
+        Note:
+            Стратегии по умолчанию загружаются из ANALYSIS_CONFIG['zone_features'].
+            Если стратегия не указана и не настроена в config, используется None.
         """
         super().__init__("ZoneFeaturesAnalyzer")
         self.min_duration = min_duration
         self.min_amplitude = min_amplitude
+        
+        # Стратегии по умолчанию через фабрики из config
+        # В Phase 3.0 все стратегии None, так как конкретные реализации еще не созданы
+        self.swing_strategy = swing_strategy if swing_strategy is not None else create_swing_strategy()
+        self.divergence_strategy = divergence_strategy if divergence_strategy is not None else create_divergence_strategy()
+        self.shape_strategy = shape_strategy if shape_strategy is not None else create_shape_strategy()
+        self.volume_strategy = volume_strategy if volume_strategy is not None else create_volume_strategy()
+        
         self.logger = get_logger(f"{__name__}.ZoneFeaturesAnalyzer")
         
-        self.logger.info(f"Initialized zone features analyzer with min_duration={min_duration}, min_amplitude={min_amplitude}")
+        strategy_info = {
+            'swing': self.swing_strategy.__class__.__name__ if self.swing_strategy else 'None',
+            'divergence': self.divergence_strategy.__class__.__name__ if self.divergence_strategy else 'None',
+            'shape': self.shape_strategy.__class__.__name__ if self.shape_strategy else 'None',
+            'volume': self.volume_strategy.__class__.__name__ if self.volume_strategy else 'None'
+        }
+        
+        self.logger.info(
+            f"Initialized zone features analyzer with min_duration={min_duration}, "
+            f"min_amplitude={min_amplitude}, strategies={strategy_info}"
+        )
     
     def extract_zone_features(self, zone_info: Dict[str, Any]) -> ZoneFeatures:
         """
@@ -203,6 +238,19 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     'atr_end': float(data['atr'].iloc[-1]),
                     'avg_atr': float(data['atr'].mean())
                 })
+            
+            # Calculate swing metrics using strategy (if available)
+            if self.swing_strategy is not None:
+                try:
+                    swing_metrics = self.swing_strategy.calculate(data)
+                    metadata['swing_metrics'] = swing_metrics.to_dict()
+                    self.logger.debug(
+                        f"Swing metrics calculated: {swing_metrics.rally_count} rallies, "
+                        f"{swing_metrics.drop_count} drops, ratio={swing_metrics.rally_to_drop_ratio:.2f}"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate swing metrics: {e}")
+                    metadata['swing_metrics'] = None
             
             return ZoneFeatures(
                 zone_id=zone_id,

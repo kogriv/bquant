@@ -155,6 +155,29 @@ ANALYSIS_CONFIG = {
         'normalization_method': 'atr',  # 'atr', 'price', 'none'
         'detection_method': 'sign_change'  # 'sign_change', 'threshold', 'custom'
     },
+    'zone_features': {
+        'min_duration': 2,
+        'min_amplitude': 0.001,
+        'swing_strategy': {
+            'type': 'zigzag',  # ZigZagSwingStrategy (pandas-ta)
+            'params': {
+                'legs': 10,
+                'deviation': 0.05  # 5% minimum movement
+            }
+        },
+        'divergence_strategy': {
+            'type': 'none',  # 'none' until strategies implemented
+            'params': {}
+        },
+        'shape_strategy': {
+            'type': 'none',  # 'none' until strategies implemented
+            'params': {}
+        },
+        'volume_strategy': {
+            'type': 'none',  # 'none' until strategies implemented
+            'params': {}
+        }
+    },
     'pattern_analysis': {
         'min_pattern_length': 3,
         'max_pattern_length': 50,
@@ -510,3 +533,128 @@ def get_directory_status() -> Dict[str, Any]:
             'exists': get_processed_data_dir().exists()
         }
     }
+
+
+# ============================================================================
+# STRATEGY FACTORIES (Phase 3.0: Extensible Metrics)
+# ============================================================================
+
+def create_swing_strategy(config: Optional[Dict[str, Any]] = None):
+    """
+    Create swing calculation strategy from config.
+    
+    Args:
+        config: Strategy configuration dict with 'type' and 'params' keys.
+                If None, uses config from ANALYSIS_CONFIG['zone_features']['swing_strategy']
+    
+    Returns:
+        Swing strategy instance or None if type is 'none'
+    
+    Raises:
+        ValueError: If strategy type is unknown
+    
+    Example:
+        strategy = create_swing_strategy({'type': 'zigzag', 'params': {'threshold': 0.02}})
+    """
+    if config is None:
+        config = get_analysis_params('zone_features').get('swing_strategy', {})
+    
+    strategy_type = config.get('type', 'none')
+    params = config.get('params', {})
+    
+    if strategy_type == 'none':
+        return None
+    
+    from ..analysis.zones.strategies.registry import StrategyRegistry
+    return StrategyRegistry.get_swing_strategy(strategy_type, **params)
+
+
+def create_divergence_strategy(config: Optional[Dict[str, Any]] = None):
+    """
+    Create divergence calculation strategy from config.
+    
+    Args:
+        config: Strategy configuration dict with 'type' and 'params' keys.
+                If None, uses config from ANALYSIS_CONFIG['zone_features']['divergence_strategy']
+    
+    Returns:
+        Divergence strategy instance or None if type is 'none'
+    
+    Raises:
+        ValueError: If strategy type is unknown
+    
+    Example:
+        strategy = create_divergence_strategy({'type': 'classic', 'params': {}})
+    """
+    if config is None:
+        config = get_analysis_params('zone_features').get('divergence_strategy', {})
+    
+    strategy_type = config.get('type', 'none')
+    params = config.get('params', {})
+    
+    if strategy_type == 'none':
+        return None
+    
+    from ..analysis.zones.strategies.registry import StrategyRegistry
+    return StrategyRegistry.get_divergence_strategy(strategy_type, **params)
+
+
+def create_shape_strategy(config: Optional[Dict[str, Any]] = None):
+    """
+    Create shape calculation strategy from config.
+    
+    Args:
+        config: Strategy configuration dict with 'type' and 'params' keys.
+                If None, uses config from ANALYSIS_CONFIG['zone_features']['shape_strategy']
+    
+    Returns:
+        Shape strategy instance or None if type is 'none'
+    
+    Raises:
+        ValueError: If strategy type is unknown
+    
+    Example:
+        strategy = create_shape_strategy({'type': 'statistical', 'params': {}})
+    """
+    if config is None:
+        config = get_analysis_params('zone_features').get('shape_strategy', {})
+    
+    strategy_type = config.get('type', 'none')
+    params = config.get('params', {})
+    
+    if strategy_type == 'none':
+        return None
+    
+    from ..analysis.zones.strategies.registry import StrategyRegistry
+    return StrategyRegistry.get_shape_strategy(strategy_type, **params)
+
+
+def create_volume_strategy(config: Optional[Dict[str, Any]] = None):
+    """
+    Create volume calculation strategy from config.
+    
+    Args:
+        config: Strategy configuration dict with 'type' and 'params' keys.
+                If None, uses config from ANALYSIS_CONFIG['zone_features']['volume_strategy']
+    
+    Returns:
+        Volume strategy instance or None if type is 'none'
+    
+    Raises:
+        ValueError: If strategy type is unknown
+    
+    Example:
+        strategy = create_volume_strategy({'type': 'standard', 'params': {}})
+    """
+    if config is None:
+        config = get_analysis_params('zone_features').get('volume_strategy', {})
+    
+    strategy_type = config.get('type', 'none')
+    params = config.get('params', {})
+    
+    if strategy_type == 'none':
+        return None
+    
+    from ..analysis.zones.strategies.registry import StrategyRegistry
+    return StrategyRegistry.get_volume_strategy(strategy_type, **params)
+

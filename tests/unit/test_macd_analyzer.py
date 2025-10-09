@@ -630,6 +630,23 @@ class TestModularAnalyzer:
                 print("⚠️  Кластеризация не выполнена (недостаточно данных или ошибка)")
         else:
             print(f"⚠️  Недостаточно зон для кластеризации ({len(result.zones)} < 3)")
+    
+    def test_migration_analyze_complete_uses_modular(self):
+        """Тест что analyze_complete() теперь использует модульную версию."""
+        print("\n📋 Проверка миграции: analyze_complete() -> analyze_complete_modular():")
+        
+        test_data = create_test_ohlcv_data(120, add_clear_zones=True)
+        analyzer = MACDZoneAnalyzer()
+        
+        # Выполняем analyze_complete()
+        result = analyzer.analyze_complete(test_data, perform_clustering=False)
+        
+        # Проверяем флаг модульной версии в метаданных
+        assert 'modular_version' in result.metadata, "Отсутствует флаг modular_version"
+        assert result.metadata['modular_version'] is True, "analyze_complete() не использует модульную версию"
+        
+        print("✅ analyze_complete() корректно делегирует работу analyze_complete_modular()")
+        print("✅ Фаза 2 (Миграция) выполнена успешно!")
 
 
 def run_macd_analyzer_tests():

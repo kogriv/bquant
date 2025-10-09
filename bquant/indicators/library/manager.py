@@ -158,8 +158,7 @@ class LibraryManager:
                 raise ValueError(f"Loader for {library_name} not found")
             
             # Создаем индикатор через IndicatorFactory
-            full_name = f"{library_name}_{indicator_name}"
-            return IndicatorFactory.create('library', full_name, **kwargs)
+            return IndicatorFactory.create(library_name, indicator_name, **kwargs)
             
         except Exception as e:
             raise IndicatorCalculationError(

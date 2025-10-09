@@ -23,6 +23,7 @@ from ..core.exceptions import AnalysisError, StatisticalAnalysisError, create_in
 from ..core.logging_config import get_logger
 from ..core.performance import performance_monitor, performance_context, OptimizedIndicators
 from ..core.cache import cached
+from ..core.utils import deprecated
 from ..indicators.calculators import calculate_macd
 from ..data.processor import calculate_derived_indicators
 
@@ -260,10 +261,14 @@ class MACDZoneAnalyzer:
                 {'zone_params': self.zone_params}
             )
     
+    @deprecated("Use ZoneFeaturesAnalyzer.extract_zone_features() from bquant.analysis.zones instead")
     @performance_monitor()
     def calculate_zone_features(self, zone: ZoneInfo) -> Dict[str, Any]:
         """
         Рассчитать признаки для зоны.
+        
+        DEPRECATED: Используйте ZoneFeaturesAnalyzer.extract_zone_features() вместо этого.
+        Этот метод сохранен для обратной совместимости.
         
         Args:
             zone: Объект ZoneInfo
@@ -362,9 +367,13 @@ class MACDZoneAnalyzer:
                 {'zone_id': zone.zone_id, 'zone_type': zone.type}
             )
     
+    @deprecated("Use ZoneFeaturesAnalyzer.analyze_zones_distribution() from bquant.analysis.zones instead")
     def analyze_zones_distribution(self, zones: List[ZoneInfo]) -> Dict[str, Any]:
         """
         Анализ распределения характеристик зон.
+        
+        DEPRECATED: Используйте ZoneFeaturesAnalyzer.analyze_zones_distribution() вместо этого.
+        Этот метод сохранен для обратной совместимости.
         
         Args:
             zones: Список зон с рассчитанными признаками
@@ -422,9 +431,13 @@ class MACDZoneAnalyzer:
                 {'zones_count': len(zones)}
             )
     
+    @deprecated("Use HypothesisTestSuite from bquant.analysis.statistical instead")
     def test_hypotheses(self, zones: List[ZoneInfo]) -> Dict[str, Any]:
         """
         Проверка торговых гипотез.
+        
+        DEPRECATED: Используйте HypothesisTestSuite вместо этого.
+        Этот метод сохранен для обратной совместимости.
         
         Args:
             zones: Список зон с рассчитанными признаками
@@ -506,9 +519,13 @@ class MACDZoneAnalyzer:
                 {'zones_count': len(zones)}
             )
     
+    @deprecated("Use ZoneSequenceAnalyzer.analyze_zone_transitions() from bquant.analysis.zones instead")
     def analyze_zone_sequences(self, zones: List[ZoneInfo]) -> Dict[str, Any]:
         """
         Анализ последовательностей зон.
+        
+        DEPRECATED: Используйте ZoneSequenceAnalyzer.analyze_zone_transitions() вместо этого.
+        Этот метод сохранен для обратной совместимости.
         
         Args:
             zones: Список зон
@@ -556,9 +573,13 @@ class MACDZoneAnalyzer:
                 {'zones_count': len(zones)}
             )
     
+    @deprecated("Use ZoneSequenceAnalyzer.cluster_zones() from bquant.analysis.zones instead")
     def cluster_zones_by_shape(self, zones: List[ZoneInfo], n_clusters: int = 3) -> Dict[str, Any]:
         """
         Кластеризация зон по форме.
+        
+        DEPRECATED: Используйте ZoneSequenceAnalyzer.cluster_zones() вместо этого.
+        Этот метод сохранен для обратной совместимости.
         
         Args:
             zones: Список зон с рассчитанными признаками
@@ -717,6 +738,12 @@ class MACDZoneAnalyzer:
         """
         Полный анализ зон MACD.
         
+        Note:
+            Этот метод теперь использует модульные анализаторы из bquant.analysis.*
+            через вызов analyze_complete_modular(). Старая реализация сохранена
+            в методах calculate_zone_features(), test_hypotheses() и других,
+            которые помечены как deprecated.
+        
         Args:
             df: DataFrame с OHLCV данными
             perform_clustering: Выполнять ли кластеризацию
@@ -725,81 +752,8 @@ class MACDZoneAnalyzer:
         Returns:
             Объект ZoneAnalysisResult с полными результатами анализа
         """
-        try:
-            logger.info("Starting complete MACD zone analysis")
-            
-            # 1. Рассчитываем индикаторы
-            df_with_indicators = self.calculate_macd_with_atr(df)
-            
-            # 2. Определяем зоны
-            zones = self.identify_zones(df_with_indicators)
-            
-            if not zones:
-                logger.warning("No zones identified")
-                return ZoneAnalysisResult(
-                    zones=[],
-                    statistics={},
-                    hypothesis_tests={},
-                    data=df_with_indicators,
-                    metadata={'warning': 'No zones identified'}
-                )
-            
-            # 3. Рассчитываем признаки для каждой зоны
-            for zone in zones:
-                zone.features = self.calculate_zone_features(zone)
-            
-            # 4. Анализ распределения
-            statistics = self.analyze_zones_distribution(zones)
-            
-            # 5. Тестирование гипотез
-            hypothesis_tests = self.test_hypotheses(zones)
-            
-            # 6. Анализ последовательностей
-            sequence_analysis = self.analyze_zone_sequences(zones)
-            
-            # 7. Кластеризация (опционально)
-            clustering = None
-            if perform_clustering and len(zones) >= n_clusters:
-                clustering = self.cluster_zones_by_shape(zones, n_clusters)
-            
-            # Метаданные
-            metadata = {
-                'analysis_timestamp': datetime.now().isoformat(),
-                'data_period': {
-                    'start': df.index[0].isoformat() if hasattr(df.index[0], 'isoformat') else str(df.index[0]),
-                    'end': df.index[-1].isoformat() if hasattr(df.index[-1], 'isoformat') else str(df.index[-1]),
-                    'total_bars': len(df)
-                },
-                'macd_params': self.macd_params,
-                'zone_params': self.zone_params,
-                'clustering_performed': perform_clustering and clustering is not None
-            }
-            
-            result = ZoneAnalysisResult(
-                zones=zones,
-                statistics=statistics,
-                hypothesis_tests=hypothesis_tests,
-                clustering=clustering,
-                sequence_analysis=sequence_analysis,
-                data=df_with_indicators,
-                metadata=metadata
-            )
-            
-            logger.info(f"Complete analysis finished: {len(zones)} zones, "
-                       f"{len(hypothesis_tests)} hypothesis tests, "
-                       f"clustering: {clustering is not None}")
-            
-            return result
-            
-        except Exception as e:
-            raise AnalysisError(
-                f"Failed to complete MACD zone analysis: {e}",
-                {
-                    'data_shape': df.shape,
-                    'macd_params': self.macd_params,
-                    'zone_params': self.zone_params
-                }
-            )
+        logger.info("Using modular analyzers (via analyze_complete_modular)")
+        return self.analyze_complete_modular(df, perform_clustering, n_clusters)
     
     @performance_monitor()
     def analyze_complete_modular(self, df: pd.DataFrame,

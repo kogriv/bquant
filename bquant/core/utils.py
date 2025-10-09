@@ -8,8 +8,10 @@ import pandas as pd
 import numpy as np
 import logging
 import sys
+import warnings
+import functools
 from pathlib import Path
-from typing import Dict, Any, List, Union, Optional
+from typing import Dict, Any, List, Union, Optional, Callable
 from .config import PROJECT_ROOT, LOGGING
 
 
@@ -321,6 +323,41 @@ def ensure_directory(path: Union[str, Path]) -> Path:
     path = Path(path)
     path.mkdir(exist_ok=True, parents=True)
     return path
+
+
+def deprecated(message: str):
+    """
+    Декоратор для пометки устаревших методов.
+    
+    При вызове устаревшего метода выводит предупреждение с указанием альтернативы.
+    
+    Args:
+        message: Сообщение о том, какой метод использовать вместо устаревшего
+    
+    Returns:
+        Декоратор функции
+    
+    Example:
+        @deprecated("Use new_method() instead")
+        def old_method():
+            pass
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(
+                f"{func.__name__} is deprecated. {message}",
+                category=DeprecationWarning,
+                stacklevel=2
+            )
+            return func(*args, **kwargs)
+        
+        # Добавляем атрибут для проверки что метод deprecated
+        wrapper.__deprecated__ = True
+        wrapper.__deprecation_message__ = message
+        
+        return wrapper
+    return decorator
 
 
 # Глобальный логгер для модуля
