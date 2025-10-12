@@ -485,10 +485,12 @@ class TestStrategyFactories:
         """Test creating shape strategy from config."""
         print("\n📋 Testing create_shape_strategy():")
         
+        # After Phase 3.2, default is 'statistical' not 'none'
         strategy = create_shape_strategy()
-        assert strategy is None
+        assert strategy is not None
+        assert type(strategy).__name__ == 'StatisticalShapeStrategy'
         
-        print("✅ create_shape_strategy() returns None when type='none'")
+        print(f"✅ create_shape_strategy() returns {type(strategy).__name__}")
         
         strategy = create_shape_strategy({'type': 'mock_shape', 'params': {}})
         assert isinstance(strategy, MockShapeStrategy)
@@ -549,15 +551,18 @@ class TestZoneFeaturesAnalyzerIntegration:
         # Create with defaults
         analyzer = ZoneFeaturesAnalyzer(min_duration=2)
         
-        # After Phase 3.1: swing_strategy is ZigZag, others still None
+        # After Phase 3.2: swing_strategy is ZigZag, shape_strategy is Statistical
+        # divergence and volume still None
         assert analyzer.swing_strategy is not None
         assert type(analyzer.swing_strategy).__name__ == 'ZigZagSwingStrategy'
+        assert analyzer.shape_strategy is not None
+        assert type(analyzer.shape_strategy).__name__ == 'StatisticalShapeStrategy'
         assert analyzer.divergence_strategy is None
-        assert analyzer.shape_strategy is None
         assert analyzer.volume_strategy is None
         
         print(f"✅ swing_strategy loaded as {type(analyzer.swing_strategy).__name__}")
-        print("✅ Other strategies are None (as per config)")
+        print(f"✅ shape_strategy loaded as {type(analyzer.shape_strategy).__name__}")
+        print("✅ divergence and volume strategies are None (as per config)")
 
 
 def run_strategy_infrastructure_tests():

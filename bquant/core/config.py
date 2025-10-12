@@ -170,8 +170,11 @@ ANALYSIS_CONFIG = {
             'params': {}
         },
         'shape_strategy': {
-            'type': 'none',  # 'none' until strategies implemented
-            'params': {}
+            'type': 'statistical',  # StatisticalShapeStrategy (skewness, kurtosis)
+            'params': {
+                'calculate_smoothness': True,
+                'bias_correction': True
+            }
         },
         'volume_strategy': {
             'type': 'none',  # 'none' until strategies implemented

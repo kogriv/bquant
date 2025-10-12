@@ -2,5 +2,7 @@
 Shape calculation strategies for zone analysis.
 """
 
-__all__ = []
+from .statistical import StatisticalShapeStrategy
+
+__all__ = ['StatisticalShapeStrategy']
 

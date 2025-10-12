@@ -252,6 +252,19 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     self.logger.warning(f"Failed to calculate swing metrics: {e}")
                     metadata['swing_metrics'] = None
             
+            # Calculate shape metrics using strategy (if available)
+            if self.shape_strategy is not None:
+                try:
+                    shape_metrics = self.shape_strategy.calculate(data)
+                    metadata['shape_metrics'] = shape_metrics.to_dict()
+                    self.logger.debug(
+                        f"Shape metrics calculated: skewness={shape_metrics.hist_skewness:.2f}, "
+                        f"kurtosis={shape_metrics.hist_kurtosis:.2f}"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate shape metrics: {e}")
+                    metadata['shape_metrics'] = None
+            
             return ZoneFeatures(
                 zone_id=zone_id,
                 zone_type=zone_type,

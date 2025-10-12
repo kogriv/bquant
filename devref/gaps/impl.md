@@ -36,6 +36,8 @@
 > ✅ **Фаза 3.0 завершена** (2025-10-09): Реализована инфраструктура расширяемых метрик через Strategy Pattern. Созданы протоколы, реестр, фабрики. ZoneFeaturesAnalyzer поддерживает стратегии. Все 18 тестов инфраструктуры пройдены. Готово к добавлению конкретных стратегий. Подробности см. в разделе 6.3.
 >
 > ✅ **Фаза 3.1 завершена** (2025-10-09): Реализованы 3 swing-стратегии (ZigZag, FindPeaks, PivotPoints) с расширенными метриками (23 поля вместо 6). Полная интеграция с ZoneFeaturesAnalyzer. 41 тест пройден. A/B тестирование показало, что ZigZag оптимален как default. Подробности см. в `devref/gaps/phase3.1_completion_report.md`.
+>
+> ✅ **Фаза 3.2 завершена** (2025-10-09): Реализована StatisticalShapeStrategy для анализа формы гистограммы MACD через skewness, kurtosis, smoothness. Интеграция с ZoneFeaturesAnalyzer. 19 тестов пройдено (15 unit + 4 интеграции). Готово для улучшенной кластеризации зон. Подробности см. в `devref/gaps/phase3.2_completion_report.md`.
 
 ---
 
@@ -791,14 +793,38 @@ class ValidationSuite:
 
 **Вывод:** Фаза 3.1 успешно завершена. Реализовано 3 рабочие стратегии с полным набором метрик, полная интеграция с ZoneFeaturesAnalyzer, 41 тест пройден, A/B тестирование подтвердило работоспособность. Подробности см. в `devref/gaps/phase3.1_completion_report.md`.
 
-**Фаза 3.2: Shape стратегии**
+**Фаза 3.2: Shape стратегии** ✅ **ЗАВЕРШЕНО**
 
 > **Описание:** См. раздел 7.1.2 "Метрики формы (Shape Metrics)" и раздел 7.6.4
 
-1. [ ] Реализовать `StatisticalShapeStrategy` (skewness, kurtosis) в `strategies/shape/statistical.py`
-2. [ ] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.6.5)
-3. [ ] Unit-тесты для стратегии
-4. [ ] Опционально: `FourierShapeStrategy` в `strategies/shape/fourier.py`
+1. [x] Реализовать `StatisticalShapeStrategy` (skewness, kurtosis) в `strategies/shape/statistical.py`
+   - 170 строк кода
+   - Расчет skewness, kurtosis (абсолютный, не excess), smoothness
+   - Использует scipy.stats.skew и scipy.stats.kurtosis
+   - 15 unit-тестов, все пройдены ✅
+
+2. [x] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.6.5)
+   - Shape метрики добавлены в `metadata['shape_metrics']`
+   - 4 интеграционных теста, все пройдены ✅
+
+3. [x] Unit-тесты для стратегии
+   - 15 unit-тестов StatisticalShapeStrategy ✅
+   - 4 интеграционных теста ✅
+   - **Итого: 19 тестов, все пройдены ✅**
+
+4. [ ] Опционально: `FourierShapeStrategy` в `strategies/shape/fourier.py` - отложено
+
+**Реализация:**
+- Файлы:
+  - `bquant/analysis/zones/strategies/shape/statistical.py` (170 строк)
+  - `bquant/analysis/zones/strategies/shape/__init__.py` (обновлен)
+  - `bquant/analysis/zones/zone_features.py` (интеграция shape_strategy)
+  - `bquant/core/config.py` (statistical как default)
+- Тесты:
+  - `tests/unit/test_statistical_shape_strategy.py` (15 тестов)
+  - `tests/unit/test_zone_features_shape_integration.py` (4 теста)
+
+**Вывод:** Фаза 3.2 успешно завершена. Реализована StatisticalShapeStrategy с метриками skewness, kurtosis, smoothness. Полная интеграция с ZoneFeaturesAnalyzer. 19 тестов пройдено. Готово для кластеризации зон по форме гистограммы. Подробности см. в `devref/gaps/phase3.2_completion_report.md`.
 
 **Фаза 3.3: Метрики времени**
 
