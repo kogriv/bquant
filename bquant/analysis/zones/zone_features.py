@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 from ...core.logging_config import get_logger
 from ...core.exceptions import AnalysisError
-from ...core.config import create_swing_strategy, create_divergence_strategy, create_shape_strategy, create_volume_strategy
+from ...core.config import create_swing_strategy, create_divergence_strategy, create_shape_strategy, create_volume_strategy, create_volatility_strategy
 from .. import AnalysisResult, BaseAnalyzer
 
 # Получаем логгер для модуля
@@ -43,6 +43,8 @@ class ZoneFeatures:
         num_troughs: Количество впадин в зоне
         drawdown_from_peak: Просадка от пика (для бычьих зон)
         rally_from_trough: Отскок от минимума (для медвежьих зон)
+        peak_time_ratio: Позиция пика в зоне (0.0-1.0, для бычьих зон)
+        trough_time_ratio: Позиция впадины в зоне (0.0-1.0, для медвежьих зон)
         metadata: Дополнительные метаданные
     """
     zone_id: str
@@ -60,6 +62,8 @@ class ZoneFeatures:
     num_troughs: Optional[int] = None
     drawdown_from_peak: Optional[float] = None
     rally_from_trough: Optional[float] = None
+    peak_time_ratio: Optional[float] = None
+    trough_time_ratio: Optional[float] = None
     metadata: Dict[str, Any] = None
     
     def __post_init__(self):
@@ -96,7 +100,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                  swing_strategy=None,
                  divergence_strategy=None,
                  shape_strategy=None,
-                 volume_strategy=None):
+                 volume_strategy=None,
+                 volatility_strategy=None):
         """
         Инициализация анализатора.
         
@@ -107,6 +112,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             divergence_strategy: Стратегия расчета дивергенций (по умолчанию из config)
             shape_strategy: Стратегия расчета формы (по умолчанию из config)
             volume_strategy: Стратегия расчета объема (по умолчанию из config)
+            volatility_strategy: Стратегия расчета волатильности (по умолчанию из config)
         
         Note:
             Стратегии по умолчанию загружаются из ANALYSIS_CONFIG['zone_features'].
@@ -122,6 +128,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         self.divergence_strategy = divergence_strategy if divergence_strategy is not None else create_divergence_strategy()
         self.shape_strategy = shape_strategy if shape_strategy is not None else create_shape_strategy()
         self.volume_strategy = volume_strategy if volume_strategy is not None else create_volume_strategy()
+        self.volatility_strategy = volatility_strategy if volatility_strategy is not None else create_volatility_strategy()
         
         self.logger = get_logger(f"{__name__}.ZoneFeaturesAnalyzer")
         
@@ -129,7 +136,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             'swing': self.swing_strategy.__class__.__name__ if self.swing_strategy else 'None',
             'divergence': self.divergence_strategy.__class__.__name__ if self.divergence_strategy else 'None',
             'shape': self.shape_strategy.__class__.__name__ if self.shape_strategy else 'None',
-            'volume': self.volume_strategy.__class__.__name__ if self.volume_strategy else 'None'
+            'volume': self.volume_strategy.__class__.__name__ if self.volume_strategy else 'None',
+            'volatility': self.volatility_strategy.__class__.__name__ if self.volatility_strategy else 'None'
         }
         
         self.logger.info(
@@ -206,13 +214,26 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             # Специфичные для типа зоны метрики
             drawdown_from_peak = None
             rally_from_trough = None
+            peak_time_ratio = None
+            trough_time_ratio = None
             
             if zone_type == 'bull':
                 # Просадка от пика
                 drawdown_from_peak = (end_price / max_price) - 1
+                
+                # Метрика времени: где находится пик (0.0-1.0)
+                peak_idx = data['high'].idxmax()
+                peak_pos = data.index.get_loc(peak_idx)
+                peak_time_ratio = peak_pos / len(data)
+                
             elif zone_type == 'bear':
                 # Отскок от минимума
                 rally_from_trough = (end_price / min_price) - 1
+                
+                # Метрика времени: где находится впадина (0.0-1.0)
+                trough_idx = data['low'].idxmin()
+                trough_pos = data.index.get_loc(trough_idx)
+                trough_time_ratio = trough_pos / len(data)
             
             # Метаданные
             metadata = {
@@ -265,6 +286,49 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     self.logger.warning(f"Failed to calculate shape metrics: {e}")
                     metadata['shape_metrics'] = None
             
+            # Calculate divergence metrics using strategy (if available)
+            if self.divergence_strategy is not None:
+                try:
+                    divergence_metrics = self.divergence_strategy.calculate_divergence(data)
+                    metadata['divergence_metrics'] = divergence_metrics.to_dict()
+                    self.logger.debug(
+                        f"Divergence metrics calculated: type={divergence_metrics.divergence_type}, "
+                        f"count={divergence_metrics.divergence_count}, "
+                        f"direction={divergence_metrics.divergence_direction}"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate divergence metrics: {e}")
+                    metadata['divergence_metrics'] = None
+            
+            # Calculate volatility metrics using strategy (if available)
+            if self.volatility_strategy is not None:
+                try:
+                    volatility_metrics = self.volatility_strategy.calculate_volatility(data)
+                    metadata['volatility_metrics'] = volatility_metrics.to_dict()
+                    self.logger.debug(
+                        f"Volatility metrics calculated: score={volatility_metrics.volatility_score:.2f}, "
+                        f"regime={volatility_metrics.volatility_regime}, "
+                        f"bb_width={volatility_metrics.bollinger_width_pct:.2f}%"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate volatility metrics: {e}")
+                    metadata['volatility_metrics'] = None
+            
+            # Calculate volume metrics using strategy (if available)
+            if self.volume_strategy is not None and 'volume' in data.columns:
+                try:
+                    # Calculate baseline volume (average of previous bars, if available)
+                    # For now, we don't have access to pre-zone data, so baseline_volume=None
+                    # Strategy will handle this gracefully
+                    volume_metrics = self.volume_strategy.calculate_volume(data, baseline_volume=None)
+                    metadata['volume_metrics'] = volume_metrics.to_dict()
+                    self.logger.debug(
+                        f"Volume metrics calculated: avg={volume_metrics.avg_volume_zone}"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to calculate volume metrics: {e}")
+                    metadata['volume_metrics'] = None
+            
             return ZoneFeatures(
                 zone_id=zone_id,
                 zone_type=zone_type,
@@ -281,6 +345,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 num_troughs=num_troughs,
                 drawdown_from_peak=drawdown_from_peak,
                 rally_from_trough=rally_from_trough,
+                peak_time_ratio=peak_time_ratio,
+                trough_time_ratio=trough_time_ratio,
                 metadata=metadata
             )
             

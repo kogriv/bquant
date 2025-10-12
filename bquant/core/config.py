@@ -661,3 +661,33 @@ def create_volume_strategy(config: Optional[Dict[str, Any]] = None):
     from ..analysis.zones.strategies.registry import StrategyRegistry
     return StrategyRegistry.get_volume_strategy(strategy_type, **params)
 
+
+def create_volatility_strategy(config: Optional[Dict[str, Any]] = None):
+    """
+    Create volatility calculation strategy from config.
+    
+    Args:
+        config: Strategy configuration dict with 'type' and 'params' keys.
+                If None, uses config from ANALYSIS_CONFIG['zone_features']['volatility_strategy']
+    
+    Returns:
+        Volatility strategy instance or None if type is 'none'
+    
+    Raises:
+        ValueError: If strategy type is unknown
+    
+    Example:
+        strategy = create_volatility_strategy({'type': 'combined', 'params': {}})
+    """
+    if config is None:
+        config = get_analysis_params('zone_features').get('volatility_strategy', {})
+    
+    strategy_type = config.get('type', 'none')
+    params = config.get('params', {})
+    
+    if strategy_type == 'none':
+        return None
+    
+    from ..analysis.zones.strategies.registry import StrategyRegistry
+    return StrategyRegistry.get_volatility_strategy(strategy_type, **params)
+

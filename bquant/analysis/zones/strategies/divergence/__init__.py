@@ -1,6 +1,10 @@
 """
-Divergence calculation strategies for zone analysis.
+Divergence detection strategies.
+
+This module contains various strategies for detecting divergences between
+price and MACD indicator.
 """
 
-__all__ = []
+from .classic import ClassicDivergenceStrategy
 
+__all__ = ['ClassicDivergenceStrategy']

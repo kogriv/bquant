@@ -38,6 +38,14 @@
 > ✅ **Фаза 3.1 завершена** (2025-10-09): Реализованы 3 swing-стратегии (ZigZag, FindPeaks, PivotPoints) с расширенными метриками (23 поля вместо 6). Полная интеграция с ZoneFeaturesAnalyzer. 41 тест пройден. A/B тестирование показало, что ZigZag оптимален как default. Подробности см. в `devref/gaps/phase3.1_completion_report.md`.
 >
 > ✅ **Фаза 3.2 завершена** (2025-10-12): Реализована StatisticalShapeStrategy для анализа формы гистограммы MACD через skewness, kurtosis, smoothness. Интеграция с ZoneFeaturesAnalyzer. 19 тестов пройдено (15 unit + 4 интеграции). Готово для улучшенной кластеризации зон. Подробности см. в `devref/gaps/phase3.2_completion_report.md`.
+>
+> ✅ **Фаза 3.3 завершена** (2025-10-12): Добавлены метрики времени `peak_time_ratio` и `trough_time_ratio` в `ZoneFeatures` для определения позиции пика/впадины в зоне (ранний/поздний импульс). 5 unit-тестов пройдено. 335 total tests passing. Подробности см. в `devref/gaps/phase3.3_completion_report.md`.
+>
+> ✅ **Фаза 3.4 завершена** (2025-10-12): Реализована ClassicDivergenceStrategy для определения дивергенций между ценой и MACD. Интеграция с ZoneFeaturesAnalyzer. 19 unit-тестов пройдено (15 стратегия + 4 интеграция). 397 total tests passing. Детекция регулярных бычьих/медвежьих дивергенций, расчет силы. Подробности см. в `devref/gaps/phase3.4_completion_report.md`.
+>
+> ✅ **Фаза 3.5 завершена** (2025-10-12): Реализована CombinedVolatilityStrategy для оценки волатильности зон через Bollinger Bands и ATR. 10 метрик волатильности, композитный скор (0-10), классификация режимов (low/medium/high/extreme). 21 unit-тест пройден (16 стратегия + 5 интеграция). 418 total tests passing. Graceful degradation (работает без ATR). Подробности см. в `devref/gaps/phase3.5_completion_report.md`.
+>
+> ✅ **Фаза 3.6 завершена** (2025-10-12): Реализована StandardVolumeStrategy для анализа объемов торгов. 4 метрики объема (ratio, entry_change, correlation, avg_volume). 20 unit-тестов пройдено (15 стратегия + 5 интеграция). 438 total tests passing. Graceful handling (работает без baseline, без volume колонки). Подробности см. в `devref/gaps/phase3.6_completion_report.md`.
 
 ---
 
@@ -826,46 +834,128 @@ class ValidationSuite:
 
 **Вывод:** Фаза 3.2 успешно завершена. Реализована StatisticalShapeStrategy с метриками skewness, kurtosis, smoothness. Полная интеграция с ZoneFeaturesAnalyzer. 19 тестов пройдено. Готово для кластеризации зон по форме гистограммы. Подробности см. в `devref/gaps/phase3.2_completion_report.md`.
 
-**Фаза 3.3: Метрики времени**
+**Фаза 3.3: Метрики времени** ✅ **ЗАВЕРШЕНО**
 
 > **Описание:** См. раздел 3.3 "Инжиниринг признаков (Feature Engineering)", таблица Gap Analysis (строка "Метрики времени")
 
-1. [ ] Перенести `peak_time_ratio` и `trough_time_ratio` из `MACDZoneAnalyzer` в `ZoneFeaturesAnalyzer`
-2. [ ] Unit-тесты для метрик времени
+1. [x] Перенести `peak_time_ratio` и `trough_time_ratio` из `MACDZoneAnalyzer` в `ZoneFeaturesAnalyzer`
+   - Добавлены поля в `ZoneFeatures` dataclass (строки 46-47, 65-66)
+   - Реализован расчет в `extract_zone_features()` (строки 206-228)
+   - **peak_time_ratio:** позиция пика в бычьей зоне (0.0-1.0)
+   - **trough_time_ratio:** позиция впадины в медвежьей зоне (0.0-1.0)
+   
+2. [x] Unit-тесты для метрик времени
+   - 5 unit-тестов в `tests/unit/test_time_metrics.py`
+   - Проверка наличия полей ✅
+   - Проверка диапазона значений [0.0, 1.0] ✅
+   - Проверка интерпретации (early/mid/late) ✅
+   - **Итого: 5 тестов, все пройдены ✅**
 
-**Фаза 3.4: Divergence стратегии**
+**Реализация:**
+- Файлы:
+  - `bquant/analysis/zones/zone_features.py` (+2 поля в dataclass, +23 строки расчета)
+- Тесты:
+  - `tests/unit/test_time_metrics.py` (5 тестов)
+
+**Интерпретация:**
+- `peak_time_ratio < 0.33` → Ранний пик (потенциальное истощение импульса)
+- `peak_time_ratio > 0.67` → Поздний пик (устойчивый моментум)
+- Аналогично для `trough_time_ratio` в медвежьих зонах
+
+**Вывод:** Фаза 3.3 завершена. Добавлены метрики времени для определения позиции пика/впадины в зоне. 5 тестов пройдено. 335 total unit-тестов (334 + 5 новых). Подробности см. в `devref/gaps/phase3.3_completion_report.md`.
+
+**Фаза 3.4: Divergence стратегии** ✅ ЗАВЕРШЕНО (2025-10-12)
 
 > **Описание:** См. раздел 7.1.3 "Метрики дивергенций (Divergence Metrics)" и раздел 7.6.4
 
-1. [ ] Реализовать `ClassicDivergenceStrategy` в `strategies/divergence/classic.py`
-2. [ ] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.6.5)
-3. [ ] Unit-тесты для стратегии
+1. [x] Реализовать `ClassicDivergenceStrategy` в `strategies/divergence/classic.py`
+   - Алгоритм определения регулярных дивергенций (bullish/bearish)
+   - Автоматический поиск экстремумов через `find_peaks()`
+   - Расчет силы дивергенций
+   - Параметры: `min_peak_distance`, `min_divergence_strength`, `use_macd_line`
+2. [x] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.6.5)
+   - Добавлен вызов `divergence_strategy.calculate_divergence()`
+   - Результаты в `metadata['divergence_metrics']`
+3. [x] Unit-тесты для стратегии
+   - 19 тестов в `test_classic_divergence_strategy.py`
+   - 4 integration теста в `test_zone_features_divergence_integration.py`
+   - Все используют sample data (`tv_xauusd_1h`)
+   - Итого: +19 тестов, 397 passed
 4. [ ] Опционально: `RSIDivergenceStrategy` в `strategies/divergence/rsi.py`
 
-**Фаза 3.5: Volatility стратегии**
+**Реализация:**
+- Файлы: `strategies/divergence/classic.py` (397 строк), `zone_features.py` (+13 строк)
+- Тесты: `test_classic_divergence_strategy.py` (267 строк), `test_zone_features_divergence_integration.py` (121 строка)
+- Метрики: `divergence_type`, `divergence_count`, `divergence_strength`, `divergence_direction`
+- Методология: Классическое определение дивергенций (price vs MACD extrema comparison)
+
+**Вывод:** Фаза 3.4 завершена. Реализовано определение дивергенций между ценой и MACD. 19 новых тестов (100% pass rate). Подробности см. в `devref/gaps/phase3.4_completion_report.md`.
+
+**Фаза 3.5: Volatility стратегии** ✅ ЗАВЕРШЕНО (2025-10-12)
 
 > **Описание:** См. раздел 7.1.5 "Метрики волатильности (Volatility Metrics)"
 >
 > **Обоснование:** Bollinger/ATR не подходят для свингов, но идеальны для волатильности. См. `swing_detection_approaches.md`, раздел 1.
 
-1. [ ] Создать `VolatilityMetrics` dataclass в `strategies/base.py` (10 полей, см. 7.1.5)
-2. [ ] Создать `VolatilityCalculationStrategy` Protocol в `strategies/base.py`
-3. [ ] Реализовать `CombinedVolatilityStrategy` в `strategies/volatility/combined.py`
-4. [ ] Добавить методы регистрации в `StrategyRegistry`: `register_volatility_strategy()`, `get_volatility_strategy()`
-5. [ ] Создать фабрику `create_volatility_strategy()` в `bquant/core/config.py`
-6. [ ] Обновить `ZoneFeaturesAnalyzer.__init__()` для приема `volatility_strategy`
-7. [ ] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.1.5)
-8. [ ] Unit-тесты для стратегии
+1. [x] Создать `VolatilityMetrics` dataclass в `strategies/base.py` (10 полей, см. 7.1.5)
+   - Bollinger метрики: width_pct, width_std, squeeze_ratio, upper/lower touches
+   - ATR метрики: normalized_range, trend, avg_atr
+   - Композитные: volatility_score (0-10), volatility_regime (low/medium/high/extreme)
+2. [x] Создать `VolatilityCalculationStrategy` Protocol в `strategies/base.py`
+3. [x] Реализовать `CombinedVolatilityStrategy` в `strategies/volatility/combined.py`
+   - Bollinger Bands через `pandas_ta.bbands()`
+   - ATR из zone_data или оценка через True Range
+   - Композитный скор: BB (0-5) + ATR (0-3) + touches (0-2)
+   - Автоматическая классификация режима
+4. [x] Добавить методы регистрации в `StrategyRegistry`: `register_volatility_strategy()`, `get_volatility_strategy()`
+5. [x] Создать фабрику `create_volatility_strategy()` в `bquant/core/config.py`
+6. [x] Обновить `ZoneFeaturesAnalyzer.__init__()` для приема `volatility_strategy`
+7. [x] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.1.5)
+   - Вызов `volatility_strategy.calculate_volatility(data)`
+   - Результат в `metadata['volatility_metrics']`
+8. [x] Unit-тесты для стратегии
+   - 16 unit-тестов (255 строк)
+   - 5 integration тестов (175 строк)
+   - Используют sample data
+   - Итого: +21 тест, 418 passed
 9. [ ] Опционально: отдельные `BollingerVolatilityStrategy` и `ATRVolatilityStrategy`
 
-**Фаза 3.6: Volume стратегии (опционально)**
+**Реализация:**
+- Файлы: `strategies/volatility/combined.py` (301 строка), `strategies/base.py` (+108 строк), `zone_features.py` (+16 строк)
+- Тесты: `test_combined_volatility_strategy.py` (255 строк), `test_zone_features_volatility_integration.py` (175 строк)
+- Метрики: 10 полей (5 Bollinger + 3 ATR + 2 composite)
+- Особенность: Graceful degradation (работает без ATR через True Range оценку)
+
+**Вывод:** Фаза 3.5 завершена. Реализована оценка волатильности зон через Bollinger Bands и ATR. 21 новый тест (100% pass rate). 418 total tests passing. Подробности см. в `devref/gaps/phase3.5_completion_report.md`.
+
+**Фаза 3.6: Volume стратегии** ✅ ЗАВЕРШЕНО (2025-10-12)
 
 > **Описание:** См. раздел 7.1.4 "Метрики объема (Volume Metrics)" и раздел 7.6.4
 
-1. [ ] Реализовать `StandardVolumeStrategy` в `strategies/volume/standard.py`
-2. [ ] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.6.5)
-3. [ ] Unit-тесты для стратегии
+1. [x] Реализовать `StandardVolumeStrategy` в `strategies/volume/standard.py`
+   - Расчет среднего объема в зоне
+   - Volume zone ratio (zone / baseline)
+   - Volume change at entry
+   - Volume-MACD correlation
+   - Graceful handling без baseline
+2. [x] Интегрировать в `ZoneFeaturesAnalyzer.extract_zone_features()` (см. 7.6.5)
+   - Вызов `volume_strategy.calculate_volume(data, baseline_volume=None)`
+   - Результат в `metadata['volume_metrics']`
+   - Условие: только если 'volume' колонка присутствует
+3. [x] Unit-тесты для стратегии
+   - 15 unit-тестов (232 строки)
+   - 5 integration тестов (149 строк)
+   - Используют sample data
+   - Итого: +20 тестов, 438 passed
 4. [ ] Опционально: `VWAPVolumeStrategy` в `strategies/volume/vwap.py`
+
+**Реализация:**
+- Файлы: `strategies/volume/standard.py` (152 строки), `zone_features.py` (+14 строк)
+- Тесты: `test_standard_volume_strategy.py` (232 строки), `test_zone_features_volume_integration.py` (149 строк)
+- Метрики: 4 поля (ratio, entry_change, correlation, avg_volume)
+- Особенность: Graceful degradation (работает без baseline, без volume колонки)
+
+**Вывод:** Фаза 3.6 завершена. Реализован анализ объемов торгов для подтверждения силы движения. 20 новых тестов (100% pass rate). 438 total tests passing. Подробности см. в `devref/gaps/phase3.6_completion_report.md`.
 
 **Фаза 3.7: Гипотезные тесты**
 

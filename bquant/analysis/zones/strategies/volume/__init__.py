@@ -1,6 +1,10 @@
 """
-Volume calculation strategies for zone analysis.
+Volume analysis strategies.
+
+This module contains strategies for analyzing trading volume in zones
+to confirm trend strength and detect anomalies.
 """
 
-__all__ = []
+from .standard import StandardVolumeStrategy
 
+__all__ = ['StandardVolumeStrategy']

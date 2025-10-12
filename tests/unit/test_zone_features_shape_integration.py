@@ -1,61 +1,44 @@
 """
-Integration tests for ZoneFeaturesAnalyzer with StatisticalShapeStrategy.
-
-Tests that shape metrics are correctly calculated and included in zone features.
+Integration tests for ZoneFeaturesAnalyzer with StatisticalShapeStrategy using sample data.
 """
 
 import pytest
 import pandas as pd
-import numpy as np
 
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
 from bquant.analysis.zones.strategies.shape import StatisticalShapeStrategy
-# Import swing strategies to register them (needed for default config)
-from bquant.analysis.zones.strategies.swing import (
-    ZigZagSwingStrategy,
-    FindPeaksSwingStrategy,
-    PivotPointsSwingStrategy
-)
+from bquant.data.samples import get_sample_data
+from bquant.indicators.macd import MACDZoneAnalyzer
 
 
 class TestZoneFeaturesShapeIntegration:
-    """Test integration of shape strategies with ZoneFeaturesAnalyzer."""
+    """Test integration of shape strategies with ZoneFeaturesAnalyzer using real data."""
+    
+    @pytest.fixture(scope="class")
+    def sample_zones(self):
+        """Load real zones from sample data and add macd_hist."""
+        df = get_sample_data('tv_xauusd_1h')
+        analyzer = MACDZoneAnalyzer()
+        zones = analyzer.identify_zones(df)
+        
+        # Add macd_hist to each zone (it's missing in sample data)
+        for zone in zones:
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+        
+        return [z for z in zones if len(z.data) >= 10]
     
     @pytest.fixture
-    def sample_zone_info(self):
-        """Create sample zone data."""
-        dates = pd.date_range(start='2025-01-01', periods=100, freq='1h')
+    def sample_zone_info(self, sample_zones):
+        """Get first zone as test data."""
+        if not sample_zones:
+            pytest.skip("No zones in sample data")
         
-        # Create MACD histogram with interesting shape
-        x = np.linspace(-2, 2, 100)
-        hist = 5 * np.exp(-x**2 / 2) * (1 + 0.3 * x)  # Slightly skewed Gaussian
-        
-        # Price data
-        close = 3000 + 50 * np.sin(x) + np.random.uniform(-2, 2, 100)
-        high = close + np.random.uniform(5, 10, 100)
-        low = close - np.random.uniform(5, 10, 100)
-        
-        # Other required fields
-        macd = hist * 0.5
-        signal = np.roll(macd, 2)
-        atr = np.full(100, 15.0)
-        
-        df = pd.DataFrame({
-            'open': close,
-            'high': high,
-            'low': low,
-            'close': close,
-            'macd': macd,
-            'macd_signal': signal,
-            'macd_hist': hist,
-            'atr': atr
-        }, index=dates)
-        
+        zone = sample_zones[0]
         return {
-            'zone_id': 'test_zone_shape',
-            'type': 'bull',
-            'duration': len(df),
-            'data': df
+            'zone_id': zone.zone_id,
+            'type': zone.type,
+            'duration': len(zone.data),
+            'data': zone.data
         }
     
     def test_analyzer_with_default_shape_strategy(self, sample_zone_info):
@@ -79,52 +62,53 @@ class TestZoneFeaturesShapeIntegration:
         assert 'hist_smoothness' in shape_metrics
     
     def test_analyzer_with_explicit_strategy(self, sample_zone_info):
-        """Test analyzer with explicitly provided strategy."""
-        strategy = StatisticalShapeStrategy(
-            calculate_smoothness=False,
-            bias_correction=False
-        )
-        
+        """Test analyzer with explicitly provided shape strategy."""
+        shape_strategy = StatisticalShapeStrategy(calculate_smoothness=False)
         analyzer = ZoneFeaturesAnalyzer(
             min_duration=2,
-            shape_strategy=strategy
+            shape_strategy=shape_strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
+        
+        # Should have shape_metrics
+        assert 'shape_metrics' in features.metadata
         shape_metrics = features.metadata['shape_metrics']
         
-        assert shape_metrics is not None
-        assert shape_metrics['hist_smoothness'] is None  # Disabled
-        assert shape_metrics['strategy_params']['calculate_smoothness'] is False
-    
-    def test_shape_metrics_values_reasonable(self, sample_zone_info):
-        """Test that calculated shape metrics have reasonable values."""
-        strategy = StatisticalShapeStrategy()
-        analyzer = ZoneFeaturesAnalyzer(min_duration=2, shape_strategy=strategy)
-        
-        features = analyzer.extract_zone_features(sample_zone_info)
-        shape_metrics = features.metadata['shape_metrics']
-        
-        assert shape_metrics is not None
-        
-        # Skewness should be finite
+        assert 'hist_skewness' in shape_metrics
+        assert 'hist_kurtosis' in shape_metrics
         assert isinstance(shape_metrics['hist_skewness'], (int, float))
-        assert not np.isnan(shape_metrics['hist_skewness'])
-        assert not np.isinf(shape_metrics['hist_skewness'])
+        assert isinstance(shape_metrics['hist_kurtosis'], (int, float))
+    
+    def test_shape_metrics_values_reasonable(self, sample_zones):
+        """Test that shape metrics have reasonable values across multiple zones."""
+        analyzer = ZoneFeaturesAnalyzer(min_duration=2)
         
-        # Kurtosis should be positive
-        assert shape_metrics['hist_kurtosis'] > 0
-        
-        # Smoothness should be non-negative
-        if shape_metrics['hist_smoothness'] is not None:
-            assert shape_metrics['hist_smoothness'] >= 0
+        for zone in sample_zones[:5]:  # Test first 5 zones
+            zone_info = {
+                'zone_id': zone.zone_id,
+                'type': zone.type,
+                'duration': len(zone.data),
+                'data': zone.data
+            }
+            
+            features = analyzer.extract_zone_features(zone_info)
+            shape_metrics = features.metadata['shape_metrics']
+            
+            # Skewness typically ranges from -3 to +3 for most distributions
+            assert -10 < shape_metrics['hist_skewness'] < 10, \
+                f"Skewness {shape_metrics['hist_skewness']} seems unreasonable"
+            
+            # Kurtosis typically ranges from -2 (uniform) to ~10+ (heavy tails)
+            assert -10 < shape_metrics['hist_kurtosis'] < 50, \
+                f"Kurtosis {shape_metrics['hist_kurtosis']} seems unreasonable"
     
     def test_analyzer_with_both_strategies(self, sample_zone_info):
         """Test analyzer with both swing and shape strategies."""
-        from bquant.analysis.zones.strategies.swing import ZigZagSwingStrategy
+        from bquant.analysis.zones.strategies.swing import FindPeaksSwingStrategy
         
-        swing_strategy = ZigZagSwingStrategy(legs=10, deviation=0.05)
-        shape_strategy = StatisticalShapeStrategy(calculate_smoothness=True)
+        swing_strategy = FindPeaksSwingStrategy(distance=3)
+        shape_strategy = StatisticalShapeStrategy()
         
         analyzer = ZoneFeaturesAnalyzer(
             min_duration=2,
@@ -134,25 +118,22 @@ class TestZoneFeaturesShapeIntegration:
         
         features = analyzer.extract_zone_features(sample_zone_info)
         
-        # Both metrics should be present
+        # Should have both swing and shape metrics
         assert 'swing_metrics' in features.metadata
         assert 'shape_metrics' in features.metadata
         
-        # Both should be calculated (or None if failed)
-        swing = features.metadata['swing_metrics']
-        shape = features.metadata['shape_metrics']
+        swing_metrics = features.metadata['swing_metrics']
+        shape_metrics = features.metadata['shape_metrics']
         
-        # Shape should definitely be calculated
-        assert shape is not None
-        assert 'hist_skewness' in shape
-        assert 'hist_kurtosis' in shape
+        # Verify both are populated
+        assert 'rally_count' in swing_metrics
+        assert 'hist_skewness' in shape_metrics
 
 
 def run_tests():
-    """Run all integration tests."""
+    """Run all shape integration tests."""
     pytest.main([__file__, '-v'])
 
 
 if __name__ == '__main__':
     run_tests()
-

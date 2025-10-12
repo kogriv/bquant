@@ -390,16 +390,111 @@ class VolumeCalculationStrategy(Protocol):
         ...
 
 
+@dataclass
+class VolatilityMetrics:
+    """
+    Standardized result of volatility calculation.
+    
+    Volatility metrics assess the "activity" and uncertainty of price movement
+    within a zone using Bollinger Bands and ATR indicators.
+    
+    Attributes:
+        bollinger_width_pct: Average Bollinger Bands width as % of price
+        bollinger_width_std: Standard deviation of BB width (stability)
+        bollinger_squeeze_ratio: Current width / historical average width
+        bollinger_upper_touches: Count of price touches to upper band
+        bollinger_lower_touches: Count of price touches to lower band
+        atr_normalized_range: Price range / average ATR
+        atr_trend: ATR trend direction ('increasing', 'decreasing', 'stable')
+        avg_atr: Average ATR in zone
+        volatility_score: Composite volatility score (0-10)
+        volatility_regime: Volatility regime classification
+        strategy_name: Name of the strategy used
+        strategy_params: Parameters of the strategy
+    """
+    bollinger_width_pct: float
+    bollinger_width_std: float
+    bollinger_squeeze_ratio: float
+    bollinger_upper_touches: int
+    bollinger_lower_touches: int
+    atr_normalized_range: float
+    atr_trend: str
+    avg_atr: float
+    volatility_score: float
+    volatility_regime: str
+    strategy_name: str
+    strategy_params: Dict[str, Any] = field(default_factory=dict)
+    
+    def validate(self):
+        """Validate metric correctness."""
+        assert self.bollinger_width_pct >= 0, "bollinger_width_pct must be >= 0"
+        assert self.bollinger_width_std >= 0, "bollinger_width_std must be >= 0"
+        assert self.bollinger_squeeze_ratio >= 0, "bollinger_squeeze_ratio must be >= 0"
+        assert self.bollinger_upper_touches >= 0, "bollinger_upper_touches must be >= 0"
+        assert self.bollinger_lower_touches >= 0, "bollinger_lower_touches must be >= 0"
+        assert self.atr_normalized_range >= 0, "atr_normalized_range must be >= 0"
+        assert self.atr_trend in ['increasing', 'decreasing', 'stable'], \
+            f"atr_trend must be in ['increasing', 'decreasing', 'stable'], got {self.atr_trend}"
+        assert self.avg_atr >= 0, "avg_atr must be >= 0"
+        assert 0 <= self.volatility_score <= 10, "volatility_score must be in [0, 10]"
+        assert self.volatility_regime in ['low', 'medium', 'high', 'extreme'], \
+            f"volatility_regime must be in ['low', 'medium', 'high', 'extreme'], got {self.volatility_regime}"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            'bollinger_width_pct': self.bollinger_width_pct,
+            'bollinger_width_std': self.bollinger_width_std,
+            'bollinger_squeeze_ratio': self.bollinger_squeeze_ratio,
+            'bollinger_upper_touches': self.bollinger_upper_touches,
+            'bollinger_lower_touches': self.bollinger_lower_touches,
+            'atr_normalized_range': self.atr_normalized_range,
+            'atr_trend': self.atr_trend,
+            'avg_atr': self.avg_atr,
+            'volatility_score': self.volatility_score,
+            'volatility_regime': self.volatility_regime,
+            'strategy_name': self.strategy_name,
+            'strategy_params': self.strategy_params
+        }
+
+
+@runtime_checkable
+class VolatilityCalculationStrategy(Protocol):
+    """
+    Protocol for volatility analysis algorithms.
+    
+    Implementations must provide calculate_volatility() and get_metadata() methods.
+    """
+    
+    def calculate_volatility(self, zone_data: pd.DataFrame) -> VolatilityMetrics:
+        """
+        Calculate volatility metrics.
+        
+        Args:
+            zone_data: DataFrame with columns: high, low, close, atr
+        
+        Returns:
+            VolatilityMetrics with validated data
+        """
+        ...
+    
+    def get_metadata(self) -> Dict[str, Any]:
+        """Strategy metadata for logging and traceability."""
+        ...
+
+
 __all__ = [
     # Metrics dataclasses
     'SwingMetrics',
     'DivergenceMetrics',
     'ShapeMetrics',
     'VolumeMetrics',
+    'VolatilityMetrics',
     # Strategy protocols
     'SwingCalculationStrategy',
     'DivergenceCalculationStrategy',
     'ShapeCalculationStrategy',
-    'VolumeCalculationStrategy'
+    'VolumeCalculationStrategy',
+    'VolatilityCalculationStrategy'
 ]
 

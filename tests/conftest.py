@@ -160,6 +160,20 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requires_sample_data: marks tests that require sample data"
     )
+    
+    # Register all strategies at test startup
+    try:
+        from bquant.analysis.zones.strategies.swing import (
+            ZigZagSwingStrategy,
+            FindPeaksSwingStrategy,
+            PivotPointsSwingStrategy
+        )
+        from bquant.analysis.zones.strategies.shape import StatisticalShapeStrategy
+        from bquant.analysis.zones.strategies.divergence import ClassicDivergenceStrategy
+        from bquant.analysis.zones.strategies.volatility import CombinedVolatilityStrategy
+        from bquant.analysis.zones.strategies.volume import StandardVolumeStrategy
+    except ImportError:
+        pass  # Strategies may not be available in all test contexts
 
 
 # Фикстуры для работы с BQuant sample data

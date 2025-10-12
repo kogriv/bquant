@@ -21,6 +21,7 @@ class StrategyRegistry:
     _divergence_strategies: Dict[str, Type] = {}
     _shape_strategies: Dict[str, Type] = {}
     _volume_strategies: Dict[str, Type] = {}
+    _volatility_strategies: Dict[str, Type] = {}
     
     # Swing strategies
     
@@ -200,6 +201,49 @@ class StrategyRegistry:
         """List available volume strategies."""
         return list(cls._volume_strategies.keys())
     
+    # Volatility strategies
+    
+    @classmethod
+    def register_volatility_strategy(cls, name: str):
+        """
+        Decorator for registering volatility calculation strategy.
+        
+        Args:
+            name: Strategy name for registration
+        """
+        def decorator(strategy_class):
+            cls._volatility_strategies[name] = strategy_class
+            logger.debug(f"Registered volatility strategy: {name}")
+            return strategy_class
+        return decorator
+    
+    @classmethod
+    def get_volatility_strategy(cls, name: str, **params):
+        """
+        Create volatility strategy by name.
+        
+        Args:
+            name: Strategy name
+            **params: Strategy parameters
+        
+        Returns:
+            Strategy instance
+        
+        Raises:
+            ValueError: If strategy name is unknown
+        """
+        if name not in cls._volatility_strategies:
+            raise ValueError(
+                f"Unknown volatility strategy: {name}. "
+                f"Available: {list(cls._volatility_strategies.keys())}"
+            )
+        return cls._volatility_strategies[name](**params)
+    
+    @classmethod
+    def list_volatility_strategies(cls) -> List[str]:
+        """List available volatility strategies."""
+        return list(cls._volatility_strategies.keys())
+    
     # Utility methods
     
     @classmethod
@@ -214,7 +258,8 @@ class StrategyRegistry:
             'swing': cls.list_swing_strategies(),
             'divergence': cls.list_divergence_strategies(),
             'shape': cls.list_shape_strategies(),
-            'volume': cls.list_volume_strategies()
+            'volume': cls.list_volume_strategies(),
+            'volatility': cls.list_volatility_strategies()
         }
     
     @classmethod
@@ -230,8 +275,10 @@ class StrategyRegistry:
             'divergence': len(cls._divergence_strategies),
             'shape': len(cls._shape_strategies),
             'volume': len(cls._volume_strategies),
+            'volatility': len(cls._volatility_strategies),
             'total': (len(cls._swing_strategies) + len(cls._divergence_strategies) + 
-                     len(cls._shape_strategies) + len(cls._volume_strategies))
+                     len(cls._shape_strategies) + len(cls._volume_strategies) + 
+                     len(cls._volatility_strategies))
         }
 
 

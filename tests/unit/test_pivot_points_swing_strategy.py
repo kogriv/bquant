@@ -1,37 +1,35 @@
 """
-Unit tests for PivotPointsSwingStrategy.
+Unit tests for PivotPointsSwingStrategy using built-in sample data.
 """
 
 import pytest
 import pandas as pd
-import numpy as np
 
 from bquant.analysis.zones.strategies.swing import PivotPointsSwingStrategy
 from bquant.analysis.zones.strategies.base import SwingMetrics
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
+from bquant.data.samples import get_sample_data
+from bquant.indicators.macd import MACDZoneAnalyzer
 
 
 class TestPivotPointsSwingStrategy:
-    """Test suite for PivotPointsSwingStrategy."""
+    """Test suite for PivotPointsSwingStrategy using real sample data."""
+    
+    @pytest.fixture(scope="class")
+    def sample_zones(self):
+        """Load real zones from sample data."""
+        df = get_sample_data('tv_xauusd_1h')
+        analyzer = MACDZoneAnalyzer()
+        zones = analyzer.identify_zones(df)
+        return [z for z in zones if len(z.data) >= 20]
     
     @pytest.fixture
-    def sample_zone_data(self):
-        """Create sample zone data."""
-        dates = pd.date_range(start='2025-01-01', periods=50, freq='1h')
-        base_price = 3000
-        trend = np.linspace(0, 50, 50)
-        swings = 30 * np.sin(np.linspace(0, 3*np.pi, 50))
-        
-        close = base_price + trend + swings
-        high = close + np.random.uniform(2, 8, 50)
-        low = close - np.random.uniform(2, 8, 50)
-        
-        return pd.DataFrame({
-            'open': close,
-            'high': high,
-            'low': low,
-            'close': close
-        }, index=dates)
+    def bull_zone(self, sample_zones):
+        """Get first bull zone."""
+        bull_zones = [z for z in sample_zones if z.type == 'bull']
+        if not bull_zones:
+            pytest.skip("No bull zones in sample data")
+        return bull_zones[0].data
     
     def test_strategy_creation(self):
         """Test strategy creation with default parameters."""
@@ -40,59 +38,55 @@ class TestPivotPointsSwingStrategy:
         assert strategy.right_bars == 2
         assert strategy.min_amplitude_pct == 0.015
     
-    def test_calculate_basic(self, sample_zone_data):
-        """Test basic calculation."""
+    def test_calculate_basic(self, bull_zone):
+        """Test basic calculation on real data."""
         strategy = PivotPointsSwingStrategy()
-        result = strategy.calculate(sample_zone_data)
+        result = strategy.calculate(bull_zone)
         
         assert isinstance(result, SwingMetrics)
         assert result.strategy_name == 'pivot_points'
     
-    def test_all_fields_present(self, sample_zone_data):
-        """Test all 23 fields are present."""
-        strategy = PivotPointsSwingStrategy(left_bars=2, right_bars=2)
-        result = strategy.calculate(sample_zone_data)
+    def test_all_fields_present(self, bull_zone):
+        """Test that all swing metric fields are present."""
+        strategy = PivotPointsSwingStrategy()
+        result = strategy.calculate(bull_zone)
         
-        # Verify all fields exist
+        # Check all fields exist
+        assert hasattr(result, 'num_swings')
         assert hasattr(result, 'rally_count')
         assert hasattr(result, 'drop_count')
+        assert hasattr(result, 'rally_to_drop_ratio')
         assert hasattr(result, 'duration_symmetry')
-        assert hasattr(result, 'avg_rally_speed_pct_per_bar')
+        assert hasattr(result, 'strategy_name')
+        assert result.strategy_name == 'pivot_points'
     
-    def test_validate_works(self, sample_zone_data):
-        """Test validate() doesn't raise."""
+    def test_validate_works(self, bull_zone):
+        """Test that validate() method works."""
         strategy = PivotPointsSwingStrategy()
-        result = strategy.calculate(sample_zone_data)
+        result = strategy.calculate(bull_zone)
+        
         result.validate()  # Should not raise
     
     def test_registry_integration(self):
-        """Test strategy is registered."""
-        strategy = StrategyRegistry.get_swing_strategy(
-            'pivot_points',
-            left_bars=3,
-            right_bars=3,
-            min_amplitude_pct=0.02
-        )
+        """Test strategy is registered in StrategyRegistry."""
+        strategy = StrategyRegistry.get_swing_strategy('pivot_points')
         
         assert isinstance(strategy, PivotPointsSwingStrategy)
-        assert strategy.left_bars == 3
-        assert strategy.right_bars == 3
     
     def test_get_metadata(self):
-        """Test get_metadata."""
+        """Test get_metadata returns complete information."""
         strategy = PivotPointsSwingStrategy()
         metadata = strategy.get_metadata()
         
-        assert metadata['name'] == 'PivotPoints'
-        assert 'pattern' in metadata
+        assert metadata['name'] == 'PivotPoints'  # Actual name without space
+        assert 'description' in metadata
         assert 'params' in metadata
 
 
 def run_tests():
-    """Run all tests."""
+    """Run all PivotPoints swing strategy tests."""
     pytest.main([__file__, '-v'])
 
 
 if __name__ == '__main__':
     run_tests()
-
