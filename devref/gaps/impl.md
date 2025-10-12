@@ -37,7 +37,7 @@
 >
 > ✅ **Фаза 3.1 завершена** (2025-10-09): Реализованы 3 swing-стратегии (ZigZag, FindPeaks, PivotPoints) с расширенными метриками (23 поля вместо 6). Полная интеграция с ZoneFeaturesAnalyzer. 41 тест пройден. A/B тестирование показало, что ZigZag оптимален как default. Подробности см. в `devref/gaps/phase3.1_completion_report.md`.
 >
-> ✅ **Фаза 3.2 завершена** (2025-10-09): Реализована StatisticalShapeStrategy для анализа формы гистограммы MACD через skewness, kurtosis, smoothness. Интеграция с ZoneFeaturesAnalyzer. 19 тестов пройдено (15 unit + 4 интеграции). Готово для улучшенной кластеризации зон. Подробности см. в `devref/gaps/phase3.2_completion_report.md`.
+> ✅ **Фаза 3.2 завершена** (2025-10-12): Реализована StatisticalShapeStrategy для анализа формы гистограммы MACD через skewness, kurtosis, smoothness. Интеграция с ZoneFeaturesAnalyzer. 19 тестов пройдено (15 unit + 4 интеграции). Готово для улучшенной кластеризации зон. Подробности см. в `devref/gaps/phase3.2_completion_report.md`.
 
 ---
 
