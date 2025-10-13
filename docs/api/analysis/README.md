@@ -4,19 +4,65 @@
 
 Analysis модули содержат инструменты для статистического анализа, анализа зон и других аналитических методов для исследования финансовых данных.
 
+## 🎉 New in Phase 3-4
+
+### Major Extensions
+- ✨ **Strategy Pattern** for extensible metrics (8 strategies implemented)
+- ✨ **67 total metrics** (was: 12 base metrics)
+- ✨ **Regression analysis** for predictive modeling
+- ✨ **Validation suite** for model robustness testing
+- ✨ **Extended hypothesis tests** (H4, ADF, H5)
+
+### API Stability Categories
+- 🟢 **Stable APIs** - Strategy Pattern, Regression, Validation (documented fully)
+- 🟡 **Evolving APIs** - Some zone features may be renamed during universalization
+
 ## 🗂️ Модули
 
 ### 🔬 [bquant.analysis.statistical](statistical.md) - Статистический анализ
+
+**Базовый анализ:**
+- **StatisticalAnalyzer** - Статистический анализатор
 - **run_all_hypothesis_tests()** - Запуск всех статистических тестов
 - **test_single_hypothesis()** - Тестирование отдельной гипотезы
 - **HypothesisTestResult** - Результат тестирования гипотезы
-- **StatisticalAnalyzer** - Статистический анализатор
+
+**New in Phase 3.7-3.8 (🟢 Stable):**
+- **HypothesisTestSuite** - Extended with H4, ADF, H5 tests
+- **ZoneRegressionAnalyzer** - OLS regression for duration and return prediction
+- **RegressionResult** - Regression model results with diagnostics
+- **ValidationSuite** - 4 validation methods (out-of-sample, walk-forward, sensitivity, monte-carlo)
+- **ValidationResult** - Validation test results
 
 ### 📊 [bquant.analysis.zones](zones.md) - Анализ зон
-- **ZoneFeaturesAnalyzer** - Анализ характеристик зон
+
+> **Note:** 🟡 Some APIs may evolve during universalization (field names)
+
+**Analyzers:**
+- **ZoneFeaturesAnalyzer** - Анализ характеристик зон (with Strategy Pattern support)
 - **ZoneSequenceAnalyzer** - Анализ последовательностей зон
-- **ZoneFeatures** - Характеристики зоны
+- **ZoneFeatures** - Характеристики зоны (18 base fields + metadata)
 - **TransitionAnalysis** - Анализ переходов
+
+**New in Phase 3 (🟢 Strategies are stable):**
+- See [strategies.md](strategies.md) for full Strategy Pattern documentation
+
+### 🎨 [bquant.analysis.zones.strategies](strategies.md) - Strategy Pattern (New)
+
+> **API Stability:** 🟢 STABLE - won't change
+
+**8 implemented strategies:**
+- **Swing strategies** (3): ZigZag, FindPeaks, PivotPoints → 23 metrics
+- **Shape strategies** (1): StatisticalShape → 3 metrics
+- **Divergence strategies** (1): ClassicDivergence → 4 metrics
+- **Volatility strategies** (1): CombinedVolatility → 10 metrics
+- **Volume strategies** (1): StandardVolume → 4 metrics
+
+**Infrastructure:**
+- **StrategyRegistry** - Centralized strategy registration
+- **Protocols** - Type-safe strategy contracts
+- **Dataclasses** - Structured metric results
+- **Factory functions** - Strategy creation from config
 
 ### 🏗️ [bquant.analysis (base)](base.md) - Базовые классы анализа
 - **BaseAnalyzer** - Базовый класс анализатора

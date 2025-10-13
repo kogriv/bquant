@@ -957,29 +957,108 @@ class ValidationSuite:
 
 **Вывод:** Фаза 3.6 завершена. Реализован анализ объемов торгов для подтверждения силы движения. 20 новых тестов (100% pass rate). 438 total tests passing. Подробности см. в `devref/gaps/phase3.6_completion_report.md`.
 
-**Фаза 3.7: Гипотезные тесты**
+**Фаза 3.7: Гипотезные тесты** ✅ ЗАВЕРШЕНО (2025-10-13)
 
 > **Описание:** См. раздел 7.2 "Новые гипотезные тесты в HypothesisTestSuite"
 
-1. [ ] H2: Реализовать тест наклона гистограммы (см. 7.2.1) - предварительно добавить `hist_slope` в признаки
-2. [ ] H4: Реализовать тест корреляции vs просадки (см. 7.2.2)
-3. [ ] ADF: Реализовать тест на стационарность (см. 7.2.4)
-4. [ ] Опционально: H5 - тест уровней поддержки/сопротивления (см. 7.2.3)
+1. [x] H2: Реализовать тест наклона гистограммы (см. 7.2.1) - предварительно добавить `hist_slope` в признаки
+2. [x] H4: Реализовать тест корреляции vs просадки (см. 7.2.2)
+3. [x] ADF: Реализовать тест на стационарность (см. 7.2.4)
+4. [x] Опционально: H5 - тест уровней поддержки/сопротивления (см. 7.2.3)
 
-**Фаза 3.8: Моделирование и валидация (опционально)**
+**Реализация:**
+- Добавлено поле `hist_slope` в `ZoneFeatures` dataclass и его расчет в `extract_zone_features()`
+- Реализовано 3 новых метода в `HypothesisTestSuite`:
+  * `test_correlation_drawdown_hypothesis()` - H4 тест (127 строк)
+  * `test_zone_duration_stationarity()` - ADF тест (92 строки)
+  * `test_support_resistance_hypothesis()` - H5 тест (138 строк) + вспомогательные функции (61 строка)
+- Обновлен метод `run_all_tests()` для включения новых тестов (теперь 7 тестов вместо 5)
+- Обновлен `run_single_hypothesis_test()` для поддержки 'correlation_drawdown', 'stationarity' и 'support_resistance'
+- Unit-тесты: 6 новых тестов + обновлено 2 существующих
+- Всего: 26 unit tests passing (100%)
+
+**Файлы:**
+- Modified: `bquant/analysis/zones/zone_features.py` (+7 строк)
+- Modified: `bquant/analysis/statistical/hypothesis_testing.py` (+423 строки, включая H5)
+- Modified: `tests/unit/test_statistical_hypothesis.py` (+154 строки, включая H5)
+
+**Метрики:**
+- 1 новое поле в `ZoneFeatures`: `hist_slope` (максимальное изменение гистограммы за период)
+- 3 новых гипотезных теста (H4, ADF, H5)
+- 8 total hypothesis tests (7 автоматических + 1 опциональный с параметрами)
+
+**Вывод:** Фаза 3.7 полностью завершена, включая опциональный H5 тест. Добавлены тесты для анализа корреляции-просадки, стационарности и влияния уровней поддержки/сопротивления. 26 тестов проходят (100% pass rate). 444 total tests passing (было 438). Подробности см. в `devref/gaps/phase3.7_completion_report.md`.
+
+**Фаза 3.8: Моделирование и валидация (опционально)** ✅ ЗАВЕРШЕНО (2025-10-13)
 
 > **Описание:** См. раздел 7.3 "Новые анализаторы"
 
-1. [ ] Создать `ZoneRegressionAnalyzer` в `bquant/analysis/statistical/regression.py` (см. 7.3.1)
-2. [ ] Создать `ValidationSuite` в `bquant/analysis/validation/suite.py` (см. 7.3.2)
+1. [x] Создать `ZoneRegressionAnalyzer` в `bquant/analysis/statistical/regression.py` (см. 7.3.1)
+2. [x] Создать `ValidationSuite` в `bquant/analysis/validation/suite.py` (см. 7.3.2)
 
-**Фаза 4: Очистка**
+**Реализация:**
+
+**1. ZoneRegressionAnalyzer** (372 строки)
+- `RegressionResult` dataclass - результат регрессионного анализа
+- `predict_zone_duration()` - предсказание длительности зон (OLS регрессия)
+- `predict_price_return()` - предсказание доходности (OLS регрессия)
+- Поддержка кастомных предикторов
+- Автоматический расчет VIF (multicollinearity check)
+- Диагностика модели (AIC, BIC, F-statistic, Durbin-Watson)
+- Фильтрация значимых предикторов
+
+**2. ValidationSuite** (392 строки)
+- `ValidationResult` dataclass - результат валидации
+- `out_of_sample_test()` - Train/Test split валидация
+- `walk_forward_test()` - Rolling window валидация (реальная торговля)
+- `sensitivity_analysis()` - Анализ чувствительности к параметрам
+- `monte_carlo_test()` - Тест на случайных данных (3 метода генерации)
+- Автоматический расчет degradation, stability scores
+- Поддержка различных форматов результатов анализа
+
+**Файлы:**
+- Created: `bquant/analysis/statistical/regression.py` (372 строки)
+- Created: `bquant/analysis/validation/__init__.py` (19 строк)
+- Created: `bquant/analysis/validation/suite.py` (392 строки)
+- Created: `tests/unit/test_zone_regression_analyzer.py` (279 строк)
+- Created: `tests/unit/test_validation_suite.py` (367 строк)
+- Modified: `bquant/analysis/statistical/__init__.py` (+19 строк для экспорта)
+
+**Unit-тесты:**
+- Regression: 21 тестов (3 test classes)
+- Validation: 26 тестов (4 test classes)
+- Всего: 47 новых тестов (100% pass rate)
+
+**Метрики:**
+- 2 новых анализатора (ZoneRegressionAnalyzer, ValidationSuite)
+- 2 новых dataclass-а (RegressionResult, ValidationResult)
+- 6 публичных методов валидации
+- R² models для duration и price_return
+
+**Вывод:** Фаза 3.8 завершена. Реализованы инструменты для регрессионного моделирования зон и комплексной валидации стратегий. 47 новых тестов проходят (100% pass rate). 491 total tests passing (было 444). Подробности см. в `devref/gaps/phase3.8_completion_report.md`.
+
+**Фаза 4: Очистка** ✅ **COMPLETED**
 
 > **Описание:** См. раздел 6.2 "Стратегия минимальных изменений", Этап 4: Расширение функционала
 
-1. [ ] Удалить deprecated методы из `MACDZoneAnalyzer` (после подтверждения что все работает)
-2. [ ] Обновить все unit и integration тесты
-3. [ ] Провести финальную проверку совместимости и производительности
+1. [x] Удалить deprecated методы из `MACDZoneAnalyzer` (после подтверждения что все работает)
+2. [x] Обновить все unit и integration тесты
+3. [x] Провести финальную проверку совместимости и производительности
+
+**Реализовано:**
+- Удалены 5 deprecated методов из `MACDZoneAnalyzer`:
+  - `calculate_zone_features()` → заменен на `ZoneFeaturesAnalyzer.extract_zone_features()`
+  - `analyze_zones_distribution()` → заменен на `ZoneFeaturesAnalyzer.analyze_zones_distribution()`
+  - `test_hypotheses()` → заменен на `HypothesisTestSuite` 
+  - `analyze_zone_sequences()` → заменен на `ZoneSequenceAnalyzer.analyze_zone_transitions()`
+  - `cluster_zones_by_shape()` → заменен на `ZoneSequenceAnalyzer.cluster_zones()`
+- Обновлены все тесты на использование модульных анализаторов:
+  - `test_macd_analyzer.py`: 5 тестов обновлены для использования `analyze_complete_modular()`
+  - `test_performance.py`: 3 теста обновлены для использования модульных анализаторов
+- Все 491 unit тестов проходят успешно
+- Производительность сохранена - `analyze_complete()` теперь полностью делегирует на `analyze_complete_modular()`
+
+**Вывод:** Фаза 4 завершена. Deprecated код удален, все тесты адаптированы к модульной архитектуре. `MACDZoneAnalyzer` теперь является чистым фасадом над модульными анализаторами из `bquant.analysis.*`. Подробности см. в `devref/gaps/phase4_completion_report.md`.
 
 ### 6.4. Критерии успеха
 

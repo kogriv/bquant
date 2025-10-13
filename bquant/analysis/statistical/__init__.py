@@ -412,3 +412,22 @@ if _hypothesis_testing_available:
         'run_all_hypothesis_tests',
         'run_single_hypothesis_test'
     ])
+
+# Импорт regression модуля
+_regression_available = False
+try:
+    from .regression import (
+        RegressionResult,
+        ZoneRegressionAnalyzer
+    )
+    _regression_available = True
+except ImportError as e:
+    logger.warning(f"Regression module not available: {e}")
+    _regression_available = False
+
+# Добавляем regression если доступен
+if _regression_available:
+    __all__.extend([
+        'RegressionResult',
+        'ZoneRegressionAnalyzer'
+    ])

@@ -1,8 +1,41 @@
 # bquant.analysis.zones — Анализ зон
 
+> **⚠️ API Evolution Notice**
+> 
+> **Current Status (Phase 3-4):** This module works with MACD zones specifically.
+> Some field names are MACD-specific (e.g., `macd_amplitude`, `hist_amplitude`).
+> 
+> **Planned Changes:** Future universalization refactoring will rename these fields
+> to be indicator-agnostic (e.g., `indicator_amplitude`, `signal_amplitude`).
+> 
+> **Timeline:** After 2-3 weeks testing period based on real usage.
+> 
+> **For now:** 
+> - ✅ Current API is stable and fully functional
+> - ✅ All examples work as-is
+> - ✅ Strategy Pattern components are already universal (see `strategies.md`)
+> - 📚 See `devref/gaps/UNIVERSAL_ZONE_ANALYSIS.md` for universalization plan
+
 ## Обзор
 
 Инструменты работы с торговыми зонами: поддержка/сопротивление, признаки зон, последовательности и кластеризация.
+
+### New in Phase 3 (v0.X.X)
+
+**Major extensions:**
+- ✨ **Strategy Pattern** for extensible metrics (8 strategies implemented)
+- ✨ **67 total metrics** (was: 12 base metrics)
+- ✨ **Swing analysis:** 23 metrics via 3 strategies (ZigZag, FindPeaks, PivotPoints)
+- ✨ **Shape analysis:** 3 metrics via StatisticalShapeStrategy
+- ✨ **Divergence detection:** 4 metrics via ClassicDivergenceStrategy
+- ✨ **Volatility assessment:** 10 metrics via CombinedVolatilityStrategy
+- ✨ **Volume analysis:** 4 metrics via StandardVolumeStrategy
+- ✨ **Time metrics:** 2 metrics (peak_time_ratio, trough_time_ratio)
+
+**Documentation:**
+- **Strategy Pattern:** See [strategies.md](strategies.md) (🟢 stable API - won't change)
+- **All 8 strategies:** See [strategies.md](strategies.md) (🟢 stable API)
+- **ZoneFeatures fields:** See below (🟡 may change - field names will be renamed)
 
 ## Классы и функции
 

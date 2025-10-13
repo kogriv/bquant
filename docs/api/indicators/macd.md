@@ -7,14 +7,83 @@
 ## Классы
 
 ### MACDZoneAnalyzer
-- `calculate_macd_with_atr(df) -> DataFrame`
-- `identify_zones(df) -> List[ZoneInfo]`
-- `calculate_zone_features(zone) -> Dict`
-- `analyze_zones_distribution(zones) -> Dict`
-- `test_hypotheses(zones) -> Dict`
-- `analyze_zone_sequences(zones) -> Dict`
-- `cluster_zones_by_shape(zones, n_clusters) -> Dict`
-- `analyze_complete(df, perform_clustering=True, n_clusters=3) -> ZoneAnalysisResult`
+
+**Current Methods:**
+- `calculate_macd_with_atr(df) -> DataFrame` - calculate MACD and ATR indicators
+- `identify_zones(df) -> List[ZoneInfo]` - identify bull/bear zones
+- `analyze_complete(df, perform_clustering=True, n_clusters=3) -> ZoneAnalysisResult` - complete analysis using modular architecture
+
+**Helper Methods:**
+- `_zone_to_dict(zone) -> Dict` - convert ZoneInfo to dict for modular analyzers
+- `_features_to_dict(features) -> Dict` - convert ZoneFeatures to dict
+- `_adapt_statistics_format(stats_data) -> Dict` - adapt statistics format for compatibility
+
+## Migration Notice (Phase 4, v0.X.X)
+
+### Removed Methods
+
+The following methods have been **removed** in Phase 4:
+
+| Method | Removed | Replacement |
+|--------|---------|-------------|
+| `calculate_zone_features()` | Phase 4 | Use `ZoneFeaturesAnalyzer.extract_zone_features()` |
+| `analyze_zones_distribution()` | Phase 4 | Use `ZoneFeaturesAnalyzer.analyze_zones_distribution()` |
+| `test_hypotheses()` | Phase 4 | Use `HypothesisTestSuite` from `bquant.analysis.statistical` |
+| `analyze_zone_sequences()` | Phase 4 | Use `ZoneSequenceAnalyzer.analyze_zone_transitions()` |
+| `cluster_zones_by_shape()` | Phase 4 | Use `ZoneSequenceAnalyzer.cluster_zones()` |
+
+### Why Removed?
+
+These methods duplicated functionality from modular analyzers in `bquant.analysis.*`.
+The modular analyzers are:
+- More flexible (Strategy Pattern)
+- Better tested
+- More maintainable
+- Extensible
+
+### Recommended Approach
+
+Use `analyze_complete()` which automatically delegates to modular analyzers:
+
+```python
+from bquant.indicators.macd import MACDZoneAnalyzer
+
+analyzer = MACDZoneAnalyzer()
+result = analyzer.analyze_complete(df)
+
+# All analysis is performed using modular analyzers:
+# - ZoneFeaturesAnalyzer (features)
+# - HypothesisTestSuite (statistical tests)
+# - ZoneSequenceAnalyzer (sequences, clustering)
+```
+
+### For Direct Access to Modular Analyzers
+
+```python
+from bquant.analysis.zones import ZoneFeaturesAnalyzer, ZoneSequenceAnalyzer
+from bquant.analysis.statistical import HypothesisTestSuite
+
+# Features
+features_analyzer = ZoneFeaturesAnalyzer()
+features = features_analyzer.extract_zone_features(zone_dict)
+
+# Statistical tests
+test_suite = HypothesisTestSuite()
+results = test_suite.run_all_tests(zones_features)
+
+# Sequences and clustering
+seq_analyzer = ZoneSequenceAnalyzer()
+transitions = seq_analyzer.analyze_zone_transitions(zones_features)
+clusters = seq_analyzer.cluster_zones(zones_features, n_clusters=3)
+```
+
+**See also:**
+- [Zone Analysis](../analysis/zones.md) - zone features and strategies
+- [Strategies Documentation](../analysis/strategies.md) - Strategy Pattern (stable API)
+- [Statistical Analysis](../analysis/statistical.md) - hypothesis tests, regression, validation
+- `devref/gaps/phase4_completion_report.md` - technical details
+
+---
 
 ### MACDPreloadedIndicator
 PRELOADED индикатор для работы с готовыми MACD данными.

@@ -48,3 +48,57 @@ from bquant.core.utils import create_timestamp, ensure_directory
 ts = create_timestamp('readable')
 ensure_directory('results/charts')
 ```
+
+---
+
+## Deprecation Tools (New in Phase 2)
+
+> **API Stability:** 🟢 STABLE
+
+### @deprecated decorator
+
+Marks methods as deprecated with automatic warning generation.
+
+**Purpose:** Gracefully deprecate methods while maintaining backward compatibility.
+
+**Usage:**
+```python
+from bquant.core.utils import deprecated
+
+@deprecated("Use new_method() instead")
+def old_method():
+    """This method is deprecated."""
+    pass
+
+# When called
+old_method()
+# DeprecationWarning: old_method is deprecated. Use new_method() instead
+```
+
+**Effect:**
+- Generates `DeprecationWarning` on first call per session
+- Logs warning message to bquant logger
+- Method still works (backward compatibility maintained)
+- Warning can be filtered if needed
+
+**Parameters:**
+- `message`: String describing what to use instead
+
+**Best practices:**
+1. Always provide clear alternative in message
+2. Deprecate for 1-2 versions before removal
+3. Document deprecation in changelog
+4. Update all examples to not use deprecated methods
+5. Consider adding migration guide
+
+**Example from BQuant:**
+```python
+@deprecated("Use ZoneFeaturesAnalyzer.extract_zone_features() from bquant.analysis.zones instead")
+def calculate_zone_features(self, zone):
+    # Old implementation kept for compatibility
+    pass
+```
+
+**See also:**
+- Phase 4 migration: removed 5 deprecated methods
+- `docs/api/indicators/macd.md` - migration notice

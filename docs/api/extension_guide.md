@@ -154,6 +154,450 @@ result = analyzer.analyze(data)
 print(f"Mean volatility: {result.statistics['mean_volatility']:.4f}")
 ```
 
+## 🎨 Creating Custom Strategies (New in Phase 3)
+
+> **API Stability:** 🟢 STABLE - Strategy Pattern API is finalized
+
+### Overview
+
+BQuant uses Strategy Pattern for extensible metrics calculation. You can create custom strategies without modifying core analyzers.
+
+**Benefits:**
+- Add new metrics without changing `ZoneFeaturesAnalyzer`
+- Switch algorithms via configuration
+- A/B test different approaches
+- Maintain multiple strategies simultaneously
+
+### Strategy Types
+
+| Strategy Type | Purpose | Protocol |
+|---------------|---------|----------|
+| **SwingCalculationStrategy** | Detect swings/impulses in price movement | 23 metrics |
+| **ShapeCalculationStrategy** | Analyze indicator histogram shape | 3 metrics |
+| **DivergenceCalculationStrategy** | Detect price-indicator divergences | 4 metrics |
+| **VolatilityCalculationStrategy** | Measure market volatility | 10 metrics |
+| **VolumeCalculationStrategy** | Analyze volume patterns | 4 metrics |
+
+### Step-by-Step: Creating a Custom Swing Strategy
+
+#### Step 1: Import Protocol and Dataclass
+
+```python
+from bquant.analysis.zones.strategies.base import (
+    SwingCalculationStrategy,
+    SwingMetrics
+)
+from bquant.analysis.zones.strategies.registry import StrategyRegistry
+import pandas as pd
+import numpy as np
+```
+
+#### Step 2: Implement Strategy Class
+
+```python
+class MyCustomSwingStrategy:
+    """My custom swing detection algorithm."""
+    
+    def __init__(self, threshold: float = 0.02):
+        """
+        Initialize strategy.
+        
+        Args:
+            threshold: Minimum price movement to consider as swing (e.g., 0.02 = 2%)
+        """
+        self.threshold = threshold
+    
+    def calculate_swing(self, data: pd.DataFrame) -> SwingMetrics:
+        """
+        Calculate swing metrics.
+        
+        Args:
+            data: DataFrame with OHLC columns (high, low, close)
+            
+        Returns:
+            SwingMetrics with all 23 fields populated
+        """
+        if len(data) < 3:
+            # Graceful degradation for short zones
+            return SwingMetrics(
+                num_swings=0,
+                avg_rally_pct=0.0,
+                avg_drop_pct=0.0,
+                max_rally_pct=0.0,
+                max_drop_pct=0.0,
+                rally_to_drop_ratio=1.0,
+                rally_count=0,
+                drop_count=0,
+                min_rally_pct=0.0,
+                min_drop_pct=0.0,
+                rally_amplitude_std=0.0,
+                drop_amplitude_std=0.0,
+                rally_amplitude_median=0.0,
+                drop_amplitude_median=0.0,
+                avg_rally_duration_bars=0,
+                avg_drop_duration_bars=0,
+                max_rally_duration_bars=0,
+                max_drop_duration_bars=0,
+                avg_rally_speed_pct_per_bar=0.0,
+                avg_drop_speed_pct_per_bar=0.0,
+                max_rally_speed_pct_per_bar=0.0,
+                max_drop_speed_pct_per_bar=0.0,
+                duration_symmetry=1.0,
+                strategy_name='MyCustomSwing',
+                strategy_params={'threshold': self.threshold}
+            )
+        
+        # Your algorithm here
+        rallies = self._detect_rallies(data)
+        drops = self._detect_drops(data)
+        
+        # Calculate metrics from detected swings
+        rally_amplitudes = [r['amplitude'] for r in rallies]
+        drop_amplitudes = [d['amplitude'] for d in drops]
+        
+        return SwingMetrics(
+            num_swings=len(rallies) + len(drops),
+            avg_rally_pct=np.mean(rally_amplitudes) if rally_amplitudes else 0.0,
+            avg_drop_pct=np.mean(drop_amplitudes) if drop_amplitudes else 0.0,
+            max_rally_pct=max(rally_amplitudes) if rally_amplitudes else 0.0,
+            max_drop_pct=max(drop_amplitudes) if drop_amplitudes else 0.0,
+            rally_to_drop_ratio=(np.mean(rally_amplitudes) / np.mean(drop_amplitudes)) if drop_amplitudes and rally_amplitudes else 1.0,
+            rally_count=len(rallies),
+            drop_count=len(drops),
+            # ... populate all 23 fields ...
+            strategy_name='MyCustomSwing',
+            strategy_params={'threshold': self.threshold}
+        )
+    
+    def _detect_rallies(self, data: pd.DataFrame):
+        """Detect upward swings exceeding threshold."""
+        rallies = []
+        # Your algorithm
+        return rallies
+    
+    def _detect_drops(self, data: pd.DataFrame):
+        """Detect downward swings exceeding threshold."""
+        drops = []
+        # Your algorithm
+        return drops
+    
+    def get_name(self) -> str:
+        """Return strategy name."""
+        return 'MyCustomSwing'
+    
+    def get_metadata(self) -> dict:
+        """Return strategy metadata."""
+        return {
+            'strategy': 'MyCustomSwing',
+            'threshold': self.threshold,
+            'algorithm': 'Custom threshold-based swing detection',
+            'description': 'Detects swings when price movement exceeds threshold'
+        }
+```
+
+#### Step 3: Register Strategy
+
+```python
+# Option A: Using decorator (recommended)
+@StrategyRegistry.register_swing_strategy('my_custom')
+class MyCustomSwingStrategy:
+    # ... implementation ...
+    pass
+
+# Option B: Manual registration
+StrategyRegistry.register_swing_strategy('my_custom', MyCustomSwingStrategy)
+
+# Verify registration
+print(StrategyRegistry.list_swing_strategies())
+# Output: ['zigzag', 'find_peaks', 'pivot_points', 'my_custom']
+```
+
+#### Step 4: Use Strategy
+
+```python
+from bquant.analysis.zones import ZoneFeaturesAnalyzer
+
+# By name (from registry)
+analyzer = ZoneFeaturesAnalyzer(swing_strategy='my_custom')
+
+# By instance (with custom parameters)
+strategy = MyCustomSwingStrategy(threshold=0.03)
+analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
+
+# Extract features
+features = analyzer.extract_zone_features(zone_dict)
+
+# Access swing metrics
+swing_metrics = features.metadata['swing_metrics']
+print(f"Swings detected: {swing_metrics.num_swings}")
+print(f"Avg rally: {swing_metrics.avg_rally_pct:.2%}")
+print(f"Strategy used: {swing_metrics.strategy_name}")
+```
+
+### Creating Other Strategy Types
+
+The process is identical for other strategy types. Just change the protocol and dataclass:
+
+#### Shape Strategy Example
+
+```python
+from bquant.analysis.zones.strategies.base import ShapeCalculationStrategy, ShapeMetrics
+
+@StrategyRegistry.register_shape_strategy('my_shape')
+class MyShapeStrategy:
+    def calculate_shape(self, data: pd.DataFrame, indicator_col: str = 'macd_hist') -> ShapeMetrics:
+        # Calculate skewness, kurtosis, smoothness for your indicator
+        return ShapeMetrics(
+            hist_skewness=...,
+            hist_kurtosis=...,
+            hist_smoothness=...,
+            strategy_name='MyShape',
+            strategy_params={}
+        )
+    
+    def get_name(self) -> str:
+        return 'MyShape'
+    
+    def get_metadata(self) -> dict:
+        return {'strategy': 'MyShape', 'algorithm': 'Custom shape analysis'}
+```
+
+#### Divergence Strategy Example
+
+```python
+from bquant.analysis.zones.strategies.base import DivergenceCalculationStrategy, DivergenceMetrics
+
+@StrategyRegistry.register_divergence_strategy('my_divergence')
+class MyDivergenceStrategy:
+    def calculate_divergence(self, data: pd.DataFrame, indicator_col: str = 'macd_hist') -> DivergenceMetrics:
+        # Detect divergences between price and indicator
+        return DivergenceMetrics(
+            divergence_type=...,    # 'regular_bullish', 'regular_bearish', None
+            divergence_count=...,
+            divergence_strength=...,
+            divergence_direction=...,
+            strategy_name='MyDivergence',
+            strategy_params={}
+        )
+    
+    def get_name(self) -> str:
+        return 'MyDivergence'
+    
+    def get_metadata(self) -> dict:
+        return {'strategy': 'MyDivergence'}
+```
+
+### Testing Your Strategy
+
+```python
+import pytest
+
+def test_my_custom_strategy():
+    """Unit test for custom strategy."""
+    strategy = MyCustomSwingStrategy(threshold=0.02)
+    
+    # Create test data
+    dates = pd.date_range('2024-01-01', periods=50, freq='1h')
+    data = pd.DataFrame({
+        'high': np.random.randn(50).cumsum() + 2000,
+        'low': np.random.randn(50).cumsum() + 1990,
+        'close': np.random.randn(50).cumsum() + 1995
+    }, index=dates)
+    
+    # Calculate swing metrics
+    result = strategy.calculate_swing(data)
+    
+    # Validate contract (all required fields present)
+    assert isinstance(result, SwingMetrics)
+    assert result.num_swings >= 0
+    assert result.rally_count >= 0
+    assert result.drop_count >= 0
+    assert result.strategy_name == 'MyCustomSwing'
+    assert 'threshold' in result.strategy_params
+    
+    # Validate data quality
+    if result.num_swings > 0:
+        assert result.avg_rally_pct >= 0
+        assert result.avg_drop_pct >= 0
+        assert result.rally_to_drop_ratio > 0
+```
+
+### Integration Testing
+
+```python
+def test_strategy_with_analyzer():
+    """Test strategy integration with ZoneFeaturesAnalyzer."""
+    from bquant.analysis.zones import ZoneFeaturesAnalyzer
+    
+    analyzer = ZoneFeaturesAnalyzer(swing_strategy='my_custom')
+    
+    zone_dict = {
+        'zone_id': 'test_1',
+        'type': 'bull',
+        'duration': 20,
+        'data': data  # your test data
+    }
+    
+    features = analyzer.extract_zone_features(zone_dict)
+    
+    # Verify swing metrics present
+    assert 'swing_metrics' in features.metadata
+    assert features.metadata['swing_metrics'].strategy_name == 'MyCustomSwing'
+```
+
+### Best Practices
+
+#### 1. Graceful Degradation
+
+Handle edge cases gracefully:
+
+```python
+def calculate_swing(self, data: pd.DataFrame) -> SwingMetrics:
+    # Check data sufficiency
+    if len(data) < self.min_required_length:
+        return self._empty_metrics()  # Return zeros
+    
+    # Check required columns
+    required_cols = ['high', 'low', 'close']
+    if not all(col in data.columns for col in required_cols):
+        raise ValueError(f"Missing required columns: {required_cols}")
+    
+    # Your algorithm...
+```
+
+#### 2. Meaningful Metadata
+
+Always record strategy configuration:
+
+```python
+def get_metadata(self) -> dict:
+    return {
+        'strategy': self.get_name(),
+        'version': '1.0.0',
+        'algorithm': 'Description of your algorithm',
+        'parameters': {
+            'threshold': self.threshold,
+            # ... all parameters
+        },
+        'requirements': ['high', 'low', 'close'],
+        'optional_columns': ['volume'],
+        'best_for': 'trending markets with clear swings'
+    }
+```
+
+#### 3. Performance Optimization
+
+```python
+# Use NumPy for vectorized operations
+amplitudes = np.abs(np.diff(data['close'].values))
+
+# Avoid loops where possible
+# BAD:
+for i in range(len(data)):
+    result.append(calculate_something(data.iloc[i]))
+
+# GOOD:
+result = data['close'].rolling(5).apply(calculate_something)
+```
+
+#### 4. Validate Inputs
+
+```python
+def _validate_data(self, data: pd.DataFrame) -> None:
+    """Validate input data."""
+    if data.empty:
+        raise ValueError("Data is empty")
+    
+    required = ['high', 'low', 'close']
+    missing = [col for col in required if col not in data.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
+    
+    if data[required].isnull().any().any():
+        raise ValueError("Data contains NaN values")
+```
+
+### Strategy Comparison (A/B Testing)
+
+```python
+from bquant.analysis.zones import ZoneFeaturesAnalyzer
+
+# Test multiple strategies
+strategies = ['zigzag', 'find_peaks', 'pivot_points', 'my_custom']
+results = {}
+
+for strategy_name in strategies:
+    analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy_name)
+    features = analyzer.extract_zone_features(zone_dict)
+    swing_metrics = features.metadata['swing_metrics']
+    
+    results[strategy_name] = {
+        'num_swings': swing_metrics.num_swings,
+        'avg_rally': swing_metrics.avg_rally_pct,
+        'avg_drop': swing_metrics.avg_drop_pct
+    }
+
+# Compare results
+import pandas as pd
+comparison = pd.DataFrame(results).T
+print(comparison)
+```
+
+### Built-in Strategies
+
+For full documentation of all 8 built-in strategies, see:
+- [Strategies API Reference](analysis/strategies.md)
+- Examples: `tests/unit/test_*_strategy.py`
+- Implementations: `bquant/analysis/zones/strategies/`
+
+### Registry API
+
+```python
+from bquant.analysis.zones.strategies.registry import StrategyRegistry
+
+# List available strategies
+print(StrategyRegistry.list_swing_strategies())
+print(StrategyRegistry.list_shape_strategies())
+print(StrategyRegistry.list_divergence_strategies())
+print(StrategyRegistry.list_volatility_strategies())
+print(StrategyRegistry.list_volume_strategies())
+
+# Get strategy class
+SwingClass = StrategyRegistry.get_swing_strategy('zigzag')
+strategy_instance = SwingClass(legs=10, deviation=0.05)
+
+# Registry stats
+stats = StrategyRegistry.get_registry_stats()
+print(f"Total strategies: {stats['total']}")
+print(f"By type: {stats['by_type']}")
+```
+
+### Factory Configuration
+
+Add your strategy to configuration:
+
+```python
+# In bquant/core/config.py
+
+ANALYSIS_CONFIG = {
+    'strategies': {
+        'swing': {
+            'default': 'zigzag',
+            'my_custom': {
+                'threshold': 0.02,
+                'class': 'MyCustomSwingStrategy'
+            }
+        }
+    }
+}
+
+# Then use factory
+from bquant.core.config import create_swing_strategy
+strategy = create_swing_strategy('my_custom')
+```
+
+---
+
 ## 📊 Создание собственной визуализации
 
 ### Шаг 1: Наследование от BaseChart

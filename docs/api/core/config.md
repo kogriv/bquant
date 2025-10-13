@@ -89,6 +89,112 @@ from bquant.core.config import get_results_path
 csv_path = get_results_path('zone_analysis_2025-08-29', file_type='csv')
 ```
 
+---
+
+## Strategy Factories (New in Phase 3)
+
+> **API Stability:** 🟢 MOSTLY STABLE
+> 
+> **Note:** Function signatures are stable. Internal implementation may change
+> during universalization (column name handling).
+
+Factory functions for creating strategy instances from configuration.
+
+### create_swing_strategy()
+
+Creates swing detection strategy instance.
+
+```python
+from bquant.core.config import create_swing_strategy
+
+# Default parameters
+strategy = create_swing_strategy(name='zigzag')
+
+# Custom parameters
+strategy = create_swing_strategy(
+    name='zigzag',
+    legs=15,
+    deviation=0.03
+)
+
+# Other strategies
+strategy = create_swing_strategy(name='find_peaks', prominence=0.02, distance=5)
+strategy = create_swing_strategy(name='pivot_points', left_bars=7, right_bars=7)
+```
+
+### create_shape_strategy()
+
+```python
+from bquant.core.config import create_shape_strategy
+
+strategy = create_shape_strategy(name='statistical')
+```
+
+### create_divergence_strategy()
+
+```python
+from bquant.core.config import create_divergence_strategy
+
+strategy = create_divergence_strategy(name='classic', use_macd_line=False)
+```
+
+### create_volatility_strategy()
+
+```python
+from bquant.core.config import create_volatility_strategy
+
+strategy = create_volatility_strategy(
+    name='combined',
+    bb_window=20,
+    bb_std=2,
+    atr_window=14
+)
+```
+
+### create_volume_strategy()
+
+```python
+from bquant.core.config import create_volume_strategy
+
+strategy = create_volume_strategy(name='standard')
+```
+
+### ANALYSIS_CONFIG
+
+Strategy configurations:
+
+```python
+ANALYSIS_CONFIG = {
+    'strategies': {
+        'swing': {
+            'default': 'zigzag',
+            'zigzag': {'legs': 10, 'deviation': 0.05},
+            'find_peaks': {'prominence': 0.02, 'distance': 3},
+            'pivot_points': {'left_bars': 5, 'right_bars': 5}
+        },
+        'shape': {
+            'default': 'statistical'
+        },
+        'divergence': {
+            'default': None,  # disabled by default
+            'classic': {'use_macd_line': False}
+        },
+        'volatility': {
+            'default': None,  # disabled by default
+            'combined': {'bb_window': 20, 'bb_std': 2}
+        },
+        'volume': {
+            'default': None,  # disabled by default
+            'standard': {}
+        }
+    }
+}
+```
+
+For detailed strategy documentation, see [strategies.md](../analysis/strategies.md).
+
+---
+
 Управление директориями:
 ```python
 from bquant.core.config import (

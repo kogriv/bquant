@@ -45,6 +45,7 @@ class ZoneFeatures:
         rally_from_trough: Отскок от минимума (для медвежьих зон)
         peak_time_ratio: Позиция пика в зоне (0.0-1.0, для бычьих зон)
         trough_time_ratio: Позиция впадины в зоне (0.0-1.0, для медвежьих зон)
+        hist_slope: Максимальный наклон гистограммы MACD (максимальное abs(изменение) за период)
         metadata: Дополнительные метаданные
     """
     zone_id: str
@@ -64,6 +65,7 @@ class ZoneFeatures:
     rally_from_trough: Optional[float] = None
     peak_time_ratio: Optional[float] = None
     trough_time_ratio: Optional[float] = None
+    hist_slope: Optional[float] = None
     metadata: Dict[str, Any] = None
     
     def __post_init__(self):
@@ -181,6 +183,11 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             max_hist = float(data['macd_hist'].max())
             min_hist = float(data['macd_hist'].min()) 
             hist_amplitude = max_hist - min_hist
+            
+            # Наклон гистограммы (максимальное изменение за период)
+            hist_slope = None
+            if len(data) >= 2:
+                hist_slope = float(data['macd_hist'].diff().abs().max())
             
             # Ценовые характеристики
             max_price = float(data['high'].max())
@@ -347,6 +354,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 rally_from_trough=rally_from_trough,
                 peak_time_ratio=peak_time_ratio,
                 trough_time_ratio=trough_time_ratio,
+                hist_slope=hist_slope,
                 metadata=metadata
             )
             

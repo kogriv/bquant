@@ -4,6 +4,8 @@
 
 ## 📋 Содержание
 
+> **New in Phase 3-4:** Examples 05-07 demonstrate new Strategy Pattern features with stable APIs
+
 ### 🔰 Базовые примеры
 
 #### [`01_basic_indicators.py`](01_basic_indicators.py)
@@ -99,6 +101,84 @@ signals = analyzer.generate_trading_signals()
 performance = analyzer.backtest_strategy(initial_capital=10000)
 ```
 
+---
+
+### 🎨 Strategy Pattern Examples (New - Stable API)
+
+#### [`05_strategies_demo.py`](05_strategies_demo.py)
+**Strategy Pattern usage and comparison**
+
+> **API Stability:** 🟢 STABLE - won't change during universalization
+
+- ✅ Using different swing strategies (ZigZag, FindPeaks, PivotPoints)
+- ✅ Comparing strategy results side-by-side
+- ✅ Accessing all 23 swing metrics
+- ✅ Testing shape, divergence, volatility strategies
+- ✅ Strategy selection guidelines
+
+**Что демонстрирует:**
+```python
+from bquant.analysis.zones import ZoneFeaturesAnalyzer
+
+# Compare swing strategies
+strategies = ['zigzag', 'find_peaks', 'pivot_points']
+for strat in strategies:
+    analyzer = ZoneFeaturesAnalyzer(swing_strategy=strat)
+    features = analyzer.extract_zone_features(zone_dict)
+    print(f"{strat}: {features.metadata['swing_metrics'].num_swings} swings")
+```
+
+#### [`06_regression_demo.py`](06_regression_demo.py)
+**Regression analysis for zone prediction**
+
+> **API Stability:** 🟢 STABLE - regression is universal
+
+- ✅ Building OLS regression models
+- ✅ Predicting zone duration and price return
+- ✅ Model diagnostics (R², VIF, AIC, BIC, Durbin-Watson)
+- ✅ Custom predictor selection
+- ✅ Model quality assessment
+
+**Что демонстрирует:**
+```python
+from bquant.analysis.statistical import ZoneRegressionAnalyzer
+
+regressor = ZoneRegressionAnalyzer()
+model = regressor.predict_zone_duration(
+    zones_features,
+    predictors=['macd_amplitude', 'hist_amplitude', 'price_range_pct']
+)
+print(f"R²: {model.r_squared:.3f}")
+```
+
+#### [`07_validation_demo.py`](07_validation_demo.py)
+**Model validation and robustness testing**
+
+> **API Stability:** 🟢 STABLE - validation is universal
+
+- ✅ Out-of-sample testing (train/test split)
+- ✅ Walk-forward validation (rolling window)
+- ✅ Sensitivity analysis (parameter stability)
+- ✅ Monte Carlo testing (real vs synthetic)
+- ✅ Complete validation workflow
+
+**Что демонстрирует:**
+```python
+from bquant.analysis.validation import ValidationSuite
+
+validator = ValidationSuite()
+
+# Out-of-sample
+oos = validator.out_of_sample_test(zones_features, test_size=0.3)
+print(f"Degradation: {oos.metrics['duration_degradation_pct']:.1f}%")
+
+# Walk-forward
+wf = validator.walk_forward_test(zones_features, window_size=50)
+print(f"Stability: {wf.metrics['duration_stability_score']:.3f}")
+```
+
+---
+
 ## 🛠️ Установка и запуск
 
 ### Предварительные требования
@@ -119,6 +199,11 @@ python examples/01_basic_indicators.py
 python examples/02_macd_zone_analysis.py
 python examples/03_data_processing.py
 python examples/04_comprehensive_analysis.py
+
+# New examples (Phase 3-4) - Stable APIs
+python examples/05_strategies_demo.py      # Strategy Pattern
+python examples/06_regression_demo.py      # Regression analysis
+python examples/07_validation_demo.py      # Model validation
 ```
 
 ## 📊 Структура результатов

@@ -62,6 +62,26 @@ def create_test_zones_features(n_zones: int = 50, seed: int = 42) -> List[Dict[s
         atr = np.random.exponential(1) + 0.1
         price_return_atr = price_return / atr
         
+        # Корреляция цены и гистограммы MACD
+        correlation_price_hist = np.random.uniform(-1, 1)
+        
+        # Специфичные для типа метрики
+        drawdown_from_peak = None
+        rally_from_trough = None
+        
+        if zone_type == 'bull':
+            # Просадка от пика (обычно отрицательная)
+            drawdown_from_peak = np.random.uniform(-0.3, -0.01)
+        else:
+            # Отскок от минимума (обычно положительный)
+            rally_from_trough = np.random.uniform(0.01, 0.25)
+        
+        # Генерируем ценовые данные
+        # Используем базовую цену с небольшой вариацией
+        base_price = 2000.0
+        start_price = base_price + np.random.normal(0, 50)
+        end_price = start_price * (1 + price_return)
+        
         zone_features = {
             'type': zone_type,
             'duration': duration,
@@ -69,7 +89,12 @@ def create_test_zones_features(n_zones: int = 50, seed: int = 42) -> List[Dict[s
             'hist_slope': hist_slope,
             'macd_amplitude': macd_amplitude,
             'atr': atr,
-            'price_return_atr': price_return_atr
+            'price_return_atr': price_return_atr,
+            'correlation_price_hist': correlation_price_hist,
+            'drawdown_from_peak': drawdown_from_peak,
+            'rally_from_trough': rally_from_trough,
+            'start_price': start_price,
+            'end_price': end_price
         }
         
         zones_features.append(zone_features)
@@ -228,6 +253,134 @@ class TestHypothesisTestSuite:
         assert 'significant_correlations' in result.metadata
         assert 'volatility_mean' in result.metadata
     
+    def test_correlation_drawdown_hypothesis(self, test_suite, test_zones):
+        """Тест гипотезы о корреляции и просадке."""
+        result = test_suite.test_correlation_drawdown_hypothesis(test_zones)
+        
+        assert isinstance(result, HypothesisTestResult)
+        assert result.hypothesis == "High correlation between price and MACD reduces drawdown"
+        assert result.test_type == "Independent t-test"
+        assert isinstance(result.statistic, float)
+        assert isinstance(result.p_value, float)
+        assert isinstance(result.significant, (bool, np.bool_))
+        assert result.sample_size > 0
+        
+        # Проверяем метаданные
+        assert 'high_corr_count' in result.metadata
+        assert 'low_corr_count' in result.metadata
+        assert 'high_corr_mean_drawdown' in result.metadata
+        assert 'low_corr_mean_drawdown' in result.metadata
+        assert 'overall_correlation' in result.metadata
+        assert 'overall_correlation_p' in result.metadata
+        assert 'bull_zones_used' in result.metadata
+        assert 'bear_zones_used' in result.metadata
+    
+    def test_zone_duration_stationarity(self, test_suite, test_zones):
+        """Тест стационарности длительности зон (ADF)."""
+        result = test_suite.test_zone_duration_stationarity(test_zones)
+        
+        assert isinstance(result, HypothesisTestResult)
+        assert result.hypothesis == "Zone duration time series is stationary"
+        assert result.test_type == "Augmented Dickey-Fuller (ADF) test"
+        assert isinstance(result.statistic, float)
+        assert isinstance(result.p_value, float)
+        assert isinstance(result.significant, (bool, np.bool_))
+        assert result.sample_size == len(test_zones)
+        
+        # Проверяем метаданные
+        assert 'adf_statistic' in result.metadata
+        assert 'adf_p_value' in result.metadata
+        assert 'adf_usedlag' in result.metadata
+        assert 'adf_nobs' in result.metadata
+        assert 'critical_values' in result.metadata
+        assert 'is_stationary' in result.metadata
+        assert 'trend_correlation' in result.metadata
+        assert 'trend_p_value' in result.metadata
+        assert 'has_trend' in result.metadata
+        assert 'mean_duration' in result.metadata
+        assert 'interpretation' in result.metadata
+        
+        # Проверяем критические значения
+        critical_values = result.metadata['critical_values']
+        assert '1%' in critical_values
+        assert '5%' in critical_values
+        assert '10%' in critical_values
+    
+    def test_support_resistance_hypothesis_with_auto_levels(self, test_suite, test_zones):
+        """Тест гипотезы поддержки/сопротивления с автоматической идентификацией уровней."""
+        result = test_suite.test_support_resistance_hypothesis(test_zones)
+        
+        assert isinstance(result, HypothesisTestResult)
+        assert result.hypothesis == "Zones starting near support/resistance levels have different duration"
+        assert result.test_type in ["Independent t-test", "Mann-Whitney U test"]
+        assert isinstance(result.statistic, float)
+        assert isinstance(result.p_value, float)
+        assert isinstance(result.significant, (bool, np.bool_))
+        assert result.sample_size > 0
+        
+        # Проверяем метаданные
+        assert 'near_level_count' in result.metadata
+        assert 'far_from_level_count' in result.metadata
+        assert 'near_level_mean_duration' in result.metadata
+        assert 'far_from_level_mean_duration' in result.metadata
+        assert 'price_levels_count' in result.metadata
+        assert 'price_levels' in result.metadata
+        assert 'tolerance_pct' in result.metadata
+        assert 'test_used' in result.metadata
+        assert 'is_parametric' in result.metadata
+        assert 'duration_difference' in result.metadata
+        assert 'duration_difference_pct' in result.metadata
+        
+        # Проверяем, что уровни были идентифицированы
+        assert len(result.metadata['price_levels']) > 0
+        assert result.metadata['near_level_count'] > 0
+        assert result.metadata['far_from_level_count'] > 0
+    
+    def test_support_resistance_hypothesis_with_manual_levels(self, test_suite, test_zones):
+        """Тест гипотезы поддержки/сопротивления с явно заданными уровнями."""
+        # Задаем уровни вручную
+        price_levels = [1950.0, 2000.0, 2050.0]
+        
+        result = test_suite.test_support_resistance_hypothesis(
+            test_zones,
+            price_levels=price_levels,
+            tolerance_pct=1.0
+        )
+        
+        assert isinstance(result, HypothesisTestResult)
+        assert result.metadata['price_levels_count'] == len(price_levels)
+        assert result.metadata['price_levels'] == price_levels
+        assert result.metadata['tolerance_pct'] == 1.0
+    
+    def test_identify_price_levels(self, test_suite, test_zones):
+        """Тест функции идентификации уровней поддержки/сопротивления."""
+        df_features = pd.DataFrame(test_zones)
+        
+        levels = test_suite._identify_price_levels(df_features)
+        
+        # Проверяем, что уровни идентифицированы
+        assert isinstance(levels, list)
+        assert len(levels) > 0
+        
+        # Проверяем, что уровни отсортированы и уникальны
+        sorted_levels = sorted(levels)
+        assert levels == sorted_levels or len(set(levels)) == len(levels)
+    
+    def test_is_near_level(self, test_suite):
+        """Тест функции проверки близости к уровню."""
+        levels = [1000.0, 2000.0, 3000.0]
+        
+        # Цена близка к уровню (в пределах 0.5%)
+        assert test_suite._is_near_level(2005.0, levels, 0.5) == True
+        assert test_suite._is_near_level(1995.0, levels, 0.5) == True
+        
+        # Цена далеко от уровней
+        assert test_suite._is_near_level(2500.0, levels, 0.5) == False
+        
+        # Граничный случай
+        assert test_suite._is_near_level(2010.0, levels, 0.5) == True  # 0.5% от 2000 = 10
+        assert test_suite._is_near_level(2011.0, levels, 0.5) == False
+    
     def test_run_all_tests(self, test_suite, test_zones):
         """Тест выполнения всех тестов."""
         analysis_result = test_suite.run_all_tests(test_zones)
@@ -239,9 +392,10 @@ class TestHypothesisTestSuite:
         tests = analysis_result.results['tests']
         summary = analysis_result.results['summary']
         
-        # Проверяем, что все тесты выполнены
+        # Проверяем, что все тесты выполнены (обновлено для Phase 3.7)
         expected_tests = ['zone_duration', 'histogram_slope', 'bull_bear_asymmetry', 
-                         'sequence_patterns', 'volatility_effects']
+                         'sequence_patterns', 'volatility_effects',
+                         'correlation_drawdown', 'duration_stationarity']
         
         for test_name in expected_tests:
             assert test_name in tests
@@ -328,13 +482,25 @@ class TestConvenienceFunctions:
     
     def test_test_single_hypothesis_function(self, test_zones):
         """Тест функции test_single_hypothesis."""
-        # Тест каждого типа гипотезы
-        test_types = ['duration', 'slope', 'asymmetry', 'sequence', 'volatility']
+        # Тест каждого типа гипотезы (обновлено для Phase 3.7 + H5)
+        test_types = ['duration', 'slope', 'asymmetry', 'sequence', 'volatility',
+                     'correlation_drawdown', 'stationarity']
         
         for test_type in test_types:
             result = run_single_hypothesis_test(test_zones, test_type, alpha=0.05)
             assert isinstance(result, HypothesisTestResult)
             assert result.alpha == 0.05
+        
+        # Тест H5 (support_resistance) отдельно с параметрами
+        result_h5 = run_single_hypothesis_test(
+            test_zones, 
+            'support_resistance',
+            alpha=0.05,
+            price_levels=None,  # Auto-detect
+            tolerance_pct=0.5
+        )
+        assert isinstance(result_h5, HypothesisTestResult)
+        assert result_h5.alpha == 0.05
     
     def test_unknown_test_type(self, test_zones):
         """Тест с неизвестным типом теста."""
