@@ -26,61 +26,15 @@ from ..core.cache import cached
 from ..core.utils import deprecated
 from ..indicators.calculators import calculate_macd
 from ..data.processor import calculate_derived_indicators
+from ..analysis.zones.models import ZoneInfo, ZoneAnalysisResult
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
 
 warnings.filterwarnings('ignore')
 
-
-@dataclass
-class ZoneInfo:
-    """
-    Информация о зоне MACD.
-    
-    Attributes:
-        zone_id: Уникальный идентификатор зоны
-        type: Тип зоны ('bull' или 'bear')
-        start_idx: Начальный индекс
-        end_idx: Конечный индекс
-        start_time: Время начала зоны
-        end_time: Время окончания зоны
-        duration: Длительность в барах
-        data: DataFrame с данными зоны
-        features: Рассчитанные признаки зоны
-    """
-    zone_id: int
-    type: str  # 'bull' or 'bear'
-    start_idx: int
-    end_idx: int
-    start_time: datetime
-    end_time: datetime
-    duration: int
-    data: pd.DataFrame
-    features: Optional[Dict[str, Any]] = None
-
-
-@dataclass
-class ZoneAnalysisResult:
-    """
-    Результат анализа зон MACD.
-    
-    Attributes:
-        zones: Список обнаруженных зон
-        statistics: Статистики распределения зон
-        hypothesis_tests: Результаты тестов гипотез
-        clustering: Результаты кластеризации
-        sequence_analysis: Анализ последовательностей зон
-        data: DataFrame с MACD индикаторами (для визуализации)
-        metadata: Метаданные анализа
-    """
-    zones: List[ZoneInfo]
-    statistics: Dict[str, Any]
-    hypothesis_tests: Dict[str, Any]
-    clustering: Optional[Dict[str, Any]] = None
-    sequence_analysis: Optional[Dict[str, Any]] = None
-    data: Optional[pd.DataFrame] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+# NOTE: ZoneInfo and ZoneAnalysisResult moved to bquant/analysis/zones/models.py
+# Imported above for backward compatibility
 
 
 class MACDZoneAnalyzer:

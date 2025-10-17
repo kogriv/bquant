@@ -489,6 +489,15 @@ def find_support_resistance(data: pd.DataFrame, window: int = 20,
     return analyzer.identify_support_resistance(data, window, min_touches)
 
 
+# Импорт универсальных моделей зон (новая архитектура)
+try:
+    from .models import ZoneInfo, ZoneAnalysisResult
+    _models_available = True
+    logger.info("Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully")
+except ImportError as e:
+    logger.warning(f"Zone models not available: {e}")
+    _models_available = False
+
 # Импорт расширенных модулей анализа зон
 try:
     from .zone_features import (
@@ -526,6 +535,13 @@ __all__ = [
     'find_support_resistance',
     '__version__'
 ]
+
+# Добавляем универсальные модели если доступны
+if _models_available:
+    __all__.extend([
+        'ZoneInfo',
+        'ZoneAnalysisResult'
+    ])
 
 # Добавляем zone features если доступен
 if _zone_features_available:
