@@ -250,13 +250,13 @@ class HypothesisTestSuite:
         try:
             df_features = pd.DataFrame(zones_features)
             
-            required_cols = ['type', 'duration', 'price_return']
+            required_cols = ['zone_type', 'duration', 'price_return']
             missing_cols = [col for col in required_cols if col not in df_features.columns]
             if missing_cols:
                 raise StatisticalAnalysisError(f"Missing required columns: {missing_cols}")
             
-            bull_zones = df_features[df_features['type'] == 'bull']
-            bear_zones = df_features[df_features['type'] == 'bear']
+            bull_zones = df_features[df_features['zone_type'] == 'bull']
+            bear_zones = df_features[df_features['zone_type'] == 'bear']
             
             if len(bull_zones) == 0 or len(bear_zones) == 0:
                 raise StatisticalAnalysisError("Insufficient data: need both bull and bear zones")
@@ -336,11 +336,11 @@ class HypothesisTestSuite:
         self.logger.info("Testing sequence hypothesis")
         
         try:
-            if 'type' not in zones_features[0]:
-                raise StatisticalAnalysisError("Missing 'type' field in zone features")
+            if 'zone_type' not in zones_features[0]:
+                raise StatisticalAnalysisError("Missing 'zone_type' field in zone features")
             
             # Создаем последовательность типов зон
-            zone_types = [zone['type'] for zone in zones_features]
+            zone_types = [zone['zone_type'] for zone in zones_features]
             
             if len(zone_types) < 3:
                 raise StatisticalAnalysisError("Need at least 3 zones for sequence analysis")
@@ -509,15 +509,15 @@ class HypothesisTestSuite:
         try:
             df_features = pd.DataFrame(zones_features)
             
-            required_cols = ['correlation_price_hist', 'type']
+            required_cols = ['correlation_price_hist', 'zone_type']
             missing_cols = [col for col in required_cols if col not in df_features.columns]
             if missing_cols:
                 raise StatisticalAnalysisError(f"Missing required columns: {missing_cols}")
             
             # Для бычьих зон используем drawdown_from_peak
             # Для медвежьих - rally_from_trough (инвертируем для симметрии)
-            bull_zones = df_features[df_features['type'] == 'bull'].copy()
-            bear_zones = df_features[df_features['type'] == 'bear'].copy()
+            bull_zones = df_features[df_features['zone_type'] == 'bull'].copy()
+            bear_zones = df_features[df_features['zone_type'] == 'bear'].copy()
             
             # Проверяем наличие нужных колонок
             if 'drawdown_from_peak' not in bull_zones.columns and len(bull_zones) > 0:

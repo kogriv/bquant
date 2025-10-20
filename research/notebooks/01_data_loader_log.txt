@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-09-01 17:17:50
-[OUTPUT] Output will be written to: 01_data_loader_log.txt
+[LOG] Log started: 2025-10-18 12:28:40
+[OUTPUT] Output will be written to: research\notebooks\01_data_loader_log.txt
 [>>] Starting Демонстрация работы модуля bquant.data.loader
 =================================================================
 [SCRIPT] Демонстрация работы модуля bquant.data.loader
-[DATE] Started: 2025-09-01 17:17:50
+[DATE] Started: 2025-10-18 12:28:40
 =================================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Работа с встроенными sample-данными
@@ -121,16 +121,12 @@
   }
 }
 [OK] Loading MetaTrader sample data completed successfully
-
-============================================================
-============================================================
-
 ================================================================================
 [STEP] STEP 2: Шаг 2: Загрузка сырых CSV файлов напрямую
 -------------------------------------------------
 [INFO] Функция load_ohlcv_data() является основной и может загружать CSV файлы, автоматически определяя их формат (OANDA/TradingView или MetaTrader).
-[INFO] Путь к директории с сырыми данными: C:\Users\user\Documents\Pro\bquant\data\row
-[INFO] 2.1. Загружаем файл MetaTrader: C:\Users\user\Documents\Pro\bquant\data\row\XAUUSDH1.csv
+[INFO] Путь к директории с сырыми данными: C:\Users\Ivan\Documents\pro\bquant\data\row
+[INFO] 2.1. Загружаем файл MetaTrader: C:\Users\Ivan\Documents\pro\bquant\data\row\XAUUSDH1.csv
               open    high     low   close  volume  col_6
 time                                                     
 2000-06-20  285.25  288.10  284.85  286.75     501      0
@@ -171,7 +167,7 @@ time
   }
 }
 [OK] Loading raw MetaTrader file completed successfully
-[INFO] 2.2. Загружаем файл TradingView: C:\Users\user\Documents\Pro\bquant\data\row\OANDA_XAUUSD, 60.csv
+[INFO] 2.2. Загружаем файл TradingView: C:\Users\Ivan\Documents\pro\bquant\data\row\OANDA_XAUUSD, 60.csv
                                open      high       low     close  volume  accumulation/distribution  macd  signal  rsi  rsi-based ma  regular bullish  regular bullish label  regular bearish  regular bearish label
 time                                                                                                                                                                                                                 
 2022-01-03 06:00:00+07:00  1828.775  1831.835  1828.090  1828.510     687                -532.906542   NaN     NaN  NaN           NaN              NaN                    NaN              NaN                    NaN
@@ -236,16 +232,12 @@ time
   }
 }
 [OK] Loading raw TradingView file completed successfully
-
-============================================================
-============================================================
-
 ================================================================================
 [STEP] STEP 3: Шаг 3: Использование конфигурационных хелперов для гибкой загрузки
 --------------------------------------------------------------------------
 [INFO] Функция load_symbol_data() использует config.py для поиска файлов. По умолчанию она ищет в /data. Мы временно изменим путь на /data/row, чтобы продемонстрировать гибкость системы конфигурации.
-[INFO] Текущая директория данных: C:\Users\user\Documents\Pro\bquant\data
-[INFO] Временно изменили директорию данных на: C:\Users\user\Documents\Pro\bquant\data\row
+[INFO] Текущая директория данных: C:\Users\Ivan\Documents\pro\bquant\data
+[INFO] Временно изменили директорию данных на: C:\Users\Ivan\Documents\pro\bquant\data\row
 [INFO] 3.1. Теперь load_symbol_data сможет найти файлы в data/row
 [INFO] Загрузка XAUUSD 1h (metatrader) через хелпер:
               open    high     low   close  volume  col_6
@@ -267,17 +259,17 @@ time
 [OK] Loading with load_xauusd_data convenience function completed successfully
 [INFO] 3.2. Получение списка доступных символов и таймфреймов из новой директории:
 Доступные символы: ['XAUUSD']
-Доступные таймфреймы для XAUUSD: ['15', '1D', '60', 'H1']
+Доступные таймфреймы для XAUUSD: ['1D', '60', 'H1', 'M15']
 [OK] Getting available symbols and timeframes completed successfully
 [INFO] 3.3. Загрузка всех файлов из директории data/row:
 Загружено 4 наборов данных:
-  - XAUUSD_15: 20370 строк
   - XAUUSD_1D: 14568 строк
   - XAUUSD_60: 21357 строк
   - XAUUSD_H1: 85689 строк
+  - XAUUSD_M15: 100000 строк
 [OK] Loading all data files from directory completed successfully
-[INFO] Вернули директорию данных к значению по умолчанию: C:\Users\user\Documents\Pro\bquant\data
+[INFO] Вернули директорию данных к значению по умолчанию: C:\Users\Ivan\Documents\pro\bquant\data
 
 [END] Script finished successfully!
-[END] Log ended: 2025-09-01 17:18:09
-[TIME] Duration: 0:00:18.420536
+[END] Log ended: 2025-10-18 12:28:46
+[TIME] Duration: 0:00:05.911944

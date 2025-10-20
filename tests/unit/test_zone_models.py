@@ -75,6 +75,79 @@ class TestZoneInfo:
         assert 'data' in analyzer_format
         assert 'swing_count' in analyzer_format
         assert 'avg_volatility' in analyzer_format
+    
+    def test_indicator_context_initialization(self, sample_zone_data):
+        """Test that indicator_context is initialized as empty dict if None (v2.1)."""
+        # Create zone without indicator_context
+        zone = ZoneInfo(
+            zone_id=1,
+            type='bull',
+            start_idx=0,
+            end_idx=9,
+            start_time=sample_zone_data.index[0],
+            end_time=sample_zone_data.index[9],
+            duration=10,
+            data=sample_zone_data
+        )
+        
+        # Verify indicator_context exists and is empty dict
+        assert zone.indicator_context is not None
+        assert isinstance(zone.indicator_context, dict)
+        assert zone.indicator_context == {}
+    
+    def test_get_primary_indicator_column(self, sample_zone_data):
+        """Test get_primary_indicator_column method (v2.1)."""
+        # Create zone WITH indicator_context
+        zone = ZoneInfo(
+            zone_id=1,
+            type='bull',
+            start_idx=0,
+            end_idx=9,
+            start_time=sample_zone_data.index[0],
+            end_time=sample_zone_data.index[9],
+            duration=10,
+            data=sample_zone_data,
+            indicator_context={
+                'detection_strategy': 'zero_crossing',
+                'detection_indicator': 'macd',
+                'signal_line': None,
+                'detection_rules': {'indicator_col': 'macd'}
+            }
+        )
+        
+        # Verify method returns correct value
+        assert zone.get_primary_indicator_column() == 'macd'
+        assert zone.get_signal_line_column() is None
+    
+    def test_to_analyzer_format_includes_context(self, sample_zone_data):
+        """Test that to_analyzer_format includes indicator_context (v2.1)."""
+        # Create zone with indicator_context
+        zone = ZoneInfo(
+            zone_id=1,
+            type='bull',
+            start_idx=0,
+            end_idx=9,
+            start_time=sample_zone_data.index[0],
+            end_time=sample_zone_data.index[9],
+            duration=10,
+            data=sample_zone_data,
+            features={'swing_count': 3},
+            indicator_context={
+                'detection_strategy': 'line_crossing',
+                'detection_indicator': 'ema_12',
+                'signal_line': 'ema_26'
+            }
+        )
+        
+        # Get analyzer format
+        analyzer_format = zone.to_analyzer_format()
+        
+        # Verify indicator_context is included
+        assert 'indicator_context' in analyzer_format
+        assert analyzer_format['indicator_context'] == zone.indicator_context
+        assert analyzer_format['indicator_context']['detection_strategy'] == 'line_crossing'
+        assert analyzer_format['indicator_context']['detection_indicator'] == 'ema_12'
+        assert analyzer_format['indicator_context']['signal_line'] == 'ema_26'
 
 
 class TestZoneAnalysisResult:

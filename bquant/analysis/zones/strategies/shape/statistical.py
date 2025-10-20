@@ -24,7 +24,12 @@ class StatisticalShapeStrategy:
     """
     Shape analysis using statistical moments (skewness and kurtosis).
     
-    Analyzes the shape of MACD histogram "bump" to classify zone archetypes:
+    UNIVERSAL STRATEGY (v2.1):
+    - Works with ANY oscillator (MACD, RSI, AO, Stochastic, etc.)
+    - Analyzes shape of oscillator "bump" to classify zone archetypes
+    - Requires explicit indicator_col parameter (no auto-detection)
+    
+    Metrics:
     - Skewness: asymmetry of the distribution (early vs late impulse)
     - Kurtosis: peakedness (sharp spike vs smooth wave)
     - Smoothness: standard deviation of the derivative (choppy vs smooth)
@@ -36,39 +41,53 @@ class StatisticalShapeStrategy:
     calculate_smoothness: bool = True
     bias_correction: bool = True
     
-    def calculate(self, zone_data: pd.DataFrame) -> ShapeMetrics:
+    def calculate(self, zone_data: pd.DataFrame, indicator_col: str) -> ShapeMetrics:
         """
-        Calculate shape metrics from MACD histogram.
+        Calculate shape metrics from ANY oscillator.
         
         Args:
-            zone_data: DataFrame with 'macd_hist' column
+            zone_data: DataFrame with oscillator column
+            indicator_col: Name of column to analyze (e.g., 'macd_hist', 'RSI_14', 'AO_5_34')
         
         Returns:
             ShapeMetrics with skewness, kurtosis, and optionally smoothness
         
         Raises:
-            ValueError: If zone_data is empty or missing macd_hist column
+            ValueError: If zone_data is empty or indicator_col not found
+        
+        Examples:
+            # MACD histogram
+            metrics = strategy.calculate(zone_data, indicator_col='macd_hist')
+            
+            # RSI
+            metrics = strategy.calculate(zone_data, indicator_col='RSI_14')
+            
+            # Awesome Oscillator
+            metrics = strategy.calculate(zone_data, indicator_col='AO_5_34')
         """
         # Validate input
-        if 'macd_hist' not in zone_data.columns:
-            raise ValueError("zone_data must contain 'macd_hist' column")
+        if indicator_col not in zone_data.columns:
+            raise ValueError(
+                f"Indicator column '{indicator_col}' not found. "
+                f"Available: {list(zone_data.columns)}"
+            )
         
         if len(zone_data) == 0:
             raise ValueError("zone_data cannot be empty")
         
         try:
-            hist = zone_data['macd_hist'].dropna()
+            oscillator = zone_data[indicator_col].dropna()
             
-            if len(hist) < 3:
+            if len(oscillator) < 3:
                 # Need at least 3 points for meaningful statistics
-                logger.debug(f"Not enough data points for shape analysis: {len(hist)}")
+                logger.debug(f"Not enough data points for shape analysis: {len(oscillator)}")
                 return self._minimal_metrics()
             
             # Calculate skewness
             # Positive: peak at the beginning (early impulse)
             # Negative: peak at the end (late impulse)
             # Near 0: symmetric distribution
-            hist_skewness = float(skew(hist, bias=self.bias_correction))
+            hist_skewness = float(skew(oscillator, bias=self.bias_correction))
             
             # Calculate kurtosis (excess kurtosis by default in scipy)
             # > 3: sharp peak (leptokurtic)
@@ -76,7 +95,7 @@ class StatisticalShapeStrategy:
             # < 3: flat top (platykurtic)
             # Note: scipy.stats.kurtosis returns excess kurtosis (kurtosis - 3)
             # So we add 3 to get absolute kurtosis for comparison with 3
-            hist_kurtosis_excess = float(kurtosis(hist, bias=self.bias_correction))
+            hist_kurtosis_excess = float(kurtosis(oscillator, bias=self.bias_correction))
             hist_kurtosis = hist_kurtosis_excess + 3.0  # Convert to absolute kurtosis
             
             # Calculate smoothness (optional)
@@ -84,9 +103,9 @@ class StatisticalShapeStrategy:
             if self.calculate_smoothness:
                 # Smoothness = std of first derivative
                 # Low value = smooth curve, high value = choppy/erratic
-                hist_diff = hist.diff().dropna()
-                if len(hist_diff) > 0:
-                    hist_smoothness = float(hist_diff.std())
+                oscillator_diff = oscillator.diff().dropna()
+                if len(oscillator_diff) > 0:
+                    hist_smoothness = float(oscillator_diff.std())
                 else:
                     hist_smoothness = 0.0
             
@@ -98,7 +117,8 @@ class StatisticalShapeStrategy:
                 strategy_name='statistical',
                 strategy_params={
                     'calculate_smoothness': self.calculate_smoothness,
-                    'bias_correction': self.bias_correction
+                    'bias_correction': self.bias_correction,
+                    'indicator_col': indicator_col  # Track what was used (v2.1)
                 }
             )
             
@@ -107,14 +127,14 @@ class StatisticalShapeStrategy:
             
             smoothness_str = f"{hist_smoothness:.4f}" if hist_smoothness is not None else "N/A"
             logger.debug(
-                f"Shape metrics calculated: skewness={hist_skewness:.2f}, "
-                f"kurtosis={hist_kurtosis:.2f}, smoothness={smoothness_str}"
+                f"Shape metrics calculated for '{indicator_col}': "
+                f"skewness={hist_skewness:.2f}, kurtosis={hist_kurtosis:.2f}, smoothness={smoothness_str}"
             )
             
             return metrics
             
         except Exception as e:
-            logger.error(f"Statistical shape calculation failed: {e}", exc_info=True)
+            logger.error(f"Statistical shape calculation failed for '{indicator_col}': {e}", exc_info=True)
             return self._minimal_metrics()
     
     def _minimal_metrics(self) -> ShapeMetrics:
@@ -126,7 +146,8 @@ class StatisticalShapeStrategy:
             strategy_name='statistical',
             strategy_params={
                 'calculate_smoothness': self.calculate_smoothness,
-                'bias_correction': self.bias_correction
+                'bias_correction': self.bias_correction,
+                'indicator_col': None  # Not available in error case
             }
         )
     
@@ -134,12 +155,13 @@ class StatisticalShapeStrategy:
         """Get strategy metadata for logging and traceability."""
         return {
             'name': 'Statistical',
-            'description': 'Shape analysis via skewness, kurtosis, and smoothness',
+            'description': 'Shape analysis via skewness, kurtosis, and smoothness (UNIVERSAL - works with any oscillator)',
             'params': {
                 'calculate_smoothness': self.calculate_smoothness,
                 'bias_correction': self.bias_correction
             },
             'source': 'scipy.stats (skew, kurtosis)',
+            'supported_indicators': 'ANY numeric column (MACD, RSI, AO, CCI, Stochastic, custom, etc.)',
             'metrics': {
                 'hist_skewness': {
                     'interpretation': {

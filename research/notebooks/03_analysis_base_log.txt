@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-10-06 13:38:17
+[LOG] Log started: 2025-10-18 12:43:54
 [OUTPUT] Output will be written to: research\notebooks\03_analysis_base_log.txt
 [>>] Starting Изучаем AnalysisResult, BaseAnalyzer и фабрику анализаторов
 ===============================================================================
 [SCRIPT] Изучаем AnalysisResult, BaseAnalyzer и фабрику анализаторов
-[DATE] Started: 2025-10-06 13:38:17
+[DATE] Started: 2025-10-18 12:43:54
 ===============================================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Инициализация и обзор
@@ -23,7 +23,7 @@
 Создан простой результат анализа:
   - Тип: simple_test
   - Размер данных: 1000
-  - Время создания: 2025-10-06 13:38:17.713451
+  - Время создания: 2025-10-18 12:43:54.150466
   - Ключи результатов: ['total_points', 'success_rate', 'avg_duration']
   - Метаданные: {'version': '1.0', 'author': 'demo'}
 [OK] Creating AnalysisResult objects completed successfully
@@ -32,10 +32,10 @@
 ------------------------------------
 [INFO] Тестируем методы AnalysisResult
 3.1. Конвертация в словарь:
-  - Результат: {'analysis_type': 'simple_test', 'timestamp': '2025-10-06T13:38:17.713451', 'data_size': 1000, 'results': {'total_points': 1000, 'success_rate': 0.85, 'avg_duration': 2.5}, 'metadata': {'version': '1.0', 'author': 'demo'}}
+  - Результат: {'analysis_type': 'simple_test', 'timestamp': '2025-10-18T12:43:54.150466', 'data_size': 1000, 'results': {'total_points': 1000, 'success_rate': 0.85, 'avg_duration': 2.5}, 'metadata': {'version': '1.0', 'author': 'demo'}}
 3.2. Строковое представление:
-  - str(): AnalysisResult(simple_test, 1000 points, 2025-10-06 13:38:17.713451)
-  - repr(): AnalysisResult(type='simple_test', data_size=1000, results_keys=['total_points', 'success_rate', 'avg_duration'], timestamp='2025-10-06 13:38:17.713451')
+  - str(): AnalysisResult(simple_test, 1000 points, 2025-10-18 12:43:54.150466)
+  - repr(): AnalysisResult(type='simple_test', data_size=1000, results_keys=['total_points', 'success_rate', 'avg_duration'], timestamp='2025-10-18 12:43:54.150466')
 3.3. Сохранение в CSV:
   - Ошибка сохранения: If using all scalar values, you must pass an index
 [OK] Testing AnalysisResult methods completed successfully
@@ -67,7 +67,7 @@
 [INFO] Тестируем подготовку данных в BaseAnalyzer
 6.1. Создание неотсортированных данных:
   - Неотсортированные данные: (100, 2)
-  - Первые 3 индекса: [Timestamp('2024-01-03 09:00:00'), Timestamp('2024-01-04 02:00:00'), Timestamp('2024-01-03 17:00:00')]
+  - Первые 3 индекса: [Timestamp('2024-01-03 03:00:00'), Timestamp('2024-01-01 10:00:00'), Timestamp('2024-01-01 11:00:00')]
 6.2. Подготовка данных:
   - Подготовленные данные: (100, 2)
   - Первые 3 индекса: [Timestamp('2024-01-01 00:00:00'), Timestamp('2024-01-01 01:00:00'), Timestamp('2024-01-01 02:00:00')]
@@ -89,20 +89,20 @@
 8.1. Выполнение анализа:
   - Тип анализа: custom_price_analysis
   - Размер данных: 100
-  - Время анализа: 2025-10-06 13:38:17.747585
+  - Время анализа: 2025-10-18 12:43:54.167015
 8.2. Результаты анализа:
   - Всего точек: 100
-  - Выше порога: 94 (94.0%)
-  - Ниже порога: 6
+  - Выше порога: 43 (43.0%)
+  - Ниже порога: 57
   - Статистика цен:
-    * mean: 105.48
-    * std: 3.82
-    * min: 99.38
-    * max: 113.61
+    * mean: 99.07
+    * std: 2.91
+    * min: 91.85
+    * max: 104.01
 8.3. Метаданные:
   - analyzer: CustomPriceAnalyzer
   - price_threshold: 100.0
-  - analysis_timestamp: 2025-10-06T13:38:17.747571
+  - analysis_timestamp: 2025-10-18T12:43:54.166994
 [OK] Testing custom analyzer completed successfully
 ================================================================================
 [STEP] STEP 9: Шаг 9: Фабрика анализаторов
@@ -147,17 +147,19 @@
   - Создан анализ с порогом 100.0: custom_price_analysis
   - Создан анализ с порогом 105.0: custom_price_analysis
 10.2. Сравнение результатов:
-  - Порог 95.0: 100.0% точек выше порога
-  - Порог 100.0: 94.0% точек выше порога
-  - Порог 105.0: 53.0% точек выше порога
+  - Порог 95.0: 90.0% точек выше порога
+  - Порог 100.0: 43.0% точек выше порога
+  - Порог 105.0: 0.0% точек выше порога
 10.3. Экспорт результатов:
   - Сводка экспортирована в multiple_analysis_results.csv
-  - Размер файла: 339 байт
+  - Размер файла: 329 байт
   - Содержимое экспорта:
-           analysis_type  threshold  total_points  above_threshold  above_threshold_pct   avg_price  price_volatility
-0  custom_price_analysis       95.0           100              100                100.0  105.478349           3.81742
-1  custom_price_analysis      100.0           100               94                 94.0  105.478349           3.81742
-2  custom_price_analysis      105.0           100               53                 53.0  105.478349           3.81742
+           analysis_type  threshold  ...  avg_price  price_volatility
+0  custom_price_analysis       95.0  ...  99.065056          2.909674
+1  custom_price_analysis      100.0  ...  99.065056          2.909674
+2  custom_price_analysis      105.0  ...  99.065056          2.909674
+
+[3 rows x 7 columns]
   - Тестовый файл удален
 [OK] Integration and export completed successfully
 ================================================================================
@@ -175,5 +177,5 @@
 Готово к созданию специализированных анализаторов!
 
 [END] Script finished successfully!
-[END] Log ended: 2025-10-06 13:38:19
-[TIME] Duration: 0:00:02.095401
+[END] Log ended: 2025-10-18 12:44:01
+[TIME] Duration: 0:00:07.494448

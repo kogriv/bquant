@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-09-03 11:25:05
-[OUTPUT] Output will be written to: bq_log.txt
+[LOG] Log started: 2025-10-18 12:44:40
+[OUTPUT] Output will be written to: research\notebooks\bq_log.txt
 [>>] Starting Демонстрация работы пакета bquant
 =====================================================
 [SCRIPT] Демонстрация работы пакета bquant
-[DATE] Started: 2025-09-03 11:25:05
+[DATE] Started: 2025-10-18 12:44:40
 =====================================================
 ================================================================================
 [STEP] STEP 1: Определение рабочей директории, получение списка доступных символов и таймфреймов, загрузка данных
@@ -13,10 +13,10 @@
 [SUBSTEP] Определение рабочей директории
 ==============================
 [INFO] 1.1. get_data_dir() - Текущая рабочая директория:
-C:\Users\user\Documents\Pro\bquant\data
+C:\Users\Ivan\Documents\pro\bquant\data
 [OK] Listing available data directory completed successfully
 [INFO] 1.2. set_data_dir() - Установка рабочей директории:
-C:\Users\user\Documents\Pro\bquant\data\raw
+C:\Users\Ivan\Documents\pro\bquant\data\raw
 [OK] Setting data directory completed successfully
 [INFO] 1.2. get_available_symbols() - Список доступных символов:
 []
@@ -33,10 +33,6 @@ C:\Users\user\Documents\Pro\bquant\data\raw
 2 2025-06-11 22:00:00+07:00  3337.715  3342.930  3329.655  3333.220  22725.0               6.648033e+06  1.725604  2.439806  50.166113     55.035372            None                  None            None                  None
 3 2025-06-11 23:00:00+07:00  3333.265  3334.570  3328.185  3330.390  16495.0               6.642931e+06  1.241461  2.200137  48.010293     54.292673            None                  None            None                  None
 4 2025-06-12 00:00:00+07:00  3330.410  3331.435  3319.380  3324.365  21476.0               6.639217e+06  0.367373  1.833584  43.704225     53.189298            None                  None            None                  None
-
-============================================================
-============================================================
-
 ================================================================================
 [STEP] STEP 2: Работа с индикаторами
 ------------------------------
@@ -46,24 +42,9 @@ C:\Users\user\Documents\Pro\bquant\data\raw
 ==============================
 Created indicator: macd_preloaded
 [INFO] Extracting MACD data:
-Extracted 1000 rows
-Columns: ['macd', 'signal']
          macd    signal
 995 -7.163495 -8.374874
 996 -6.873237 -8.074547
 997 -6.176617 -7.694961
 998 -5.556853 -7.267339
 999 -5.398442 -6.893560
-Metadata:
-  Source: preloaded
-  Method: extract_existing
-  Extracted columns: ['macd', 'signal']
-  Total records: 1000
-
-============================================================
-============================================================
-
-================================================================================
-[STEP] STEP 3: Работа с стратегиями
-------------------------------
-[INFO] Работа с стратегиями

@@ -498,6 +498,63 @@ except ImportError as e:
     logger.warning(f"Zone models not available: {e}")
     _models_available = False
 
+# Импорт detection стратегий (новая архитектура - Stage 1.1)
+try:
+    from .detection import (
+        ZoneDetectionStrategy,
+        ZoneDetectionConfig,
+        ZoneDetectionRegistry,
+        ZeroCrossingDetection,
+        ThresholdDetection,
+        LineCrossingDetection,
+        PreloadedZonesDetection,
+        CombinedRulesDetection,
+        load_preloaded_zones
+    )
+    _detection_available = True
+    logger.info("Zone detection strategies loaded successfully")
+except ImportError as e:
+    logger.warning(f"Zone detection strategies not available: {e}")
+    _detection_available = False
+
+# Импорт Universal Zone Analyzer (новая архитектура - Stage 1.2)
+try:
+    from .analyzer import UniversalZoneAnalyzer
+    _analyzer_available = True
+    logger.info("UniversalZoneAnalyzer loaded successfully")
+except ImportError as e:
+    logger.warning(f"UniversalZoneAnalyzer not available: {e}")
+    _analyzer_available = False
+
+# Импорт Pipeline и Builder (новая архитектура - Stage 1.3)
+try:
+    from .pipeline import (
+        IndicatorConfig,
+        ZoneAnalysisConfig,
+        ZoneAnalysisPipeline,
+        ZoneAnalysisBuilder,
+        analyze_zones
+    )
+    _pipeline_available = True
+    logger.info("Zone analysis pipeline loaded successfully")
+except ImportError as e:
+    logger.warning(f"Zone analysis pipeline not available: {e}")
+    _pipeline_available = False
+
+# Импорт Convenience Presets (новая архитектура - Stage 2.2)
+try:
+    from .presets import (
+        analyze_macd_zones,
+        analyze_rsi_zones,
+        analyze_ao_zones,
+        analyze_preloaded_zones
+    )
+    _presets_available = True
+    logger.info("Zone analysis presets loaded successfully")
+except ImportError as e:
+    logger.warning(f"Zone analysis presets not available: {e}")
+    _presets_available = False
+
 # Импорт расширенных модулей анализа зон
 try:
     from .zone_features import (
@@ -543,6 +600,36 @@ if _models_available:
         'ZoneAnalysisResult'
     ])
 
+# Добавляем detection стратегии если доступны
+if _detection_available:
+    __all__.extend([
+        'ZoneDetectionStrategy',
+        'ZoneDetectionConfig',
+        'ZoneDetectionRegistry',
+        'ZeroCrossingDetection',
+        'ThresholdDetection',
+        'LineCrossingDetection',
+        'PreloadedZonesDetection',
+        'CombinedRulesDetection',
+        'load_preloaded_zones'
+    ])
+
+# Добавляем analyzer если доступен
+if _analyzer_available:
+    __all__.extend([
+        'UniversalZoneAnalyzer'
+    ])
+
+# Добавляем pipeline если доступен
+if _pipeline_available:
+    __all__.extend([
+        'IndicatorConfig',
+        'ZoneAnalysisConfig',
+        'ZoneAnalysisPipeline',
+        'ZoneAnalysisBuilder',
+        'analyze_zones'
+    ])
+
 # Добавляем zone features если доступен
 if _zone_features_available:
     __all__.extend([
@@ -560,4 +647,13 @@ if _sequence_analysis_available:
         'ZoneSequenceAnalyzer',
         'create_zone_sequence_analysis',
         'cluster_zone_shapes'
+    ])
+
+# Добавляем presets если доступны
+if _presets_available:
+    __all__.extend([
+        'analyze_macd_zones',
+        'analyze_rsi_zones',
+        'analyze_ao_zones',
+        'analyze_preloaded_zones'
     ])

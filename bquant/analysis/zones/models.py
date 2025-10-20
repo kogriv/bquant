@@ -41,6 +41,18 @@ class ZoneInfo:
         duration: Длительность в барах
         data: DataFrame с данными зоны (OHLCV + все индикаторы)
         features: Рассчитанные признаки (заполняется после анализа)
+        indicator_context: Контекст о том, как зона была обнаружена (заполняется detection strategy)
+            Стандартные поля:
+            - detection_strategy: str (имя стратегии)
+            - detection_indicator: str (primary indicator column)
+            - signal_line: Optional[str] (secondary indicator, если есть)
+            - detection_rules: dict (полные rules для справки)
+    
+    NEW (v2.1): Добавлено поле indicator_context для хранения информации о том,
+    какой индикатор использовался для detection.
+    
+    IMPORTANT: indicator_context заполняется DETECTION STRATEGY при создании ZoneInfo,
+    НЕ pipeline/builder!
     """
     zone_id: int
     type: str
@@ -51,6 +63,42 @@ class ZoneInfo:
     duration: int
     data: pd.DataFrame
     features: Optional[Dict[str, Any]] = None
+    indicator_context: Optional[Dict[str, Any]] = None
+    
+    def __post_init__(self):
+        """Инициализация indicator_context как пустой dict если None."""
+        if self.indicator_context is None:
+            self.indicator_context = {}
+    
+    def get_primary_indicator_column(self) -> Optional[str]:
+        """
+        Get primary indicator column from context.
+        
+        Returns:
+            str: Column name, or None if not available
+        
+        Example:
+            zone = ZoneInfo(...)
+            indicator_col = zone.get_primary_indicator_column()
+            if indicator_col:
+                values = zone.data[indicator_col]
+        """
+        return self.indicator_context.get('detection_indicator')
+    
+    def get_signal_line_column(self) -> Optional[str]:
+        """
+        Get signal line column from context (if exists).
+        
+        Returns:
+            str: Signal line column name, or None if not available
+        
+        Example:
+            zone = ZoneInfo(...)
+            signal_col = zone.get_signal_line_column()
+            if signal_col:
+                signal_values = zone.data[signal_col]
+        """
+        return self.indicator_context.get('signal_line')
     
     def to_analyzer_format(self) -> Dict[str, Any]:
         """
@@ -58,12 +106,15 @@ class ZoneInfo:
         
         Returns:
             Словарь с данными зоны для анализаторов
+        
+        NOTE: Includes indicator_context for analytical strategies (v2.1)
         """
         return {
             'zone_id': self.zone_id,
             'type': self.type,
             'duration': self.duration,
             'data': self.data,
+            'indicator_context': self.indicator_context,  # Pass to analyzers
             **(self.features or {})
         }
 
@@ -344,7 +395,8 @@ class ZoneAnalysisResult:
             'start_time': zone.start_time.isoformat(),
             'end_time': zone.end_time.isoformat(),
             'duration': zone.duration,
-            'features': zone.features
+            'features': zone.features,
+            'indicator_context': zone.indicator_context  # v2.1: Save indicator context
             # data не сохраняем в dict (слишком большой)
         }
     
@@ -360,7 +412,8 @@ class ZoneAnalysisResult:
             end_time=datetime.fromisoformat(zone_dict['end_time']),
             duration=zone_dict['duration'],
             data=pd.DataFrame(),  # Пустой DataFrame, нужно загружать отдельно
-            features=zone_dict.get('features')
+            features=zone_dict.get('features'),
+            indicator_context=zone_dict.get('indicator_context')  # v2.1: Load indicator context
         )
     
     def visualize(self, 

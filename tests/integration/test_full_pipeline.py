@@ -399,7 +399,7 @@ class TestEndToEndWorkflow:
                 'bull_zones': bull_zones,
                 'bear_zones': bear_zones,
                 'statistics': statistics,
-                'hypothesis_tests': len(hypothesis_tests) if hypothesis_tests else 0
+                'hypothesis_tests': hypothesis_tests.data_size if hypothesis_tests and hasattr(hypothesis_tests, 'data_size') else 0
             },
             'interpretation': {
                 'market_sentiment': 'bullish' if bull_zones > bear_zones else 'bearish' if bear_zones > bull_zones else 'neutral',

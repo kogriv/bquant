@@ -54,9 +54,9 @@ class ZoneFeatures:
     start_price: float
     end_price: float
     price_return: float
-    macd_amplitude: float
-    hist_amplitude: float
-    price_range_pct: float
+    macd_amplitude: Optional[float] = None  # Optional - для универсальности
+    hist_amplitude: Optional[float] = None  # Optional - для универсальности
+    price_range_pct: float = 0.0
     atr_normalized_return: Optional[float] = None
     correlation_price_hist: Optional[float] = None
     num_peaks: Optional[int] = None
@@ -151,12 +151,18 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         """
         Извлечение признаков из информации о зоне.
         
+        UNIVERSAL METHOD (v2.1):
+        - Reads indicator_context from zone_info
+        - Passes correct indicator_col to strategies
+        - Fallback to generic oscillator detection if context missing
+        
         Args:
             zone_info: Словарь с информацией о зоне
                 - zone_id: ID зоны
                 - type: Тип зоны ('bull'/'bear')  
                 - duration: Длительность
-                - data: DataFrame с OHLCV + MACD + ATR
+                - data: DataFrame с OHLCV + индикаторы
+                - indicator_context: (v2.1 NEW) Контекст детекции (detection_indicator, signal_line)
         
         Returns:
             ZoneFeatures: Объект с характеристиками зоны
@@ -166,6 +172,11 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             zone_type = zone_info['type']
             zone_id = zone_info.get('zone_id', f"{zone_type}_{len(data)}")
             
+            # v2.1: Read indicator context from zone_info
+            indicator_context = zone_info.get('indicator_context', {})
+            primary_indicator = indicator_context.get('detection_indicator')
+            signal_line = indicator_context.get('signal_line')
+            
             if len(data) < self.min_duration:
                 raise AnalysisError(f"Zone duration {len(data)} is less than minimum {self.min_duration}")
             
@@ -174,20 +185,29 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             end_price = float(data['close'].iloc[-1])
             price_return = (end_price / start_price) - 1
             
-            # MACD характеристики
-            max_macd = float(data['macd'].max())
-            min_macd = float(data['macd'].min())
-            macd_amplitude = max_macd - min_macd
-            
-            # Гистограмма MACD
-            max_hist = float(data['macd_hist'].max())
-            min_hist = float(data['macd_hist'].min()) 
-            hist_amplitude = max_hist - min_hist
-            
-            # Наклон гистограммы (максимальное изменение за период)
+            # Индикатор характеристики (универсально)
+            max_macd = None
+            min_macd = None
+            macd_amplitude = None
+            max_hist = None
+            min_hist = None
+            hist_amplitude = None
             hist_slope = None
-            if len(data) >= 2:
-                hist_slope = float(data['macd_hist'].diff().abs().max())
+            
+            # Если есть MACD - извлекаем его метрики
+            if 'macd' in data.columns:
+                max_macd = float(data['macd'].max())
+                min_macd = float(data['macd'].min())
+                macd_amplitude = max_macd - min_macd
+            
+            if 'macd_hist' in data.columns:
+                max_hist = float(data['macd_hist'].max())
+                min_hist = float(data['macd_hist'].min()) 
+                hist_amplitude = max_hist - min_hist
+                
+                # Наклон гистограммы
+                if len(data) >= 2:
+                    hist_slope = float(data['macd_hist'].diff().abs().max())
             
             # Ценовые характеристики
             max_price = float(data['high'].max())
@@ -199,13 +219,25 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             if 'atr' in data.columns and data['atr'].iloc[0] > 0:
                 atr_normalized_return = price_return / float(data['atr'].iloc[0])
             
-            # Корреляция цены и гистограммы
+            # Корреляция цены и индикатора (универсально)
             correlation_price_hist = None
             if len(data) >= 3:
-                try:
-                    correlation_price_hist = float(data['close'].corr(data['macd_hist']))
-                except:
-                    correlation_price_hist = None
+                # Попробуем найти основную колонку индикатора для корреляции
+                indicator_col = None
+                if 'macd_hist' in data.columns:
+                    indicator_col = 'macd_hist'
+                elif 'RSI_14' in data.columns:
+                    indicator_col = 'RSI_14'
+                elif any(col.startswith('RSI_') for col in data.columns):
+                    indicator_col = next(col for col in data.columns if col.startswith('RSI_'))
+                elif any(col.startswith('AO_') for col in data.columns):
+                    indicator_col = next(col for col in data.columns if col.startswith('AO_'))
+                
+                if indicator_col and indicator_col in data.columns:
+                    try:
+                        correlation_price_hist = float(data['close'].corr(data[indicator_col]))
+                    except:
+                        correlation_price_hist = None
             
             # Анализ пиков и впадин
             num_peaks = None
@@ -242,23 +274,53 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 trough_pos = data.index.get_loc(trough_idx)
                 trough_time_ratio = trough_pos / len(data)
             
-            # Метаданные
+            # Метаданные (универсальные)
             metadata = {
                 'data_points': len(data),
                 'start_timestamp': str(data.index[0]) if hasattr(data.index[0], '__str__') else None,
                 'end_timestamp': str(data.index[-1]) if hasattr(data.index[-1], '__str__') else None,
-                'max_macd': max_macd,
-                'min_macd': min_macd,
-                'avg_macd': float(data['macd'].mean()),
-                'macd_std': float(data['macd'].std()),
-                'max_hist': max_hist,
-                'min_hist': min_hist,
-                'avg_hist': float(data['macd_hist'].mean()),
-                'hist_std': float(data['macd_hist'].std()),
                 'max_price': max_price,
                 'min_price': min_price,
                 'price_range': max_price - min_price
             }
+            
+            # Добавляем MACD метрики только если колонки есть
+            if 'macd' in data.columns and 'macd_hist' in data.columns:
+                metadata.update({
+                    'max_macd': max_macd,
+                    'min_macd': min_macd,
+                    'avg_macd': float(data['macd'].mean()),
+                    'macd_std': float(data['macd'].std()),
+                    'max_hist': max_hist,
+                    'min_hist': min_hist,
+                    'avg_hist': float(data['macd_hist'].mean()),
+                    'hist_std': float(data['macd_hist'].std()),
+                })
+            
+            # Добавляем RSI метрики если есть
+            rsi_col = None
+            if 'RSI_14' in data.columns:
+                rsi_col = 'RSI_14'
+            elif any(col.startswith('RSI_') for col in data.columns):
+                rsi_col = next((col for col in data.columns if col.startswith('RSI_')), None)
+            
+            if rsi_col:
+                metadata.update({
+                    'rsi_max': float(data[rsi_col].max()),
+                    'rsi_min': float(data[rsi_col].min()),
+                    'rsi_avg': float(data[rsi_col].mean()),
+                    'rsi_std': float(data[rsi_col].std()),
+                })
+            
+            # Добавляем AO метрики если есть
+            ao_col = next((col for col in data.columns if col.startswith('AO_')), None)
+            if ao_col:
+                metadata.update({
+                    'ao_max': float(data[ao_col].max()),
+                    'ao_min': float(data[ao_col].min()),
+                    'ao_avg': float(data[ao_col].mean()),
+                    'ao_std': float(data[ao_col].std()),
+                })
             
             if 'atr' in data.columns:
                 metadata.update({
@@ -280,31 +342,60 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     self.logger.warning(f"Failed to calculate swing metrics: {e}")
                     metadata['swing_metrics'] = None
             
-            # Calculate shape metrics using strategy (if available)
+            # Calculate shape metrics using strategy (v2.1 - with indicator_col parameter)
             if self.shape_strategy is not None:
                 try:
-                    shape_metrics = self.shape_strategy.calculate(data)
-                    metadata['shape_metrics'] = shape_metrics.to_dict()
-                    self.logger.debug(
-                        f"Shape metrics calculated: skewness={shape_metrics.hist_skewness:.2f}, "
-                        f"kurtosis={shape_metrics.hist_kurtosis:.2f}"
-                    )
+                    # Use primary_indicator from context if available
+                    if primary_indicator and primary_indicator in data.columns:
+                        shape_metrics = self.shape_strategy.calculate(data, indicator_col=primary_indicator)
+                        metadata['shape_metrics'] = shape_metrics.to_dict()
+                        self.logger.debug(
+                            f"Shape metrics calculated for '{primary_indicator}': "
+                            f"skewness={shape_metrics.hist_skewness:.2f}, kurtosis={shape_metrics.hist_kurtosis:.2f}"
+                        )
+                    else:
+                        # Fallback: try to find ANY oscillator column (universal, no hardcoded names)
+                        fallback_col = self._find_any_oscillator(data)
+                        if fallback_col:
+                            shape_metrics = self.shape_strategy.calculate(data, indicator_col=fallback_col)
+                            metadata['shape_metrics'] = shape_metrics.to_dict()
+                            self.logger.debug(f"Shape analysis used fallback column: {fallback_col}")
+                        else:
+                            metadata['shape_metrics'] = None
+                            self.logger.debug("No suitable column for shape analysis")
                 except Exception as e:
-                    self.logger.warning(f"Failed to calculate shape metrics: {e}")
+                    self.logger.debug(f"Shape metrics not available: {e}")
                     metadata['shape_metrics'] = None
             
-            # Calculate divergence metrics using strategy (if available)
+            # Calculate divergence metrics using strategy (v2.1 - with indicator parameters)
             if self.divergence_strategy is not None:
                 try:
-                    divergence_metrics = self.divergence_strategy.calculate_divergence(data)
-                    metadata['divergence_metrics'] = divergence_metrics.to_dict()
-                    self.logger.debug(
-                        f"Divergence metrics calculated: type={divergence_metrics.divergence_type}, "
-                        f"count={divergence_metrics.divergence_count}, "
-                        f"direction={divergence_metrics.divergence_direction}"
-                    )
+                    # Use primary_indicator and signal_line from context if available
+                    if primary_indicator and primary_indicator in data.columns:
+                        divergence_metrics = self.divergence_strategy.calculate_divergence(
+                            data,
+                            indicator_col=primary_indicator,
+                            indicator_line_col=signal_line if signal_line and signal_line in data.columns else None
+                        )
+                        metadata['divergence_metrics'] = divergence_metrics.to_dict()
+                        self.logger.debug(
+                            f"Divergence metrics calculated for '{primary_indicator}': "
+                            f"type={divergence_metrics.divergence_type}, count={divergence_metrics.divergence_count}"
+                        )
+                    else:
+                        # Fallback: try to find ANY oscillator column
+                        fallback_col = self._find_any_oscillator(data)
+                        if fallback_col:
+                            divergence_metrics = self.divergence_strategy.calculate_divergence(
+                                data, indicator_col=fallback_col
+                            )
+                            metadata['divergence_metrics'] = divergence_metrics.to_dict()
+                            self.logger.debug(f"Divergence analysis used fallback column: {fallback_col}")
+                        else:
+                            metadata['divergence_metrics'] = None
+                            self.logger.debug("No suitable column for divergence analysis")
                 except Exception as e:
-                    self.logger.warning(f"Failed to calculate divergence metrics: {e}")
+                    self.logger.debug(f"Divergence metrics not available: {e}")
                     metadata['divergence_metrics'] = None
             
             # Calculate volatility metrics using strategy (if available)
@@ -321,19 +412,25 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     self.logger.warning(f"Failed to calculate volatility metrics: {e}")
                     metadata['volatility_metrics'] = None
             
-            # Calculate volume metrics using strategy (if available)
+            # Calculate volume metrics using strategy (v2.1 - with indicator_col parameter)
             if self.volume_strategy is not None and 'volume' in data.columns:
                 try:
                     # Calculate baseline volume (average of previous bars, if available)
                     # For now, we don't have access to pre-zone data, so baseline_volume=None
                     # Strategy will handle this gracefully
-                    volume_metrics = self.volume_strategy.calculate_volume(data, baseline_volume=None)
+                    
+                    # v2.1: Pass indicator_col for volume-indicator correlation
+                    volume_metrics = self.volume_strategy.calculate_volume(
+                        data, 
+                        baseline_volume=None,
+                        indicator_col=primary_indicator  # From context (or None)
+                    )
                     metadata['volume_metrics'] = volume_metrics.to_dict()
                     self.logger.debug(
                         f"Volume metrics calculated: avg={volume_metrics.avg_volume_zone}"
                     )
                 except Exception as e:
-                    self.logger.warning(f"Failed to calculate volume metrics: {e}")
+                    self.logger.debug(f"Volume metrics not available: {e}")
                     metadata['volume_metrics'] = None
             
             return ZoneFeatures(
@@ -361,6 +458,39 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         except Exception as e:
             self.logger.error(f"Failed to extract zone features: {e}")
             raise AnalysisError(f"Failed to extract zone features: {e}")
+    
+    def extract_all_zones_features(self, zones: List) -> List[ZoneFeatures]:
+        """
+        Извлечение признаков для списка зон (новая архитектура).
+        
+        Args:
+            zones: Список ZoneInfo объектов
+        
+        Returns:
+            List[ZoneFeatures]: Список признаков для каждой зоны
+            
+        Example:
+            from bquant.analysis.zones.models import ZoneInfo
+            
+            # zones - это List[ZoneInfo] из detection стратегии
+            analyzer = ZoneFeaturesAnalyzer()
+            features = analyzer.extract_all_zones_features(zones)
+        """
+        features_list = []
+        
+        for zone in zones:
+            try:
+                # Конвертируем ZoneInfo в формат для extract_zone_features
+                zone_dict = zone.to_analyzer_format()
+                features = self.extract_zone_features(zone_dict)
+                features_list.append(features)
+            except Exception as e:
+                self.logger.warning(f"Failed to extract features for zone {zone.zone_id}: {e}")
+                continue
+        
+        self.logger.info(f"Extracted features for {len(features_list)}/{len(zones)} zones")
+        
+        return features_list
     
     def analyze_zones_distribution(self, zones_features: List[Union[ZoneFeatures, Dict[str, Any]]]) -> AnalysisResult:
         """
@@ -409,11 +539,15 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             # Статистика по доходности
             return_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'price_return')
             
-            # Статистика по амплитуде MACD
-            macd_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'macd_amplitude')
+            # Статистика по амплитуде MACD (только если колонка есть)
+            macd_amplitude_stats = None
+            if 'macd_amplitude' in df_features.columns and df_features['macd_amplitude'].notna().any():
+                macd_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'macd_amplitude')
             
-            # Статистика по амплитуде гистограммы
-            hist_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'hist_amplitude')
+            # Статистика по амплитуде гистограммы (только если колонка есть)
+            hist_amplitude_stats = None
+            if 'hist_amplitude' in df_features.columns and df_features['hist_amplitude'].notna().any():
+                hist_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'hist_amplitude')
             
             # Дополнительные метрики
             additional_stats = {}
@@ -605,6 +739,51 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         except Exception as e:
             self.logger.error(f"Failed to get zone features summary: {e}")
             return {'error': str(e)}
+    
+    def _find_any_oscillator(self, data: pd.DataFrame) -> Optional[str]:
+        """
+        Find first suitable oscillator column (UNIVERSAL - no hardcoded names).
+        
+        Strategy (v2.1):
+        1. Get all numeric columns
+        2. Exclude OHLCV and known auxiliary columns (generic exclusion)
+        3. Return first remaining column
+        
+        This is TRULY UNIVERSAL - doesn't know about specific indicators!
+        No hardcoded patterns like 'RSI_', 'MACD_', 'AO_'
+        
+        Returns:
+            str: First suitable oscillator column, or None if not found
+        """
+        # Generic exclusion list (NOT indicator-specific!)
+        excluded = {
+            # Price data
+            'open', 'high', 'low', 'close', 'volume',
+            # Time data
+            'time', 'timestamp', 'date', 'datetime',
+            # Auxiliary (not oscillators)
+            'atr', 'true_range', 'tr',
+            # Index-like
+            'index', 'id', 'zone_id'
+        }
+        
+        # Get numeric columns
+        numeric_cols = data.select_dtypes(include=[np.number]).columns
+        
+        # Filter out excluded (case-insensitive)
+        candidates = [
+            col for col in numeric_cols 
+            if col.lower() not in excluded
+        ]
+        
+        if candidates:
+            selected = candidates[0]
+            self.logger.debug(
+                f"Generic oscillator detection: selected '{selected}' from {len(candidates)} candidates"
+            )
+            return selected
+        
+        return None
 
 
 # Удобные функции для быстрого использования

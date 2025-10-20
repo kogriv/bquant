@@ -331,14 +331,14 @@ class VolumeMetrics:
     Attributes:
         volume_zone_ratio: Ratio of zone volume to baseline
         volume_at_entry_change: Volume change at zone entry (%)
-        volume_macd_corr: Correlation between volume and MACD histogram
+        volume_indicator_corr: Correlation between volume and indicator (v2.1 - renamed from volume_macd_corr)
         avg_volume_zone: Average volume in zone
         strategy_name: Name of the strategy used
         strategy_params: Parameters of the strategy
     """
     volume_zone_ratio: Optional[float]
     volume_at_entry_change: Optional[float]
-    volume_macd_corr: Optional[float]
+    volume_indicator_corr: Optional[float]  # v2.1: renamed from volume_macd_corr
     avg_volume_zone: Optional[float]
     strategy_name: str
     strategy_params: Dict[str, Any] = field(default_factory=dict)
@@ -349,15 +349,15 @@ class VolumeMetrics:
             assert self.volume_zone_ratio >= 0, "volume_zone_ratio must be >= 0"
         if self.avg_volume_zone is not None:
             assert self.avg_volume_zone >= 0, "avg_volume_zone must be >= 0"
-        if self.volume_macd_corr is not None:
-            assert -1 <= self.volume_macd_corr <= 1, "volume_macd_corr must be in [-1, 1]"
+        if self.volume_indicator_corr is not None:
+            assert -1 <= self.volume_indicator_corr <= 1, "volume_indicator_corr must be in [-1, 1]"
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             'volume_zone_ratio': self.volume_zone_ratio,
             'volume_at_entry_change': self.volume_at_entry_change,
-            'volume_macd_corr': self.volume_macd_corr,
+            'volume_indicator_corr': self.volume_indicator_corr,  # v2.1: renamed
             'avg_volume_zone': self.avg_volume_zone,
             'strategy_name': self.strategy_name,
             'strategy_params': self.strategy_params

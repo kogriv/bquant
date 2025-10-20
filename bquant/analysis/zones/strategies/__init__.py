@@ -17,6 +17,21 @@ from .base import (
 
 from .registry import StrategyRegistry
 
+# Import concrete strategies to trigger registration via decorators
+from .swing import (
+    ZigZagSwingStrategy,
+    FindPeaksSwingStrategy,
+    PivotPointsSwingStrategy
+)
+
+from .divergence import ClassicDivergenceStrategy
+
+from .shape import StatisticalShapeStrategy
+
+from .volume import StandardVolumeStrategy
+
+from .volatility import CombinedVolatilityStrategy
+
 __all__ = [
     # Metrics dataclasses
     'SwingMetrics',
@@ -29,6 +44,14 @@ __all__ = [
     'ShapeCalculationStrategy',
     'VolumeCalculationStrategy',
     # Registry
-    'StrategyRegistry'
+    'StrategyRegistry',
+    # Concrete strategies
+    'ZigZagSwingStrategy',
+    'FindPeaksSwingStrategy',
+    'PivotPointsSwingStrategy',
+    'ClassicDivergenceStrategy',
+    'StatisticalShapeStrategy',
+    'StandardVolumeStrategy',
+    'CombinedVolatilityStrategy'
 ]
 
