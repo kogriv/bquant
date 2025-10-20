@@ -1,8 +1,18 @@
 """
-Classic Divergence Detection Strategy.
+Classic Divergence Detection Strategy - universal divergence detection for ANY oscillator.
 
-Detects regular and hidden divergences between price and MACD using 
+Detects regular and hidden divergences between price and oscillator using 
 traditional peak/trough comparison methodology.
+
+UNIVERSAL (v2.1):
+- Works with ANY oscillator: MACD, RSI, AO, CCI, Stochastic, custom, etc.
+- Supports both single-line and two-line indicators
+- Requires explicit indicator_col parameter
+
+Examples:
+    strategy.calculate_divergence(data, indicator_col='RSI_14')  # RSI
+    strategy.calculate_divergence(data, indicator_col='macd_hist')  # MACD
+    strategy.calculate_divergence(data, indicator_col='macd', indicator_line_col='macd_signal')  # 2-line
 """
 
 from dataclasses import dataclass

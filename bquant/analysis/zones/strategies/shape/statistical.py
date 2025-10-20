@@ -1,8 +1,18 @@
 """
-Statistical Shape Strategy - shape analysis using skewness and kurtosis.
+Statistical Shape Strategy - universal shape analysis for ANY oscillator.
 
-This strategy analyzes the shape of MACD histogram within a zone using
+This strategy analyzes the shape of oscillator within a zone using
 statistical moments (skewness and kurtosis) to classify zone archetypes.
+
+UNIVERSAL (v2.1):
+- Works with ANY oscillator: MACD, RSI, AO, CCI, Stochastic, custom, etc.
+- Requires explicit indicator_col parameter
+- NO hardcoded indicator names
+
+Examples:
+    strategy.calculate(data, indicator_col='macd_hist')  # MACD
+    strategy.calculate(data, indicator_col='RSI_14')     # RSI
+    strategy.calculate(data, indicator_col='AO_5_34')    # AO
 """
 
 from dataclasses import dataclass

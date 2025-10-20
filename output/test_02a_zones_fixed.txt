@@ -1,0 +1,945 @@
+12:13:15 - bquant - INFO - ╤шёЄхьр ыюуушЁютрэш  BQuant шэшЎшрышчшЁютрэр (ъюэёюы№: INFO)
+12:13:15 - bquant - INFO - ╦юуш ёюїЁрэ ■Єё  т Їрщы: C:\Users\Ivan\Documents\pro\bquant\examples\..\logs\bquant.log (єЁютхэ№: INFO)
+12:13:15 - bquant.analysis.zones - INFO - Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully
+12:13:15 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: zero_crossing
+12:13:15 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: threshold
+12:13:15 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: line_crossing
+12:13:15 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: preloaded
+12:13:15 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: combined
+12:13:15 - bquant.analysis.zones - INFO - Zone detection strategies loaded successfully
+12:13:15 - bquant.analysis.zones - INFO - UniversalZoneAnalyzer loaded successfully
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: sma
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: ema
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: rsi
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: macd
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: bbands
+[OK] Registered 6 BUILTIN indicators in custom module
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: macd_preloaded
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: macd_preloaded
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: sma
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: ema
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: rsi
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: macd
+12:13:15 - bquant.indicators.base - INFO - Registered indicator: bbands
+12:13:16 - bquant.indicators.library.pandas_ta - INFO - Discovered 246 pandas-ta callables
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_aberration
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_aberration
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_accbands
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_accbands
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ad
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ad
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_adosc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_adosc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_adx
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_adx
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_alligator
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_alligator
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_alma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_alma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_alphatrend
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_alphatrend
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_amat
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_amat
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ao
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ao
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_aobv
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_aobv
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_apo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_apo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_aroon
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_aroon
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_atr
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_atr
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_atrts
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_atrts
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_bbands
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_bbands
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_bias
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_bias
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_bop
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_bop
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_brar
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_brar
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_candle_color
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_candle_color
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cci
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cci
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_doji
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_doji
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_inside
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_inside
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_pattern
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_pattern
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_z
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_z
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cfo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cfo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cg
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cg
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_chandelier_exit
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_chandelier_exit
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_chop
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_chop
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cksp
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cksp
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cmf
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cmf
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cmo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cmo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_coppock
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_coppock
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_crsi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_crsi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cti
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cti
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_decay
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_decay
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_decreasing
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_decreasing
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_dema
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_dema
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_dm
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_dm
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_donchian
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_donchian
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_dpo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_dpo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_drawdown
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_drawdown
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ebsw
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ebsw
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_efi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_efi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ema
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ema
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_entropy
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_entropy
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_eom
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_eom
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_er
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_er
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_eri
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_eri
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_exhc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_exhc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_fisher
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_fisher
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_fwma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_fwma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ha
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ha
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_high_low_range
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_high_low_range
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hilo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hilo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hl2
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hl2
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hlc3
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hlc3
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ht_trendline
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ht_trendline
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hwc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hwc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hwma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hwma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ichimoku
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ichimoku
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_increasing
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_increasing
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_inertia
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_inertia
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_jma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_jma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kama
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kama
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kdj
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kdj
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kst
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kst
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kurtosis
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kurtosis
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kvo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kvo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_linreg
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_linreg
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_log_return
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_log_return
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_macd
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_macd
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mad
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mad
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mama
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mama
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_massi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_massi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mcgd
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mcgd
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_median
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_median
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mfi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mfi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_midpoint
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_midpoint
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_midprice
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_midprice
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mom
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mom
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_natr
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_natr
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_nvi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_nvi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_obv
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_obv
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ohlc4
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ohlc4
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pdist
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pdist
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_percent_return
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_percent_return
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pgo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pgo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pivots
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pivots
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ppo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ppo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_psar
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_psar
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_psl
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_psl
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvo
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvo
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvol
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvol
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvr
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvr
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvt
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvt
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pwma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pwma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_qqe
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_qqe
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_qstick
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_qstick
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_quantile
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_quantile
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_real_body
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_real_body
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_reflex
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_reflex
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_roc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_roc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rsi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rsi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rsx
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rsx
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rvgi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rvgi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rvi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rvi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rwi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rwi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_sinwma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_sinwma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_skew
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_skew
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_slope
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_slope
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_sma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_sma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_smc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_smc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_smi
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_smi
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_smma
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_smma
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_squeeze
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_squeeze
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_squeeze_pro
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_squeeze_pro
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ssf
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ssf
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ssf3
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ssf3
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stc
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stc
+12:13:17 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stdev
+12:13:17 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stdev
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stoch
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stoch
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stochf
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stochf
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stochrsi
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stochrsi
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_supertrend
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_supertrend
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_swma
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_swma
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_t3
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_t3
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tema
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tema
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_thermo
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_thermo
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tmo
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tmo
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tos_stdevall
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tos_stdevall
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_trendflex
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_trendflex
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_trima
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_trima
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_trix
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_trix
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_true_range
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_true_range
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tsi
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tsi
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tsv
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tsv
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ttm_trend
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ttm_trend
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ui
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ui
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_uo
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_uo
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_variance
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_variance
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vhf
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vhf
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vidya
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vidya
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vortex
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vortex
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vp
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vp
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vwap
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vwap
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vwma
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vwma
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_wcp
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_wcp
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_willr
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_willr
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_wma
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_wma
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_zigzag
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_zigzag
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_zlma
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_zlma
+12:13:18 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_zscore
+12:13:18 - bquant.indicators.base - INFO - Registered library function: pandas_ta_zscore
+12:13:18 - bquant.indicators.library.pandas_ta - INFO - Registered 158 pandas-ta indicators
+12:13:18 - bquant.indicators.library.manager - INFO - Loaded 158 indicators from pandas_ta
+12:13:18 - bquant.indicators.library.manager - INFO - Loaded 158 indicators from pandas_ta
+12:13:18 - bquant.indicators.library.talib - WARNING - TA-Lib is not available
+12:13:18 - bquant.indicators.library.manager - INFO - Loaded 0 indicators from talib
+12:13:18 - bquant.indicators.library.manager - INFO - Loaded 0 indicators from talib
+12:13:18 - bquant.indicators.library.manager - INFO - Total loaded indicators: 158
+12:13:18 - bquant.indicators - INFO - Loaded external libraries: {'pandas_ta': 158, 'talib': 0}
+12:13:18 - bquant.indicators - INFO - Library pandas_ta available with 158 indicators
+12:13:18 - bquant.indicators - WARNING - Library talib unavailable: Library not installed
+12:13:18 - bquant.analysis.zones - INFO - Zone analysis pipeline loaded successfully
+12:13:18 - bquant.analysis.zones - INFO - Zone analysis presets loaded successfully
+12:13:18 - bquant.analysis.zones - INFO - Zone features module loaded successfully
+12:13:20 - bquant.analysis.zones - INFO - Sequence analysis module loaded successfully
+
+================================================================================
+  Universal Zone Analysis - One API for All Indicators
+================================================================================
+
+[DATA] ├хэхЁрЎш  фрээ√ї...
+[OK] ╤ючфрэю 300 срЁют
+
+
+================================================================================
+  1. MACD Zones - Zero Crossing Strategy
+================================================================================
+
+╫хЁхч fluent API:
+12:13:20 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:20 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:20 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:20 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:20 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:20 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:20 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:20 - bquant.core.cache.DiskCache - INFO - Disk cache initialized: C:\Users\Ivan\.cache\bquant
+12:13:20 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:20 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: custom.macd
+12:13:20 - bquant.indicators.base.MACD - INFO - Calculating MACD (12, 26, 9)
+12:13:20 - bquant.data.processor - INFO - Calculating derived indicators
+12:13:20 - bquant.data.processor - INFO - Added 10 derived indicators
+12:13:20 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 3 zones: 2 bull, 1 bear
+12:13:20 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 3 zones
+12:13:20 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 3/3 zones
+12:13:20 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 3 zones
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:20 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:20 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 3 zones
+12:13:20 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Clustering 3 zones into 3 clusters
+12:13:20 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Using features for clustering: ['duration', 'macd_amplitude', 'hist_amplitude', 'price_range_pct', 'correlation_price_hist', 'num_peaks', 'num_troughs']
+12:13:22 - bquant.analysis.zones.sequence_analysis - WARNING - Failed to calculate clustering quality metrics: Number of labels is 3. Valid values are 2 to n_samples - 1 (inclusive)
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Performed clustering: 3 clusters
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 3 zones, clustering=True, regression=False
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] MACD - └эрышч чртхЁ°хэ:
+   ╟юэ: 3
+   - bull: 2
+   - bear: 1
+   ╤Ёхфэ   фышЄхы№эюёЄ№: 100.0 срЁют
+
+   [INFO] Zone Detection Context:
+      Indicator used: macd_hist
+      Strategy used: zero_crossing
+      Signal line: None
+
+╫хЁхч preset (ъюЁюўх):
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: custom.macd
+12:13:22 - bquant.indicators.base.MACD - INFO - Calculating MACD (12, 26, 9)
+12:13:22 - bquant.data.processor - INFO - Calculating derived indicators
+12:13:22 - bquant.data.processor - INFO - Added 10 derived indicators
+12:13:22 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 3 zones: 2 bull, 1 bear
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 3/3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 3 zones
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 3 zones
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Clustering 3 zones into 3 clusters
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Using features for clustering: ['duration', 'macd_amplitude', 'hist_amplitude', 'price_range_pct', 'correlation_price_hist', 'num_peaks', 'num_troughs']
+12:13:22 - bquant.analysis.zones.sequence_analysis - WARNING - Failed to calculate clustering quality metrics: Number of labels is 3. Valid values are 2 to n_samples - 1 (inclusive)
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Performed clustering: 3 clusters
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 3 zones, clustering=True, regression=False
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+   ╟юэ ўхЁхч preset: 3
+
+================================================================================
+  2. RSI Zones - Threshold Strategy
+================================================================================
+
+╬яЁхфхыхэшх чюэ яхЁхъєяыхээюёЄш/яхЁхяЁюфрээюёЄш:
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: pandas_ta.rsi
+12:13:22 - bquant.data.processor - INFO - Calculating derived indicators
+12:13:22 - bquant.data.processor - INFO - Added 10 derived indicators
+12:13:22 - bquant.analysis.zones.detection.threshold - INFO - Detected 0 zones: OB=0, N=0, OS=0
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - No zones provided, returning empty result
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] RSI - └эрышч чртхЁ°хэ:
+   ╟юэ: 0
+
+╫хЁхч preset:
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: pandas_ta.rsi
+12:13:22 - bquant.data.processor - INFO - Calculating derived indicators
+12:13:22 - bquant.data.processor - INFO - Added 10 derived indicators
+12:13:22 - bquant.analysis.zones.detection.threshold - INFO - Detected 0 zones: OB=0, N=0, OS=0
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - No zones provided, returning empty result
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+   ╟юэ ўхЁхч preset: 0
+
+================================================================================
+  3. Awesome Oscillator Zones - Zero Crossing Strategy
+================================================================================
+
+╥р цх ёЄЁрЄхуш , ўЄю ш MACD, эю фЁєующ шэфшърЄюЁ:
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: pandas_ta.ao
+12:13:22 - bquant.data.processor - INFO - Calculating derived indicators
+12:13:22 - bquant.data.processor - INFO - Added 10 derived indicators
+12:13:22 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 3 zones: 2 bull, 1 bear
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 3/3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 3 zones
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 3 zones
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 3 zones, clustering=False, regression=False
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] AO - └эрышч чртхЁ°хэ:
+   ╟юэ: 3
+   - bull: 2
+   - bear: 1
+   ╤Ёхфэ   фышЄхы№эюёЄ№: 89.0 срЁют
+
+   [INFO] Zone Detection Context:
+      Indicator used: AO_5_34
+      Strategy used: zero_crossing
+      (Same strategy as MACD, different indicator!)
+
+╫хЁхч preset:
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: pandas_ta.ao
+12:13:22 - bquant.data.processor - INFO - Calculating derived indicators
+12:13:22 - bquant.data.processor - INFO - Added 10 derived indicators
+12:13:22 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 3 zones: 2 bull, 1 bear
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 3/3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 3 zones
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 3 zones
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Clustering 3 zones into 3 clusters
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Using features for clustering: ['duration', 'macd_amplitude', 'hist_amplitude', 'price_range_pct', 'correlation_price_hist', 'num_peaks', 'num_troughs']
+12:13:22 - bquant.analysis.zones.sequence_analysis - WARNING - Failed to calculate clustering quality metrics: Number of labels is 3. Valid values are 2 to n_samples - 1 (inclusive)
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Performed clustering: 3 clusters
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 3 zones, clustering=True, regression=False
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+   ╟юэ ўхЁхч preset: 3
+
+================================================================================
+  4. Moving Average Crossover - Line Crossing Strategy
+================================================================================
+
+╟юэ√ эр юёэютх яхЁхёхўхэш  фтєї ёъюы№ч ∙шї ёЁхфэшї:
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.detection.line_crossing - INFO - Detected 3 zones from line crossing
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 3/3 zones
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 3 zones
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 3 zones
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 3 zones, clustering=False, regression=False
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] MA Crossover - └эрышч чртхЁ°хэ:
+   ╟юэ: 3
+   - bull: 2
+   - bear: 1
+   ╤Ёхфэ   фышЄхы№эюёЄ№: 90.3 срЁют
+
+   [INFO] 2-Line Detection Context:
+      Primary line: sma_fast
+      Signal line: sma_slow
+      Strategy: line_crossing
+
+================================================================================
+  5. Stochastic %K/%D - Line Crossing (v2.1)
+================================================================================
+
+╟юэ√ эр юёэютх яхЁхёхўхэш  ышэшщ Stochastic:
+12:13:22 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:22 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:22 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:22 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:22 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:22 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:22 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:22 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:22 - bquant.analysis.zones.detection.line_crossing - INFO - Detected 62 zones from line crossing
+12:13:22 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 62 zones
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 62/62 zones
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 62 zones
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 62 zones
+12:13:23 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 62 zones, clustering=False, regression=False
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] Stochastic K/D - └эрышч чртхЁ°хэ:
+   ╟юэ: 62
+   - bull: 30
+   - bear: 32
+   ╤Ёхфэ   фышЄхы№эюёЄ№: 3.9 срЁют
+
+   [INFO] 2-Line Oscillator Context:
+      Primary line: STOCH_K
+      Signal line: STOCH_D
+      Strategy: line_crossing
+      (Zones detected when %K crosses %D)
+
+================================================================================
+  6. Custom Indicator - Zero Code Changes Needed!
+================================================================================
+
+Creating a custom momentum indicator (any calculation!):
+12:13:23 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:23 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:23 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:23 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:23 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:23 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 5 zones: 3 bull, 2 bear
+12:13:23 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 5 zones
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 5/5 zones
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 5 zones
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 5)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 5)
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 5 zones
+12:13:23 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 5 zones, clustering=False, regression=False
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] Custom Momentum - └эрышч чртхЁ°хэ:
+   ╟юэ: 5
+   - bull: 3
+   - bear: 2
+   ╤Ёхфэ   фышЄхы№эюёЄ№: 55.8 срЁют
+
+   [INFO] Custom Indicator Context:
+      Indicator used: MY_MOMENTUM
+      Strategy used: zero_crossing
+
+   [*] NO hardcoded 'MY_MOMENTUM' anywhere in BQuant source!
+   [*] TRUE UNIVERSALITY - works with ANY indicator!
+
+================================================================================
+  7. Preloaded Zones - External Data
+================================================================================
+
+└эрышч чюэ шч тэх°эхую шёЄюўэшър (CSV, Excel, database):
+12:13:23 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:23 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:23 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:23 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:23 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+12:13:23 - bquant.analysis.zones.detection.preloaded - INFO - Loaded 3 preloaded zones
+12:13:23 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 3 zones
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 3/3 zones
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 3 zones
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Correlation-drawdown hypothesis test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test correlation_drawdown failed: Correlation-drawdown test failed: Insufficient data for correlation-drawdown test (need at least 10 zones, got 0)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Zone duration stationarity test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test duration_stationarity failed: ADF test failed: Insufficient data for ADF test (need at least 10 zones, got 3)
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 3 zones
+12:13:23 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 3 zones, clustering=False, regression=False
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] Preloaded - └эрышч чртхЁ°хэ:
+   ╟юэ: 3
+   - bull: 2
+   - bear: 1
+   ╤Ёхфэ   фышЄхы№эюёЄ№: 12.3 срЁют
+
+================================================================================
+  8. ╩¤°шЁютрэшх ш яхЁёшёЄхэЄэюх їЁрэхэшх
+================================================================================
+
+└тЄюьрЄшўхёъюх ъ¤°шЁютрэшх Ёхчєы№ЄрЄют:
+----------------------------------------
+╧хЁт√щ чряєёъ (cache miss)...
+12:13:23 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:23 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:23 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:23 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:23 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+   ╟юэ: 3
+
+┬ЄюЁющ чряєёъ (cache hit)...
+12:13:23 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:13:23 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:13:23 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:13:23 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:13:23 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:13:23 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:13:23 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:13:23 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+   ╟юэ: 3 (чруЁєцхэю шч ъ¤°р)
+
+╤юїЁрэхэшх Ёхчєы№ЄрЄют:
+----------------------------------------
+12:13:23 - bquant.analysis.zones.models - INFO - Saved ZoneAnalysisResult to results\macd_zones.pkl (format: pickle)
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\examples\02a_universal_zones.py", line 482, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Ivan\Documents\pro\bquant\examples\02a_universal_zones.py", line 382, in main
+    print("   \U0001f4be Pickle: results/macd_zones.pkl")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f4be' in position 3: character maps to <undefined>

@@ -5,8 +5,8 @@ BQuant - MACD Zone Analysis: Old vs New Approach
 Этот пример демонстрирует миграцию на новую универсальную архитектуру анализа зон.
 
 Разделы:
-1. ⚠️ Deprecated подход (MACDZoneAnalyzer) - для backward compatibility
-2. ✅ Новый универсальный подход (analyze_zones) - RECOMMENDED
+1. [!] Deprecated подход (MACDZoneAnalyzer) - для backward compatibility
+2. [OK] Новый универсальный подход (analyze_zones) - RECOMMENDED
 3. Разные стратегии детекции зон
 4. Модульное использование компонентов
 5. Базовая визуализация результатов
@@ -84,11 +84,11 @@ def main():
     print(f"[OK] Created {len(df)} bars (period: {df.index[0]} - {df.index[-1]})")
     
     # ========================================================================
-    # РАЗДЕЛ 1: ⚠️ DEPRECATED ПОДХОД (для backward compatibility)
+    # РАЗДЕЛ 1: [!] DEPRECATED ПОДХОД (для backward compatibility)
     # ========================================================================
-    print_separator("1. ⚠️ Deprecated подход (MACDZoneAnalyzer)")
+    print_separator("1. [!] Deprecated подход (MACDZoneAnalyzer)")
     
-    print("⚠️ WARNING: Этот подход устарел и будет удален в v3.0.0")
+    print("[!] WARNING: Этот подход устарел и будет удален в v3.0.0")
     print("   Используется только для backward compatibility\n")
     
     from bquant.indicators.macd import MACDZoneAnalyzer
@@ -107,9 +107,9 @@ def main():
     print(f"   - Bear zones: {sum(1 for z in result_old.zones if z.type == 'bear')}")
     
     # ========================================================================
-    # РАЗДЕЛ 2: ✅ НОВЫЙ УНИВЕРСАЛЬНЫЙ ПОДХОД (RECOMMENDED)
+    # РАЗДЕЛ 2: [OK] НОВЫЙ УНИВЕРСАЛЬНЫЙ ПОДХОД (RECOMMENDED)
     # ========================================================================
-    print_separator("2. ✅ Новый универсальный подход (RECOMMENDED)")
+    print_separator("2. [OK] Новый универсальный подход (RECOMMENDED)")
     
     from bquant.analysis.zones import analyze_zones
     
@@ -176,23 +176,25 @@ def main():
     )
     print(f"   Зон: {len(result_line.zones)}")
     
-    print("\nСтратегия 3: Combined Rules (комбинация правил)")
+    print("\nСтратегия 3: Combined Rules (комбинация условий)")
     print("-" * 40)
     
+    # Combined strategy требует условия (callable functions), а не стратегии
+    # Note: кэширование отключено, так как lambda functions не JSON serializable
     result_combined = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('combined',
-                     strategies=[
-                         {'strategy': 'zero_crossing', 'indicator_col': 'macd_hist'},
-                         {'strategy': 'threshold', 'indicator_col': 'macd_hist', 
-                          'upper_threshold': 0.005, 'lower_threshold': -0.005}
+                     conditions=[
+                         lambda d: d['macd_hist'] > 0,  # Условие 1: гистограмма положительная
+                         lambda d: d['macd_hist'].abs() > 0.005  # Условие 2: сильный сигнал
                      ],
-                     logic='and')
+                     logic='AND')  # Обе условия должны быть True
+        .with_cache(enable=False)  # Отключаем кэширование (lambda не serializable)
         .analyze(clustering=False)
         .build()
     )
-    print(f"   Зон: {len(result_combined.zones)} (только где обе стратегии согласны)")
+    print(f"   Зон: {len(result_combined.zones)} (где обе условия выполнены)")
     
     # ========================================================================
     # РАЗДЕЛ 4: МОДУЛЬНОЕ ИСПОЛЬЗОВАНИЕ
@@ -229,7 +231,7 @@ def main():
     import pickle
     with open('macd_zones.pkl', 'wb') as f:
         pickle.dump(zones, f)
-    print(f"   💾 Зоны сохранены в macd_zones.pkl")
+    print(f"   [SAVE] Зоны сохранены в macd_zones.pkl")
     
     print("\nСценарий 2: Анализ готовых зон (без детекции)")
     print("-" * 40)
@@ -265,10 +267,10 @@ def main():
     
     # Сохранение в разных форматах
     result_new.save('macd_analysis_full.pkl', format='pickle', include_data=True)
-    print("   💾 Полный результат: macd_analysis_full.pkl")
+    print("   [SAVE] Полный результат: macd_analysis_full.pkl")
     
     result_new.save('macd_analysis_light.json', format='json', include_data=False)
-    print("   💾 Легкий результат (без данных): macd_analysis_light.json")
+    print("   [SAVE] Легкий результат (без данных): macd_analysis_light.json")
     
     print("\nВизуализация через ZoneAnalysisResult.visualize():")
     print("-" * 40)
@@ -295,20 +297,20 @@ def main():
     print(f"{'Bull зоны':<30} {sum(1 for z in result_old.zones if z.type == 'bull'):<15} {sum(1 for z in result_new.zones if z.type == 'bull'):<15}")
     print(f"{'Bear зоны':<30} {sum(1 for z in result_old.zones if z.type == 'bear'):<15} {sum(1 for z in result_new.zones if z.type == 'bear'):<15}")
     
-    print("\n✅ Ключевые преимущества нового подхода:")
+    print("\n[OK] Ключевые преимущества нового подхода:")
     print("   1. Универсальность - один API для всех индикаторов")
     print("   2. Гибкость - множество стратегий детекции")
     print("   3. Модульность - можно использовать компоненты отдельно")
     print("   4. Кэширование - автоматическое сохранение результатов")
     print("   5. Расширяемость - легко добавлять новые стратегии")
     
-    print("\n📚 Дополнительные примеры:")
-    print("   - examples/02a_universal_zones.py - универсальный API для разных индикаторов")
-    print("   - examples/04_comprehensive_analysis.py - полный pipeline с визуализацией")
-    print("   - research/notebooks/03_zones_universal.py - детальное исследование")
+    print("\n[DOCS] Additional examples:")
+    print("   - examples/02a_universal_zones.py - universal API for different indicators")
+    print("   - examples/04_comprehensive_analysis.py - full pipeline with visualization")
+    print("   - research/notebooks/03_zones_universal.py - detailed research")
     
-    print("\n🎯 Рекомендация для новых проектов:")
-    print("   Используйте новый универсальный API:")
+    print("\n[TARGET] Recommendation for new projects:")
+    print("   Use the new universal API:")
     print("   from bquant.analysis.zones import analyze_zones")
     print("   result = analyze_zones(df).with_indicator(...).detect_zones(...).build()")
 

@@ -1,0 +1,195 @@
+12:58:51 - bquant - INFO - ╤шёЄхьр ыюуушЁютрэш  BQuant шэшЎшрышчшЁютрэр (ъюэёюы№: INFO)
+12:58:51 - bquant - INFO - ╦юуш ёюїЁрэ ■Єё  т Їрщы: C:\Users\Ivan\Documents\pro\bquant\logs\bquant.log (єЁютхэ№: INFO)
+[OK] Registered 6 BUILTIN indicators in custom module
+12:58:51 - bquant.analysis.zones - INFO - Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully
+12:58:51 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: zero_crossing
+12:58:51 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: threshold
+12:58:51 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: line_crossing
+12:58:51 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: preloaded
+12:58:51 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: combined
+12:58:51 - bquant.analysis.zones - INFO - Zone detection strategies loaded successfully
+12:58:51 - bquant.analysis.zones - INFO - UniversalZoneAnalyzer loaded successfully
+12:58:51 - bquant.analysis.zones - INFO - Zone analysis pipeline loaded successfully
+12:58:51 - bquant.analysis.zones - INFO - Zone analysis presets loaded successfully
+12:58:52 - bquant.analysis.zones - INFO - Zone features module loaded successfully
+12:58:53 - bquant.analysis.zones - INFO - Sequence analysis module loaded successfully
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+12:58:55 - bquant.indicators.library.talib - WARNING - TA-Lib is not available
+12:58:55 - bquant.indicators - WARNING - Library talib unavailable: Library not installed
+[OUTPUT] Output will be written to: research\notebooks\03_analysis_new_features_log.txt
+[>>] Starting ╥хёЄшЁютрэшх эютюую ЇєэъЎшюэрыр рэрышчр чюэ (Phases 3.3-3.8)
+================================================================================
+[SCRIPT] ╥хёЄшЁютрэшх эютюую ЇєэъЎшюэрыр рэрышчр чюэ (Phases 3.3-3.8)
+[DATE] Started: 2025-10-20 12:58:55
+================================================================================
+================================================================================
+[STEP] STEP 1: ╪ру 1: ╧юфуюЄютър фрээ√ї ш срчют√щ рэрышч чюэ
+-----------------------------------------------------
+[INFO] ╟руЁєцрхь фрээ√х ш юяЁхфхы хь чюэ√ фы  ЄхёЄшЁютрэш  эютюую ЇєэъЎшюэрыр.
+[INFO] 1.1. ╟руЁєчър sample фрээ√ї:
+[OK] ╩юыюэър 'time' яЁхюсЁрчютрэр т DatetimeIndex
+  ┴рЁют чруЁєцхэю: 1000
+  ╧хЁшюф: 2025-06-11 20:00:00+07:00 - 2025-08-12 13:00:00+07:00
+  ╩юыюэъш: ['open', 'high', 'low', 'close', 'volume', 'accumulation_distribution', 'macd', 'signal', 'rsi', 'rsi_based_ma', 'regular_bullish', 'regular_bullish_label', 'regular_bearish', 'regular_bearish_label']
+[INFO] 1.2. ┴рчют√щ рэрышч MACD чюэ:
+12:58:55 - bquant.indicators.macd - WARNING - MACDZoneAnalyzer is deprecated. Please migrate to: from bquant.analysis.zones import analyze_zones
+12:58:55 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:58:55 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+12:58:55 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+12:58:55 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+12:58:55 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+12:58:55 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+12:58:55 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+12:58:55 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+12:58:55 - bquant.core.cache.DiskCache - INFO - Disk cache initialized: C:\Users\Ivan\.cache\bquant
+12:58:56 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+[OK] └эрышч чртхЁ°хэ чр 0.05 ёхъ
+  ╟юэ эрщфхэю: 72
+  ┴√ў№шї чюэ: 0
+  ╠хфтхц№шї чюэ: 0
+  ╤Ёхфэ   фышЄхы№эюёЄ№: 0.0 срЁют
+[OK] Data preparation completed successfully
+================================================================================
+[STEP] STEP 2: ╪ру 2: ╥хёЄшЁютрэшх Time Metrics (Phase 3.3)
+----------------------------------------------------
+[INFO] Phase 3.3: peak_time_ratio ш trough_time_ratio - ъюуфр т чюэх яЁюшёїюф Є яшъш/тярфшэ√.
+[INFO] 2.1. ╚чтыхўхэшх time metrics фы  яхЁт√ї чюэ:
+12:58:56 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+12:58:56 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+[FAIL] Time metrics testing failed: 'MACDZoneAnalyzer' object has no attribute '_zone_to_dict'
+
+--- TRACEBACK ---
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\bquant\core\nb.py", line 385, in error_handling
+    yield
+  File "C:\Users\Ivan\Documents\pro\bquant\research\notebooks\03_analysis_new_features.py", line 109, in <module>
+    zone_dict = macd_analyzer._zone_to_dict(zone)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MACDZoneAnalyzer' object has no attribute '_zone_to_dict'
+
+--- END TRACEBACK ---
+
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\research\notebooks\03_analysis_new_features.py", line 109, in <module>
+    zone_dict = macd_analyzer._zone_to_dict(zone)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MACDZoneAnalyzer' object has no attribute '_zone_to_dict'

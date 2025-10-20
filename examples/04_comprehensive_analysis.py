@@ -76,10 +76,10 @@ def main():
     # ========================================================================
     print_section("1. Подготовка данных")
     
-    print("📊 Генерация данных с разными рыночными режимами...")
+    print("[DATA] Генерация данных с разными рыночными режимами...")
     df = create_comprehensive_data(rows=500)
     
-    print(f"✅ Создано {len(df)} баров")
+    print(f"[OK] Создано {len(df)} баров")
     print(f"   Период: {df.index[0]} - {df.index[-1]}")
     print(f"   Диапазон цен: {df['close'].min():.2f} - {df['close'].max():.2f}")
     print(f"   Изменение: {((df['close'].iloc[-1] / df['close'].iloc[0]) - 1) * 100:.2f}%")
@@ -87,7 +87,7 @@ def main():
     # ========================================================================
     # 2. ПОЛНЫЙ PIPELINE С КЭШИРОВАНИЕМ
     # ========================================================================
-    print_section("2. Полный pipeline: Indicator → Detection → Analysis")
+    print_section("2. Полный pipeline: Indicator -> Detection -> Analysis")
     
     print("Выполнение полного pipeline с автоматическим кэшированием:")
     
@@ -107,7 +107,7 @@ def main():
         .build()
     )
     
-    print(f"✅ Pipeline завершен:")
+    print(f"[OK] Pipeline завершен:")
     print(f"   Зон обнаружено: {len(result.zones)}")
     print(f"   Bull зон: {sum(1 for z in result.zones if z.type == 'bull')}")
     print(f"   Bear зон: {sum(1 for z in result.zones if z.type == 'bear')}")
@@ -165,15 +165,15 @@ def main():
     
     # Pickle - полный результат
     result.save('results/comprehensive_analysis.pkl', format='pickle')
-    print("   💾 Pickle (полный): results/comprehensive_analysis.pkl")
+    print("   [SAVE] Pickle (полный): results/comprehensive_analysis.pkl")
     
     # JSON - легкий формат без данных
     result.save('results/comprehensive_analysis.json', format='json', include_data=False)
-    print("   💾 JSON (без данных): results/comprehensive_analysis.json")
+    print("   [SAVE] JSON (без данных): results/comprehensive_analysis.json")
     
     # Parquet - оптимальный формат
     result.save('results/comprehensive_analysis.parquet', format='parquet', compress=True)
-    print("   💾 Parquet (сжатый): results/comprehensive_analysis.parquet/")
+    print("   [SAVE] Parquet (сжатый): results/comprehensive_analysis.parquet/")
     
     # ========================================================================
     # 5. МОДУЛЬНОЕ ИСПОЛЬЗОВАНИЕ
@@ -235,7 +235,7 @@ def main():
     result_ao = analyze_ao_zones(df, fast=5, slow=34, clustering=False)
     print(f"   AO: {len(result_ao.zones)} зон")
     
-    print("\n   💡 Разные индикаторы находят разные зоны!")
+    print("\n   [*] Разные индикаторы находят разные зоны!")
     print("   Используйте несколько индикаторов для подтверждения сигналов")
     
     # ========================================================================
@@ -250,7 +250,7 @@ def main():
     # Загружаем из pickle
     loaded_result = ZoneAnalysisResult.load('results/comprehensive_analysis.pkl')
     
-    print(f"   ✅ Загружено из файла:")
+    print(f"   [OK] Загружено из файла:")
     print(f"   Зон: {len(loaded_result.zones)}")
     print(f"   Статистика: {'Да' if loaded_result.statistics else 'Нет'}")
     print(f"   Кластеризация: {'Да' if loaded_result.clustering else 'Нет'}")
@@ -265,28 +265,28 @@ def main():
     # ========================================================================
     print_separator("Итоги comprehensive analysis")
     
-    print("✅ Выполнено:")
+    print("[OK] Выполнено:")
     print("   1. Загрузка данных с разными рыночными режимами")
-    print("   2. Полный pipeline: indicator → detection → analysis")
+    print("   2. Полный pipeline: indicator -> detection -> analysis")
     print("   3. Детальный анализ результатов (статистика, последовательности, кластеры)")
     print("   4. Сохранение в 3 форматах (pickle, JSON, parquet)")
     print("   5. Модульное использование компонентов")
     print("   6. Сравнение разных индикаторов")
     print("   7. Загрузка и продолжение работы")
     
-    print("\n🎯 Ключевые возможности:")
+    print("\n[TARGET] Ключевые возможности:")
     print("   - Универсальность: один API для всех индикаторов")
     print("   - Гибкость: множество стратегий и параметров")
     print("   - Производительность: автоматическое кэширование")
     print("   - Модульность: используйте только нужные компоненты")
     print("   - Персистентность: сохранение и загрузка результатов")
     
-    print("\n📚 Дополнительные ресурсы:")
-    print("   - examples/02_macd_zone_analysis.py - базовый пример MACD")
-    print("   - examples/02a_universal_zones.py - все индикаторы")
-    print("   - research/notebooks/03_zones_universal.py - детальное исследование")
-    print("   - devref/gaps/zo/zomodul.md - модульное использование")
-    print("   - devref/gaps/zo/zonan.md - полная архитектура")
+    print("\n[DOCS] Additional resources:")
+    print("   - examples/02_macd_zone_analysis.py - basic MACD example")
+    print("   - examples/02a_universal_zones.py - all indicators")
+    print("   - research/notebooks/03_zones_universal.py - detailed research")
+    print("   - devref/gaps/zo/zomodul.md - modular usage")
+    print("   - devref/gaps/zo/zonan.md - full architecture")
     
     print("\n" + "="*80)
 

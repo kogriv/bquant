@@ -1,0 +1,493 @@
+12:49:49 - bquant - INFO - ╤шёЄхьр ыюуушЁютрэш  BQuant шэшЎшрышчшЁютрэр (ъюэёюы№: INFO)
+12:49:49 - bquant - INFO - ╦юуш ёюїЁрэ ■Єё  т Їрщы: C:\Users\Ivan\Documents\pro\bquant\logs\bquant.log (єЁютхэ№: INFO)
+[OUTPUT] Output will be written to: research\notebooks\02_ind_macd_log.txt
+[>>] Starting MACD Zone Analysis: Migration Guide
+=======================================================
+[SCRIPT] MACD Zone Analysis: Migration Guide
+[DATE] Started: 2025-10-20 12:49:49
+=======================================================
+================================================================================
+[STEP] STEP 1: ╪ру 1: ╟руЁєчър ЄхёЄют√ї фрээ√ї
+---------------------------------------
+[INFO] ╟руЁєцрхь sample-фрээ√х XAUUSD 1H:
+[OK] DatetimeIndex єёЄрэютыхэ
+╟руЁєцхэю: 1000 срЁют
+╧хЁшюф: 2025-06-11 20:00:00+07:00 - 2025-08-12 13:00:00+07:00
+╩юыюэъш: open, high, low, close, volume...
+================================================================================
+[STEP] STEP 2: ╪ру 2: ╤ЄрЁ√щ API (deprecated) - яюэшьрэшх яЁюсыхь√
+-----------------------------------------------------------
+[WARN] ┬═╚╠└═╚┼: MACDZoneAnalyzer deprecated ш сєфхЄ єфрыхэ т v3.0.0!
+[INFO] ╧Ёюсыхь√ ёЄрЁюую API:
+  [-] ╨рсюЄрхЄ ╥╬╦▄╩╬ ё MACD (эхЄ єэштхЁёры№эюёЄш)
+  [-] ╠юэюышЄэр  рЁїшЄхъЄєЁр (ёыюцэю Ёрё°шЁ Є№)
+  [-] ═хЄ тёЄЁюхээюую ъ¤°шЁютрэш 
+  [-] ╬уЁрэшўхээ√х ЇюЁьрЄ√ ¤ъёяюЁЄр
+  [-] ╥хїэшўхёъшх яЁюсыхь√ ёютьхёЄшьюёЄш
+  [-] ┴єфхЄ єфрыхэ т v3.0.0
+
+======================================================================
+╧╨╚╠┼╨ ╤╥└╨╬├╬ ╩╬─└ (deprecated):
+======================================================================
+
+from bquant.indicators.macd import MACDZoneAnalyzer
+
+# ╤ючфрэшх рэрышчрЄюЁр
+analyzer = MACDZoneAnalyzer(
+    macd_params={'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
+    zone_params={'min_duration': 2}
+)
+
+# └эрышч чюэ
+result = analyzer.analyze_complete_modular(
+    df,
+    perform_clustering=False
+)
+
+# ╨хчєы№ЄрЄ:
+# - result.zones: ёяшёюъ чюэ
+# - result.features: їрЁръЄхЁшёЄшъш чюэ
+# - result.statistics: ёЄрЄшёЄшър
+
+======================================================================
+[INFO] ═хфюёЄрЄъш Єръюую яюфїюфр:
+  * ╧Ёшт чър ъ ъюэъЁхЄэюьє шэфшърЄюЁє (MACD)
+  * ╤ыюцэю фюсртшЄ№ эют√х шэфшърЄюЁ√
+  * ─єсышЁютрэшх ъюфр фы  ърцфюую шэфшърЄюЁр
+  * ╬ЄёєЄёЄтшх яхЁхшёяюы№чютрэш  ъюьяюэхэЄют
+================================================================================
+[STEP] STEP 3: ╪ру 3: ═╬┬█╔ єэштхЁёры№э√щ API - Ёхтюы■Ўш !
+---------------------------------------------------
+[INFO] ═ют√щ яюфїюф: ╬─╚═ API фы  ┬╤┼╒ шэфшърЄюЁют!
+
+======================================================================
+═╬┬█╔ ╩╬─ - ┬рЁшрэЄ 1: Fluent Builder
+======================================================================
+
+from bquant.analysis.zones import analyze_zones
+
+# ╥юЄ цх рэрышч, эю єэштхЁёры№э√щ!
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', 
+                   fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', 
+                 indicator_col='macd_hist', min_duration=2)
+    .analyze()
+    .build()
+)
+
+# ╨хчєы№ЄрЄ - ЄюЄ цх ZoneAnalysisResult!
+# - result.zones
+# - result.features  
+# - result.statistics
+
+======================================================================
+
+======================================================================
+═╬┬█╔ ╩╬─ - ┬рЁшрэЄ 2: Convenience Preset
+======================================================================
+
+from bquant.analysis.zones import analyze_macd_zones
+
+# ┼┘┼ ╧╨╬┘┼ фы  MACD!
+result = analyze_macd_zones(
+    df,
+    fast=12,
+    slow=26,
+    signal=9,
+    min_duration=2
+)
+
+# ╬фшэ т√чют - тёх уюЄютю!
+
+======================================================================
+
+[INFO] ╧Ёхшьє∙хёЄтр эютюую API:
+  [+] ╙эштхЁёры№эюёЄ№ - ЁрсюЄрхЄ ё ╦▐┴█╠╚ шэфшърЄюЁрьш
+  [+] Fluent syntax - ўшЄрхь√щ, яюэ Єэ√щ ъюф
+  [+] ╠юфєы№эюёЄ№ - шёяюы№чєщЄх ъюьяюэхэЄ√ юЄфхы№эю
+  [+] ╩¤°шЁютрэшх - ртЄюьрЄшўхёъюх, шч ъюЁюсъш
+  [+] ▌ъёяюЁЄ - 3 ЇюЁьрЄр (pickle, JSON, parquet)
+  [+] Convenience presets - с√ёЄЁ√щ ёЄрЁЄ
+================================================================================
+[STEP] STEP 4: ╪ру 4: Migration Guide - яю°руют√щ яхЁхїюф
+--------------------------------------------------
+[INFO] ╩ръ ьшуЁшЁютрЄ№ ёЄрЁ√щ ъюф эр эют√щ API:
+
+╠╚├╨└╓╚▀ ╪└├ 1: ╟рьхэр шьяюЁЄр
+----------------------------------------------------------------------
+┴√ыю:
+  from bquant.indicators.macd import MACDZoneAnalyzer
+
+╤Єрыю:
+  from bquant.analysis.zones import analyze_zones
+  # шыш фы  с√ёЄЁюую ёЄрЁЄр:
+  from bquant.analysis.zones import analyze_macd_zones
+
+╠╚├╨└╓╚▀ ╪└├ 2: ╟рьхэр ёючфрэш  рэрышчрЄюЁр
+----------------------------------------------------------------------
+┴√ыю:
+  analyzer = MACDZoneAnalyzer(
+      macd_params={'fast_period': 12, ...}
+  )
+
+╤Єрыю (трЁшрэЄ A - builder):
+  builder = (
+      analyze_zones(df)
+      .with_indicator('custom', 'macd', fast_period=12, ...)
+  )
+
+╤Єрыю (трЁшрэЄ B - preset):
+  # ╧ЁюёЄю т√чют ЇєэъЎшш, схч ёючфрэш  юс·хъЄют!
+
+╠╚├╨└╓╚▀ ╪└├ 3: ╟рьхэр т√чютр analyze
+----------------------------------------------------------------------
+┴√ыю:
+  result = analyzer.analyze_complete_modular(df)
+
+╤Єрыю (трЁшрэЄ A - builder):
+  result = (
+      builder
+      .detect_zones('zero_crossing', indicator_col='macd_hist')
+      .analyze()
+      .build()
+  )
+
+╤Єрыю (трЁшрэЄ B - preset):
+  result = analyze_macd_zones(df, fast=12, slow=26, signal=9)
+
+[INFO] ╬Ўхэър тЁхьхэш ьшуЁрЎшш:
+  * ╧ЁюёЄющ яЁюхъЄ (1-3 Їрщыр):   10-15 ьшэєЄ
+  * ╤Ёхфэшщ яЁюхъЄ (5-10 Їрщыют):  30-60 ьшэєЄ
+  * ╩Ёєяэ√щ яЁюхъЄ (20+ Їрщыют):   2-3 ўрёр
+
+  ROI: ─юыуюёЁюўэр  яюффхЁцър + эют√х тючьюцэюёЄш
+================================================================================
+[STEP] STEP 5: ╪ру 5: ╨рчышўэ√х ёЄЁрЄхушш фхЄхъЎшш
+-------------------------------------------
+[INFO] ═ют√щ API яюффхЁцштрхЄ ьэюцхёЄтю ёЄЁрЄхушщ фхЄхъЎшш:
+
+1. Zero Crossing (яхЁхёхўхэшх эєы )
+----------------------------------------------------------------------
+
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .build()
+)
+
+# ─хЄхъЄшЁєхЄ чюэ√ яЁш яхЁхёхўхэшш ушёЄюуЁрььющ эєыхтющ ышэшш
+# ╚ёяюы№чєхЄё  фы : юяЁхфхыхэш  ёшы√ ЄЁхэфр
+
+
+2. Line Crossing (яхЁхёхўхэшх ышэшщ)
+----------------------------------------------------------------------
+
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('line_crossing', line1_col='macd', line2_col='signal')
+    .build()
+)
+
+# ─хЄхъЄшЁєхЄ чюэ√ яЁш яхЁхёхўхэшш MACD ш Signal ышэшщ
+# ╚ёяюы№чєхЄё  фы : яюшёър ЄюЁуют√ї ёшуэрыют
+
+
+3. Threshold (яюЁюуют√х чэрўхэш )
+----------------------------------------------------------------------
+
+result = (
+    analyze_zones(df)
+    .with_indicator('library', 'rsi', length=14)
+    .detect_zones('threshold', 
+                 indicator_col='RSI_14',
+                 upper_threshold=70, 
+                 lower_threshold=30)
+    .build()
+)
+
+# ─хЄхъЄшЁєхЄ чюэ√ яхЁхъєяыхээюёЄш/яхЁхяЁюфрээюёЄш
+# ╚ёяюы№чєхЄё  фы : RSI, Stochastic, ш фЁєушї юёЎшыы ЄюЁют
+
+
+4. Combined Rules (ъюьсшэрЎш  яЁртшы)
+----------------------------------------------------------------------
+
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('combined', rules=[
+        {'type': 'zero_crossing', 'indicator_col': 'macd_hist'},
+        {'type': 'line_crossing', 'line1_col': 'macd', 'line2_col': 'signal'}
+    ])
+    .build()
+)
+
+# ╩юьсшэшЁєхЄ эхёъюы№ъю яЁртшы фы  сюыхх Єюўэющ фхЄхъЎшш
+# ╚ёяюы№чєхЄё  фы : ъюьяыхъёэ√ї ЄюЁуют√ї ёЄЁрЄхушщ
+
+
+[INFO] ┬√сюЁ ёЄЁрЄхушш чртшёшЄ юЄ:
+  * ╥шяр шэфшърЄюЁр (юёЎшыы ЄюЁ, ЄЁхэфют√щ, ш Є.ф.)
+  * ╥юЁуютющ ёЄЁрЄхушш
+  * ╥Ёхсєхьющ ЄюўэюёЄш фхЄхъЎшш
+  * ╤яхЎшЇшъш Ё√эър
+================================================================================
+[STEP] STEP 6: ╪ру 6: ╠юфєы№эюх шёяюы№чютрэшх ъюьяюэхэЄют
+--------------------------------------------------
+[INFO] ═ют√щ API яючтюы хЄ шёяюы№чютрЄ№ ъюьяюэхэЄ√ яю юЄфхы№эюёЄш:
+
+╤╓┼═└╨╚╔ 1: ╥юы№ъю фхЄхъЎш  чюэ (схч рэрышчр)
+----------------------------------------------------------------------
+
+# ─хЄхъЄшЁєхь чюэ√
+zones_only = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .build()  # ┴┼╟ .analyze() - Єюы№ъю фхЄхъЎш !
+)
+
+# ╤юїЁрэ хь фы  яюёыхфє■∙хую шёяюы№чютрэш 
+zones_only.save('zones.pkl', format='pickle')
+
+# ╚ёяюы№чєхь яючцх:
+# - ┬шчєрышчрЎш  эр фЁєуюь ёхЁтхЁх
+# - └эрышч т фЁєуюх тЁхь 
+# - ▌ъёяюЁЄ т фЁєушх ёшёЄхь√
+
+
+╤╓┼═└╨╚╔ 2: └эрышч яЁхфтрЁшЄхы№эю фхЄхъЄшЁютрээ√ї чюэ
+----------------------------------------------------------------------
+
+# ╟руЁєцрхь Ёрэхх фхЄхъЄшЁютрээ√х чюэ√
+from bquant.analysis.zones.models import ZoneAnalysisResult
+zones = ZoneAnalysisResult.load('zones.pkl')
+
+# └эрышчшЁєхь (TODO: API фы  рэрышчр уюЄют√ї чюэ)
+# analyzed = analyze_existing_zones(zones, df)
+
+
+╤╓┼═└╨╚╔ 3: ╥юы№ъю ЁрёўхЄ шэфшърЄюЁр
+----------------------------------------------------------------------
+
+from bquant.indicators.base import IndicatorFactory
+
+# ╤ючфрхь шэфшърЄюЁ
+indicator = IndicatorFactory.create('custom', 'macd',
+                                   fast_period=12, slow_period=26, signal_period=9)
+
+# ╨рёёўшЄ√трхь
+df_with_indicator = indicator.calculate(df)
+
+# ╚ёяюы№чєхь фы  ётюшї Ўхыхщ (эх Єюы№ъю чюэ√)
+
+
+[INFO] ╧Ёхшьє∙хёЄтр ьюфєы№эюёЄш:
+  [+] ├шсъюёЄ№ - шёяюы№чєщЄх Єюы№ъю эєцэ√х ъюьяюэхэЄ√
+  [+] ╧ЁюшчтюфшЄхы№эюёЄ№ - эх чряєёърщЄх ыш°эшх т√ўшёыхэш 
+  [+] ╠рё°ЄрсшЁєхьюёЄ№ - ЁрёяЁхфхы щЄх чрфрўш яю ёхЁтхЁрь
+  [+] ╧хЁхшёяюы№чютрэшх - ёюїЁрэ щЄх яЁюьхцєЄюўэ√х Ёхчєы№ЄрЄ√
+================================================================================
+[STEP] STEP 7: ╪ру 7: ╙эштхЁёры№эюёЄ№ - фЁєушх шэфшърЄюЁ√
+--------------------------------------------------
+[INFO] ╥╬╥ ╞┼ API ЁрсюЄрхЄ ё ╦▐┴█╠╚ шэфшърЄюЁрьш!
+
+RSI ZONES (Relative Strength Index)
+======================================================================
+
+# ╫хЁхч builder:
+result = (
+    analyze_zones(df)
+    .with_indicator('library', 'rsi', length=14)
+    .detect_zones('threshold', 
+                 indicator_col='RSI_14',
+                 upper_threshold=70, 
+                 lower_threshold=30)
+    .analyze()
+    .build()
+)
+
+# ╫хЁхч preset (х∙х яЁю∙х):
+from bquant.analysis.zones import analyze_rsi_zones
+result = analyze_rsi_zones(df, period=14, upper=70, lower=30)
+
+
+AO ZONES (Awesome Oscillator)
+======================================================================
+
+# ╫хЁхч builder:
+result = (
+    analyze_zones(df)
+    .with_indicator('library', 'ao', fast=5, slow=34)
+    .detect_zones('zero_crossing', indicator_col='AO_5_34')
+    .analyze()
+    .build()
+)
+
+# ╫хЁхч preset:
+from bquant.analysis.zones import analyze_ao_zones
+result = analyze_ao_zones(df, fast=5, slow=34)
+
+
+MA CROSSOVER ZONES (Moving Average)
+======================================================================
+
+# ─юсрты хь фтр MA шэфшърЄюЁр
+result = (
+    analyze_zones(df)
+    .with_indicator('library', 'sma', length=20)  # MA 20
+    .with_indicator('library', 'sma', length=50)  # MA 50
+    .detect_zones('line_crossing', 
+                 line1_col='SMA_20', 
+                 line2_col='SMA_50')
+    .analyze()
+    .build()
+)
+
+
+PRELOADED ZONES (тэх°эшх фрээ√х)
+======================================================================
+
+# ╟руЁєчър чюэ шч CSV
+from bquant.analysis.zones import analyze_preloaded_zones
+
+result = analyze_preloaded_zones(
+    df,
+    zones_data='zones.csv',  # шыш DataFrame
+    analyze_features=True
+)
+
+# ╚ёяюы№чєхЄё  фы :
+# - ╟юэ√ юЄ тэх°эшї ёшёЄхь
+# - ╨єўэр  ЁрчьхЄър чюэ
+# - ╚ьяюЁЄ шч фЁєушї яырЄЇюЁь
+
+
+[INFO] ╩ы■ўхтюх яЁхшьє∙хёЄтю:
+  ╬─╚═ ╚ ╥╬╥ ╞┼ ╩╬─ фы  ┬╤┼╒ шэфшърЄюЁют!
+  ╠хэ хЄё  Єюы№ъю:
+    * ╚ь  шэфшърЄюЁр
+    * ╧рЁрьхЄЁ√ шэфшърЄюЁр
+    * ╤ЄЁрЄхуш  фхЄхъЎшш
+
+  ═┼ эєцэю яшёрЄ№ юЄфхы№э√щ ъырёё фы  ърцфюую шэфшърЄюЁр!
+================================================================================
+[STEP] STEP 8: ╪ру 8: ╤юїЁрэхэшх ш чруЁєчър Ёхчєы№ЄрЄют
+------------------------------------------------
+[INFO] ═ют√щ API яюффхЁцштрхЄ 3 ЇюЁьрЄр ёюїЁрэхэш :
+
+╘╬╨╠└╥ 1: Pickle (эршсюыхх яюыэ√щ)
+----------------------------------------------------------------------
+
+# ╤юїЁрэхэшх
+result.save('zones.pkl', format='pickle')
+
+# ╟руЁєчър
+from bquant.analysis.zones.models import ZoneAnalysisResult
+loaded = ZoneAnalysisResult.load('zones.pkl')
+
+# ╧Ёхшьє∙хёЄтр:
+# [+] ╤юїЁрэ хЄ ┬╤┼ фрээ√х (тъы■ўр  DataFrame)
+# [+] ┴√ёЄЁр  чруЁєчър/ёюїЁрэхэшх
+# [+] ╩юьяръЄэ√щ ЁрчьхЁ (ё ёцрЄшхь)
+# [-] ═х ўшЄрхь ўхыютхъюь
+# [-] ╧Ёшт чър ъ Python
+
+
+╘╬╨╠└╥ 2: JSON (ўшЄрхь√щ)
+----------------------------------------------------------------------
+
+# ╤юїЁрэхэшх
+result.save('zones.json', format='json', include_data=False)
+
+# ╟руЁєчър
+loaded = ZoneAnalysisResult.load('zones.json')
+
+# ╧Ёхшьє∙хёЄтр:
+# [+] ╫шЄрхь ўхыютхъюь
+# [+] ╦хуъю фхышЄ№ё 
+# [+] ╤ютьхёЄшь ё фЁєушьш  ч√ърьш
+# [+] ╦хуъю ЁхфръЄшЁютрЄ№ тЁєўэє■
+# [-] ┴юы№°шщ ЁрчьхЁ
+# [-] ═х ёюїЁрэ хЄ DataFrame
+
+
+╘╬╨╠└╥ 3: Parquet (фы  сюы№°шї фрээ√ї)
+----------------------------------------------------------------------
+
+# ╤юїЁрэхэшх
+result.save('zones.parquet', format='parquet')
+
+# ╟руЁєчър
+loaded = ZoneAnalysisResult.load('zones.parquet')
+
+# ╧Ёхшьє∙хёЄтр:
+# [+] ╬Єышўэюх ёцрЄшх
+# [+] ┴√ёЄЁр  чруЁєчър
+# [+] ╧юффхЁцър DataFrame
+# [+] ╤ютьхёЄшь ё Spark, Pandas, ш Є.ф.
+# [-] ╥ЁхсєхЄ pyarrow
+
+
+[INFO] ┬√сюЁ ЇюЁьрЄр:
+  * Pickle:   фы  Python-to-Python яхЁхфрўш
+  * JSON:     фы  sharing ш ЁхфръЄшЁютрэш 
+  * Parquet:  фы  сюы№°шї фрээ√ї ш BigData pipelines
+================================================================================
+[STEP] STEP 9: ╚Єюуютюх Ёхч■ьх
+------------------------------
+[INFO] ======================================================================
+[INFO] ╚╥╬├╚: ╧юўхьє ьшуЁшЁютрЄ№ эр эют√щ API
+[INFO] ======================================================================
+
+╤╥└╨█╔ API (deprecated):
+  [-] ╥юы№ъю MACD
+  [-] ╠юэюышЄэр  рЁїшЄхъЄєЁр
+  [-] ╥хїэшўхёъшх яЁюсыхь√
+  [-] ┴єфхЄ єфрыхэ т v3.0.0
+  [?] ~100 ёЄЁюъ ъюфр эр шэфшърЄюЁ
+
+═╬┬█╔ ╙═╚┬┼╨╤└╦▄═█╔ API:
+  [+] ╦▐┴█┼ шэфшърЄюЁ√ (MACD, RSI, AO, MA, custom)
+  [+] ╠юфєы№эр  рЁїшЄхъЄєЁр
+  [+] Fluent builder + presets
+  [+] ┬ёЄЁюхээюх ъ¤°шЁютрэшх
+  [+] 3 ЇюЁьрЄр ¤ъёяюЁЄр
+  [+] └ъЄштэр  яюффхЁцър
+  [+] ~10 ёЄЁюъ ъюфр эр шэфшърЄюЁ!
+
+▌╩╬═╬╠╚▀ ╩╬─└:
+  ╤ЄрЁ√щ яюфїюф: MACDZoneAnalyzer (517 ёЄЁюъ)
+                 + RSIZoneAnalyzer (500 ёЄЁюъ)
+                 + AOZoneAnalyzer (500 ёЄЁюъ)
+                 = 1517 ёЄЁюъ + фєсышЁютрэшх
+
+  ═ют√щ яюфїюф:  UniversalZoneAnalyzer (250 ёЄЁюъ)
+                 + 3 preset ЇєэъЎшш (30 ёЄЁюъ)
+                 = 280 ёЄЁюъ ┴┼╟ фєсышЁютрэш 
+
+  ▌ъюэюьш : ~80% ъюфр!
+
+[INFO] ╨┼╩╬╠┼═─└╓╚▀:
+  * ─ы  ═╬┬█╒ яЁюхъЄют: шёяюы№чєщЄх Єюы№ъю эют√щ API
+  * ─ы  ╤╥└╨█╒ яЁюхъЄют: ьшуЁшЁєщЄх яюёЄхяхээю
+  * ┬Ёхь  ьшуЁрЎшш: 10-180 ьшэєЄ
+  * ╤Ёюъ яюффхЁцъш ёЄрЁюую API: фю v3.0.0
+
+[INFO] ╧╬╦┼╟═█┼ ╨┼╤╙╨╤█:
+  * ─юъєьхэЄрЎш  API:    docs/api/analysis/zones.md
+  * ╧ЁшьхЁ√ (ЁрсюЄр■∙шх): examples/02a_universal_zones.py
+  * ╠юфєы№эюх шёяюы№чютрэшх: devref/gaps/zo/zomodul.md
+  * └ЁїшЄхъЄєЁр:        devref/gaps/zo/zonan.md
+
+[WARN] ╥┼╒═╚╫┼╤╩└▀ ╟└╠┼╥╩└:
+  ▌ЄюЄ ёъЁшяЄ фхьюэёЄЁшЁєхЄ API, эю эх чряєёърхЄ ъюф
+  шч-чр тЁхьхээющ яЁюсыхь√ ё swing_strategy registry.
+  ╧Ёюсыхьр сєфхЄ шёяЁртыхэр т сышцрщ°хь юсэютыхэшш.
+  ─ы  ╨└┴╬╥└▐┘╚╒ яЁшьхЁют шёяюы№чєщЄх examples/
+
+[END] Migration guide completed!

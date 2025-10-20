@@ -1710,36 +1710,158 @@ TOTAL: 72% coverage (2467 statements, 697 missed)
 
 ---
 
-### Фаза 4: Документация и Финализация (30 мин) - 🟢 НИЗКИЙ ПРИОРИТЕТ
+### Фаза 4: Документация и Финализация ✅ **ЗАВЕРШЕНО** (66 мин, 2025-10-20)
+
+**Дата выполнения:** 2025-10-20  
+**Фактическое время:** ~66 минут (план: 65 минут)  
+**Статус:** ✅ Все задачи выполнены (7 tasks)
 
 **Цель:** Обновить документацию для отражения v2.1 агностичной архитектуры
 
-#### Задача 4.1: Обновить docstrings стратегий (10 мин)
+**Note:** План Phase 4 был переработан в `zouni_doc.md`:
+- ✅ Фокус на пользовательскую документацию (docs/api/)
+- ✅ Добавлены примеры кода (examples/)
+- ✅ Обновлены module docstrings
+- ❌ Migration guide НЕ создан (новый проект, нечему мигрировать)
+- ❌ Отдельный CHANGELOG task НЕ добавлен (стандартная практика)
 
-**Файлы:** 
-- [ ] `bquant/analysis/zones/strategies/shape/statistical.py`
-- [ ] `bquant/analysis/zones/strategies/divergence/classic.py`
-- [ ] `bquant/analysis/zones/strategies/volume/standard.py`
+**Реализация согласно zouni_doc.md:**
 
-**Изменения:**
-- [ ] Убрать MACD-specific формулировки ("MACD histogram" → "oscillator")
-- [ ] Добавить примеры использования с RSI, AO
-- [ ] Обновить описания параметров (indicator_col обязателен, не auto-detected)
+#### Этап 1: API Документация (35 мин) ✅
 
-**Валидация:** ✅ Docstrings отражают универсальную поддержку
+**Task 1.1: `docs/api/analysis/zones.md`** (15 мин) ✅
+- [x] Удален устаревший warning (строки 3-17)
+- [x] Добавлен v2.1 banner с proven universality
+- [x] Добавлен раздел "Universal Architecture (v2.1)" (~110 lines)
+  - indicator_context explanation
+  - Standard fields (detection_indicator, detection_strategy, signal_line)
+  - Convenience methods (get_primary_indicator_column, get_signal_line_column)
+  - Примеры: MACD, RSI, Stochastic, Custom
+  - "Why This Matters" (Before/After v2.1)
+- [x] Обновлен раздел "What's New in v2.1"
+- **Результат:** +110 lines, 20 подпунктов выполнены
 
-#### Задача 4.2: Обновить примеры для демонстрации multi-indicator использования (10 мин)
+**Task 1.2: `docs/api/analysis/strategies.md`** (15 мин) ✅
+- [x] Добавлен v2.1 banner
+- [x] Обновлен ShapeCalculationStrategy Protocol:
+  - calculate(data, indicator_col: Optional[str])
+  - Примеры: MACD, RSI, AO, CCI, Custom (5 indicators)
+- [x] Обновлен DivergenceCalculationStrategy Protocol:
+  - Добавлен indicator_line_col parameter
+  - Примеры: RSI, MACD, 2-line MACD, AO (4 uses)
+- [x] Обновлен VolumeMetrics:
+  - volume_macd_corr → volume_indicator_corr (5 occurrences)
+  - Примеры: MACD, RSI, AO (3 indicators)
+- **Результат:** +80 lines, 38 подпунктов выполнены
 
-**Файл:** `examples/02a_universal_zones.py`
+**Task 1.3: `docs/api/extension_guide.md`** (5 мин) ✅
+- [x] Shape Strategy Example обновлен:
+  - calculate() с universal signature
+  - Полный docstring с examples
+  - strategy_params traceability
+- [x] Divergence Strategy Example обновлен:
+  - indicator_line_col support
+  - 2-line examples
+- [x] v2.1 Best Practice notes добавлены
+- **Результат:** +60 lines, 17 подпунктов выполнены
 
-**Изменения:**
-- [ ] Добавить explicit указание indicator_col во все вызовы detect_zones()
-- [ ] Показать пример LineCrossingDetection (демонстрируя line1_col/line2_col)
-- [ ] Добавить комментарии объясняющие indicator_context и strategy self-description
+#### Этап 2: Примеры кода (10 мин) ✅
 
-**Валидация:** ✅ Примеры правильно демонстрируют универсальный API
+**Task 2.1: `examples/02a_universal_zones.py`** (10 мин) ✅
+- [x] Educational header (v2.1 UNIVERSALITY DEMONSTRATION)
+  - KEY CONCEPT: indicator_context
+  - PROVEN UNIVERSALITY section
+- [x] indicator_context inspection в 4 примерах (MACD, RSI, AO, MA)
+- [x] Новый раздел: Stochastic K/D (2-line crossing)
+- [x] Новый раздел: Custom Indicator (MY_MOMENTUM)
+- [x] Обновлена структура (9 разделов)
+- **Результат:** +135 lines, 23 подпункта выполнены
 
-#### Задача 4.3: Создать migration guide (5 мин)
+#### Этап 3: Module Docstrings (5 мин) ✅
+
+**Task 3.1: `shape/statistical.py`** (2 мин) ✅
+- [x] "MACD histogram" → "oscillator"
+- [x] UNIVERSAL (v2.1) section
+- [x] Примеры: MACD, RSI, AO
+- **Результат:** +10 lines, 4 подпункта
+
+**Task 3.2: `divergence/classic.py`** (2 мин) ✅
+- [x] "MACD" → "oscillator"
+- [x] UNIVERSAL (v2.1) section
+- [x] 2-line support
+- [x] Примеры: RSI, MACD, 2-line MACD
+- **Результат:** +11 lines, 4 подпункта
+
+**Task 3.3: `volume/standard.py`** (1 мин) ✅
+- [x] "universal volume analysis" подзаголовок
+- [x] UNIVERSAL (v2.1) section
+- [x] volume_indicator_corr упомянут
+- [x] Примеры: MACD, RSI, AO
+- **Результат:** +11 lines, 4 подпункта
+
+---
+
+**📊 Phase 4 Final Statistics:**
+
+**Tasks Completed:** 7/7 (100%)
+- Этап 1: 3 tasks (API docs) - 35 min
+- Этап 2: 1 task (Examples) - 10 min
+- Этап 3: 3 tasks (Module docs) - 5 min
+- Progress tracking: continuous - 16 min
+
+**Sub-items Tracked:** 110/110 (100%)
+- Task 1.1: 20 подпунктов
+- Task 1.2: 38 подпунктов
+- Task 1.3: 17 подпунктов
+- Task 2.1: 23 подпункта
+- Task 3.1: 4 подпункта
+- Task 3.2: 4 подпункта
+- Task 3.3: 4 подпункта
+
+**Files Modified:** 9 files
+1. docs/api/analysis/zones.md (+110 lines)
+2. docs/api/analysis/strategies.md (+80 lines)
+3. docs/api/extension_guide.md (+60 lines)
+4. examples/02a_universal_zones.py (+135 lines)
+5. bquant/analysis/zones/strategies/shape/statistical.py (+10 lines)
+6. bquant/analysis/zones/strategies/divergence/classic.py (+11 lines)
+7. bquant/analysis/zones/strategies/volume/standard.py (+11 lines)
+8. devref/gaps/zo/zouni_doc.md (+460 lines with tracking)
+9. changelogs/CHANGE_TRACE_LOG_2025-10-20.md (this file)
+
+**Total Documentation Added:** +417 lines
+- User documentation: +250 lines
+- Examples: +135 lines
+- Module docstrings: +32 lines
+
+**Time:** 66/65 minutes (101% of plan) - On schedule!
+
+---
+
+**✅ ALL SUCCESS CRITERIA MET:**
+1. ✅ NO "MACD-specific" language
+2. ✅ volume_indicator_corr everywhere (5 renames)
+3. ✅ Protocol signatures v2.1
+4. ✅ indicator_context explained
+5. ✅ 6 indicators shown (MACD, RSI, AO, CCI, Stochastic, Custom)
+6. ✅ 2-line examples (Stochastic)
+7. ✅ FICTIONAL_INDICATOR_99 proof mentioned
+8. ✅ All examples runnable
+
+---
+
+
+
+
+**Note (Old Plan Removed):**  
+Tasks 4.2-4.4 from original plan were removed per user feedback in `zouni_doc.md`:
+- Task 4.2 merged into Task 2.1 (examples enhancement) - ✅ Completed
+- Task 4.3 (migration guide) - ❌ NOT needed (new project)
+- Task 4.4 (CHANGELOG) - ❌ NOT needed (standard practice)
+
+---
+
+~~#### Задача 4.3: Создать migration guide (5 мин)~~
 
 **Файл:** Добавить раздел в `zouni_v2.md` или создать отдельный `MIGRATION_v2.1.md`
 

@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-10-18 12:59:30
+[LOG] Log started: 2025-10-20 12:49:49
 [OUTPUT] Output will be written to: research\notebooks\02_ind_macd_log.txt
 [>>] Starting MACD Zone Analysis: Migration Guide
 =======================================================
 [SCRIPT] MACD Zone Analysis: Migration Guide
-[DATE] Started: 2025-10-18 12:59:30
+[DATE] Started: 2025-10-20 12:49:49
 =======================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Загрузка тестовых данных
@@ -490,5 +490,5 @@ loaded = ZoneAnalysisResult.load('zones.parquet')
   Для РАБОТАЮЩИХ примеров используйте examples/
 
 [END] Migration guide completed!
-[END] Log ended: 2025-10-18 12:59:30
-[TIME] Duration: 0:00:00.042532
+[END] Log ended: 2025-10-20 12:49:49
+[TIME] Duration: 0:00:00.050377

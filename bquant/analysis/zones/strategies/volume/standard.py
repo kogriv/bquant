@@ -1,9 +1,19 @@
 """
-Standard Volume Analysis Strategy.
+Standard Volume Analysis Strategy - universal volume analysis for ANY indicator.
 
 Analyzes trading volume within a zone relative to baseline to assess
 trend strength and conviction. Volume confirmation is a key indicator
 of sustainable price movement.
+
+UNIVERSAL (v2.1):
+- Works with ANY oscillator for volume-indicator correlation
+- Metric: volume_indicator_corr (renamed from volume_macd_corr)
+- Requires explicit indicator_col parameter for correlation analysis
+
+Examples:
+    strategy.calculate_volume(data, baseline_volume=1000, indicator_col='macd_hist')  # MACD
+    strategy.calculate_volume(data, baseline_volume=1000, indicator_col='RSI_14')     # RSI
+    strategy.calculate_volume(data, baseline_volume=1000, indicator_col='AO_5_34')    # AO
 """
 
 from dataclasses import dataclass

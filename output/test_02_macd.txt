@@ -1,0 +1,25 @@
+C:\Users\Ivan\Documents\pro\bquant\examples\02_macd_zone_analysis.py:33: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  dates = pd.date_range(start='2024-01-01', periods=rows, freq='1H')
+
+================================================================================
+  MACD Zone Analysis - Old vs New Approach
+================================================================================
+
+[*] Generating data...
+[OK] Created 500 bars (period: 2024-01-01 00:00:00 - 2024-01-21 19:00:00)
+
+================================================================================
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\examples\02_macd_zone_analysis.py", line 317, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Ivan\Documents\pro\bquant\examples\02_macd_zone_analysis.py", line 89, in main
+    print_separator("1. \u26a0\ufe0f Deprecated подход (MACDZoneAnalyzer)")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ivan\Documents\pro\bquant\examples\02_macd_zone_analysis.py", line 74, in print_separator
+    print(f"  {title}")
+    ~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 5-6: character maps to <undefined>

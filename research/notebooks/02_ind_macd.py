@@ -44,11 +44,11 @@ nb.step("Шаг 1: Загрузка тестовых данных")
 
 nb.info("Загружаем sample-данные XAUUSD 1H:")
 
-    df_sample = get_sample_data('tv_xauusd_1h')
-    
-    if 'time' in df_sample.columns:
-        df_sample = df_sample.set_index('time')
-    nb.log("[OK] DatetimeIndex установлен")
+df_sample = get_sample_data('tv_xauusd_1h')
+
+if 'time' in df_sample.columns:
+    df_sample = df_sample.set_index('time')
+nb.log("[OK] DatetimeIndex установлен")
 
 nb.log(f"Загружено: {len(df_sample)} баров")
 nb.log(f"Период: {df_sample.index.min()} - {df_sample.index.max()}")

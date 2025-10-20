@@ -341,18 +341,46 @@ The process is identical for other strategy types. Just change the protocol and 
 #### Shape Strategy Example
 
 ```python
+from typing import Optional
 from bquant.analysis.zones.strategies.base import ShapeCalculationStrategy, ShapeMetrics
 
 @StrategyRegistry.register_shape_strategy('my_shape')
 class MyShapeStrategy:
-    def calculate_shape(self, data: pd.DataFrame, indicator_col: str = 'macd_hist') -> ShapeMetrics:
+    def calculate(self, data: pd.DataFrame, indicator_col: Optional[str] = None) -> ShapeMetrics:
+        """
+        Calculate shape metrics for ANY oscillator (v2.1 universal).
+        
+        Args:
+            data: Zone data with OHLCV + oscillator columns
+            indicator_col: Oscillator column name (e.g., 'RSI_14', 'AO_5_34', 'MY_OSC')
+                          If None, strategy should auto-detect or raise error
+        
+        Returns:
+            ShapeMetrics with calculated shape characteristics
+        
+        Examples:
+            # Works with ANY oscillator
+            metrics = strategy.calculate(data, indicator_col='RSI_14')
+            metrics = strategy.calculate(data, indicator_col='macd_hist')
+            metrics = strategy.calculate(data, indicator_col='CUSTOM_OSC')
+        """
+        if indicator_col is None or indicator_col not in data.columns:
+            raise ValueError(f"indicator_col required and must exist in data")
+        
+        # Your universal implementation (works with ANY column!)
+        oscillator = data[indicator_col]
+        
         # Calculate skewness, kurtosis, smoothness for your indicator
+        hist_skewness = oscillator.skew()
+        hist_kurtosis = oscillator.kurtosis()
+        hist_smoothness = 1.0 - oscillator.diff().abs().mean() / oscillator.abs().mean()
+        
         return ShapeMetrics(
-            hist_skewness=...,
-            hist_kurtosis=...,
-            hist_smoothness=...,
+            hist_skewness=hist_skewness,
+            hist_kurtosis=hist_kurtosis,
+            hist_smoothness=hist_smoothness,
             strategy_name='MyShape',
-            strategy_params={}
+            strategy_params={'indicator_col': indicator_col}  # ← Track which indicator used
         )
     
     def get_name(self) -> str:
@@ -362,30 +390,70 @@ class MyShapeStrategy:
         return {'strategy': 'MyShape', 'algorithm': 'Custom shape analysis'}
 ```
 
+**v2.1 Best Practice:** Always track `indicator_col` in `strategy_params` for traceability!
+
 #### Divergence Strategy Example
 
 ```python
+from typing import Optional
 from bquant.analysis.zones.strategies.base import DivergenceCalculationStrategy, DivergenceMetrics
 
 @StrategyRegistry.register_divergence_strategy('my_divergence')
 class MyDivergenceStrategy:
-    def calculate_divergence(self, data: pd.DataFrame, indicator_col: str = 'macd_hist') -> DivergenceMetrics:
+    def calculate_divergence(self, 
+                           data: pd.DataFrame, 
+                           indicator_col: Optional[str] = None,
+                           indicator_line_col: Optional[str] = None) -> DivergenceMetrics:
+        """
+        Calculate divergence for ANY oscillator (v2.1 universal).
+        
+        Args:
+            data: Zone data with OHLCV + oscillator columns
+            indicator_col: Primary oscillator column (e.g., 'RSI_14', 'macd_hist')
+            indicator_line_col: Secondary line for 2-line indicators (e.g., 'macd_signal')
+        
+        Returns:
+            DivergenceMetrics with divergence information
+        
+        Examples:
+            # Single-line oscillator (RSI, AO)
+            metrics = strategy.calculate_divergence(data, indicator_col='RSI_14')
+            
+            # 2-line indicator (MACD with signal)
+            metrics = strategy.calculate_divergence(data, 
+                                                   indicator_col='macd',
+                                                   indicator_line_col='macd_signal')
+        """
+        if indicator_col is None or indicator_col not in data.columns:
+            raise ValueError(f"indicator_col required and must exist in data")
+        
+        # Your universal implementation (works with ANY oscillator!)
+        oscillator = data[indicator_col]
+        price = data['close']
+        
         # Detect divergences between price and indicator
+        # ... your divergence logic here ...
+        
         return DivergenceMetrics(
-            divergence_type=...,    # 'regular_bullish', 'regular_bearish', None
-            divergence_count=...,
-            divergence_strength=...,
-            divergence_direction=...,
+            divergence_type='regular_bullish',  # or None, 'regular_bearish', etc.
+            divergence_count=1,
+            divergence_strength=0.75,
+            divergence_direction=1,
             strategy_name='MyDivergence',
-            strategy_params={}
+            strategy_params={
+                'indicator_col': indicator_col,              # ← Track primary indicator
+                'indicator_line_col': indicator_line_col     # ← Track signal line (if any)
+            }
         )
     
     def get_name(self) -> str:
         return 'MyDivergence'
     
     def get_metadata(self) -> dict:
-        return {'strategy': 'MyDivergence'}
+        return {'strategy': 'MyDivergence', 'supports_2line': True}
 ```
+
+**v2.1 Best Practice:** Track both `indicator_col` and `indicator_line_col` (if applicable) in `strategy_params`!
 
 ### Testing Your Strategy
 

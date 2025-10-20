@@ -34,6 +34,7 @@ dependencies = [
     "psutil>=5.9.0",
     "nbformat>=4.2.0",
     "chardet>=5.0.0",
+    "pyarrow>=17.0.0",
 ]
 
 [project.urls]

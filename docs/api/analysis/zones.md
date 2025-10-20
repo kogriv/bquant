@@ -1,41 +1,164 @@
 # bquant.analysis.zones — Анализ зон
 
-> **⚠️ API Evolution Notice**
+> **✅ v2.1 - Truly Universal Architecture**
 > 
-> **Current Status (Phase 3-4):** This module works with MACD zones specifically.
-> Some field names are MACD-specific (e.g., `macd_amplitude`, `hist_amplitude`).
+> Zone analysis now works with **ANY indicator** without code changes!
 > 
-> **Planned Changes:** Future universalization refactoring will rename these fields
-> to be indicator-agnostic (e.g., `indicator_amplitude`, `signal_amplitude`).
+> **Supported indicators:**
+> - ANY oscillator: MACD, RSI, AO, CCI, Stochastic, Williams %R, MFI, CMF, ROC
+> - Custom indicators from pandas_ta (158 indicators)
+> - Your own custom calculations
 > 
-> **Timeline:** After 2-3 weeks testing period based on real usage.
+> **Key innovation:** `ZoneInfo.indicator_context` - zones self-describe their detection strategy
 > 
-> **For now:** 
-> - ✅ Current API is stable and fully functional
-> - ✅ All examples work as-is
-> - ✅ Strategy Pattern components are already universal (see `strategies.md`)
-> - 📚 See `devref/gaps/UNIVERSAL_ZONE_ANALYSIS.md` for universalization plan
+> **Proven universality:**
+> - ✅ 115 tests with 10+ real indicators (MACD, RSI, AO, CCI, Stochastic, Williams, MFI, CMF, ROC, custom)
+> - ✅ 100% pass rate
+> - ✅ FICTIONAL_INDICATOR_99 test - works with indicator that doesn't exist!
+> - ✅ NO hardcoded indicator names anywhere
+> 
+> **API Reference:**
+> - [Universal Strategies](strategies.md) - analytical strategies for ANY indicator
+> - [Extension Guide](extension_guide.md) - create custom strategies
 
 ## Обзор
 
 Инструменты работы с торговыми зонами: поддержка/сопротивление, признаки зон, последовательности и кластеризация.
 
-### New in Phase 3 (v0.X.X)
+## Universal Architecture (v2.1)
 
-**Major extensions:**
-- ✨ **Strategy Pattern** for extensible metrics (8 strategies implemented)
-- ✨ **67 total metrics** (was: 12 base metrics)
+### Key Concept: indicator_context
+
+Every detected zone contains `indicator_context` dictionary that describes **HOW** the zone was detected:
+
+```python
+from bquant.analysis.zones import analyze_zones
+
+result = analyze_zones(df).detect_zones('zero_crossing', indicator_col='RSI_14').build()
+
+# Access zone's detection context
+zone = result.zones[0]
+context = zone.indicator_context
+
+print(context['detection_indicator'])  # → 'RSI_14'
+print(context['detection_strategy'])   # → 'zero_crossing'
+print(context['signal_line'])          # → None (single-line indicator)
+```
+
+**Standard fields (populated by detection strategy):**
+- `detection_indicator`: Primary indicator column name (e.g., 'RSI_14', 'macd_hist')
+- `detection_strategy`: Strategy used (e.g., 'zero_crossing', 'threshold', 'line_crossing')
+- `signal_line`: Secondary indicator for 2-line strategies (e.g., 'STOCH_D')
+- `detection_rules`: Full rules dictionary for reference
+
+**Convenience methods:**
+```python
+# Get primary indicator column
+indicator = zone.get_primary_indicator_column()  # → 'RSI_14'
+
+# Get signal line (if exists)
+signal = zone.get_signal_line_column()  # → 'STOCH_D' or None
+```
+
+### Examples with Different Indicators
+
+#### MACD (zero-crossing oscillator)
+```python
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze()
+    .build()
+)
+
+# Context: {'detection_indicator': 'macd_hist', 'detection_strategy': 'zero_crossing'}
+```
+
+#### RSI (threshold-based bounded indicator)
+```python
+result = (
+    analyze_zones(df)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold',
+                 indicator_col='RSI_14',
+                 upper_threshold=70,
+                 lower_threshold=30)
+    .analyze()
+    .build()
+)
+
+# Context: {'detection_indicator': 'RSI_14', 'detection_strategy': 'threshold'}
+```
+
+#### Stochastic (2-line crossing)
+```python
+result = (
+    analyze_zones(df)
+    .with_indicator('pandas_ta', 'stoch', k=14, d=3)
+    .detect_zones('line_crossing',
+                 line1_col='STOCHk_14_3_3',
+                 line2_col='STOCHd_14_3_3')
+    .analyze()
+    .build()
+)
+
+# Context: {'detection_indicator': 'STOCHk_14_3_3', 'signal_line': 'STOCHd_14_3_3'}
+```
+
+#### Custom Indicator (proves universality!)
+```python
+# Create your own indicator
+df['MY_CUSTOM_OSC'] = df['close'].diff(5) / df['close'].rolling(20).std()
+
+result = (
+    analyze_zones(df)
+    .detect_zones('zero_crossing', indicator_col='MY_CUSTOM_OSC')
+    .analyze()
+    .build()
+)
+
+# ✅ Works immediately - NO code changes needed!
+# Context: {'detection_indicator': 'MY_CUSTOM_OSC', 'detection_strategy': 'zero_crossing'}
+```
+
+### Why This Matters
+
+**Before v2.1:** Hardcoded MACD support
+- ❌ Only worked with MACD
+- ❌ Analytical strategies assumed 'macd_hist' column
+- ❌ Required code changes for new indicators
+
+**After v2.1:** True Universality
+- ✅ Works with ANY indicator
+- ✅ Analytical strategies read from `indicator_context`
+- ✅ NO code changes for new indicators
+- ✅ Proven with FICTIONAL_INDICATOR_99 (indicator that doesn't exist!)
+
+**Reference:** See `devref/gaps/zo/zouni_v2.md` for complete architecture specification
+
+### What's New in v2.1
+
+**Universal Zone Analysis:**
+- ✨ **5 Detection Strategies** - zero_crossing, threshold, line_crossing, preloaded, combined
+- ✨ **Works with ANY indicator** - MACD, RSI, Stochastic, AO, CCI, custom, etc.
+- ✨ **indicator_context** - zones self-describe detection parameters
+- ✨ **Pipeline API** - fluent builder with caching support
+- ✨ **Proven universality** - FICTIONAL_INDICATOR_99 test passes
+
+**Analytical Strategies (67 total metrics):**
+- ✨ **Strategy Pattern** for extensible metrics (8 strategies)
 - ✨ **Swing analysis:** 23 metrics via 3 strategies (ZigZag, FindPeaks, PivotPoints)
-- ✨ **Shape analysis:** 3 metrics via StatisticalShapeStrategy
-- ✨ **Divergence detection:** 4 metrics via ClassicDivergenceStrategy
+- ✨ **Shape analysis:** 3 metrics via StatisticalShapeStrategy (universal - any oscillator)
+- ✨ **Divergence detection:** 4 metrics via ClassicDivergenceStrategy (universal)
 - ✨ **Volatility assessment:** 10 metrics via CombinedVolatilityStrategy
-- ✨ **Volume analysis:** 4 metrics via StandardVolumeStrategy
+- ✨ **Volume analysis:** 4 metrics via StandardVolumeStrategy (universal correlation)
 - ✨ **Time metrics:** 2 metrics (peak_time_ratio, trough_time_ratio)
 
 **Documentation:**
-- **Strategy Pattern:** See [strategies.md](strategies.md) (🟢 stable API - won't change)
-- **All 8 strategies:** See [strategies.md](strategies.md) (🟢 stable API)
-- **ZoneFeatures fields:** See below (🟡 may change - field names will be renamed)
+- **Universal Architecture:** See above (🟢 v2.1 - stable)
+- **Strategy Pattern:** See [strategies.md](strategies.md) (🟢 stable API)
+- **Extension Guide:** See [extension_guide.md](extension_guide.md) (custom strategies)
 
 ## Классы и функции
 

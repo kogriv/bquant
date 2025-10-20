@@ -244,7 +244,21 @@ class ZoneAnalysisPipeline:
             'run_regression': self.config.run_regression,
             'run_validation': self.config.run_validation
         }
-        config_str = json.dumps(config_dict, sort_keys=True)
+        
+        # ✅ v2.1: Check for non-serializable objects (e.g., lambda functions in conditions)
+        try:
+            config_str = json.dumps(config_dict, sort_keys=True)
+        except TypeError as e:
+            # Provide helpful error message for non-serializable configs
+            if 'lambda' in str(e) or 'function' in str(e).lower():
+                raise TypeError(
+                    "Cannot cache config with lambda functions or callable objects. "
+                    "Please disable caching for this pipeline using .with_cache(enable=False). "
+                    f"Original error: {e}"
+                ) from e
+            else:
+                raise  # Re-raise other TypeError
+        
         config_hash = hashlib.md5(config_str.encode()).hexdigest()
         
         # Собираем ключ
