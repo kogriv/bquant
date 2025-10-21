@@ -353,3 +353,4 @@ analysis_*.xlsx
 *.profile
 *.pstats
 debug_*.log
+.git_commit_message.txt
