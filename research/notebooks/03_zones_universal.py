@@ -1,20 +1,19 @@
 '''
-Comprehensive исследование универсального анализа зон
+Universal Zone Analysis - Deep Dive (v2.1)
 
-ВАЖНОЕ ПРИМЕЧАНИЕ:
-В текущей версии пакета feature extraction (ZoneFeaturesAnalyzer) hardcoded для MACD колонок.
-Это ИЗВЕСТНЫЙ БАГ, который нарушает универсальность архитектуры.
+v2.1 UPDATE (2025-10-20):
+✅ ZoneFeaturesAnalyzer is UNIVERSAL (reads indicator_context)  
+✅ .analyze() works for ALL indicators (MACD, RSI, AO, Custom)  
+✅ Feature extraction is indicator-agnostic
 
-Этот скрипт демонстрирует:
-1. Полный анализ для MACD (работает)
-2. Детекцию для других индикаторов (без analyze() из-за бага)
-3. Универсальный API и его возможности
-4. Migration guide
-5. Performance benchmarks
+This script demonstrates:
+1) Full analysis pipeline for multiple indicators (features, clustering, tests, sequences)
+2) Universal API capabilities (fluent builder, presets)
+3) Migration guide (old → new)
+4) Caching & persistence
+5) Performance benchmarks
 
-TODO: Исправить ZoneFeaturesAnalyzer для автоопределения колонок индикатора
-
-ИСПОЛЬЗОВАНИЕ:
+USAGE:
 python research/notebooks/03_zones_universal.py --no-trap
 '''
 
@@ -67,6 +66,12 @@ with nb.error_handling("Data loading", critical=True):
         nb.warning(f"Пропуски: {missing_ohlcv[missing_ohlcv > 0].to_dict()}")
     else:
         nb.success("Данные полные (OHLCV), пропусков нет")
+    
+    # Подготовка производных признаков для hypothesis tests
+    nb.info("Подготовка производных признаков для statistical tests:")
+    df['price_return'] = df['close'].pct_change()
+    df['abs_price_return'] = df['price_return'].abs()
+    nb.log("[OK] abs_price_return calculated (required for volatility hypothesis tests)")
 
 nb.wait()
 
@@ -216,38 +221,319 @@ nb.wait()
 # STEP 5: ZONE STATISTICS
 # =============================================================================
 
-nb.step("Step 5: Zone Statistics Deep Dive")
+nb.step("Step 5: Full Analysis Pipeline Deep Dive")
 
-nb.info("Детальная статистика по зонам MACD:")
+nb.info("v2.1 UNIVERSALITY PROOF: Features & Clustering for ALL indicators")
 
-if result_preset.zones:
-    nb.substep("5.1: Duration Statistics")
+# Initialize results (global scope for use in later steps)
+result_macd_full = None
+result_rsi_full = None
+result_ao_full = None
+
+with nb.error_handling("MACD full analysis"):
+    result_macd_full = (
+        analyze_zones(df)
+        .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=2)
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1 (fix 21.10.2025)
+        .analyze(clustering=True, n_clusters=3)
+        .build()
+    )
+    nb.success(f"MACD: {len(result_macd_full.zones)} zones (features+clustering)")
+    if result_macd_full.zones and result_macd_full.zones[0].features:
+        z = result_macd_full.zones[0]
+        nb.substep("5.1: MACD Features (sample zone)")
+        # Shape metrics из metadata (v2.1 structure)
+        shape_m = z.features.get('metadata', {}).get('shape_metrics', {}) if z.features.get('metadata') else {}
+        nb.log(f"  Shape: skewness={shape_m.get('hist_skewness', None) if shape_m else None}")
+        nb.log(f"  Shape: kurtosis={shape_m.get('hist_kurtosis', None) if shape_m else None}")
+        nb.log(f"  Volume: volume_indicator_corr={z.features.get('volume_indicator_corr', None)}")
+        if 'volume_spike_ratio' in z.features:
+            nb.log(f"  Volume: spike_ratio={z.features['volume_spike_ratio']:.3f}")
+        nb.log(f"  Volatility: expansion={z.features.get('volatility_expansion', None)}")
+        nb.log(f"  Divergence: classic={z.features.get('has_classic_divergence', None)}")
+        nb.log(f"  indicator_context: {z.indicator_context.get('detection_indicator', 'N/A')}")
+        # Swing metrics (v2.1 NEW - fix 21.10.2025)
+        if 'num_peaks' in z.features:
+            nb.log(f"  Swing: num_peaks={z.features.get('num_peaks', 0)}")
+        if 'num_troughs' in z.features:
+            nb.log(f"  Swing: num_troughs={z.features.get('num_troughs', 0)}")
+        if 'drawdown_from_peak' in z.features:
+            nb.log(f"  Swing: drawdown_from_peak={z.features.get('drawdown_from_peak', 0):.2%}")
+
+with nb.error_handling("RSI full analysis"):
+    result_rsi_full = (
+        analyze_zones(df)
+        .with_indicator('pandas_ta', 'rsi', length=14)
+        .detect_zones('threshold', indicator_col='RSI_14', upper_threshold=70, lower_threshold=30)
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1 (fix 21.10.2025)
+        .analyze(clustering=True, n_clusters=2)
+        .build()
+    )
+    nb.success(f"RSI: {len(result_rsi_full.zones)} zones (features+clustering)")
+    # v2.1: Show detailed features (fix 21.10.2025)
+    if result_rsi_full.zones and result_rsi_full.zones[0].features:
+        z = result_rsi_full.zones[0]
+        nb.substep("5.2: RSI Features (sample zone)")
+        # Shape metrics из metadata (v2.1 structure)
+        shape_m = z.features.get('metadata', {}).get('shape_metrics', {}) if z.features.get('metadata') else {}
+        nb.log(f"  Shape: skewness={shape_m.get('hist_skewness', None) if shape_m else None}")
+        nb.log(f"  Shape: kurtosis={shape_m.get('hist_kurtosis', None) if shape_m else None}")
+        nb.log(f"  Volume: volume_indicator_corr={z.features.get('volume_indicator_corr', None)}")
+        nb.log(f"  Volatility: expansion={z.features.get('volatility_expansion', None)}")
+        nb.log(f"  indicator_context: {z.indicator_context.get('detection_indicator', 'N/A')}")
+        if 'num_peaks' in z.features:
+            nb.log(f"  Swing: num_peaks={z.features.get('num_peaks', 0)}")
+
+with nb.error_handling("AO full analysis"):
+    result_ao_full = (
+        analyze_zones(df)
+        .with_indicator('pandas_ta', 'ao', fast=5, slow=34)
+        .detect_zones('zero_crossing', indicator_col='AO_5_34')
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1 (fix 21.10.2025)
+        .analyze(clustering=True, n_clusters=2)
+        .build()
+    )
+    nb.success(f"AO: {len(result_ao_full.zones)} zones (features+clustering)")
+    # v2.1: Show detailed features (fix 21.10.2025)
+    if result_ao_full.zones and result_ao_full.zones[0].features:
+        z = result_ao_full.zones[0]
+        nb.substep("5.3: AO Features (sample zone)")
+        # Shape metrics из metadata (v2.1 structure)
+        shape_m = z.features.get('metadata', {}).get('shape_metrics', {}) if z.features.get('metadata') else {}
+        nb.log(f"  Shape: skewness={shape_m.get('hist_skewness', None) if shape_m else None}")
+        nb.log(f"  Shape: kurtosis={shape_m.get('hist_kurtosis', None) if shape_m else None}")
+        nb.log(f"  Volume: volume_indicator_corr={z.features.get('volume_indicator_corr', None)}")
+        nb.log(f"  Volatility: expansion={z.features.get('volatility_expansion', None)}")
+        nb.log(f"  indicator_context: {z.indicator_context.get('detection_indicator', 'N/A')}")
+        if 'num_peaks' in z.features:
+            nb.log(f"  Swing: num_peaks={z.features.get('num_peaks', 0)}")
+
+nb.substep("5.4: Clustering Analysis (MACD)")
+
+if hasattr(result_macd_full, 'clustering') and result_macd_full.clustering:
+    clusters = result_macd_full.clustering
     
-    durations = [z.duration for z in result_preset.zones]
-    nb.log(f"  Средняя: {np.mean(durations):.2f} баров")
-    nb.log(f"  Медиана: {np.median(durations):.2f} баров")
-    nb.log(f"  Std: {np.std(durations):.2f} баров")
-    nb.log(f"  Min/Max: {min(durations)}/{max(durations)} баров")
-    
-    nb.substep("5.2: Type Distribution")
-    
-    types_count = {}
-    for z in result_preset.zones:
-        types_count[z.type] = types_count.get(z.type, 0) + 1
-    
-    nb.info("Распределение по типам:")
-    for zone_type, count in types_count.items():
-        pct = count / len(result_preset.zones) * 100
-        nb.log(f"  {zone_type:10s}: {count:3d} ({pct:.1f}%)")
-    
-    nb.substep("5.3: Metadata")
-    
-    if result_preset.metadata:
-        nb.info("Метаданные анализа:")
-        for key, value in result_preset.metadata.items():
-            nb.log(f"  {key}: {value}")
+    # Безопасный разбор структуры clustering (может быть Dict[int,int], Dict[int,List], или List)
+    try:
+        if isinstance(clusters, dict):
+            # Format A: Dict[zone_id -> cluster_id] or Format B: Dict[cluster_id -> List[zone_id]]
+            first_value = next(iter(clusters.values()))
+            
+            if isinstance(first_value, dict):
+                # Format D: Dict with metadata - извлечь actual labels
+                # cluster_labels содержит actual mapping
+                if 'cluster_labels' in clusters:
+                    actual_labels = clusters['cluster_labels']
+                    
+                    # Теперь работаем с actual_labels (может быть dict или list)
+                    if isinstance(actual_labels, dict):
+                        # Dict[zone_id -> cluster_id]
+                        try:
+                            unique_clusters = sorted(set(actual_labels.values()))
+                        except TypeError:
+                            unique_clusters = sorted(list(dict.fromkeys(actual_labels.values())))
+                        
+                        nb.log(f"  Clusters: {len(unique_clusters)}")
+                        dist = {}
+                        for cid in actual_labels.values():
+                            dist[cid] = dist.get(cid, 0) + 1
+                    elif isinstance(actual_labels, (list, np.ndarray)):
+                        # List of labels
+                        unique_clusters = set(actual_labels)
+                        nb.log(f"  Clusters: {len(unique_clusters)}")
+                        dist = {}
+                        for cid in actual_labels:
+                            dist[cid] = dist.get(cid, 0) + 1
+                    else:
+                        nb.warning(f"  Unknown labels format: {type(actual_labels)}")
+                        dist = {}
+                    
+                    # Сохраняем actual_labels для использования в характеристиках
+                    clusters = actual_labels
+                else:
+                    nb.log(f"  [WARN] No 'cluster_labels' found in clustering metadata")
+                    dist = {}
+            elif isinstance(first_value, (list, tuple)):
+                # Format B: Dict[cluster_id -> List[zone_id]]
+                dist = {cid: len(zids) for cid, zids in clusters.items()}
+                nb.log(f"  Clusters: {len(clusters)}")
+            else:
+                # Format A: Dict[zone_id -> cluster_id]
+                try:
+                    unique_clusters = set(clusters.values())
+                except TypeError:
+                    # Если values unhashable, получить уникальные вручную
+                    unique_clusters = list(dict.fromkeys(clusters.values()))
+                nb.log(f"  Clusters: {len(unique_clusters)}")
+                dist = {}
+                for cid in clusters.values():
+                    dist[cid] = dist.get(cid, 0) + 1
+        elif isinstance(clusters, (list, np.ndarray, pd.Series)):
+            # Format C: List/array of cluster labels
+            unique_clusters = set(clusters)
+            nb.log(f"  Clusters: {len(unique_clusters)}")
+            dist = {}
+            for cid in clusters:
+                dist[cid] = dist.get(cid, 0) + 1
+        else:
+            nb.warning(f"  Unknown clustering format: {type(clusters)}")
+            dist = {}
+        
+        if dist:
+            for cid, cnt in sorted(dist.items()):
+                nb.log(f"    Cluster {cid}: {cnt} zones")
+        
+        # Характеристики каждого кластера (fix 21.10.2025)
+        nb.info("  Cluster characteristics:")
+        
+        # Определяем формат clustering (переопределение для правильного scope!)
+        if isinstance(clusters, dict):
+            first_val = next(iter(clusters.values()), None)
+            
+            if first_val and not isinstance(first_val, (list, tuple)):
+                # Format A: Dict[zone_id -> cluster_id]
+                # Безопасный set для unhashable values
+                try:
+                    unique_clusters = sorted(set(clusters.values()))
+                except TypeError:
+                    # Если values unhashable, получить уникальные вручную
+                    unique_clusters = sorted(list(dict.fromkeys(clusters.values())))
+                
+                for cluster_id in unique_clusters:
+                    zones_in_cluster = [z for z in result_macd_full.zones 
+                                       if clusters.get(z.zone_id) == cluster_id]
+                    
+                    if zones_in_cluster:
+                        avg_duration = sum(z.duration for z in zones_in_cluster) / len(zones_in_cluster)
+                        types_count = {}
+                        for z in zones_in_cluster:
+                            types_count[z.type] = types_count.get(z.type, 0) + 1
+                        
+                        nb.log(f"    Cluster {cluster_id}:")
+                        nb.log(f"      Zones: {len(zones_in_cluster)}")
+                        nb.log(f"      Avg duration: {avg_duration:.1f} bars")
+                        nb.log(f"      Types: bull={types_count.get('bull', 0)}, bear={types_count.get('bear', 0)}")
+            
+            elif first_val and isinstance(first_val, (list, tuple)):
+                # Format B: Dict[cluster_id -> List[zone_id]]
+                for cluster_id, zone_ids in sorted(clusters.items()):
+                    zones_in_cluster = [z for z in result_macd_full.zones if z.zone_id in zone_ids]
+                    
+                    if zones_in_cluster:
+                        avg_duration = sum(z.duration for z in zones_in_cluster) / len(zones_in_cluster)
+                        types_count = {}
+                        for z in zones_in_cluster:
+                            types_count[z.type] = types_count.get(z.type, 0) + 1
+                        
+                        nb.log(f"    Cluster {cluster_id}:")
+                        nb.log(f"      Zones: {len(zones_in_cluster)}")
+                        nb.log(f"      Avg duration: {avg_duration:.1f} bars")
+                        nb.log(f"      Types: bull={types_count.get('bull', 0)}, bear={types_count.get('bear', 0)}")
+        
+        elif isinstance(clusters, (list, np.ndarray, pd.Series)):
+            # Format C: List/array of cluster labels (index = zone index)
+            for cluster_id in sorted(set(clusters)):
+                zone_indices = [i for i, cid in enumerate(clusters) if cid == cluster_id]
+                zones_in_cluster = [result_macd_full.zones[i] for i in zone_indices 
+                                   if i < len(result_macd_full.zones)]
+                
+                if zones_in_cluster:
+                    avg_duration = sum(z.duration for z in zones_in_cluster) / len(zones_in_cluster)
+                    types_count = {}
+                    for z in zones_in_cluster:
+                        types_count[z.type] = types_count.get(z.type, 0) + 1
+                    
+                    nb.log(f"    Cluster {cluster_id}:")
+                    nb.log(f"      Zones: {len(zones_in_cluster)}")
+                    nb.log(f"      Avg duration: {avg_duration:.1f} bars")
+                    nb.log(f"      Types: bull={types_count.get('bull', 0)}, bear={types_count.get('bear', 0)}")
+    except Exception as e:
+        nb.warning(f"  Failed to parse clustering: {type(e).__name__}: {str(e)[:60]}")
 else:
-    nb.warning("Нет зон для анализа статистики")
+    nb.warning("  Clustering not available (insufficient data)")
+
+nb.substep("5.5: Statistical Hypothesis Tests (MACD)")
+if hasattr(result_macd_full, 'hypothesis_tests') and result_macd_full.hypothesis_tests:
+    tests = result_macd_full.hypothesis_tests
+    if hasattr(tests, 'results') and tests.results:
+        nb.log("  Hypothesis tests executed")
+        if hasattr(tests, 'data_size'):
+            nb.log(f"  Tests based on {tests.data_size} zones")
+        
+        # Вложенная структура: tests.results['tests'] содержит индивидуальные тесты
+        if 'tests' in tests.results and isinstance(tests.results['tests'], dict):
+            individual_tests = tests.results['tests']
+            
+            for tname, tres in individual_tests.items():
+                # tres - это dict, не объект! Используем dict keys
+                if tres and isinstance(tres, dict) and 'p_value' in tres:
+                    p_val = tres['p_value']
+                    significant = p_val < 0.05 if p_val is not None else False
+                    nb.log(f"    {tname}:")
+                    nb.log(f"      p-value: {p_val:.4f}")
+                    nb.log(f"      significant: {significant} (alpha=0.05)")
+                    
+                    # Если есть test_statistic, показать его
+                    if 'test_statistic' in tres and tres['test_statistic'] is not None:
+                        nb.log(f"      statistic: {tres['test_statistic']:.4f}")
+        
+        # Образовательный комментарий (fix 21.10.2025)
+        nb.info("  Hypothesis tests:")
+        nb.info("    - duration_normality: Are zone durations normally distributed?")
+        nb.info("    - bull_bear_asymmetry: Is there bias toward bull/bear zones?")
+        nb.info("    - sequence_randomness: Are zone sequences random or patterned?")
+        nb.info("    - volatility_effects: Does volatility correlate with zones?")
+        nb.info("  p < 0.05 suggests significant patterns (reject null hypothesis)")
+else:
+    nb.warning("  Hypothesis tests unavailable or insufficient data")
+
+nb.substep("5.6: Sequence Analysis (MACD)")
+if hasattr(result_macd_full, 'sequence_analysis') and result_macd_full.sequence_analysis:
+    seq = result_macd_full.sequence_analysis
+    
+    # Total zones count (fix 21.10.2025)
+    nb.log(f"  Total zones analyzed: {len(result_macd_full.zones)}")
+    
+    # Transitions (fix 21.10.2025 - работа с dict)
+    if isinstance(seq, dict) and 'transitions' in seq and seq['transitions']:
+        nb.info("  Transitions (zone type changes):")
+        for trans, cnt in seq['transitions'].items():
+            nb.log(f"      {trans}: {cnt}")
+    
+    # Patterns (fix 21.10.2025 - работа с dict)
+    if isinstance(seq, dict) and 'patterns' in seq and seq['patterns']:
+        patterns_data = seq['patterns']
+        
+        # patterns может быть dict с 'sequence_patterns' key или list
+        if isinstance(patterns_data, dict) and 'sequence_patterns' in patterns_data:
+            patterns_list = patterns_data['sequence_patterns']
+        elif isinstance(patterns_data, list):
+            patterns_list = patterns_data
+        else:
+            patterns_list = []
+        
+        if patterns_list:
+            nb.info(f"  Patterns found: {len(patterns_list)}")
+            
+            for i, pattern in enumerate(patterns_list[:3], 1):  # Показать первые 3
+                # Безопасный доступ к полям pattern
+                if isinstance(pattern, dict):
+                    ptype = pattern.get('type', 'unknown')
+                    plength = pattern.get('length', 'N/A')
+                    pfreq = pattern.get('frequency', 'N/A')
+                    nb.log(f"    Pattern {i}: type={ptype}, length={plength}, freq={pfreq}")
+                else:
+                    nb.log(f"    Pattern {i}: {pattern}")
+        else:
+            nb.log("  No patterns detected (insufficient data or no repeating sequences)")
+    else:
+        nb.log("  No patterns detected (insufficient data or no repeating sequences)")
+    
+    # Образовательный комментарий (fix 21.10.2025)
+    nb.info("  Sequence analysis helps identify zone patterns and trading regimes")
+else:
+    nb.warning("  No sequence analysis available")
 
 nb.wait()
 
@@ -431,58 +717,48 @@ nb.wait()
 # STEP 9: OTHER INDICATORS (Detection Only)
 # =============================================================================
 
-nb.step("Step 9: Other Indicators - Detection Examples")
+nb.step("Step 9: Multiple Indicators - Feature Comparison")
 
-nb.warning("ИЗВЕСТНЫЙ БАГ: ZoneFeaturesAnalyzer hardcoded для MACD колонок")
-nb.info("Для других индикаторов показываем только ДЕТЕКЦИЮ (без analyze()):")
+# Note: reuse result_rsi_full and result_ao_full from Step 5
+# (already created with .analyze())
 
-nb.log("")
-nb.log("RSI ZONES (Threshold Detection):")
-nb.log("-" * 70)
-nb.log("""
-# Через builder (detection only):
-result = (
-    analyze_zones(df)
-    .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', 
-                 indicator_col='RSI_14',
-                 upper_threshold=70, 
-                 lower_threshold=30)
-    .build()  # БЕЗ .analyze() из-за бага
-)
-
-# Через preset (работает аналогично):
-from bquant.analysis.zones import analyze_rsi_zones
-result = analyze_rsi_zones(df, period=14, upper_threshold=70, lower_threshold=30)
-# ПРИМЕЧАНИЕ: preset также работает без analyze() из-за бага
-""")
-
-nb.log("")
-nb.log("AO ZONES (Zero Crossing):")
-nb.log("-" * 70)
-nb.log("""
-# Через preset:
-from bquant.analysis.zones import analyze_ao_zones
-result = analyze_ao_zones(df, fast=5, slow=34)
-# ПРИМЕЧАНИЕ: детекция работает, analyze() - нет
-""")
-
-nb.log("")
-nb.log("MA CROSSOVER ZONES:")
-nb.log("-" * 70)
-nb.log("""
-result = (
-    analyze_zones(df)
-    .with_indicator('pandas_ta', 'sma', length=20)
-    .with_indicator('pandas_ta', 'sma', length=50)
-    .detect_zones('line_crossing', line1_col='SMA_20', line2_col='SMA_50')
-    .build()
-)
-""")
-
-nb.log("")
-nb.warning("TODO: Исправить ZoneFeaturesAnalyzer для автоопределения колонок!")
-nb.info("После исправления, analyze() будет работать для ВСЕХ индикаторов")
+if result_macd_full and result_rsi_full and result_ao_full:
+    nb.info("Feature comparison table:")
+    nb.log(f"{'Indicator':<12} {'Zones':<8} {'AvgDur':<8} {'HasFeatures':<12}")
+    nb.log("-" * 50)
+    for name, res in [("MACD", result_macd_full), ("RSI", result_rsi_full), ("AO", result_ao_full)]:
+        zones = len(res.zones) if res else 0
+        avgd = np.mean([z.duration for z in res.zones]) if (res and res.zones) else 0
+        hasf = any(z.features for z in res.zones) if (res and res.zones) else False
+        nb.log(f"{name:<12} {zones:<8} {avgd:<8.1f} {str(hasf):<12}")
+    
+    nb.substep("9.1: Zone Overlap (MACD vs RSI)")
+    if result_macd_full.zones and result_rsi_full.zones:
+        macd_periods = [(z.start_index, z.end_index) for z in result_macd_full.zones]
+        rsi_periods = [(z.start_index, z.end_index) for z in result_rsi_full.zones]
+        overlaps = 0
+        for m_start, m_end in macd_periods:
+            for r_start, r_end in rsi_periods:
+                if not (m_end < r_start or r_end < m_start):
+                    overlaps += 1
+                    break
+        nb.log(f"  MACD zones: {len(macd_periods)} / RSI zones: {len(rsi_periods)} / Overlaps: {overlaps}")
+    else:
+        nb.warning("  Insufficient zones for overlap analysis")
+    
+    nb.substep("9.2: Consensus Signals (MACD & RSI)")
+    if result_macd_full.zones and result_rsi_full.zones:
+        consensus = 0
+        for mz in result_macd_full.zones:
+            for rz in result_rsi_full.zones:
+                if not (mz.end_index < rz.start_index or rz.end_index < mz.start_index) and mz.type == rz.type:
+                    consensus += 1
+                    break
+        nb.log(f"  Consensus signals: {consensus}")
+    else:
+        nb.warning("  Insufficient zones for consensus analysis")
+else:
+    nb.warning("Step 9 skipped: results from Step 5 not available")
 
 nb.wait()
 
@@ -525,38 +801,97 @@ nb.log(f"  * Параметрических вариаций: {len(macd_variatio
 nb.log(f"  * Форматов экспорта: 2 (pickle, JSON)")
 
 nb.log("")
-nb.log("КЛЮЧЕВЫЕ НАХОДКИ:")
-nb.log("  1. [+] Универсальный API - fluent builder + presets")
-nb.log("  2. [+] Кэширование работает и ускоряет")
-nb.log("  3. [+] Модульность позволяет гибкое использование")
-nb.log(f"  4. [+] Производительность: {len(result_large.zones)/time_large:.1f} зон/сек")
-nb.log("  5. [-] БАГ: ZoneFeaturesAnalyzer hardcoded для MACD (требует исправления)")
+nb.log("KEY FINDINGS:")
+nb.log("  1. [+] Universal API - fluent builder + presets")
+nb.log("  2. [+] Caching works and accelerates")
+nb.log("  3. [+] Modularity enables flexible usage")
+nb.log(f"  4. [+] Performance: {len(result_large.zones)/time_large:.1f} zones/sec")
+nb.log("  5. [+] v2.1: Features work for ALL indicators (MACD, RSI, AO)")
 
 nb.log("")
-nb.log("ЭКОНОМИЯ КОДА:")
-nb.log("  Старый: MACDZoneAnalyzer (517) + RSIZoneAnalyzer (500) + AOZoneAnalyzer (500)")
-nb.log("         = 1517 строк с ДУБЛИРОВАНИЕМ")
-nb.log("  Новый: UniversalZoneAnalyzer (250) + presets (30)")
-nb.log("         = 280 строк БЕЗ дублирования")
-nb.log("  ЭКОНОМИЯ: ~82%!")
+nb.log("CODE SAVINGS:")
+nb.log("  Old: MACDZoneAnalyzer (517) + RSIZoneAnalyzer (500) + AOZoneAnalyzer (500)")
+nb.log("       = 1517 lines with DUPLICATION")
+nb.log("  New: UniversalZoneAnalyzer (250) + presets (30)")
+nb.log("       = 280 lines WITHOUT duplication")
+nb.log("  SAVINGS: ~82%!")
 
 nb.log("")
-nb.log(f"СТАТИСТИКА СЕССИИ:")
-nb.log(f"  * Обработано баров: {len(df) + len(df_small)}")
-nb.log(f"  * Детектировано зон: {len(result_preset.zones)}")
-nb.log(f"  * Среднее время: {time_large:.3f} сек")
+nb.log(f"SESSION STATISTICS:")
+nb.log(f"  * Bars processed: {len(df) + len(df_small)}")
+nb.log(f"  * Zones detected: {len(result_preset.zones)}")
+nb.log(f"  * Average time: {time_large:.3f} sec")
 
 nb.log("")
-nb.info("РЕКОМЕНДАЦИИ:")
-nb.log("  * Для MACD: используйте полный analyze() - работает")
-nb.log("  * Для RSI/AO: используйте только detection (баг в features)")
-nb.log("  * Для production: включайте кэширование (.with_cache())")
-nb.log("  * Для sharing: экспортируйте в JSON")
+nb.info("RECOMMENDATIONS:")
+nb.log("  * For all indicators: use full analyze() - works universally (v2.1)")
+nb.log("  * For production: enable caching (.with_cache())")
+nb.log("  * For sharing: export to JSON")
 
 nb.log("")
-nb.info("ССЫЛКИ:")
+nb.info("LINKS:")
 nb.log("  * Examples: examples/02a_universal_zones.py")
 nb.log("  * Modularity: devref/gaps/zo/zomodul.md")
 nb.log("  * Architecture: devref/gaps/zo/zonan.md")
 
-nb.finish("Universal zone analysis investigation complete!")
+nb.wait()
+
+# =============================================================================
+# STEP 11: EDGE CASES & ERROR HANDLING
+# =============================================================================
+
+nb.step("Step 11: Edge Cases & Error Handling")
+
+nb.substep("11.1: Small Dataset (< 50 bars)")
+with nb.error_handling("Small dataset"):
+    small_df = df.head(30)
+    res_small = (
+        analyze_zones(small_df)
+        .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .analyze(clustering=False)
+        .build()
+    )
+    nb.log(f"  Small dataset (30 bars): {len(res_small.zones)} zones")
+
+nb.substep("11.2: No Zones Detected")
+with nb.error_handling("No zones"):
+    res_none = (
+        analyze_zones(df)
+        .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones('threshold', indicator_col='macd_hist', upper_threshold=100, lower_threshold=-100, min_duration=999)
+        .analyze(clustering=False)
+        .build()
+    )
+    nb.log(f"  No zones case: {len(res_none.zones)} zones")
+
+nb.substep("11.3: Missing Indicator Column")
+with nb.error_handling("Missing column", critical=False):
+    try:
+        res_missing = (
+            analyze_zones(df)
+            .detect_zones('zero_crossing', indicator_col='NON_EXISTENT_COLUMN')
+            .build()
+        )
+        nb.log(f"  Missing column result: {len(res_missing.zones)} zones")
+    except Exception as e:
+        nb.warning(f"  Expected error: {type(e).__name__}: {str(e)[:80]}")
+
+nb.substep("11.4: Invalid Parameters")
+with nb.error_handling("Invalid params", critical=False):
+    try:
+        res_invalid = (
+            analyze_zones(df)
+            .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+            .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=-5)
+            .build()
+        )
+        nb.log(f"  Invalid params zones: {len(res_invalid.zones)}")
+    except ValueError as e:
+        nb.warning(f"  Expected error: {str(e)[:80]}")
+
+nb.success("Edge cases handled gracefully")
+
+nb.wait()
+
+nb.finish("Universal zone analysis investigation complete (v2.1)!")

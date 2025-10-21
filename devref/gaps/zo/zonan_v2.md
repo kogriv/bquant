@@ -814,31 +814,27 @@ if not primary_indicator:
 - 02_ind_macd.py содержит кириллицу в step names (может быть проблема с cp1251 в некоторых консолях)
 - 03_zones_universal.py использует English step names (рекомендуется как best practice)
 
-**Вердикт Stage 2.4:** ⚠️ VERIFIED BUT INCOMPLETE (2025-10-20)
+**Вердикт Stage 2.4:** ⚠️ IN PROGRESS (ЭТАП 1 ✅ COMPLETE, ЭТАП 2 ⏳ PENDING)
 
-**Status:**
-- ✅ Notebooks работают (2/2 exit code 0)
-- ✅ Используют v2.1 API
-- ⚠️ **НО: Analysis pipeline НЕ полностью покрыт**
+**Status ЭТАП 1 (2025-10-20 16:30):**
+- ✅ 03_zones_universal.py обновлен (412 → 695 lines, +283 lines)
+- ✅ Step 5: Full Analysis Pipeline (features, clustering, tests, sequence)
+- ✅ Step 9: Multi-indicator Feature Comparison (overlap, consensus)
+- ✅ Step 11: Edge Cases & Error Handling
+- ✅ Все 11 steps работают (exit code 0)
+- ✅ v2.1 universality доказана (features для MACD, RSI, AO)
+- ✅ Устаревшие комментарии о "баге" удалены
 
-**КРИТИЧЕСКИЙ GAP обнаружен:**
-- ❌ Features НЕ протестированы для универсальных индикаторов
-- ❌ Clustering НЕ демонстрируется
-- ❌ Statistical tests НЕ показываются
-- ❌ Устаревшие комментарии о "баге" (баг исправлен в v2.1!)
-- ❌ 03_analysis_new_features.py BROKEN (Step 2+ fail)
+**Оставшиеся задачи:**
+- ⏳ ЭТАП 2: Исправить 03_analysis_new_features.py (50-60 мин)
+  - Migrate to v2.1 API (убрать _zone_to_dict, MACDZoneAnalyzer)
+  - Протестировать advanced features (swing, divergence, volume, volatility, regression, validation)
+- ⏳ ЭТАП 3: Verification (10 мин)
 
-**ACTION REQUIRED:**
-Создан детальный план полной реализации:
-📋 **[zonan_uni_full.md](zonan_uni_full.md)** (550 lines, 47 checklists, 3 этапа)
+**План:**
+📋 **[zonan_uni_full.md](zonan_uni_full.md)** - детальный implementation plan с прогрессом
 
-**План включает:**
-- ЭТАП 1: Обновить 03_zones_universal.py (40-50 мин, 18 tasks)
-- ЭТАП 2: Исправить 03_analysis_new_features.py (50-60 мин, 22 tasks)
-- ЭТАП 3: Verification (10 мин, 7 tasks)
-- **Total:** ~140 мин (2.5 часа)
-
-**После реализации плана Stage 2.4 будет ✅ COMPLETE**
+**После ЭТАП 2+3 Stage 2.4 будет ✅ COMPLETE**
 
 ---
 

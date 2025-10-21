@@ -160,6 +160,92 @@ result = (
 - **Strategy Pattern:** See [strategies.md](strategies.md) (🟢 stable API)
 - **Extension Guide:** See [extension_guide.md](extension_guide.md) (custom strategies)
 
+### Using Analytical Strategies (v2.1)
+
+🎯 **NEW API:** Configure swing, shape, divergence, volatility, and volume strategies using `.with_strategies()`
+
+**Simple swing analysis:**
+```python
+from bquant.analysis.zones import analyze_zones
+
+result = (
+    analyze_zones(df)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks')  # ✅ NEW!
+    .analyze(clustering=True)
+    .build()
+)
+
+# Access swing metrics
+zone = result.zones[0]
+print(f"Peaks: {zone.features['num_peaks']}")
+print(f"Troughs: {zone.features['num_troughs']}")
+print(f"Drawdown: {zone.features['drawdown_from_peak']}")
+```
+
+**Multiple strategies:**
+```python
+result = (
+    analyze_zones(df)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(
+        swing='find_peaks',       # Swing detection
+        shape='statistical',      # Shape analysis
+        divergence='classic',     # Divergence detection
+        volume='standard'         # Volume analysis
+    )
+    .analyze(clustering=True)
+    .build()
+)
+
+# All features available in zone.features
+zone = result.zones[0]
+print(f"Swing: {zone.features.get('num_peaks', 0)} peaks")
+print(f"Shape: {zone.features.get('skewness', 0)} skewness")
+print(f"Divergence: {zone.features.get('has_classic_divergence', False)}")
+print(f"Volume: {zone.features.get('volume_indicator_corr', 0)} correlation")
+```
+
+**Available strategies:**
+- **swing:** `'find_peaks'`, `'zigzag'`, `'pivot_points'`, or custom instance
+- **shape:** `'statistical'` or custom instance (default: 'statistical')
+- **divergence:** `'classic'` or custom instance
+- **volatility:** custom instance (default: CombinedVolatilityStrategy)
+- **volume:** `'standard'` or custom instance
+
+**Works with ANY indicator:**
+```python
+# RSI with swing analysis
+result = (
+    analyze_zones(df)
+    .with_indicator('pandas_ta', 'rsi', period=14)
+    .detect_zones('threshold', 
+                 indicator_col='RSI_14',
+                 upper_threshold=70, 
+                 lower_threshold=30)
+    .with_strategies(swing='pivot_points')  # ✅ Works!
+    .build()
+)
+
+# Custom indicator with multiple strategies
+df['MY_OSC'] = df['close'].diff(5) / df['close'].rolling(20).std()
+
+result = (
+    analyze_zones(df)
+    .detect_zones('zero_crossing', indicator_col='MY_OSC')
+    .with_strategies(
+        swing='find_peaks',
+        shape='statistical'
+    )
+    .build()
+)
+```
+
+**Notes:**
+- Features are automatically available in `zone.features` (no manual extraction needed)
+- All strategies are optional (default: None = skip)
+- Backward compatible with existing code
+
 ## Классы и функции
 
 - Базовые сущности:

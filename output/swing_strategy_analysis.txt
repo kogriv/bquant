@@ -1,0 +1,521 @@
+18:08:59 - bquant - INFO - ╤шёЄхьр ыюуушЁютрэш  BQuant шэшЎшрышчшЁютрэр (ъюэёюы№: INFO)
+18:08:59 - bquant - INFO - ╦юуш ёюїЁрэ ■Єё  т Їрщы: C:\Users\Ivan\Documents\pro\bquant\logs\bquant.log (єЁютхэ№: INFO)
+18:08:59 - bquant.indicators.base - INFO - Registered indicator: sma
+18:08:59 - bquant.indicators.base - INFO - Registered indicator: ema
+18:08:59 - bquant.indicators.base - INFO - Registered indicator: rsi
+18:08:59 - bquant.indicators.base - INFO - Registered indicator: macd
+18:08:59 - bquant.indicators.base - INFO - Registered indicator: bbands
+[OK] Registered 6 BUILTIN indicators in custom module
+18:08:59 - bquant.analysis.zones - INFO - Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully
+18:08:59 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: zero_crossing
+18:08:59 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: threshold
+18:08:59 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: line_crossing
+18:08:59 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: preloaded
+18:08:59 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: combined
+18:08:59 - bquant.analysis.zones - INFO - Zone detection strategies loaded successfully
+18:08:59 - bquant.analysis.zones - INFO - UniversalZoneAnalyzer loaded successfully
+18:08:59 - bquant.analysis.zones - INFO - Zone analysis pipeline loaded successfully
+18:08:59 - bquant.analysis.zones - INFO - Zone analysis presets loaded successfully
+18:09:00 - bquant.analysis.zones - INFO - Zone features module loaded successfully
+18:09:00 - bquant.analysis.zones - INFO - Sequence analysis module loaded successfully
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: macd_preloaded
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: macd_preloaded
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: sma
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: ema
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: rsi
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: macd
+18:09:00 - bquant.indicators.base - INFO - Registered indicator: bbands
+18:09:01 - bquant.indicators.library.pandas_ta - INFO - Discovered 246 pandas-ta callables
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_aberration
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_aberration
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_accbands
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_accbands
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ad
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ad
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_adosc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_adosc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_adx
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_adx
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_alligator
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_alligator
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_alma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_alma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_alphatrend
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_alphatrend
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_amat
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_amat
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ao
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ao
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_aobv
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_aobv
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_apo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_apo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_aroon
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_aroon
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_atr
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_atr
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_atrts
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_atrts
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_bbands
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_bbands
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_bias
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_bias
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_bop
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_bop
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_brar
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_brar
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_candle_color
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_candle_color
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cci
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cci
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_doji
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_doji
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_inside
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_inside
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_pattern
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_pattern
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cdl_z
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cdl_z
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cfo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cfo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cg
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cg
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_chandelier_exit
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_chandelier_exit
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_chop
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_chop
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cksp
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cksp
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cmf
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cmf
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cmo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cmo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_coppock
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_coppock
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_crsi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_crsi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_cti
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_cti
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_decay
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_decay
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_decreasing
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_decreasing
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_dema
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_dema
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_dm
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_dm
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_donchian
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_donchian
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_dpo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_dpo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_drawdown
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_drawdown
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ebsw
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ebsw
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_efi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_efi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ema
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ema
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_entropy
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_entropy
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_eom
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_eom
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_er
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_er
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_eri
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_eri
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_exhc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_exhc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_fisher
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_fisher
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_fwma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_fwma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ha
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ha
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_high_low_range
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_high_low_range
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hilo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hilo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hl2
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hl2
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hlc3
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hlc3
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ht_trendline
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ht_trendline
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hwc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hwc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_hwma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_hwma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ichimoku
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ichimoku
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_increasing
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_increasing
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_inertia
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_inertia
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_jma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_jma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kama
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kama
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kdj
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kdj
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kst
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kst
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kurtosis
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kurtosis
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_kvo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_kvo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_linreg
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_linreg
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_log_return
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_log_return
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_macd
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_macd
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mad
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mad
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mama
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mama
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_massi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_massi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mcgd
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mcgd
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_median
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_median
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mfi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mfi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_midpoint
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_midpoint
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_midprice
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_midprice
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_mom
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_mom
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_natr
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_natr
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_nvi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_nvi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_obv
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_obv
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ohlc4
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ohlc4
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pdist
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pdist
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_percent_return
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_percent_return
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pgo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pgo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pivots
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pivots
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ppo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ppo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_psar
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_psar
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_psl
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_psl
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvol
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvol
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvr
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvr
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pvt
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pvt
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_pwma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_pwma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_qqe
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_qqe
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_qstick
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_qstick
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_quantile
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_quantile
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_real_body
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_real_body
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_reflex
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_reflex
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_roc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_roc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rsi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rsi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rsx
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rsx
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rvgi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rvgi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rvi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rvi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_rwi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_rwi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_sinwma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_sinwma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_skew
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_skew
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_slope
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_slope
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_sma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_sma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_smc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_smc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_smi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_smi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_smma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_smma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_squeeze
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_squeeze
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_squeeze_pro
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_squeeze_pro
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ssf
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ssf
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ssf3
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ssf3
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stc
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stc
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stdev
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stdev
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stoch
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stoch
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stochf
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stochf
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_stochrsi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_stochrsi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_supertrend
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_supertrend
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_swma
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_swma
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_t3
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_t3
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tema
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tema
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_thermo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_thermo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tmo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tmo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tos_stdevall
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tos_stdevall
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_trendflex
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_trendflex
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_trima
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_trima
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_trix
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_trix
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_true_range
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_true_range
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tsi
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tsi
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_tsv
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_tsv
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ttm_trend
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ttm_trend
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_ui
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_ui
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_uo
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_uo
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_variance
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_variance
+18:09:02 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vhf
+18:09:02 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vhf
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vidya
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vidya
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vortex
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vortex
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vp
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vp
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vwap
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vwap
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_vwma
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_vwma
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_wcp
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_wcp
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_willr
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_willr
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_wma
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_wma
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_zigzag
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_zigzag
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_zlma
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_zlma
+18:09:03 - bquant.indicators.base - INFO - Registered indicator: pandas_ta_zscore
+18:09:03 - bquant.indicators.base - INFO - Registered library function: pandas_ta_zscore
+18:09:03 - bquant.indicators.library.pandas_ta - INFO - Registered 158 pandas-ta indicators
+18:09:03 - bquant.indicators.library.manager - INFO - Loaded 158 indicators from pandas_ta
+18:09:03 - bquant.indicators.library.manager - INFO - Loaded 158 indicators from pandas_ta
+18:09:03 - bquant.indicators.library.talib - WARNING - TA-Lib is not available
+18:09:03 - bquant.indicators.library.manager - INFO - Loaded 0 indicators from talib
+18:09:03 - bquant.indicators.library.manager - INFO - Loaded 0 indicators from talib
+18:09:03 - bquant.indicators.library.manager - INFO - Total loaded indicators: 158
+18:09:03 - bquant.indicators - INFO - Loaded external libraries: {'pandas_ta': 158, 'talib': 0}
+18:09:03 - bquant.indicators - INFO - Library pandas_ta available with 158 indicators
+18:09:03 - bquant.indicators - WARNING - Library talib unavailable: Library not installed
+================================================================================
+SWING STRATEGY ARCHITECTURE ANALYSIS
+================================================================================
+
+[STEP 1] Preparing data...
+18:09:03 - bquant.indicators.base.MACD - INFO - Calculating MACD (12, 26, 9)
+Data shape: (500, 16)
+MACD columns: ['macd', 'macd_signal', 'macd_hist']
+
+================================================================================
+[TEST 1] Builder API - Does .analyze() accept swing_strategy?
+================================================================================
+18:09:03 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+18:09:03 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+18:09:03 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+18:09:03 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+18:09:03 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+18:09:03 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+18:09:03 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+18:09:03 - bquant.core.cache.DiskCache - INFO - Disk cache initialized: C:\Users\Ivan\.cache\bquant
+18:09:03 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+18:09:03 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 38 zones: 19 bull, 19 bear
+18:09:03 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 38 zones
+18:09:03 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 38/38 zones
+18:09:03 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 38 zones
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+18:09:03 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+18:09:03 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 38 zones
+18:09:03 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 38 zones, clustering=False, regression=False
+18:09:03 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\research\notebooks\swing_strategy_analysis.py", line 60, in <module>
+    print(f"\n\u2705 Builder executed successfully")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 2: character maps to <undefined>

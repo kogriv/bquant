@@ -189,7 +189,7 @@ class MACDZoneAnalyzer:
         )
         
         return result
-
+            
 # Convenience functions (also delegate to universal API)
 
 @deprecated(

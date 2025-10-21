@@ -34,18 +34,18 @@ class ZoneFeatures:
         start_price: Цена в начале зоны
         end_price: Цена в конце зоны
         price_return: Доходность за зону
-        macd_amplitude: Амплитуда MACD в зоне
-        hist_amplitude: Амплитуда гистограммы MACD
+        macd_amplitude: Амплитуда MACD линии (legacy - only for MACD zones, use hist_amplitude for universal)
+        hist_amplitude: Амплитуда primary oscillator (v2.1 UNIVERSAL - works with ANY indicator: MACD, RSI, AO, custom, etc.)
         price_range_pct: Ценовой диапазон в процентах
         atr_normalized_return: Доходность, нормализованная на ATR
-        correlation_price_hist: Корреляция между ценой и гистограммой
+        correlation_price_hist: Корреляция между ценой и primary indicator (v2.1 UNIVERSAL)
         num_peaks: Количество пиков в зоне
         num_troughs: Количество впадин в зоне
         drawdown_from_peak: Просадка от пика (для бычьих зон)
         rally_from_trough: Отскок от минимума (для медвежьих зон)
         peak_time_ratio: Позиция пика в зоне (0.0-1.0, для бычьих зон)
         trough_time_ratio: Позиция впадины в зоне (0.0-1.0, для медвежьих зон)
-        hist_slope: Максимальный наклон гистограммы MACD (максимальное abs(изменение) за период)
+        hist_slope: Максимальный наклон primary oscillator (v2.1 UNIVERSAL - max rate of change, works with ANY indicator)
         metadata: Дополнительные метаданные
     """
     zone_id: str
@@ -124,13 +124,13 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         self.min_duration = min_duration
         self.min_amplitude = min_amplitude
         
-        # Стратегии по умолчанию через фабрики из config
-        # В Phase 3.0 все стратегии None, так как конкретные реализации еще не созданы
-        self.swing_strategy = swing_strategy if swing_strategy is not None else create_swing_strategy()
-        self.divergence_strategy = divergence_strategy if divergence_strategy is not None else create_divergence_strategy()
-        self.shape_strategy = shape_strategy if shape_strategy is not None else create_shape_strategy()
-        self.volume_strategy = volume_strategy if volume_strategy is not None else create_volume_strategy()
-        self.volatility_strategy = volatility_strategy if volatility_strategy is not None else create_volatility_strategy()
+        # v2.1: Стратегии через фабрики (support string names from Builder API)
+        # Factory converts string names to strategy instances
+        self.swing_strategy = create_swing_strategy(swing_strategy)
+        self.divergence_strategy = create_divergence_strategy(divergence_strategy)
+        self.shape_strategy = create_shape_strategy(shape_strategy)
+        self.volume_strategy = create_volume_strategy(volume_strategy)
+        self.volatility_strategy = create_volatility_strategy(volatility_strategy)
         
         self.logger = get_logger(f"{__name__}.ZoneFeaturesAnalyzer")
         
@@ -185,29 +185,58 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             end_price = float(data['close'].iloc[-1])
             price_return = (end_price / start_price) - 1
             
-            # Индикатор характеристики (универсально)
+            # v2.1: Generic oscillator metrics (UNIVERSAL - use context)
+            # Fields hist_amplitude, hist_slope are now UNIVERSAL (not MACD-specific)
+            hist_amplitude = None
+            hist_slope = None
             max_macd = None
             min_macd = None
             macd_amplitude = None
-            max_hist = None
-            min_hist = None
-            hist_amplitude = None
-            hist_slope = None
             
-            # Если есть MACD - извлекаем его метрики
-            if 'macd' in data.columns:
-                max_macd = float(data['macd'].max())
-                min_macd = float(data['macd'].min())
-                macd_amplitude = max_macd - min_macd
-            
-            if 'macd_hist' in data.columns:
-                max_hist = float(data['macd_hist'].max())
-                min_hist = float(data['macd_hist'].min()) 
-                hist_amplitude = max_hist - min_hist
+            if primary_indicator and primary_indicator in data.columns:
+                # Calculate from primary indicator (ANY oscillator)
+                osc_values = data[primary_indicator]
+                max_osc = float(osc_values.max())
+                min_osc = float(osc_values.min())
+                hist_amplitude = max_osc - min_osc  # Reusing field for universal amplitude
                 
-                # Наклон гистограммы
+                # Calculate max rate of change (universal slope)
                 if len(data) >= 2:
-                    hist_slope = float(data['macd_hist'].diff().abs().max())
+                    hist_slope = float(osc_values.diff().abs().max())
+                
+                slope_str = f"{hist_slope:.4f}" if hist_slope is not None else "0.0000"
+                self.logger.debug(
+                    f"Oscillator metrics for '{primary_indicator}': "
+                    f"amplitude={hist_amplitude:.4f}, slope={slope_str}"
+                )
+                
+                # Legacy MACD-specific fields (for backward compatibility)
+                # Only populated if primary_indicator is MACD-related
+                if primary_indicator.lower() in ['macd', 'macd_hist'] or 'macd' in primary_indicator.lower():
+                    # For MACD zones, also populate legacy macd_amplitude field
+                    if 'macd' in data.columns:
+                        max_macd = float(data['macd'].max())
+                        min_macd = float(data['macd'].min())
+                        macd_amplitude = max_macd - min_macd
+                    else:
+                        # If only macd_hist available, alias it
+                        macd_amplitude = hist_amplitude
+            else:
+                # Fallback: try to find ANY oscillator (if context missing)
+                fallback_col = self._find_any_oscillator(data)
+                if fallback_col and fallback_col in data.columns:
+                    osc_values = data[fallback_col]
+                    max_osc = float(osc_values.max())
+                    min_osc = float(osc_values.min())
+                    hist_amplitude = max_osc - min_osc
+                    
+                    if len(data) >= 2:
+                        hist_slope = float(osc_values.diff().abs().max())
+                    
+                    self.logger.debug(
+                        f"Oscillator metrics (fallback to '{fallback_col}'): "
+                        f"amplitude={hist_amplitude:.4f}"
+                    )
             
             # Ценовые характеристики
             max_price = float(data['high'].max())
@@ -219,25 +248,31 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             if 'atr' in data.columns and data['atr'].iloc[0] > 0:
                 atr_normalized_return = price_return / float(data['atr'].iloc[0])
             
-            # Корреляция цены и индикатора (универсально)
+            # v2.1: Price-indicator correlation (UNIVERSAL - use context)
             correlation_price_hist = None
             if len(data) >= 3:
-                # Попробуем найти основную колонку индикатора для корреляции
-                indicator_col = None
-                if 'macd_hist' in data.columns:
-                    indicator_col = 'macd_hist'
-                elif 'RSI_14' in data.columns:
-                    indicator_col = 'RSI_14'
-                elif any(col.startswith('RSI_') for col in data.columns):
-                    indicator_col = next(col for col in data.columns if col.startswith('RSI_'))
-                elif any(col.startswith('AO_') for col in data.columns):
-                    indicator_col = next(col for col in data.columns if col.startswith('AO_'))
-                
-                if indicator_col and indicator_col in data.columns:
+                # Use primary_indicator from context (already available from line 177)
+                if primary_indicator and primary_indicator in data.columns:
                     try:
-                        correlation_price_hist = float(data['close'].corr(data[indicator_col]))
-                    except:
+                        correlation_price_hist = float(data['close'].corr(data[primary_indicator]))
+                        self.logger.debug(
+                            f"Price-{primary_indicator} correlation: {correlation_price_hist:.3f}"
+                        )
+                    except Exception as e:
+                        self.logger.debug(f"Failed to calculate price-{primary_indicator} correlation: {e}")
                         correlation_price_hist = None
+                else:
+                    # Fallback: use generic oscillator detection (if context missing)
+                    fallback_col = self._find_any_oscillator(data)
+                    if fallback_col:
+                        try:
+                            correlation_price_hist = float(data['close'].corr(data[fallback_col]))
+                            self.logger.debug(
+                                f"Price-{fallback_col} correlation (fallback): {correlation_price_hist:.3f}"
+                            )
+                        except Exception as e:
+                            self.logger.debug(f"Correlation calculation failed: {e}")
+                            correlation_price_hist = None
             
             # Анализ пиков и впадин
             num_peaks = None
@@ -287,40 +322,50 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             # Добавляем MACD метрики только если колонки есть
             if 'macd' in data.columns and 'macd_hist' in data.columns:
                 metadata.update({
-                    'max_macd': max_macd,
-                    'min_macd': min_macd,
+                    'max_macd': max_macd if max_macd is not None else float(data['macd'].max()),
+                    'min_macd': min_macd if min_macd is not None else float(data['macd'].min()),
                     'avg_macd': float(data['macd'].mean()),
                     'macd_std': float(data['macd'].std()),
-                    'max_hist': max_hist,
-                    'min_hist': min_hist,
+                    'max_hist': float(data['macd_hist'].max()),  # Direct calculation
+                    'min_hist': float(data['macd_hist'].min()),  # Direct calculation
                     'avg_hist': float(data['macd_hist'].mean()),
                     'hist_std': float(data['macd_hist'].std()),
                 })
             
-            # Добавляем RSI метрики если есть
-            rsi_col = None
-            if 'RSI_14' in data.columns:
-                rsi_col = 'RSI_14'
-            elif any(col.startswith('RSI_') for col in data.columns):
-                rsi_col = next((col for col in data.columns if col.startswith('RSI_')), None)
-            
-            if rsi_col:
+            # v2.1: Generic oscillator metadata (UNIVERSAL - use primary_indicator)
+            if primary_indicator and primary_indicator in data.columns:
+                # Add generic oscillator statistics to metadata
                 metadata.update({
-                    'rsi_max': float(data[rsi_col].max()),
-                    'rsi_min': float(data[rsi_col].min()),
-                    'rsi_avg': float(data[rsi_col].mean()),
-                    'rsi_std': float(data[rsi_col].std()),
+                    'oscillator_name': primary_indicator,
+                    'oscillator_max': float(data[primary_indicator].max()),
+                    'oscillator_min': float(data[primary_indicator].min()),
+                    'oscillator_avg': float(data[primary_indicator].mean()),
+                    'oscillator_std': float(data[primary_indicator].std()),
                 })
-            
-            # Добавляем AO метрики если есть
-            ao_col = next((col for col in data.columns if col.startswith('AO_')), None)
-            if ao_col:
-                metadata.update({
-                    'ao_max': float(data[ao_col].max()),
-                    'ao_min': float(data[ao_col].min()),
-                    'ao_avg': float(data[ao_col].mean()),
-                    'ao_std': float(data[ao_col].std()),
-                })
+                
+                # Legacy metadata (for backward compatibility with MACD zones)
+                # Keep MACD-specific metadata keys if primary_indicator is MACD-related
+                if 'macd_hist' in primary_indicator.lower() or primary_indicator == 'macd_hist':
+                    metadata.update({
+                        'hist_max': metadata['oscillator_max'],  # Alias for BC
+                        'hist_min': metadata['oscillator_min'],  # Alias for BC
+                        'hist_avg': metadata['oscillator_avg'],  # Alias for BC
+                        'hist_std': metadata['oscillator_std'],  # Alias for BC
+                    })
+                elif 'rsi' in primary_indicator.lower():
+                    metadata.update({
+                        'rsi_max': metadata['oscillator_max'],  # Alias for BC
+                        'rsi_min': metadata['oscillator_min'],  # Alias for BC
+                        'rsi_avg': metadata['oscillator_avg'],  # Alias for BC
+                        'rsi_std': metadata['oscillator_std'],  # Alias for BC
+                    })
+                elif 'ao' in primary_indicator.lower() or primary_indicator.startswith('AO_'):
+                    metadata.update({
+                        'ao_max': metadata['oscillator_max'],  # Alias for BC
+                        'ao_min': metadata['oscillator_min'],  # Alias for BC
+                        'ao_avg': metadata['oscillator_avg'],  # Alias for BC
+                        'ao_std': metadata['oscillator_std'],  # Alias for BC
+                    })
             
             if 'atr' in data.columns:
                 metadata.update({

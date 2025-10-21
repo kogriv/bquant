@@ -312,6 +312,12 @@ class ZoneAnalysisBuilder:
         self._run_validation = False
         self._enable_cache = True
         self._cache_ttl = 3600
+        # v2.1: Analytical strategies configuration
+        self._swing_strategy: Optional[str] = None
+        self._shape_strategy: Optional[str] = None
+        self._divergence_strategy: Optional[str] = None
+        self._volatility_strategy: Optional[str] = None
+        self._volume_strategy: Optional[str] = None
         self.logger = get_logger(__name__)
     
     def with_indicator(self, 
@@ -398,6 +404,85 @@ class ZoneAnalysisBuilder:
         self._run_validation = validation
         return self
     
+    def with_strategies(self,
+                       swing: Optional[str] = None,
+                       shape: Optional[str] = None,
+                       divergence: Optional[str] = None,
+                       volatility: Optional[str] = None,
+                       volume: Optional[str] = None) -> 'ZoneAnalysisBuilder':
+        """
+        Настроить analytical strategies для zone features extraction.
+        
+        v2.1 FEATURE: Configure strategies for swing analysis, shape analysis,
+        divergence detection, volatility analysis, and volume analysis.
+        
+        Args:
+            swing: Swing detection strategy name
+                   - 'find_peaks': Detect peaks/troughs using scipy.signal.find_peaks
+                   - 'zigzag': ZigZag indicator-based swing detection
+                   - 'pivot_points': Classical pivot points detection
+                   - None: Skip swing analysis (default)
+            shape: Shape analysis strategy name
+                   - 'statistical': Statistical shape metrics (skewness, kurtosis, etc.)
+                   - None or custom strategy instance
+            divergence: Divergence detection strategy name
+                   - 'classic': Classic bullish/bearish divergence detection
+                   - None or custom strategy instance
+            volatility: Volatility analysis strategy name
+                   - None or custom strategy instance
+            volume: Volume analysis strategy name
+                   - 'standard': Standard volume analysis (spikes, correlation, etc.)
+                   - None or custom strategy instance
+        
+        Returns:
+            self для цепочки вызовов
+        
+        Examples:
+            # With swing analysis
+            result = (
+                analyze_zones(df)
+                .detect_zones('zero_crossing', indicator_col='macd_hist')
+                .with_strategies(swing='find_peaks')
+                .analyze(clustering=True)
+                .build()
+            )
+            
+            # With multiple strategies
+            result = (
+                analyze_zones(df)
+                .detect_zones('zero_crossing', indicator_col='macd_hist')
+                .with_strategies(
+                    swing='find_peaks',
+                    shape='statistical',
+                    divergence='classic',
+                    volume='standard'
+                )
+                .analyze(clustering=True)
+                .build()
+            )
+            
+            # RSI with swing analysis
+            result = (
+                analyze_zones(df)
+                .with_indicator('pandas_ta', 'rsi', period=14)
+                .detect_zones('threshold', indicator_col='RSI_14', 
+                             upper_threshold=70, lower_threshold=30)
+                .with_strategies(swing='pivot_points')
+                .build()
+            )
+        
+        Note:
+            Strategies are passed to UniversalZoneAnalyzer which creates
+            specialized strategy instances (e.g., FindPeaksSwingStrategy,
+            StatisticalShapeStrategy, etc.) based on the strategy names.
+        """
+        self._swing_strategy = swing
+        self._shape_strategy = shape
+        self._divergence_strategy = divergence
+        self._volatility_strategy = volatility
+        self._volume_strategy = volume
+        return self
+    
     def with_cache(self, 
                    enable: bool = True,
                    ttl: int = 3600) -> 'ZoneAnalysisBuilder':
@@ -458,9 +543,30 @@ class ZoneAnalysisBuilder:
             run_validation=self._run_validation
         )
         
+        # ✅ v2.1: Create custom analyzer if strategies are specified
+        custom_analyzer = None
+        if any([self._swing_strategy, self._shape_strategy, 
+                self._divergence_strategy, self._volatility_strategy, 
+                self._volume_strategy]):
+            from .analyzer import UniversalZoneAnalyzer
+            custom_analyzer = UniversalZoneAnalyzer(
+                swing_strategy=self._swing_strategy,
+                shape_strategy=self._shape_strategy,
+                divergence_strategy=self._divergence_strategy,
+                volatility_strategy=self._volatility_strategy,
+                volume_strategy=self._volume_strategy
+            )
+            self.logger.debug(
+                f"Using custom analyzer with strategies: "
+                f"swing={self._swing_strategy}, shape={self._shape_strategy}, "
+                f"divergence={self._divergence_strategy}, "
+                f"volatility={self._volatility_strategy}, volume={self._volume_strategy}"
+            )
+        
         # Выполняем через pipeline с кэшированием
         pipeline = ZoneAnalysisPipeline(
             config,
+            zone_analyzer=custom_analyzer,  # ✅ v2.1: Pass custom analyzer
             enable_cache=self._enable_cache,
             cache_ttl=self._cache_ttl
         )

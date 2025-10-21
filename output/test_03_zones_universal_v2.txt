@@ -1,0 +1,409 @@
+16:07:35 - bquant - INFO - ╤шёЄхьр ыюуушЁютрэш  BQuant шэшЎшрышчшЁютрэр (ъюэёюы№: INFO)
+16:07:35 - bquant - INFO - ╦юуш ёюїЁрэ ■Єё  т Їрщы: C:\Users\Ivan\Documents\pro\bquant\logs\bquant.log (єЁютхэ№: INFO)
+[OUTPUT] Output will be written to: research\notebooks\03_zones_universal_log.txt
+[>>] Starting Universal Zone Analysis - Deep Dive
+=======================================================
+[SCRIPT] Universal Zone Analysis - Deep Dive
+[DATE] Started: 2025-10-20 16:07:35
+=======================================================
+================================================================================
+[STEP] STEP 1: Step 1: Data Loading & Preparation
+------------------------------------------
+[INFO] ╟руЁєцрхь sample фрээ√х:
+[OK] DatetimeIndex єёЄрэютыхэ
+╟руЁєцхэю: 1000 срЁют
+╧хЁшюф: 2025-06-11 20:00:00+07:00 - 2025-08-12 13:00:00+07:00
+╩юыюэъш: 14
+[INFO] ┴рчютр  ёЄрЄшёЄшър:
+  open: 3263.81 - 3448.36
+  high: 3269.91 - 3451.53
+  low: 3244.41 - 3439.60
+  close: 3263.82 - 3448.49
+  volume: 1147.00 - 121439.00
+[INFO] ╧ЁютхЁър ърўхёЄтр (OHLCV):
+[OK] ─рээ√х яюыэ√х (OHLCV), яЁюяєёъют эхЄ
+[OK] Data loading completed successfully
+================================================================================
+[STEP] STEP 2: Step 2: Universal API - Basic Usage
+-------------------------------------------
+[INFO] ─хьюэёЄЁрЎш  эютюую єэштхЁёры№эюую API:
+16:07:35 - bquant.analysis.zones - INFO - Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully
+16:07:36 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: zero_crossing
+16:07:36 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: threshold
+16:07:36 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: line_crossing
+16:07:36 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: preloaded
+16:07:36 - bquant.analysis.zones.detection.registry - INFO - Registered zone detection strategy: combined
+16:07:36 - bquant.analysis.zones - INFO - Zone detection strategies loaded successfully
+16:07:36 - bquant.analysis.zones - INFO - UniversalZoneAnalyzer loaded successfully
+[OK] Registered 6 BUILTIN indicators in custom module
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3inside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3linestrike. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3outside. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3starsinsouth. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3whitesoldiers. (pip install TA-Lib)
+[i] Requires TA-Lib to use abandonedbaby. (pip install TA-Lib)
+[i] Requires TA-Lib to use advanceblock. (pip install TA-Lib)
+[i] Requires TA-Lib to use belthold. (pip install TA-Lib)
+[i] Requires TA-Lib to use breakaway. (pip install TA-Lib)
+[i] Requires TA-Lib to use closingmarubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use concealbabyswall. (pip install TA-Lib)
+[i] Requires TA-Lib to use counterattack. (pip install TA-Lib)
+[i] Requires TA-Lib to use darkcloudcover. (pip install TA-Lib)
+[i] Requires TA-Lib to use dojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use dragonflydoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use engulfing. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use eveningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use gapsidesidewhite. (pip install TA-Lib)
+[i] Requires TA-Lib to use gravestonedoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use hammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use hangingman. (pip install TA-Lib)
+[i] Requires TA-Lib to use harami. (pip install TA-Lib)
+[i] Requires TA-Lib to use haramicross. (pip install TA-Lib)
+[i] Requires TA-Lib to use highwave. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkake. (pip install TA-Lib)
+[i] Requires TA-Lib to use hikkakemod. (pip install TA-Lib)
+[i] Requires TA-Lib to use homingpigeon. (pip install TA-Lib)
+[i] Requires TA-Lib to use identical3crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use inneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use invertedhammer. (pip install TA-Lib)
+[i] Requires TA-Lib to use kicking. (pip install TA-Lib)
+[i] Requires TA-Lib to use kickingbylength. (pip install TA-Lib)
+[i] Requires TA-Lib to use ladderbottom. (pip install TA-Lib)
+[i] Requires TA-Lib to use longleggeddoji. (pip install TA-Lib)
+[i] Requires TA-Lib to use longline. (pip install TA-Lib)
+[i] Requires TA-Lib to use marubozu. (pip install TA-Lib)
+[i] Requires TA-Lib to use matchinglow. (pip install TA-Lib)
+[i] Requires TA-Lib to use mathold. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningdojistar. (pip install TA-Lib)
+[i] Requires TA-Lib to use morningstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use onneck. (pip install TA-Lib)
+[i] Requires TA-Lib to use piercing. (pip install TA-Lib)
+[i] Requires TA-Lib to use rickshawman. (pip install TA-Lib)
+[i] Requires TA-Lib to use risefall3methods. (pip install TA-Lib)
+[i] Requires TA-Lib to use separatinglines. (pip install TA-Lib)
+[i] Requires TA-Lib to use shootingstar. (pip install TA-Lib)
+[i] Requires TA-Lib to use shortline. (pip install TA-Lib)
+[i] Requires TA-Lib to use spinningtop. (pip install TA-Lib)
+[i] Requires TA-Lib to use stalledpattern. (pip install TA-Lib)
+[i] Requires TA-Lib to use sticksandwich. (pip install TA-Lib)
+[i] Requires TA-Lib to use takuri. (pip install TA-Lib)
+[i] Requires TA-Lib to use tasukigap. (pip install TA-Lib)
+[i] Requires TA-Lib to use thrusting. (pip install TA-Lib)
+[i] Requires TA-Lib to use tristar. (pip install TA-Lib)
+[i] Requires TA-Lib to use unique3river. (pip install TA-Lib)
+[i] Requires TA-Lib to use upsidegap2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use xsidegap3methods. (pip install TA-Lib)
+16:07:38 - bquant.indicators.library.talib - WARNING - TA-Lib is not available
+16:07:38 - bquant.indicators - WARNING - Library talib unavailable: Library not installed
+16:07:38 - bquant.analysis.zones - INFO - Zone analysis pipeline loaded successfully
+16:07:38 - bquant.analysis.zones - INFO - Zone analysis presets loaded successfully
+16:07:39 - bquant.analysis.zones - INFO - Zone features module loaded successfully
+16:07:39 - bquant.analysis.zones - INFO - Sequence analysis module loaded successfully
+========================================
+[SUBSTEP] 2.1: Fluent Builder Syntax
+==============================
+16:07:39 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:39 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:39 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:39 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:39 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:39 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:39 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:39 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:39 - bquant.core.cache.DiskCache - INFO - Disk cache initialized: C:\Users\Ivan\.cache\bquant
+16:07:39 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+[OK] Builder: 72 чюэ чр 0.090 ёхъ
+  ┴√ў№шї: 37
+  ╠хфтхц№шї: 35
+========================================
+[SUBSTEP] 2.2: Convenience Preset
+==============================
+16:07:39 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:39 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:39 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:39 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:39 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:39 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:39 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:39 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+[OK] Preset: 72 чюэ чр 0.048 ёхъ
+  ╚фхэЄшўэ√ builder: ─└
+========================================
+[SUBSTEP] 2.3: Comparison
+==============================
+[INFO] ┬√сюЁ яюфїюфр:
+  Builder:  ьръёшьры№эр  ушсъюёЄ№, эхёЄрэфрЁЄэ√х ярЁрьхЄЁ√
+           72 чюэ чр 0.090 ёхъ
+  Preset:   с√ёЄЁ√щ ёЄрЁЄ, ёЄрэфрЁЄэ√х ярЁрьхЄЁ√
+           72 чюэ чр 0.048 ёхъ (с√ёЄЁхх!)
+[OK] Universal API basics completed successfully
+================================================================================
+[STEP] STEP 3: Step 3: Detection Strategies for MACD
+---------------------------------------------
+[INFO] ╥хёЄшЁєхь Ёрчышўэ√х ёЄЁрЄхушш фхЄхъЎшш эр MACD:
+========================================
+[SUBSTEP] 3.1: Zero Crossing (histogram)
+==============================
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  Histogram zero crossing: 72 чюэ
+==========================================
+[SUBSTEP] 3.2: Line Crossing (MACD/Signal)
+================================
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  MACD/Signal crossing: 72 чюэ
+========================================
+[SUBSTEP] 3.3: Comparison
+==============================
+[INFO] ╤Ёртэхэшх ёЄЁрЄхушщ:
+======================================================================
+  ZeroCross_Hist           :  72 чюэ
+  LineCross_MACD           :  72 чюэ
+======================================================================
+[INFO] ┬√тюф√:
+  * Zero crossing: фы  рэрышчр ёшы√ ЄЁхэфр
+  * Line crossing: фы  ЄюЁуют√ї ёшуэрыют
+  * ╨рчэюх ъюышўхёЄтю чюэ - Ёрчэ√х Ўхыш!
+[OK] Detection strategies completed successfully
+================================================================================
+[STEP] STEP 4: Step 4: Parameter Sensitivity Analysis
+----------------------------------------------
+[INFO] ┬ыш эшх ярЁрьхЄЁют эр фхЄхъЎш■:
+========================================
+[SUBSTEP] 4.1: MACD periods variation
+==============================
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  Aggressive      ( 8/21/ 5): 102 чюэ
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  Standard        (12/26/ 9):  72 чюэ
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  Conservative    (21/55/13):  43 чюэ
+[INFO] ┬√тюф:
+  └уЁхёёштэ√х (8/21/5): 102 чюэ (┴╬╦▄╪┼)
+  ╩юэёхЁтрЄштэ√х (21/55/13): 43 чюэ (╠┼═▄╪┼)
+  ╨Я╤А╨░╨▓╨╕╨╗╨╛: ╨С╨╛╨╗╨╡╨╡ ╨▒╤Л╤Б╤В╤А╤Л╨╡ MA тЖТ ╨▒╨╛╨╗╤М╤И╨╡ ╨╖╨╛╨╜
+[OK] MACD sensitivity completed successfully
+========================================
+[SUBSTEP] 4.2: min_duration impact
+==============================
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  min_duration= 1:  83 чюэ
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  min_duration= 2:  72 чюэ
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  min_duration= 5:  59 чюэ
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+  min_duration=10:  45 чюэ
+[INFO] ┬√тюф:
+  min_duration=1: 83 чюэ (ьэюую °єьр)
+  min_duration=2: 72 чюэ (юяЄшьры№эю)
+  min_duration=10: 45 чюэ (Єюы№ъю фышээ√х)
+  ╨Я╤А╨░╨▓╨╕╨╗╨╛: ╨С╨╛╨╗╤М╤И╨╡ min_duration тЖТ ╨╝╨╡╨╜╤М╤И╨╡ ╨╖╨╛╨╜, ╨▓╤Л╤И╨╡ ╨║╨░╤З╨╡╤Б╤В╨▓╨╛
+[OK] min_duration sensitivity completed successfully
+================================================================================
+[STEP] STEP 5: Step 5: Full Analysis Pipeline Deep Dive
+------------------------------------------------
+[INFO] v2.1 UNIVERSALITY PROOF: Features & Clustering for ALL indicators
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result loaded from cache (key: zone_ana...)
+[OK] MACD: 72 zones (features+clustering)
+[OK] MACD full analysis completed successfully
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: pandas_ta.rsi
+16:07:40 - bquant.analysis.zones.detection.threshold - INFO - Detected 0 zones: OB=0, N=0, OS=0
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - No zones provided, returning empty result
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] RSI: 0 zones (features+clustering)
+[OK] RSI full analysis completed successfully
+16:07:40 - bquant.analysis.ZoneFeaturesAnalyzer - INFO - Initialized ZoneFeaturesAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Initialized zone features analyzer with min_duration=2, min_amplitude=0.001, strategies={'swing': 'ZigZagSwingStrategy', 'divergence': 'None', 'shape': 'StatisticalShapeStrategy', 'volume': 'None', 'volatility': 'None'}
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Initialized hypothesis test suite with alpha=0.05
+16:07:40 - bquant.analysis.ZoneSequenceAnalyzer - INFO - Initialized ZoneSequenceAnalyzer analyzer
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Initialized zone sequence analyzer with min_sequence_length=3
+16:07:40 - bquant.analysis.zones.analyzer - WARNING - ZoneRegressionAnalyzer not available
+16:07:40 - bquant.analysis.validation.suite.ValidationSuite - INFO - Initialized validation suite with degradation_threshold=0.2
+16:07:40 - bquant.analysis.zones.analyzer - INFO - UniversalZoneAnalyzer initialized with DI components
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
+16:07:40 - bquant.analysis.zones.pipeline - INFO - Calculating indicator: pandas_ta.ao
+16:07:40 - bquant.analysis.zones.detection.zero_crossing - INFO - Detected 36 zones: 18 bull, 18 bear
+16:07:40 - bquant.analysis.zones.analyzer - INFO - Starting analysis of 36 zones
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Extracted features for 36/36 zones
+16:07:40 - bquant.analysis.zones.zone_features.ZoneFeaturesAnalyzer - INFO - Analyzing distribution of 36 zones
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Running all hypothesis tests
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration hypothesis
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing histogram slope hypothesis
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Histogram slope hypothesis test failed: Insufficient data for correlation test (need at least 3 points)
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test histogram_slope failed: Histogram slope test failed: Insufficient data for correlation test (need at least 3 points)
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing bull-bear asymmetry hypothesis
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing sequence hypothesis
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing volatility hypothesis
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - ERROR - Volatility hypothesis test failed: "['abs_price_return'] not in index"
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - WARNING - Test volatility_effects failed: Volatility test failed: "['abs_price_return'] not in index"
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing correlation-drawdown hypothesis
+16:07:40 - bquant.analysis.statistical.hypothesis_testing.HypothesisTestSuite - INFO - Testing zone duration stationarity (ADF)
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Analyzing transitions for 36 zones
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Clustering 36 zones into 2 clusters
+16:07:40 - bquant.analysis.zones.sequence_analysis.ZoneSequenceAnalyzer - INFO - Using features for clustering: ['duration', 'macd_amplitude', 'hist_amplitude', 'price_range_pct', 'correlation_price_hist', 'num_peaks', 'num_troughs']
+16:07:43 - bquant.analysis.zones.analyzer - INFO - Performed clustering: 2 clusters
+16:07:43 - bquant.analysis.zones.analyzer - INFO - Analysis complete: 36 zones, clustering=True, regression=False
+16:07:43 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
+[OK] AO: 36 zones (features+clustering)
+[OK] AO full analysis completed successfully
+=========================================
+[SUBSTEP] 5.4: Clustering Analysis (MACD)
+===============================
+Traceback (most recent call last):
+  File "C:\Users\Ivan\Documents\pro\bquant\research\notebooks\03_zones_universal.py", line 264, in <module>
+    nb.log(f"  Clusters: {len(set(clusters.values()))}")
+                              ~~~^^^^^^^^^^^^^^^^^^^
+TypeError: unhashable type: 'dict'

@@ -150,6 +150,11 @@ class UniversalZoneAnalyzer:
         # 1. Извлечение признаков (БЕЗ адаптеров!)
         zones_features = self.features.extract_all_zones_features(zones)
         
+        # ✅ v2.1 FIX: Write features back to ZoneInfo for convenient access
+        # This makes features immediately available in zone.features dict
+        for zone, features in zip(zones, zones_features):
+            zone.features = features.to_dict()
+        
         # 2. Статистический анализ
         statistics = self.features.analyze_zones_distribution([f.to_dict() for f in zones_features])
         
