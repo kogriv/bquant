@@ -215,12 +215,12 @@ nb.wait()
 nb.step("Заключение")
 
 nb.info("Показаны способы создания MACD через IndicatorFactory:")
-nb.info("✅ PRELOADED - готовые данные")
-nb.info("✅ CUSTOM - собственная реализация")
+nb.info("[OK] PRELOADED - готовые данные")
+nb.info("[OK] CUSTOM - собственная реализация")
 if library_available:
-    nb.info("✅ LIBRARY - внешние библиотеки (pandas_ta)")
+    nb.info("[OK] LIBRARY - внешние библиотеки (pandas_ta)")
 else:
-    nb.info("❌ LIBRARY - pandas_ta недоступен")
+    nb.info("[!] LIBRARY - pandas_ta недоступен")
 
 nb.info("Демонстрированы доступные методы:")
 nb.info("• name, config - основные свойства")

@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-10-18 12:28:40
+[LOG] Log started: 2025-10-22 12:52:02
 [OUTPUT] Output will be written to: research\notebooks\01_data_loader_log.txt
 [>>] Starting Демонстрация работы модуля bquant.data.loader
 =================================================================
 [SCRIPT] Демонстрация работы модуля bquant.data.loader
-[DATE] Started: 2025-10-18 12:28:40
+[DATE] Started: 2025-10-22 12:52:02
 =================================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Работа с встроенными sample-данными
@@ -271,5 +271,5 @@ time
 [INFO] Вернули директорию данных к значению по умолчанию: C:\Users\Ivan\Documents\pro\bquant\data
 
 [END] Script finished successfully!
-[END] Log ended: 2025-10-18 12:28:46
-[TIME] Duration: 0:00:05.911944
+[END] Log ended: 2025-10-22 12:52:07
+[TIME] Duration: 0:00:05.465138

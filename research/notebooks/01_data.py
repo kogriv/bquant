@@ -20,7 +20,7 @@ setup_logging(profile='research')
 
 from bquant.core.nb import NotebookSimulator
 from bquant.core.config import get_data_dir, set_data_dir, reset_directories_to_defaults
-        from bquant.data.loader import (
+from bquant.data.loader import (
     load_ohlcv_data,
     load_symbol_data,
     load_xauusd_data,
@@ -50,14 +50,14 @@ nb.info("API bquant.data.loader - это основной модуль для з
 with nb.error_handling("Listing available data directory"):
     nb.info("-"*60)
     nb.info("1.1. get_data_dir() - Текущая рабочая директория:")
-    nb.log(get_data_dir())
+    nb.log(str(get_data_dir()))
 
 with nb.error_handling("Setting data directory"):
     nb.info("-"*60)
     nb.info("1.2. set_data_dir() - Установка рабочей директории:")
     raw_data_path = get_data_dir() / "raw"
     set_data_dir(raw_data_path)
-    nb.log(get_data_dir())
+    nb.log(str(get_data_dir()))
 
 mt_file_path = raw_data_path / 'XAUUSDH1.csv'
 nb.info(f"2.1. Загружаем файл MetaTrader: {mt_file_path}")
@@ -66,7 +66,7 @@ if mt_file_path.exists():
         df_raw_mt = load_ohlcv_data(mt_file_path, symbol="XAUUSD", timeframe="H1")
         nb.log(df_raw_mt.head().to_string())
         nb.log(json.dumps(get_data_info(df_raw_mt), indent=2, default=str))
-    else:
+else:
     nb.error(f"Файл не найден: {mt_file_path}")
 
 with nb.error_handling("Listing available symbols"):
