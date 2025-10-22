@@ -38,6 +38,7 @@ from bquant.analysis.zones.presets import (
     analyze_rsi_zones,
     analyze_ao_zones
 )
+from bquant.data.samples import get_sample_data
 
 """
 =============================================================================
@@ -75,28 +76,21 @@ See: devref/gaps/zo/zouni_v2.md for architecture details
 """
 
 
-def create_sample_data(rows: int = 300) -> pd.DataFrame:
-    """Создание образцов данных с трендами и осцилляциями."""
-    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1H')
-    np.random.seed(42)
+def prepare_sample_data() -> pd.DataFrame:
+    """
+    Загрузка встроенных sample данных BQuant с подготовкой для zone analysis.
     
-    base = 100.0
-    prices = [base]
+    Uses built-in BQuant sample data instead of generating synthetic data.
+    This ensures consistency with other examples and tests.
+    """
+    # Load built-in sample data
+    df = get_sample_data()
     
-    for i in range(1, rows):
-        # Циклический тренд + шум
-        trend = 15 * np.sin(i / 40)
-        noise = np.random.normal(0, 0.5)
-        new_price = prices[-1] + trend/10 + noise
-        prices.append(max(new_price, 50))  # Минимум 50
+    # v2.1: Prepare abs_price_return for volatility hypothesis tests
+    df['price_return'] = df['close'].pct_change()
+    df['abs_price_return'] = df['price_return'].abs()
     
-    return pd.DataFrame({
-        'open': prices,
-        'high': [p * 1.005 for p in prices],
-        'low': [p * 0.995 for p in prices],
-        'close': prices,
-        'volume': np.random.uniform(1000, 5000, rows)
-    }, index=dates)
+    return df
 
 
 def print_section(title: str):
@@ -126,10 +120,12 @@ def print_zone_stats(result, indicator_name: str):
 def main():
     print_section("Universal Zone Analysis - One API for All Indicators")
     
-    # Генерация данных
-    print("[DATA] Генерация данных...")
-    df = create_sample_data(rows=300)
-    print(f"[OK] Создано {len(df)} баров\n")
+    # Load built-in sample data
+    print("[DATA] Loading BQuant sample data...")
+    df = prepare_sample_data()
+    print(f"[OK] Loaded {len(df)} bars")
+    print(f"   Period: {df.index[0]} - {df.index[-1]}")
+    print(f"   Columns: {len(df.columns)}\n")
     
     # ========================================================================
     # 1. MACD ZONES
@@ -141,6 +137,7 @@ def main():
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1: NEW API!
         .analyze(clustering=True, n_clusters=3)
         .build()
     )
@@ -153,6 +150,15 @@ def main():
         print(f"      Indicator used: {ctx['detection_indicator']}")     # -> 'macd_hist'
         print(f"      Strategy used: {ctx['detection_strategy']}")       # -> 'zero_crossing'
         print(f"      Signal line: {ctx.get('signal_line', 'N/A')}")    # -> None
+        
+        # [v2.1] Show extracted features
+        features = result_macd.zones[0].features
+        print(f"\n   [INFO] Extracted Features (v2.1):")
+        print(f"      Shape: skewness={features.get('skewness', 'N/A')}")
+        print(f"      Shape: kurtosis={features.get('kurtosis', 'N/A')}")
+        print(f"      Swing: num_peaks={features.get('num_peaks', 'N/A')}")
+        print(f"      Swing: num_troughs={features.get('num_troughs', 'N/A')}")
+        print(f"      Volume: volume_indicator_corr={features.get('volume_indicator_corr', 'N/A')}")
     
     print("\nЧерез preset (короче):")
     result_macd_preset = analyze_macd_zones(df, fast=12, slow=26, signal=9)
@@ -171,6 +177,7 @@ def main():
                      indicator_col='RSI_14',
                      upper_threshold=70,
                      lower_threshold=30)
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1: NEW API!
         .analyze(clustering=False)
         .build()
     )
@@ -183,6 +190,12 @@ def main():
         print(f"      Indicator used: {ctx['detection_indicator']}")     # -> 'RSI_14'
         print(f"      Strategy used: {ctx['detection_strategy']}")       # -> 'threshold'
         print(f"      Thresholds: upper={ctx['detection_rules']['upper_threshold']}, lower={ctx['detection_rules']['lower_threshold']}")
+        
+        # [v2.1] Show features for RSI zones too
+        features = result_rsi.zones[0].features
+        print(f"\n   [INFO] Features work for ANY indicator:")
+        print(f"      Shape: skewness={features.get('skewness', 'N/A')}")
+        print(f"      Swing: num_peaks={features.get('num_peaks', 'N/A')}")
     
     print("\nЧерез preset:")
     result_rsi_preset = analyze_rsi_zones(df, period=14, upper_threshold=70, lower_threshold=30)
@@ -198,6 +211,7 @@ def main():
         analyze_zones(df)
         .with_indicator('pandas_ta', 'ao', fast=5, slow=34)
         .detect_zones('zero_crossing', indicator_col='AO_5_34')
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1: NEW API!
         .analyze(clustering=False)
         .build()
     )
@@ -264,6 +278,7 @@ def main():
         .detect_zones('line_crossing',
                      line1_col='STOCH_K',      # Primary line
                      line2_col='STOCH_D')      # Signal line
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1: NEW API!
         .analyze(clustering=False)
         .build()
     )
@@ -292,6 +307,7 @@ def main():
     result_custom = (
         analyze_zones(df_custom)
         .detect_zones('zero_crossing', indicator_col='MY_MOMENTUM')
+        .with_strategies(swing='find_peaks', shape='statistical')  # v2.1: Works with custom too!
         .analyze(clustering=False)
         .build()
     )
@@ -305,6 +321,13 @@ def main():
         print(f"      Strategy used: {ctx['detection_strategy']}")     # -> 'zero_crossing'
         print(f"\n   [*] NO hardcoded 'MY_MOMENTUM' anywhere in BQuant source!")
         print(f"   [*] TRUE UNIVERSALITY - works with ANY indicator!")
+        
+        # [v2.1] Features + strategies work for custom indicators too!
+        features = result_custom.zones[0].features
+        print(f"\n   [INFO] Features + Strategies = Universal:")
+        print(f"      Shape: skewness={features.get('skewness', 'N/A')}")
+        print(f"      Swing: num_peaks={features.get('num_peaks', 'N/A')}")
+        print(f"      (All strategies work with your custom indicator!)")
     
     # ========================================================================
     # 7. PRELOADED ZONES
@@ -396,6 +419,52 @@ def main():
     
     loaded = ZoneAnalysisResult.load('results/macd_zones.pkl')
     print(f"   [OK] Загружено из pickle: {len(loaded.zones)} зон")
+    
+    # ========================================================================
+    # 8.1. CLUSTERING DEMONSTRATION
+    # ========================================================================
+    print_section("8.1. Clustering Analysis (v2.1)")
+    
+    print("Демонстрация кластеризации зон (MACD):")
+    print("-" * 40)
+    
+    if hasattr(result_macd, 'clustering') and result_macd.clustering:
+        print(f"   Clusters found: {len(set(result_macd.clustering.values()))}")
+        
+        # Count zones per cluster
+        from collections import Counter
+        cluster_counts = Counter(result_macd.clustering.values())
+        for cluster_id, count in sorted(cluster_counts.items()):
+            print(f"   - Cluster {cluster_id}: {count} zones")
+        
+        print("\n   [INFO] Clustering groups similar zones together")
+        print("   Use for: Pattern recognition, regime detection")
+    else:
+        print("   [INFO] Clustering enabled with .analyze(clustering=True, n_clusters=3)")
+    
+    # ========================================================================
+    # 8.2. STATISTICAL HYPOTHESIS TESTS
+    # ========================================================================
+    print_section("8.2. Statistical Hypothesis Tests (v2.1)")
+    
+    print("Статистические тесты для зон (MACD):")
+    print("-" * 40)
+    
+    if hasattr(result_macd, 'hypothesis_tests') and result_macd.hypothesis_tests:
+        tests = result_macd.hypothesis_tests
+        print(f"   Tests based on {tests.data_size} zones")
+        print("\n   Key tests (p < 0.05 = significant):")
+        
+        for test_name, test_result in tests.results.items():
+            p_value = test_result.get('p_value', 'N/A')
+            significant = test_result.get('significant', False)
+            status = "[SIGNIFICANT]" if significant else "[not significant]"
+            print(f"   - {test_name}: p={p_value:.4f if isinstance(p_value, float) else p_value} {status}")
+        
+        print("\n   [INFO] Hypothesis tests validate zone patterns")
+        print("   Use for: Strategy validation, pattern confirmation")
+    else:
+        print("   [INFO] Hypothesis tests run automatically with .analyze()")
     
     # ========================================================================
     # 9. МОДУЛЬНОЕ ИСПОЛЬЗОВАНИЕ

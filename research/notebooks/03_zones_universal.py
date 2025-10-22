@@ -583,6 +583,9 @@ with nb.error_handling("Indicator reuse"):
     nb.log(f"  Колонки: {macd_ind.get_default_columns()}")
     nb.log("  Можно переиспользовать!")
 
+nb.success("✅ Detection-only analysis completed")
+nb.success("✅ Caching demonstration completed")
+
 nb.wait()
 
 # =============================================================================
@@ -653,6 +656,8 @@ with nb.error_handling("Save/load"):
     nb.info("Сравнение:")
     nb.log(f"  Pickle: {pickle_size:.2f} KB - fastest, complete")
     nb.log(f"  JSON:   {json_size:.2f} KB - readable, portable")
+
+nb.success("✅ Performance benchmarks completed")
 
 nb.wait()
 
@@ -742,7 +747,9 @@ if result_macd_full and result_rsi_full and result_ao_full:
                 if not (m_end < r_start or r_end < m_start):
                     overlaps += 1
                     break
+        overlap_ratio = overlaps / max(len(macd_periods), 1) * 100
         nb.log(f"  MACD zones: {len(macd_periods)} / RSI zones: {len(rsi_periods)} / Overlaps: {overlaps}")
+        nb.log(f"  Overlap ratio: {overlap_ratio:.1f}%")
     else:
         nb.warning("  Insufficient zones for overlap analysis")
     
@@ -755,10 +762,13 @@ if result_macd_full and result_rsi_full and result_ao_full:
                     consensus += 1
                     break
         nb.log(f"  Consensus signals: {consensus}")
+        nb.log(f"  Use for: Higher confidence trades when indicators agree")
     else:
         nb.warning("  Insufficient zones for consensus analysis")
 else:
     nb.warning("Step 9 skipped: results from Step 5 not available")
+
+nb.success("✅ Multi-indicator feature comparison complete!")
 
 nb.wait()
 
@@ -853,6 +863,7 @@ with nb.error_handling("Small dataset"):
         .build()
     )
     nb.log(f"  Small dataset (30 bars): {len(res_small.zones)} zones")
+    nb.log(f"  Pipeline works with minimal data [OK]")
 
 nb.substep("11.2: No Zones Detected")
 with nb.error_handling("No zones"):
@@ -864,6 +875,7 @@ with nb.error_handling("No zones"):
         .build()
     )
     nb.log(f"  No zones case: {len(res_none.zones)} zones")
+    nb.log(f"  Pipeline handles gracefully (no crash) [OK]")
 
 nb.substep("11.3: Missing Indicator Column")
 with nb.error_handling("Missing column", critical=False):
@@ -876,6 +888,7 @@ with nb.error_handling("Missing column", critical=False):
         nb.log(f"  Missing column result: {len(res_missing.zones)} zones")
     except Exception as e:
         nb.warning(f"  Expected error: {type(e).__name__}: {str(e)[:80]}")
+        nb.log(f"  Error handling works correctly [OK]")
 
 nb.substep("11.4: Invalid Parameters")
 with nb.error_handling("Invalid params", critical=False):
@@ -889,6 +902,7 @@ with nb.error_handling("Invalid params", critical=False):
         nb.log(f"  Invalid params zones: {len(res_invalid.zones)}")
     except ValueError as e:
         nb.warning(f"  Expected error: {str(e)[:80]}")
+        nb.log(f"  Parameter validation works correctly [OK]")
 
 nb.success("Edge cases handled gracefully")
 
