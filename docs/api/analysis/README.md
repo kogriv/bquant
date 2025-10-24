@@ -34,18 +34,26 @@ Analysis модули содержат инструменты для стати�
 - **ValidationSuite** - 4 validation methods (out-of-sample, walk-forward, sensitivity, monte-carlo)
 - **ValidationResult** - Validation test results
 
-### 📊 [bquant.analysis.zones](zones.md) - Анализ зон
+### 📊 [bquant.analysis.zones](zones.md) - Universal Zone Analysis Pipeline v2.1
 
-> **Note:** 🟡 Some APIs may evolve during universalization (field names)
+> **✅ v2.1 - Truly Universal Architecture**
 
-**Analyzers:**
-- **ZoneFeaturesAnalyzer** - Анализ характеристик зон (with Strategy Pattern support)
-- **ZoneSequenceAnalyzer** - Анализ последовательностей зон
-- **ZoneFeatures** - Характеристики зоны (18 base fields + metadata)
-- **TransitionAnalysis** - Анализ переходов
+**Universal Pipeline API:**
+- **analyze_zones()** - Entry point для Universal Pipeline
+- **ZoneAnalysisBuilder** - Fluent interface для настройки анализа
+- **ZoneAnalysisResult** - Результат анализа с полным набором данных
+- **ZoneInfo** - Модель зоны с полным контекстом
 
-**New in Phase 3 (🟢 Strategies are stable):**
-- See [strategies.md](strategies.md) for full Strategy Pattern documentation
+**Legacy API (Deprecated):**
+- **ZoneFeaturesAnalyzer** - Анализ характеристик зон (deprecated)
+- **ZoneSequenceAnalyzer** - Анализ последовательностей зон (deprecated)
+- **Zone** class → **ZoneInfo** dataclass
+- **find_support_resistance()** → Universal detection strategies
+
+**New in v2.1:**
+- **Universal Pipeline** - работает с ЛЮБЫМ индикатором
+- **indicator_context** - зоны сами описывают стратегию детекции
+- **115 тестов, 100% pass rate** - доказательство универсальности
 
 ### 🎨 [bquant.analysis.zones.strategies](strategies.md) - Strategy Pattern (New)
 
@@ -115,34 +123,32 @@ Analysis модули содержат инструменты для стати�
 
 ## 💡 Примеры использования
 
-### Статистический анализ
+### Universal Pipeline v2.1
 
 ```python
-from bquant.analysis.statistical import run_all_hypothesis_tests, test_single_hypothesis
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
-# Загрузка данных и анализ MACD
+# Загрузка данных
 data = get_sample_data('tv_xauusd_1h')
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
 
-# Подготовка данных для статистического анализа
-zones_info = {
-    'zones_features': [zone.features for zone in result.zones if zone.features],
-    'zones': result.zones,
-    'statistics': result.statistics
-}
-
-# Запуск всех статистических тестов
-hypothesis_results = run_all_hypothesis_tests(zones_info)
+# Universal Pipeline с автоматическими hypothesis tests
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', divergence='classic')
+    .analyze(clustering=True)  # Автоматически включает hypothesis tests
+    .build()
+)
 
 # Анализ результатов
-for test_name, test_result in hypothesis_results.items():
-    print(f"{test_name}:")
-    print(f"  p-value: {test_result.p_value:.4f}")
-    print(f"  Significant: {test_result.is_significant}")
-    print(f"  Effect size: {test_result.effect_size:.4f}")
+print(f"Найдено зон: {len(result.zones)}")
+if result.hypothesis_tests:
+    for test_name, test_result in result.hypothesis_tests.results.items():
+        print(f"{test_name}:")
+        print(f"  p-value: {test_result['p_value']:.4f}")
+        print(f"  Significant: {test_result['is_significant']}")
 ```
 
 ### Тестирование отдельной гипотезы
@@ -170,46 +176,52 @@ print(f"  Significant: {t_test_result.is_significant}")
 print(f"  Effect size: {t_test_result.effect_size:.4f}")
 ```
 
-### Анализ характеристик зон
+### Анализ характеристик зон (Universal Pipeline)
 
 ```python
-from bquant.analysis.zones import ZoneFeaturesAnalyzer
-
-# Создание анализатора характеристик зон
-features_analyzer = ZoneFeaturesAnalyzer()
-
-# Анализ характеристик зон
-features_analysis = features_analyzer.analyze(result.zones)
+# Universal Pipeline автоматически извлекает характеристики
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', volatility='combined')
+    .analyze(clustering=True)
+    .build()
+)
 
 # Анализ результатов
 print(f"Zone features analysis:")
-print(f"  Total zones analyzed: {features_analysis.total_zones}")
-print(f"  Average volatility: {features_analysis.avg_volatility:.4f}")
-print(f"  Average amplitude: {features_analysis.avg_amplitude:.4f}")
-print(f"  Peak distribution: {features_analysis.peak_distribution}")
+print(f"  Total zones analyzed: {len(result.zones)}")
+for i, zone in enumerate(result.zones[:3]):
+    if zone.features:
+        print(f"  Zone {i}: volatility={zone.features.get('volatility_regime', 'unknown')}")
+        print(f"    Swings: {zone.features.get('num_swings', 0)}")
+        print(f"    Duration: {zone.features.get('duration', 0):.2f}")
 ```
 
-### Анализ последовательностей зон
+### Анализ последовательностей зон (Universal Pipeline)
 
 ```python
-from bquant.analysis.zones import ZoneSequenceAnalyzer
-
-# Создание анализатора последовательностей
-sequence_analyzer = ZoneSequenceAnalyzer()
-
-# Анализ последовательностей зон
-sequence_analysis = sequence_analyzer.analyze(result.zones)
+# Universal Pipeline с sequence analysis
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True, sequence_analysis=True)
+    .build()
+)
 
 # Анализ переходов между зонами
-print(f"Transition analysis:")
-print(f"  Bull to Bear transitions: {sequence_analysis.transitions.bull_to_bear}")
-print(f"  Bear to Bull transitions: {sequence_analysis.transitions.bear_to_bull}")
-print(f"  Average transition duration: {sequence_analysis.avg_transition_duration:.2f}")
+if result.sequence_analysis:
+    print(f"Transition analysis:")
+    print(f"  Bull to Bear transitions: {result.sequence_analysis.get('bull_to_bear', 0)}")
+    print(f"  Bear to Bull transitions: {result.sequence_analysis.get('bear_to_bull', 0)}")
 
 # Кластерный анализ зон
-print(f"Cluster analysis:")
-print(f"  Number of clusters: {sequence_analysis.clusters.n_clusters}")
-print(f"  Cluster sizes: {sequence_analysis.clusters.cluster_sizes}")
+if result.clustering:
+    print(f"Cluster analysis:")
+    print(f"  Number of clusters: {result.clustering.get('n_clusters', 0)}")
+    print(f"  Cluster labels: {result.clustering.get('cluster_labels', [])[:5]}...")
 ```
 
 ### Комбинированный статистический анализ
@@ -351,8 +363,10 @@ print("Statistical analysis exported to statistical_analysis.json")
 
 ## 📖 Детальная документация
 
+- **[Universal Pipeline](pipeline.md)** - Полная документация Universal Pipeline v2.1
+- **[Zone Detection Strategies](strategies.md)** - Детальное описание 5 стратегий детекции
 - **[Statistical Module](statistical.md)** - Подробная документация статистического анализа
-- **[Zones Module](zones.md)** - Документация анализа зон
+- **[Zones Module](zones.md)** - Universal API для анализа зон
 - **[Base Module](base.md)** - Документация базовых классов анализа
 
 ## 🚀 Руководство по расширению

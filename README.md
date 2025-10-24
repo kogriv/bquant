@@ -4,13 +4,20 @@
 
 ## 🔧 Key Features
 
-- **Universal Configuration System**: Flexible settings for data sources, indicators, and analysis.
-- **Advanced Analysis Engine**: In-depth statistical analysis, hypothesis testing, and a powerful engine for analyzing trading zones (MACD, Support/Resistance).
-- **Extensible Indicator Library**: Includes optimized built-in indicators (MACD, RSI, etc.) and supports external libraries like `pandas-ta` and `TA-Lib`.
-- **ML Readiness**: A modular structure prepared for future machine learning integration.
-- **Rich Visualization Tools**: Create interactive financial charts (candlestick, line) and statistical plots with Plotly and Matplotlib.
-- **Performance-Oriented**: Features a two-level caching system (memory & disk) and performance monitoring tools.
-- **Command-Line Interface**: Provides a simple CLI for quick analysis and data management.
+### Zone Analysis - Universal Pipeline v2.1
+- **Universal API**: Works with any indicator (MACD, RSI, AO, custom) through fluent builder pattern
+- **5 Detection Strategies**: zero_crossing, threshold, line_crossing, preloaded, combined
+- **Advanced Analysis**: Swing, divergence, volume, volatility strategies with automatic feature extraction
+- **Statistical Testing**: Automatic hypothesis tests and clustering analysis
+- **Caching Support**: Performance optimization with memory and disk caching
+
+### Core Features
+- **Universal Configuration System**: Flexible settings for data sources, indicators, and analysis
+- **Extensible Indicator Library**: Includes optimized built-in indicators and supports external libraries like `pandas-ta` and `TA-Lib`
+- **ML Readiness**: A modular structure prepared for future machine learning integration
+- **Rich Visualization Tools**: Create interactive financial charts and statistical plots with Plotly and Matplotlib
+- **Performance-Oriented**: Features a two-level caching system and performance monitoring tools
+- **Command-Line Interface**: Provides a simple CLI for quick analysis and data management
 
 ## 🚀 Quick Start
 
@@ -24,21 +31,37 @@ pip install -e .
 pip install -e .[dev,notebooks]
 ```
 
-### Basic Usage
+### Basic Usage - Universal Pipeline v2.1
 
 ```python
 from bquant.data.samples import get_sample_data
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 
 # Load sample data
 data = get_sample_data('tv_xauusd_1h')
 
-# Analyze MACD zones
-# The analyzer automatically calculates MACD and other required indicators
-analyzer = MACDZoneAnalyzer()
-zones = analyzer.identify_zones(data)
+# Universal Pipeline - работает с любым индикатором
+result = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_col='rsi', 
+                  upper_threshold=70, lower_threshold=30)
+    .analyze(clustering=True)
+    .build()
+)
 
-print(f"Found {len(zones)} MACD zones")
+print(f"Found {len(result.zones)} zones")
+print(f"Statistics: {result.statistics}")
+```
+
+### Legacy MACD Wrapper (Deprecated)
+
+```python
+# ⚠️ DEPRECATED: Используйте analyze_zones() вместо этого
+from bquant.indicators import MACDZoneAnalyzer
+
+analyzer = MACDZoneAnalyzer()  # Deprecated wrapper
+result = analyzer.analyze_complete(data)  # Delegates to analyze_zones()
 ```
 
 #### pandas-ta indicators in one line
@@ -110,9 +133,23 @@ pytest tests/ -v
 
 ## 📚 Documentation
 
-- [API Documentation](docs/api/)
-- [Tutorials](docs/tutorials/)
-- [Examples](docs/examples/)
+### Universal Pipeline v2.1
+- **[Quick Start](docs/user_guide/quick_start.md)** - 5 минут до первого результата
+- **[API Reference](docs/api/analysis/pipeline.md)** - полная документация Universal Pipeline
+- **[Examples](examples/02a_universal_zones.py)** - готовые примеры для всех индикаторов
+- **[Migration Guide](examples/02_macd_zone_analysis.py)** - переход с deprecated API
+
+### Complete Documentation
+- **[API Documentation](docs/api/)** - Справочник API
+- **[Tutorials](docs/tutorials/)** - Обучающие материалы
+- **[Examples](docs/examples/)** - Примеры использования
+- **[Developer Guide](docs/developer_guide/)** - Руководство разработчика
+
+### Architecture
+- **Two-Layer Design**: Simplification from 3 to 2 layers
+- **Zero Hardcode**: ZERO hardcoded indicators, full universality
+- **Design Patterns**: Strategy, Dependency Injection, Builder, Registry
+- **115 Tests**: 100% pass rate, proof of universality
 
 ## 🎯 Roadmap
 

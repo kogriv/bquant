@@ -16,12 +16,12 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'BQuant'
-copyright = '2025, HorDa'
-author = 'kogriv'
+project = 'BQuant Zone Analysis'
+copyright = '2025, BQuant Team'
+author = 'BQuant Team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '2.1.0'
 
 # -- General configuration ---------------------------------------------------
 

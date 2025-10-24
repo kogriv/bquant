@@ -29,7 +29,7 @@
 
 ### 🔬 [Analysis](analysis/README.md) - Аналитические модули
 - **bquant.analysis.statistical** - Статистический анализ
-- **bquant.analysis.zones** - Анализ зон
+- **bquant.analysis.zones** - Universal Zone Analysis Pipeline v2.1
 - **bquant.analysis.base** - Базовые классы анализа
 
 ### 📊 [Visualization](visualization/README.md) - Модули визуализации
@@ -48,15 +48,16 @@
 - `bquant.data.processor.clean_ohlcv_data()` - Очистка данных
 
 #### 📈 Технические индикаторы
-- `bquant.indicators.MACDZoneAnalyzer` - Анализатор MACD с зонами
+- `bquant.indicators.MACDZoneAnalyzer` - ⚠️ Deprecated wrapper (используйте analyze_zones())
 - `bquant.indicators.MACDPreloadedIndicator` - PRELOADED MACD индикатор
 - `bquant.indicators.BaseIndicator` - Базовый класс индикатора
 - `bquant.indicators.IndicatorFactory` - Фабрика индикаторов
 
-#### 🔬 Анализ
+#### 🔬 Universal Zone Analysis (v2.1)
+- `bquant.analysis.zones.analyze_zones()` - Universal Pipeline entry point
+- `bquant.analysis.zones.ZoneAnalysisBuilder` - Fluent builder interface
+- `bquant.analysis.zones.UniversalZoneAnalyzer` - Zone-agnostic analyzer
 - `bquant.analysis.statistical.run_all_hypothesis_tests()` - Статистические тесты
-- `bquant.analysis.zones.ZoneFeaturesAnalyzer` - Анализ характеристик зон
-- `bquant.analysis.zones.ZoneSequenceAnalyzer` - Анализ последовательностей зон
 
 #### 📊 Визуализация
 - `bquant.visualization.FinancialCharts` - Создание финансовых графиков
@@ -69,13 +70,15 @@
 - `BaseIndicator` - Базовый класс для индикаторов
 - `PreloadedIndicator` - Базовый класс для PRELOADED индикаторов
 - `MACDPreloadedIndicator` - PRELOADED MACD индикатор
-- `MACDZoneAnalyzer` - Анализатор MACD
+- `MACDZoneAnalyzer` - ⚠️ Deprecated анализатор MACD
+- `ZoneAnalysisBuilder` - Fluent builder для Universal Pipeline
+- `UniversalZoneAnalyzer` - Zone-agnostic анализатор
 - `FinancialCharts` - Создание графиков
-- `ZoneFeaturesAnalyzer` - Анализ характеристик зон
 
 #### 🔧 Функции
 - `load_ohlcv_data()` - Загрузка данных
 - `get_sample_data()` - Получение sample данных
+- `analyze_zones()` - Universal Pipeline entry point
 - `run_all_hypothesis_tests()` - Статистические тесты
 - `create_candlestick_chart()` - Создание candlestick графика
 

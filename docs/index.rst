@@ -10,13 +10,32 @@ BQuant Documentation
 
 .. toctree::
    :maxdepth: 2
-   :caption: Содержание:
-
-   README
+   :caption: User Guide
+   
+   user_guide/quick_start
    user_guide/README
-   api/README
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
+   
+   api/analysis/pipeline
+   api/analysis/strategies
+   api/analysis/statistical
+   api/indicators/README
+   api/visualization/README
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials & Examples
+   
    tutorials/README
    examples/README
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Developer Guide
+   
    developer_guide/README
 
 .. raw:: html
@@ -33,27 +52,42 @@ BQuant Documentation
 
    pip install bquant
 
-Первый пример
--------------
+Первый пример - Universal Zone Analysis
+----------------------------------------
 
 .. code-block:: python
 
    import bquant as bq
    from bquant.data.samples import get_sample_data
-   from bquant.indicators import MACDZoneAnalyzer
+   from bquant.analysis.zones import analyze_zones
 
    # Загружаем sample данные
    data = get_sample_data('tv_xauusd_1h')
 
-   # Создаем анализатор MACD
-   analyzer = MACDZoneAnalyzer()
-
-   # Выполняем полный анализ
-   result = analyzer.analyze_complete(data)
+   # Universal Pipeline - работает с любым индикатором
+   result = (
+       analyze_zones(data)
+       .with_indicator('pandas_ta', 'rsi', length=14)
+       .detect_zones('threshold', indicator_col='rsi', 
+                     upper_threshold=70, lower_threshold=30)
+       .analyze(clustering=True)
+       .build()
+   )
 
    # Выводим результаты
    print(f"Найдено зон: {len(result.zones)}")
    print(f"Статистика: {result.statistics}")
+
+Legacy MACD Wrapper (Deprecated)
+--------------------------------
+
+.. code-block:: python
+
+   # ⚠️ DEPRECATED: Используйте analyze_zones() вместо этого
+   from bquant.indicators import MACDZoneAnalyzer
+   
+   analyzer = MACDZoneAnalyzer()  # Deprecated wrapper
+   result = analyzer.analyze_complete(data)  # Delegates to analyze_zones()
 
 Основные возможности
 -------------------

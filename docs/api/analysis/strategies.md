@@ -621,75 +621,99 @@ if vol:
 
 ## Usage Examples
 
-### Basic: Using Default Strategies
+### Basic: Using Universal Pipeline v2.1
 
 ```python
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 
-# Uses default strategies from config
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(df)
+# Universal Pipeline with strategies
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='zigzag', volatility='combined')
+    .analyze(clustering=True)
+    .build()
+)
 
 # Access metrics from first zone
 zone = result.zones[0]
-print(f"Duration: {zone.features['duration']}")
-
-# Swing metrics (default: ZigZag)
-if 'swing_metrics' in zone.features.get('metadata', {}):
-    swing = zone.features['metadata']['swing_metrics']
-    print(f"Swings: {swing['num_swings']}")
-
-# Volatility metrics (if configured)
-if 'volatility_metrics' in zone.features.get('metadata', {}):
-    vol = zone.features['metadata']['volatility_metrics']
-    print(f"Volatility: {vol['volatility_regime']}")
+if zone.features:
+    print(f"Duration: {zone.features.get('duration', 'N/A')}")
+    print(f"Swings: {zone.features.get('num_swings', 0)}")
+    print(f"Volatility: {zone.features.get('volatility_regime', 'unknown')}")
 ```
 
-### Advanced: Switching Strategies
+### Advanced: Switching Strategies with Universal Pipeline
 
 ```python
-from bquant.analysis.zones import ZoneFeaturesAnalyzer
+from bquant.analysis.zones import analyze_zones
 
-# Try different swing strategies
-strategies = {
-    'zigzag': create_swing_strategy('zigzag'),
-    'find_peaks': create_swing_strategy('find_peaks'),
-    'pivot_points': create_swing_strategy('pivot_points')
-}
+# Try different swing strategies with Universal Pipeline
+strategies = ['zigzag', 'find_peaks', 'pivot_points']
 
-for name, strategy in strategies.items():
-    analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
-    features = analyzer.extract_zone_features(zone_dict)
-    swing = features.metadata['swing_metrics']
+for strategy_name in strategies:
+    result = (
+        analyze_zones(df)
+        .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .with_strategies(swing=strategy_name)
+        .analyze(clustering=True)
+        .build()
+    )
     
-    print(f"\n{name}:")
-    print(f"  Swings: {swing.num_swings}")
-    print(f"  Avg rally: {swing.avg_rally_pct:.2%}")
+    if result.zones and result.zones[0].features:
+        features = result.zones[0].features
+        print(f"\n{strategy_name}:")
+        print(f"  Swings: {features.get('num_swings', 0)}")
+        print(f"  Avg rally: {features.get('avg_rally_pct', 0):.2%}")
 ```
 
-### Expert: A/B Testing Strategies
+### Expert: A/B Testing Strategies with Universal Pipeline
 
 ```python
 import pandas as pd
+from bquant.analysis.zones import analyze_zones
 
-# Test all swing strategies on multiple zones
+# Test all swing strategies on multiple zones using Universal Pipeline
 results = []
 
-for zone in result.zones[:10]:  # First 10 zones
-    zone_dict = analyzer._zone_to_dict(zone)
-    
+# Get base result for zone iteration
+base_result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
+
+for zone in base_result.zones[:10]:  # First 10 zones
     for strategy_name in ['zigzag', 'find_peaks', 'pivot_points']:
-        fa = ZoneFeaturesAnalyzer(swing_strategy=strategy_name)
-        features = fa.extract_zone_features(zone_dict)
-        swing = features.metadata['swing_metrics']
+        # Re-analyze with specific strategy
+        result = (
+            analyze_zones(df)
+            .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .with_strategies(swing=strategy_name)
+            .analyze(clustering=True)
+            .build()
+        )
         
-        results.append({
-            'zone_id': zone.zone_id,
-            'strategy': strategy_name,
-            'num_swings': swing.num_swings,
-            'avg_rally': swing.avg_rally_pct,
-            'rally_count': swing.rally_count
-        })
+        # Find matching zone by time range
+        matching_zone = None
+        for z in result.zones:
+            if (z.start_time == zone.start_time and z.end_time == zone.end_time):
+                matching_zone = z
+                break
+        
+        if matching_zone and matching_zone.features:
+            results.append({
+                'zone_id': zone.zone_id,
+                'strategy': strategy_name,
+                'num_swings': matching_zone.features.get('num_swings', 0),
+                'avg_rally': matching_zone.features.get('avg_rally_pct', 0),
+                'rally_count': matching_zone.features.get('rally_count', 0)
+            })
 
 # Analyze results
 df_results = pd.DataFrame(results)
@@ -734,26 +758,33 @@ strategy = ThresholdSwingStrategy(threshold=0.03)
 analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
 ```
 
-### Combining Multiple Strategies
+### Combining Multiple Strategies with Universal Pipeline
 
 ```python
-# Use different strategies for different purposes
-analyzer = ZoneFeaturesAnalyzer(
-    swing_strategy='zigzag',         # For trend analysis
-    shape_strategy='statistical',    # For clustering
-    divergence_strategy='classic',   # For entries
-    volatility_strategy='combined',  # For position sizing
-    volume_strategy='standard'       # For confirmation
+# Use different strategies for different purposes with Universal Pipeline
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(
+        swing='zigzag',         # For trend analysis
+        shape='statistical',    # For clustering
+        divergence='classic',   # For entries
+        volatility='combined',  # For position sizing
+        volume='standard'       # For confirmation
+    )
+    .analyze(clustering=True)
+    .build()
 )
 
-features = analyzer.extract_zone_features(zone_dict)
-
-# All strategies' results in metadata
-print(f"Swing metrics: {features.metadata['swing_metrics']}")
-print(f"Shape metrics: {features.metadata['shape_metrics']}")
-print(f"Divergence: {features.metadata['divergence_metrics']}")
-print(f"Volatility: {features.metadata['volatility_metrics']}")
-print(f"Volume: {features.metadata['volume_metrics']}")
+# All strategies' results in zone.features
+zone = result.zones[0]
+if zone.features:
+    print(f"Swing metrics: {zone.features.get('num_swings', 0)} swings")
+    print(f"Shape metrics: {zone.features.get('hist_skewness', 0):.2f} skewness")
+    print(f"Divergence: {zone.features.get('has_classic_divergence', False)}")
+    print(f"Volatility: {zone.features.get('volatility_regime', 'unknown')}")
+    print(f"Volume: {zone.features.get('volume_indicator_corr', 0):.2f} correlation")
 ```
 
 ---
@@ -772,12 +803,28 @@ print(f"Volume: {features.metadata['volume_metrics']}")
 
 ---
 
-## См. также
+## 🔗 Связанные разделы
 
-- [Extension Guide](../extension_guide.md#creating-custom-strategies) - создание собственных стратегий
-- [Zone Features](zones.md) - использование стратегий в анализе зон
-- [Configuration](../core/config.md) - фабрики стратегий
-- Implementations: `bquant/analysis/zones/strategies/`
-- Tests: `tests/unit/test_*_strategy.py`
-- Technical docs: `devref/gaps/swing_detection_approaches.md`
+### 📚 Core API
+- **[Universal Pipeline](pipeline.md)** - Полная документация Universal Pipeline v2.1
+- **[Zone Features](zones.md)** - Universal API для анализа зон
+- **[Statistical Analysis](statistical.md)** - Hypothesis tests и статистика
+- **[Quick Start](../../user_guide/quick_start.md)** - Быстрый старт с Universal Pipeline
+
+### 🎯 Learning Path
+- **[Examples](../../examples/README.md)** - Готовые примеры использования
+- **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis
+- **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
+- **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
+
+### 🏗️ Developer Resources
+- **[Architecture Patterns](../../developer_guide/README.md)** - Design Patterns, Extension Points
+- **[Testing Framework](../../tests/integration/)** - Integration tests, Backward compatibility
+- **[Visualization](../../api/visualization/README.md)** - Zone visualization, Statistical plots
+- **[Indicators](../../api/indicators/README.md)** - IndicatorFactory, Custom indicators
+
+### 🔧 Technical Resources
+- **Implementations:** `bquant/analysis/zones/strategies/`
+- **Tests:** `tests/unit/test_*_strategy.py`
+- **Technical docs:** `devref/gaps/swing_detection_approaches.md`
 

@@ -6,11 +6,13 @@
 
 ## 🗂️ Содержание
 
-### 🏗️ [Architecture](architecture.md) - Архитектура
-- Общая архитектура BQuant
-- Принципы проектирования
-- Модульная структура
-- Паттерны проектирования
+### 🏗️ [Architecture](architecture.md) - Universal Pipeline v2.1
+- **Two-Layer Architecture** (Detection + Universal Analyzer)
+- **Fluent Builder Pattern** - цепочка методов `.with_indicator().detect_zones().analyze().build()`
+- **Strategy Pattern** - 5 Detection Strategies с единым интерфейсом
+- **Dependency Injection** - настраиваемые Zone Analyzer компоненты
+- **Registry Pattern** - автоматическая регистрация стратегий
+- **Open/Closed Principle** - открыто для расширения, закрыто для изменения
 
 ### 🔧 [Contributing](contributing.md) - Как внести вклад
 - Настройка среды разработки
@@ -18,17 +20,18 @@
 - Code Style и стандарты
 - Создание Pull Request
 
-### 🧪 [Testing](testing.md) - Тестирование
-- Структура тестов
-- Написание unit тестов
-- Интеграционные тесты
-- Performance тесты
+### 🧪 [Testing](testing.md) - Universal Pipeline Testing
+- **Unit Tests** - 28 тестов стратегий детекции, 8 тестов UniversalZoneAnalyzer
+- **Integration Tests** - end-to-end pipeline тесты (10 тестов, 9 passed, 1 skipped)
+- **Backward Compatibility Tests** - 11 тестов deprecated API
+- **Coverage** - 72% total, 90%+ core modules
+- **115 тестов, 100% pass rate**
 
-### ⚡ [Performance](performance.md) - Производительность
-- Профилирование кода
-- Оптимизация алгоритмов
-- Кэширование
-- Параллельная обработка
+### ⚡ [Performance](performance.md) - Caching & Optimization
+- **Automatic Caching** - Memory + disk caching with TTL
+- **Performance Benchmarks** - zones/sec measurements
+- **Code Simplification** - ~200 lines net reduction
+- **Lazy Loading** - Export support, optimization
 
 ### 🔍 [Debugging](debugging.md) - Отладка
 - Инструменты отладки
@@ -136,19 +139,118 @@ pre-commit run --all-files
 - **Высокая когезия** - Связанные функции в одном модуле
 
 ### Расширяемость
-- **Plugin архитектура** - Легкое добавление новых индикаторов
-- **Factory паттерн** - Создание объектов через фабрики
-- **Strategy паттерн** - Взаимозаменяемые алгоритмы
+- **Universal Pipeline** - Работает с любым индикатором
+- **Strategy Pattern** - 5 Detection Strategies, Analysis Strategies
+- **Dependency Injection** - Настраиваемые компоненты
+- **Registry Pattern** - Автоматическая регистрация стратегий
 
 ### Производительность
-- **NumPy векторизация** - Использование NumPy для быстрых операций
-- **Кэширование** - Сохранение результатов вычислений
-- **Ленивые вычисления** - Вычисления только при необходимости
+- **Automatic Caching** - Memory + disk caching with TTL
+- **Performance Benchmarks** - zones/sec measurements
+- **Code Simplification** - ~200 lines net reduction
+- **Lazy Loading** - Export support, optimization
 
 ### Надежность
 - **Обработка ошибок** - Graceful handling исключений
 - **Валидация данных** - Проверка входных данных
 - **Тестирование** - Покрытие тестами критических путей
+
+## 🔧 Extension Points
+
+### Custom Detection Strategies
+```python
+from bquant.analysis.zones.detection import BaseDetectionStrategy
+
+class CustomDetectionStrategy(BaseDetectionStrategy):
+    """Кастомная стратегия детекции зон"""
+    
+    def detect_zones(self, data, config):
+        # Реализация кастомной логики
+        return zones
+```
+
+### Custom Analysis Components
+```python
+from bquant.analysis.zones.analyzer import UniversalZoneAnalyzer
+
+# Добавление через Dependency Injection
+analyzer = UniversalZoneAnalyzer(
+    features_analyzer=CustomFeaturesAnalyzer(),
+    hypothesis_analyzer=CustomHypothesisAnalyzer()
+)
+```
+
+### Custom Indicators
+```python
+from bquant.indicators import IndicatorFactory
+
+# Интеграция через IndicatorFactory
+IndicatorFactory.register('custom', 'my_indicator', MyIndicatorCalculator)
+```
+
+## 📏 Code Quality Standards
+
+### Type Hints
+```python
+from typing import List, Dict, Optional
+from bquant.analysis.zones.models import ZoneAnalysisResult
+
+def analyze_zones(
+    data: pd.DataFrame,
+    indicator_config: Dict[str, Any],
+    detection_config: Dict[str, Any]
+) -> ZoneAnalysisResult:
+    """Полная типизация для всех публичных API"""
+    pass
+```
+
+### Documentation
+```python
+class UniversalZoneAnalyzer:
+    """Universal Zone Analyzer для анализа зон любого индикатора.
+    
+    Args:
+        features_analyzer: Анализатор признаков зон
+        hypothesis_analyzer: Анализатор статистических тестов
+        sequence_analyzer: Анализатор последовательностей зон
+        
+    Example:
+        >>> analyzer = UniversalZoneAnalyzer()
+        >>> result = analyzer.analyze(data, config)
+    """
+```
+
+### Error Handling
+```python
+def analyze_with_graceful_degradation(data, config):
+    """Graceful degradation для опциональных компонентов"""
+    try:
+        result = full_analysis(data, config)
+    except OptionalModuleError:
+        # Fallback к базовому анализу
+        result = basic_analysis(data, config)
+    return result
+```
+
+### Performance
+```python
+# Кэширование результатов
+@lru_cache(maxsize=128)
+def expensive_calculation(params):
+    """Кэширование для производительности"""
+    pass
+
+# Lazy loading
+class LazyZoneAnalyzer:
+    def __init__(self):
+        self._analyzer = None
+    
+    @property
+    def analyzer(self):
+        if self._analyzer is None:
+            self._analyzer = create_analyzer()
+        return self._analyzer
+```
 
 ## 🔧 Процесс разработки
 

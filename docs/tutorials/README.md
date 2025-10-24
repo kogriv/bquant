@@ -6,68 +6,53 @@
 
 ## 🎓 Содержание
 
-### 🚀 [Quick Start Tutorial](quick_start_tutorial.md) - Быстрый старт
-- Установка и настройка за 5 минут
-- Первый анализ MACD
-- Базовые концепции BQuant
+### 🚀 [Quick Start (5 minutes)](../examples/02a_universal_zones.py) - Universal Zone Analysis
+- **7 разделов:** MACD, RSI, AO, MA crossover, Preloaded zones, Caching, Modular usage
+- **Universal API:** демонстрация fluent builder для всех индикаторов
+- **Zero Code Duplication:** таблица сравнения индикаторов без дублирования кода
+- **297 строк** production-ready кода
 
-### 📊 [Data Analysis Tutorial](data_analysis_tutorial.md) - Анализ данных
-- Загрузка и обработка данных
-- Валидация и очистка
-- Работа с sample данными
-- Создание собственных datasets
+### 📊 [Deep Dive (30 minutes)](../research/notebooks/03_zones_universal.py) - Complete Analysis Pipeline
+- **10 шагов NotebookSimulator:** от загрузки данных до модульных сценариев
+- **Old vs New API Comparison:** производительность и функциональность
+- **Detection Strategies Experiments:** все 5 типов стратегий
+- **Parameter Sensitivity Analysis:** влияние параметров на качество зон
+- **Full Analysis Pipeline:** features, clustering, statistical tests, sequence analysis
+- **412 строк** comprehensive analysis
 
-### 📈 [MACD Analysis Tutorial](macd_analysis_tutorial.md) - Анализ MACD
-- Полный анализ MACD с зонами
-- Интерпретация результатов
-- Настройка параметров
-- Статистический анализ зон
+### 🔬 [Advanced Features](../research/notebooks/03_analysis_new_features.py) - Swing, Divergence, Regression
+- **10 steps:** от базового анализа до regression & validation
+- **Swing Strategies:** FindPeaks, PivotPoints, ZigZag (все 3 работают!)
+- **Advanced Features:** divergence, volume, volatility analysis
+- **v2.1 Migration:** полный переход с deprecated API
+- **Hypothesis Tests Automation:** статистические тесты в pipeline
 
-### 🔬 [Statistical Analysis Tutorial](statistical_analysis_tutorial.md) - Статистический анализ
-- Гипотезное тестирование
-- Анализ распределений
-- Корреляционный анализ
-- Интерпретация p-values
+### 🔄 [Migration Guide](../examples/02_macd_zone_analysis.py) - Old vs New API
+- **Legacy vs New API:** сравнение старого и нового подходов
+- **Deprecation Warnings:** демонстрация предупреждений
+- **Performance Comparison:** время выполнения и использование памяти
+- **Multiple Strategies:** zero_crossing, line_crossing, combined rules
+- **241 строка** migration examples
 
-### 📊 [Visualization Tutorial](visualization_tutorial.md) - Визуализация
-- Создание финансовых графиков
-- Настройка тем и стилей
-- Экспорт графиков
-- Интерактивные элементы
-
-### 🏗️ [Custom Indicators Tutorial](custom_indicators_tutorial.md) - Собственные индикаторы
-- Создание собственных индикаторов
-- Наследование от BaseIndicator
-- Интеграция с фабрикой
-- Тестирование индикаторов
-
-### ⚡ [Performance Optimization Tutorial](performance_tutorial.md) - Оптимизация производительности
-- Профилирование кода
-- Оптимизация алгоритмов
-- Кэширование результатов
-- Параллельная обработка
-
-### 🔧 [Advanced Configuration Tutorial](advanced_config_tutorial.md) - Продвинутая конфигурация
-- Настройка логирования
-- Обработка ошибок
-- Пользовательские настройки
-- Интеграция с внешними системами
+### 🏗️ [Future Tutorials (TODO)] - Planned Materials
+- **Custom Strategy Development** - создание собственных стратегий детекции
+- **ML Integration Patterns** - интеграция с машинным обучением
+- **Performance Optimization** - оптимизация производительности
+- **Production Deployment** - развертывание в продакшене
 
 ## 🎯 Целевая аудитория
 
 ### 👶 Начинающие
-- **Quick Start Tutorial** - Первые шаги
-- **Data Analysis Tutorial** - Работа с данными
-- **MACD Analysis Tutorial** - Базовый анализ
+- **Quick Start** - Universal API basics
+- **Migration Guide** - Transition from legacy API
 
 ### 👨‍💻 Продвинутые пользователи
-- **Statistical Analysis Tutorial** - Статистика
-- **Visualization Tutorial** - Визуализация
-- **Custom Indicators Tutorial** - Собственные индикаторы
+- **Deep Dive** - Complete analysis pipeline
+- **Advanced Features** - Swing, divergence, regression
 
 ### 🚀 Эксперты
-- **Performance Optimization Tutorial** - Оптимизация
-- **Advanced Configuration Tutorial** - Продвинутая настройка
+- **Future Tutorials** - Custom strategies, ML integration
+- **Performance Optimization** - Production deployment
 
 ## 📋 Предварительные требования
 
@@ -84,19 +69,11 @@ pip install bquant
 
 ## 🚀 Рекомендуемый порядок изучения
 
-### Для начинающих
-1. **[Quick Start Tutorial](quick_start_tutorial.md)** - Быстрый старт
-2. **[Data Analysis Tutorial](data_analysis_tutorial.md)** - Работа с данными
-3. **[MACD Analysis Tutorial](macd_analysis_tutorial.md)** - Базовый анализ
-
-### Для продвинутых
-4. **[Statistical Analysis Tutorial](statistical_analysis_tutorial.md)** - Статистика
-5. **[Visualization Tutorial](visualization_tutorial.md)** - Визуализация
-6. **[Custom Indicators Tutorial](custom_indicators_tutorial.md)** - Собственные индикаторы
-
-### Для экспертов
-7. **[Performance Optimization Tutorial](performance_tutorial.md)** - Оптимизация
-8. **[Advanced Configuration Tutorial](advanced_config_tutorial.md)** - Продвинутая настройка
+### Architecture Learning Path
+1. **[Quick Start](../examples/02a_universal_zones.py)** - Universal API basics → Fluent Builder Pattern
+2. **[Deep Dive](../research/notebooks/03_zones_universal.py)** - Complete understanding → Two-Layer Architecture
+3. **[Advanced Features](../research/notebooks/03_analysis_new_features.py)** - Advanced capabilities → Strategy Configuration
+4. **[Migration Guide](../examples/02_macd_zone_analysis.py)** - Legacy transition → Deprecation Patterns
 
 ## 💡 Советы по изучению
 

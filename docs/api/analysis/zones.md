@@ -246,64 +246,137 @@ result = (
 - All strategies are optional (default: None = skip)
 - Backward compatible with existing code
 
-## Классы и функции
+## Universal Pipeline API (v2.1)
 
-- Базовые сущности:
-  - `Zone`: модель зоны (id, type, times, prices, strength, confidence, metadata)
-  - `ZoneAnalyzer`:
-    - `identify_support_resistance(data, window=20, min_touches=2) -> List[Zone]`
-    - `analyze_zone_breaks(data, zones) -> Dict`
-    - `analyze(data, window=20, min_touches=2) -> AnalysisResult`
-  - Утилита: `find_support_resistance(data, window=20, min_touches=2) -> List[Zone]`
+### Основные компоненты
 
-- Признаки зон (`zone_features`):
-  - `ZoneFeatures` — dataclass характеристик
-  - `ZoneFeaturesAnalyzer`:
-    - `extract_zone_features(zone_info) -> ZoneFeatures`
-    - `analyze_zones_distribution(zones_features) -> AnalysisResult`
-    - `get_zone_features_summary(zones_features) -> Dict`
-  - Утилиты:
-    - `analyze_zones_distribution(zones_features, ...) -> Dict`
-    - `extract_zone_features(zone_info, ...) -> Dict`
+#### `analyze_zones(df) -> ZoneAnalysisBuilder`
+Entry point для Universal Pipeline. Возвращает fluent builder для настройки анализа.
 
-- Последовательности (`sequence_analysis`):
-  - `TransitionAnalysis`, `ClusterAnalysis`
-  - `ZoneSequenceAnalyzer`:
-    - `analyze_zone_transitions(zones_features) -> AnalysisResult`
-    - `cluster_zones(zones_features, n_clusters=3, features_to_use=None) -> AnalysisResult`
-  - Утилиты:
-    - `create_zone_sequence_analysis(zones_features, min_sequence_length=3) -> Dict`
-    - `cluster_zone_shapes(zones_features, n_clusters=3) -> Dict`
+#### `ZoneAnalysisBuilder`
+Fluent interface для настройки анализа:
+- `.with_indicator(source, name, **params)` - настройка индикатора
+- `.detect_zones(strategy, **params)` - настройка детекции зон
+- `.with_strategies(**strategies)` - настройка аналитических стратегий
+- `.analyze(**options)` - настройка анализа
+- `.with_cache(enable=True, ttl=3600)` - настройка кэширования
+- `.build()` - запуск анализа
+
+#### `ZoneAnalysisResult`
+Результат анализа с полным набором данных:
+- `zones: List[ZoneInfo]` - найденные зоны
+- `statistics: Dict` - статистика анализа
+- `hypothesis_tests: Optional[HypothesisTestSuite]` - статистические тесты
+- `clustering: Optional[Dict]` - результаты кластеризации
+- `sequence_analysis: Optional[Dict]` - анализ последовательностей
+
+#### `ZoneInfo`
+Модель зоны с полным контекстом:
+- `zone_id: int` - уникальный идентификатор
+- `zone_type: str` - тип зоны ('bull'/'bear')
+- `start_time: Timestamp` - время начала
+- `end_time: Timestamp` - время окончания
+- `features: Optional[Dict]` - извлеченные характеристики
+- `indicator_context: Dict` - контекст индикатора
+
+### Legacy API (Deprecated)
+
+⚠️ **DEPRECATED:** Следующие компоненты устарели в v2.1:
+
+- `Zone` class → `ZoneInfo` dataclass
+- `find_support_resistance()` → Universal detection strategies
+- `ZoneAnalyzer` → `UniversalZoneAnalyzer` через pipeline
+- `extract_zone_features()` → автоматическое извлечение в pipeline
+
+**Migration Guide:**
+```python
+# Старый способ (Deprecated)
+from bquant.analysis.zones import find_support_resistance, extract_zone_features
+zones = find_support_resistance(data, window=20, min_touches=2)
+features = extract_zone_features(zone_info)
+
+# Новый способ (Universal Pipeline)
+from bquant.analysis.zones import analyze_zones
+result = (
+    analyze_zones(data)
+    .detect_zones('threshold', indicator_col='rsi', upper_threshold=70)
+    .analyze(clustering=True)
+    .build()
+)
+zones = result.zones
+features = zones[0].features  # Автоматически извлечены
+```
 
 ## Примеры
 
-Поддержка/сопротивление:
+### Universal Pipeline Examples
+
+#### MACD Analysis
 ```python
-from bquant.analysis.zones import find_support_resistance
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', divergence='classic')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
+)
+
+print(f"Найдено зон: {len(result.zones)}")
+for zone in result.zones[:3]:
+    if zone.features:
+        print(f"Зона {zone.zone_id}: {zone.features.get('zone_type', 'unknown')}")
+```
+
+#### RSI Analysis
+```python
+result = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_col='rsi', 
+                  upper_threshold=70, lower_threshold=30)
+    .with_strategies(swing='pivot_points', volatility='combined')
+    .analyze(clustering=True)
+    .build()
+)
+```
+
+#### Custom Indicator
+```python
+# Создаем собственный индикатор
+data['MY_OSC'] = data['close'].diff(5) / data['close'].rolling(20).std()
+
+result = (
+    analyze_zones(data)
+    .detect_zones('zero_crossing', indicator_col='MY_OSC')
+    .with_strategies(swing='find_peaks', shape='statistical')
+    .analyze(clustering=True)
+    .build()
+)
+```
+
+### Legacy Examples (Deprecated)
+
+⚠️ **DEPRECATED:** Используйте Universal Pipeline вместо этих примеров:
+
+```python
+# Старый способ (Deprecated)
+from bquant.analysis.zones import find_support_resistance, ZoneFeaturesAnalyzer
 
 zones = find_support_resistance(data, window=20, min_touches=2)
-print(len(zones))
-```
-
-Извлечение признаков:
-```python
-from bquant.analysis.zones import ZoneFeaturesAnalyzer
-
 zfa = ZoneFeaturesAnalyzer()
 zone_features = zfa.extract_zone_features({'type':'bull', 'data': zone_df})
-print(zone_features.to_dict())
-```
-
-Анализ последовательностей:
-```python
-from bquant.analysis.zones import ZoneSequenceAnalyzer
-
-zsa = ZoneSequenceAnalyzer(min_sequence_length=3)
-res = zsa.analyze_zone_transitions(zones_features)
-print(res.results['transition_probabilities'])
 ```
 
 ## См. также
 
-- [База анализа](base.md)
-- [Статистический анализ](statistical.md)
+- **[Universal Pipeline](pipeline.md)** - Полная документация Universal Pipeline v2.1
+- **[Zone Detection Strategies](strategies.md)** - Детальное описание 5 стратегий детекции
+- **[Statistical Analysis](statistical.md)** - Hypothesis tests и статистический анализ
+- **[Examples](../../examples/README.md)** - Готовые примеры использования
+- **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с legacy API

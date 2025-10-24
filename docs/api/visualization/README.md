@@ -2,7 +2,15 @@
 
 ## 📚 Обзор
 
-Visualization модули предоставляют инструменты для создания финансовых графиков, визуализации зон, статистических графиков и настройки тем.
+Visualization модули предоставляют инструменты для создания финансовых графиков, визуализации зон, статистических графиков и настройки тем с **Universal Pipeline v2.1** интеграцией.
+
+> **✅ v2.1 - Modern Visualization Architecture**
+> 
+> **ZoneVisualizer Integration:** Встроенная визуализация из ZoneAnalysisResult
+> 
+> **Universal Pipeline Support:** Работает с любыми индикаторами
+> 
+> **Advanced Features:** Auto-detect indicators, context bars, date range filtering
 
 ## 🗂️ Модули
 
@@ -12,11 +20,19 @@ Visualization модули предоставляют инструменты д�
 - **create_ohlc_chart()** - OHLC график
 - **create_line_chart()** - Линейный график
 
-### 🎯 [bquant.visualization.zones](zones.md) - Визуализация зон
-- **ZoneVisualizer** - Визуализация зон
-- **plot_macd_with_zones()** - MACD с зонами
-- **highlight_zones()** - Подсветка зон
-- **ZoneChart** - График зон
+### 🎯 [bquant.visualization.zones](zones.md) - Universal Zone Visualization
+
+**ZoneVisualizer - Core Class:**
+- **plot_zones_on_price_chart()** - общий график цен с зонами
+- **plot_zone_detail()** - детальный просмотр одной зоны
+- **plot_zones_comparison()** - сравнение нескольких зон
+- **plot_zones_analysis()** - статистический анализ зон
+
+**ZoneAnalysisResult Integration:**
+- **Встроенная визуализация** из результата Universal Pipeline
+- **Auto-detect Indicators** - автоматическое определение индикаторов
+- **Context Bars** - настраиваемый контекст вокруг зоны
+- **Date Range Filtering** - фильтрация зон по диапазону дат
 
 ### 📈 [bquant.visualization.statistical](statistical.md) - Статистические графики
 - **StatisticalPlots** - Статистические графики
@@ -120,63 +136,82 @@ ohlc_fig.show()
 line_fig.show()
 ```
 
-### Визуализация зон MACD
+### Universal Pipeline Visualization
+
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.visualization import ZoneVisualizer
+
+# Universal Pipeline анализ
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
+
+# Встроенная визуализация из результата
+fig = result.visualize('overview')  # Общий обзор
+fig.show()
+
+fig = result.visualize('detail', zone_id=5)  # Детальный просмотр
+fig.show()
+
+fig = result.visualize('comparison', max_zones=5)  # Сравнение
+fig.show()
+
+fig = result.visualize('statistics')  # Статистика
+fig.show()
+```
+
+### Advanced Zone Visualization
 
 ```python
 from bquant.visualization import ZoneVisualizer
-from bquant.indicators import MACDZoneAnalyzer
-
-# Анализ MACD
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
 
 # Создание визуализатора зон
 zone_viz = ZoneVisualizer()
 
-# MACD с зонами
-macd_fig = zone_viz.plot_macd_with_zones(
+# Детальный просмотр зоны с индикаторами
+fig = zone_viz.plot_zone_detail(
+    data,
+    result.zones[0],
+    context_bars=15,
+    show_indicators=True,
+    title="Zone Detail Analysis"
+)
+fig.show()
+
+# Сравнение зон по датам
+from datetime import datetime
+fig = zone_viz.plot_zones_comparison(
     data,
     result.zones,
-    title="XAUUSD 1H - MACD with Zones",
-    show_statistics=True,
-    theme='dark'
+    date_range=(datetime(2024, 1, 1), datetime(2024, 3, 1)),
+    max_zones=5,
+    title="Zones Comparison"
 )
+fig.show()
 
-# Подсветка зон на ценовом графике
-price_fig = zone_viz.highlight_zones(
-    data,
-    result.zones,
-    title="XAUUSD 1H - Price with Zones",
-    zone_colors={'bull': 'green', 'bear': 'red'},
-    theme='light'
-)
-
-# График статистики зон
-stats_fig = zone_viz.plot_zone_statistics(
-    result.zones,
-    title="Zone Statistics",
-    theme='blue'
-)
-
-# Показ графиков
-macd_fig.show()
-price_fig.show()
-stats_fig.show()
+# Прямое использование ZoneVisualizer
+fig = zone_viz.plot_zones_on_price_chart(data, result.zones)
+fig.show()
 ```
 
-### Статистические графики
+### Статистические графики (Universal Pipeline)
 
 ```python
 from bquant.visualization import StatisticalPlots
-from bquant.analysis.statistical import run_all_hypothesis_tests
 
-# Статистический анализ
-zones_info = {
-    'zones_features': [zone.features for zone in result.zones if zone.features],
-    'zones': result.zones,
-    'statistics': result.statistics
-}
-hypothesis_results = run_all_hypothesis_tests(zones_info)
+# Universal Pipeline с автоматическими hypothesis tests
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)  # Автоматически включает hypothesis tests
+    .build()
+)
 
 # Создание статистических графиков
 stat_plots = StatisticalPlots()
@@ -196,14 +231,21 @@ dist_fig = stat_plots.plot_distribution(
     theme='blue'
 )
 
-# Результаты гипотезных тестов
-hypothesis_fig = stat_plots.plot_hypothesis_results(
-    hypothesis_results,
-    title="Hypothesis Test Results",
-    theme='dark'
-)
+# Результаты гипотезных тестов из Universal Pipeline
+if result.hypothesis_tests:
+    hypothesis_fig = stat_plots.plot_hypothesis_results(
+        result.hypothesis_tests.results,
+        title="Hypothesis Test Results",
+        theme='dark'
+    )
+    hypothesis_fig.show()
 
 # Box plot для сравнения зон
+bull_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones 
+                  if zone.zone_type == 'bull' and zone.features]
+bear_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones 
+                  if zone.zone_type == 'bear' and zone.features]
+
 box_fig = stat_plots.plot_box_plot(
     data=[bull_volatility, bear_volatility],
     labels=['Bull Zones', 'Bear Zones'],
@@ -214,7 +256,6 @@ box_fig = stat_plots.plot_box_plot(
 # Показ графиков
 corr_fig.show()
 dist_fig.show()
-hypothesis_fig.show()
 box_fig.show()
 ```
 
@@ -258,61 +299,75 @@ fig = charts.create_candlestick_chart(
 fig.show()
 ```
 
-### Комбинированная визуализация
+### Комбинированная визуализация (Universal Pipeline)
 
 ```python
 from bquant.visualization import FinancialCharts, ZoneVisualizer, StatisticalPlots
 
+# Universal Pipeline анализ
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
+
 # Создание комплексной визуализации
-def create_comprehensive_analysis(data, zones, hypothesis_results):
-    """Создание комплексной визуализации анализа"""
+def create_comprehensive_analysis(data, result):
+    """Создание комплексной визуализации анализа с Universal Pipeline"""
     
     charts = FinancialCharts()
     zone_viz = ZoneVisualizer()
     stat_plots = StatisticalPlots()
     
     # 1. Ценовой график с зонами
-    price_fig = zone_viz.highlight_zones(
-        data, zones,
-        title="Price Analysis with MACD Zones",
+    price_fig = zone_viz.plot_zones_on_price_chart(
+        data, result.zones,
+        title="Price Analysis with Universal Zones",
         theme='dark'
     )
     
-    # 2. MACD с зонами
-    macd_fig = zone_viz.plot_macd_with_zones(
-        data, zones,
-        title="MACD Analysis with Zones",
+    # 2. Детальный анализ зоны
+    detail_fig = zone_viz.plot_zone_detail(
+        data, result.zones[0],
+        context_bars=20,
+        title="Zone Detail Analysis",
         theme='dark'
     )
     
-    # 3. Статистика зон
-    zone_stats_fig = zone_viz.plot_zone_statistics(
-        zones,
-        title="Zone Statistics",
+    # 3. Сравнение зон
+    comparison_fig = zone_viz.plot_zones_comparison(
+        data, result.zones,
+        max_zones=5,
+        title="Zones Comparison",
         theme='blue'
     )
     
     # 4. Результаты гипотезных тестов
-    hypothesis_fig = stat_plots.plot_hypothesis_results(
-        hypothesis_results,
-        title="Statistical Test Results",
-        theme='dark'
-    )
+    hypothesis_fig = None
+    if result.hypothesis_tests:
+        hypothesis_fig = stat_plots.plot_hypothesis_results(
+            result.hypothesis_tests.results,
+            title="Statistical Test Results",
+            theme='dark'
+        )
     
     return {
         'price_chart': price_fig,
-        'macd_chart': macd_fig,
-        'zone_stats': zone_stats_fig,
+        'detail_chart': detail_fig,
+        'comparison_chart': comparison_fig,
         'hypothesis_results': hypothesis_fig
     }
 
 # Создание комплексной визуализации
-analysis_figures = create_comprehensive_analysis(data, result.zones, hypothesis_results)
+analysis_figures = create_comprehensive_analysis(data, result)
 
 # Показ всех графиков
 for name, fig in analysis_figures.items():
-    print(f"Showing {name}...")
-    fig.show()
+    if fig is not None:
+        print(f"Showing {name}...")
+        fig.show()
 ```
 
 ### Экспорт графиков
@@ -464,8 +519,9 @@ fig.show()
 
 ## 📖 Детальная документация
 
+- **[Universal Pipeline](../analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
 - **[Charts Module](charts.md)** - Подробная документация финансовых графиков
-- **[Zones Module](zones.md)** - Документация визуализации зон
+- **[Zones Module](zones.md)** - Universal Zone Visualization
 - **[Statistical Module](statistical.md)** - Документация статистических графиков
 - **[Themes Module](themes.md)** - Документация тем и стилей
 

@@ -30,7 +30,7 @@ print(f"BQuant version: {bquant.__version__}")
 ```python
 import bquant as bq
 from bquant.data.samples import get_sample_data
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 from bquant.visualization import FinancialCharts
 ```
 
@@ -43,14 +43,18 @@ print(f"Загружено {len(data)} записей")
 print(f"Период: {data.index[0]} - {data.index[-1]}")
 ```
 
-### 3. Создание анализатора
+### 3. Universal Zone Analysis
 
 ```python
-# Создаем анализатор MACD с зонами
-analyzer = MACDZoneAnalyzer()
-
-# Выполняем полный анализ
-result = analyzer.analyze_complete(data)
+# Universal Pipeline - работает с любым индикатором
+result = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_col='rsi', 
+                  upper_threshold=70, lower_threshold=30)
+    .analyze(clustering=True)
+    .build()
+)
 ```
 
 ### 4. Анализ результатов
@@ -65,11 +69,10 @@ stats = result.statistics
 print(f"Bull зон: {stats.get('bull_zones', 0)}")
 print(f"Bear зон: {stats.get('bear_zones', 0)}")
 
-# Текущие значения MACD
-current_macd = stats.get('current_macd', 0)
-current_signal = stats.get('current_signal', 0)
-print(f"Текущий MACD: {current_macd:.4f}")
-print(f"Текущий Signal: {current_signal:.4f}")
+# Доступ к features зон
+for i, zone in enumerate(zones[:3]):  # Первые 3 зоны
+    if zone.features:
+        print(f"Зона {i}: {zone.features.get('zone_type', 'unknown')}")
 ```
 
 ### 5. Визуализация
@@ -78,14 +81,14 @@ print(f"Текущий Signal: {current_signal:.4f}")
 # Создаем график
 charts = FinancialCharts()
 
-# Candlestick график с MACD
+# Candlestick график с RSI
 fig = charts.create_candlestick_chart(
     data, 
-    title="XAUUSD 1H - MACD Analysis"
+    title="XAUUSD 1H - RSI Zone Analysis"
 )
 
-# Добавляем MACD с зонами
-fig = charts.plot_macd_with_zones(data, zones)
+# Добавляем RSI с зонами
+fig = charts.plot_indicator_with_zones(data, zones, indicator_col='rsi')
 
 # Показываем график
 fig.show()
@@ -109,17 +112,16 @@ print(rsi_result.data.tail())
 > ℹ️ Подробности и дополнительные примеры смотрите в разделе
 > [LibraryManager — управление внешними индикаторами](../api/indicators/library_manager.md).
 
-## 📊 Полный пример
+## 📊 Полный пример - Universal Pipeline
 
 ```python
 import bquant as bq
 from bquant.data.samples import get_sample_data, list_dataset_names
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 from bquant.visualization import FinancialCharts
-from bquant.analysis.statistical import run_all_hypothesis_tests
 
 def quick_analysis():
-    """Быстрый анализ sample данных"""
+    """Быстрый анализ sample данных с Universal Pipeline"""
     
     # 1. Выбираем dataset
     datasets = list_dataset_names()
@@ -132,9 +134,15 @@ def quick_analysis():
     data = get_sample_data(dataset_name)
     print(f"Данные: {len(data)} записей")
     
-    # 3. MACD анализ
-    analyzer = MACDZoneAnalyzer()
-    result = analyzer.analyze_complete(data)
+    # 3. Universal Pipeline - RSI анализ
+    result = (
+        analyze_zones(data)
+        .with_indicator('pandas_ta', 'rsi', length=14)
+        .detect_zones('threshold', indicator_col='rsi', 
+                      upper_threshold=70, lower_threshold=30)
+        .analyze(clustering=True)
+        .build()
+    )
     
     # 4. Результаты
     zones = result.zones
@@ -144,27 +152,21 @@ def quick_analysis():
     print(f"   • Всего зон: {len(zones)}")
     print(f"   • Bull зон: {stats.get('bull_zones', 0)}")
     print(f"   • Bear зон: {stats.get('bear_zones', 0)}")
-    print(f"   • Текущий MACD: {stats.get('current_macd', 0):.4f}")
-    print(f"   • Текущий Signal: {stats.get('current_signal', 0):.4f}")
     
-    # 5. Статистические тесты
-    try:
-        zones_info = {
-            'zones_features': [zone.features for zone in zones if zone.features],
-            'zones': zones,
-            'statistics': stats
-        }
-        hypothesis_results = run_all_hypothesis_tests(zones_info)
+    # 5. Hypothesis tests (автоматически в pipeline)
+    if result.hypothesis_tests:
         print(f"   • Статистические тесты: ✅ выполнено")
-    except Exception as e:
-        print(f"   • Статистические тесты: ⚠️ {e}")
+        for test_name, test_result in result.hypothesis_tests.results.items():
+            print(f"     - {test_name}: p={test_result['p_value']:.4f}")
+    else:
+        print(f"   • Статистические тесты: ⚠️ не выполнено")
     
     # 6. Визуализация
     try:
         charts = FinancialCharts()
         fig = charts.create_candlestick_chart(
             data, 
-            title=f"Analysis of {dataset_name}"
+            title=f"RSI Zone Analysis - {dataset_name}"
         )
         print(f"   • Визуализация: ✅ создана")
         return fig
@@ -179,14 +181,46 @@ if __name__ == "__main__":
         fig.show()
 ```
 
+## 🔄 Migration Guide - Legacy API
+
+```python
+# ⚠️ DEPRECATED: Старый способ
+from bquant.indicators import MACDZoneAnalyzer
+
+analyzer = MACDZoneAnalyzer()  # Deprecated wrapper
+result = analyzer.analyze_complete(data)  # Delegates to analyze_zones()
+
+# ✅ NEW: Universal Pipeline
+from bquant.analysis.zones import analyze_zones
+
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
+```
+
 ## 🎯 Что дальше?
 
 После освоения быстрого старта:
 
-1. **[Core Concepts](../api/core/README.md)** - Изучите архитектуру BQuant
-2. **[Data Management](../api/data/README.md)** - Работа с собственными данными
-3. **[Technical Analysis](../api/indicators/README.md)** - Продвинутый технический анализ
-4. **[Examples](../examples/README.md)** - Изучите готовые примеры
+### 📚 Learning Path
+1. **[Universal Pipeline API](../api/analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
+2. **[Detection Strategies](../api/analysis/strategies.md)** - 5 типов стратегий детекции зон
+3. **[Statistical Analysis](../api/analysis/statistical.md)** - Автоматические hypothesis tests
+4. **[Examples](../examples/README.md)** - Готовые примеры для всех индикаторов
+
+### 🔬 Advanced Features
+5. **[Deep Dive Tutorial](../research/notebooks/03_zones_universal.py)** - Comprehensive analysis (412 строк)
+6. **[Advanced Features](../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
+7. **[Migration Guide](../examples/02_macd_zone_analysis.py)** - Переход с deprecated API
+
+### 🏗️ Developer Resources
+8. **[Architecture Patterns](../developer_guide/README.md)** - Design Patterns, Extension Points
+9. **[Testing Framework](../tests/integration/)** - Integration tests, Backward compatibility
+10. **[Visualization](../api/visualization/README.md)** - Zone visualization, Statistical plots
 
 ## 💡 Советы
 

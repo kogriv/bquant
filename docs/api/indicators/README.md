@@ -2,7 +2,15 @@
 
 ## 📚 Обзор
 
-Indicators модули содержат технические индикаторы для анализа финансовых данных, включая MACD с анализом зон и расширяемую архитектуру для создания собственных индикаторов, а также инструменты для подключения внешних библиотек через `LibraryManager`.
+Indicators модули содержат технические индикаторы для анализа финансовых данных с **Universal Architecture v2.1**. Система поддерживает все источники индикаторов (preloaded/custom/pandas_ta/talib) через `IndicatorFactory` и интегрируется с Universal Pipeline для анализа зон.
+
+> **✅ v2.1 - Universal Indicator Support**
+> 
+> **IndicatorFactory Integration:** Все источники индикаторов поддерживаются универсально
+> 
+> **MACDZoneAnalyzer Status:** Deprecated wrapper с четким migration path
+> 
+> **Universal Pipeline:** Интеграция через `.with_indicator()` API
 
 ## 🗂️ Модули
 
@@ -12,19 +20,49 @@ Indicators модули содержат технические индикато
 - **IndicatorConfig**/**IndicatorSource** - конфигурация/источник данных
 - **IndicatorFactory** - единая фабрика индикаторов (`create()` для preloaded/custom/library)
 
-### 📈 [bquant.indicators.macd](macd.md) - MACD индикатор и зоны
-- **MACDZoneAnalyzer** - анализ зон MACD
-- **ZoneInfo**/**ZoneAnalysisResult** - модели результатов
+### 📈 [bquant.indicators.macd](macd.md) - MACD индикатор и зоны (Deprecated)
+
+⚠️ **DEPRECATED:** `MACDZoneAnalyzer` устарел в v2.1. Используйте Universal Pipeline.
+
+**Legacy API (Deprecated):**
+- **MACDZoneAnalyzer** - тонкий wrapper с @deprecated decorator
+- **ZoneInfo**/**ZoneAnalysisResult** - модели результатов (перенесены в analysis.zones)
 - Вспомогательные функции: `create_macd_analyzer()`, `analyze_macd_zones()`
+
+**Migration Path:**
+```python
+# Старый способ (Deprecated)
+from bquant.indicators.macd import MACDZoneAnalyzer
+analyzer = MACDZoneAnalyzer()
+result = analyzer.analyze_complete(data)
+
+# Новый способ (Universal Pipeline)
+from bquant.analysis.zones import analyze_zones
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
+```
 
 ### 🔄 [bquant.indicators.preloaded](preloaded.md) - PRELOADED индикаторы
 - **MACDPreloadedIndicator** - извлечение готовых MACD значений
 - Работа с предобработанными данными
 - Анализ трендов и пересечений
 
-### 🏭 [bquant.indicators.factory](factory.md) - Фабрика и библиотека индикаторов
+### 🏭 [bquant.indicators.factory](factory.md) - Universal Indicator Factory
+
+**IndicatorFactory Integration:**
+- **Universal Support:** все источники индикаторов (preloaded/custom/pandas_ta/talib)
+- **Seamless Integration:** автоматическое использование в Universal Pipeline
+- **No Hardcode:** ZERO hardcoded индикаторов, полная универсальность
+
+**Core Methods:**
 - **IndicatorFactory**: `register_indicator()`, `register_library_function()`, `create()`, `create_indicator()`, `list_indicators()`, `get_indicator_info()`
-- Делегирование в `LibraryManager` при работе с внешними библиотеками
+- **Universal Pipeline Integration:** автоматическое использование в `.with_indicator()`
+- **Library Delegation:** делегирование в `LibraryManager` при работе с внешними библиотеками
 
 ### 🧭 [bquant.indicators.library_manager](library_manager.md) - Управление внешними библиотеками
 - **LibraryManager**: `load_all_libraries()`, `get_library_info()`, `create_indicator()`
@@ -35,11 +73,11 @@ Indicators модули содержат технические индикато
 
 ### По функциональности
 
-#### MACD анализ
-- `MACDZoneAnalyzer.analyze_complete()` - Полный анализ MACD
-- `calculate_macd()` - Расчет MACD значений
-- `identify_zones()` - Идентификация зон
-- `analyze_zone_features()` - Анализ характеристик зон
+#### Universal Pipeline Integration
+- `analyze_zones().with_indicator()` - Универсальный анализ зон
+- `IndicatorFactory.create()` - Создание индикаторов из всех источников
+- `LibraryManager.create_indicator()` - Создание из внешних библиотек
+- **Deprecated:** `MACDZoneAnalyzer.analyze_complete()` - используйте Universal Pipeline
 
 #### PRELOADED индикаторы
 - `MACDPreloadedIndicator.calculate()` - Извлечение готовых значений
@@ -157,23 +195,24 @@ if macd_only.validate_data(data):
     print(f"Single column result: {list(result.data.columns)}")
 ```
 
-### MACD анализ с зонами
+### Universal Pipeline с любыми индикаторами
 
 ```python
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
 # Загрузка данных
 data = get_sample_data('tv_xauusd_1h')
 
-# Создание анализатора MACD
-analyzer = MACDZoneAnalyzer(
-    macd_params={'fast': 12, 'slow': 26, 'signal': 9},
-    zone_params={'min_duration': 2, 'min_amplitude': 0.001}
+# Universal Pipeline - MACD
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', divergence='classic')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
 )
-
-# Полный анализ
-result = analyzer.analyze_complete(data)
 
 # Анализ результатов
 print(f"Найдено зон: {len(result.zones)}")
@@ -181,10 +220,41 @@ print(f"Статистика: {result.statistics}")
 
 # Анализ отдельных зон
 for zone in result.zones:
-    print(f"Зона {zone.type}: {zone.start_time} - {zone.end_time}")
-    print(f"  Длительность (bars): {zone.duration}")
+    print(f"Зона {zone.zone_type}: {zone.start_time} - {zone.end_time}")
     if zone.features:
-        print(f"  MACD амплитуда: {zone.features['macd_amplitude']:.4f}")
+        print(f"  Swings: {zone.features.get('num_swings', 0)}")
+        print(f"  Divergence: {zone.features.get('has_classic_divergence', False)}")
+```
+
+### Universal Pipeline - RSI
+
+```python
+# RSI анализ с threshold detection
+result = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_col='rsi', 
+                  upper_threshold=70, lower_threshold=30)
+    .with_strategies(swing='pivot_points', volatility='combined')
+    .analyze(clustering=True)
+    .build()
+)
+```
+
+### Universal Pipeline - Custom Indicator
+
+```python
+# Создаем собственный индикатор
+data['MY_OSC'] = data['close'].diff(5) / data['close'].rolling(20).std()
+
+# Universal Pipeline работает с любым индикатором
+result = (
+    analyze_zones(data)
+    .detect_zones('zero_crossing', indicator_col='MY_OSC')
+    .with_strategies(swing='find_peaks', shape='statistical')
+    .analyze(clustering=True)
+    .build()
+)
 ```
 
 ### Создание собственного индикатора
@@ -249,10 +319,10 @@ info = factory.get_info('SMA')
 print(f"SMA info: {info}")
 ```
 
-### Комбинированный анализ
+### Комбинированный анализ с Universal Pipeline
 
 ```python
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 from bquant.indicators.preloaded import MACDPreloadedIndicator
 from bquant.indicators.factory import IndicatorFactory
 
@@ -264,9 +334,14 @@ factory.register_indicator(SimpleMovingAverage)
 macd_preloaded = MACDPreloadedIndicator()
 macd_result = macd_preloaded.calculate(data)
 
-# MACD зоны анализ
-macd_analyzer = MACDZoneAnalyzer()
-macd_zones_result = macd_analyzer.analyze_complete(data)
+# Universal Pipeline - MACD зоны анализ
+macd_zones_result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
 
 # SMA анализ
 sma = factory.create('SMA', period=20)
@@ -284,67 +359,69 @@ combined_analysis = {
 print(f"Combined analysis: {combined_analysis}")
 ```
 
-### Анализ характеристик зон
+### Анализ характеристик зон (Universal Pipeline)
 
 ```python
-from bquant.indicators import MACDZoneAnalyzer
-
-# Создание анализатора
-analyzer = MACDZoneAnalyzer()
-
-# Полный анализ с характеристиками зон
-result = analyzer.analyze_complete(data)
+# Universal Pipeline с автоматическим извлечением характеристик
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', volatility='combined')
+    .analyze(clustering=True)
+    .build()
+)
 
 # Анализ характеристик зон
 for zone in result.zones:
     if zone.features:
         features = zone.features
         print(f"Зона {zone.zone_type}:")
-        print(f"  Средняя волатильность: {features.avg_volatility:.4f}")
-        print(f"  Максимальная амплитуда: {features.max_amplitude:.4f}")
-        print(f"  Количество пиков: {features.peak_count}")
-        print(f"  Тренд: {features.trend}")
+        print(f"  Swings: {features.get('num_swings', 0)}")
+        print(f"  Volatility regime: {features.get('volatility_regime', 'unknown')}")
+        print(f"  Rally count: {features.get('rally_count', 0)}")
+        print(f"  Drop count: {features.get('drop_count', 0)}")
 ```
 
-### Настройка параметров индикаторов
+### Настройка параметров индикаторов (Universal Pipeline)
 
 ```python
-from bquant.indicators import MACDZoneAnalyzer
-
-# Создание анализатора с кастомными параметрами
-analyzer = MACDZoneAnalyzer(
-    macd_params={
-        'fast': 8,      # Быстрая EMA
-        'slow': 21,     # Медленная EMA
-        'signal': 5     # Сигнальная линия
-    },
-    zone_params={
-        'min_duration': 3,      # Минимальная длительность зоны
-        'min_amplitude': 0.002, # Минимальная амплитуда
-        'smooth_factor': 0.1    # Фактор сглаживания
-    }
+# Universal Pipeline с кастомными параметрами
+result_custom = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=8, slow_period=21, signal_period=5)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
 )
 
-# Анализ с кастомными параметрами
-result = analyzer.analyze_complete(data)
-
 # Сравнение с дефолтными параметрами
-default_analyzer = MACDZoneAnalyzer()
-default_result = default_analyzer.analyze_complete(data)
+result_default = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
+)
 
-print(f"Custom parameters zones: {len(result.zones)}")
-print(f"Default parameters zones: {len(default_result.zones)}")
+print(f"Custom parameters zones: {len(result_custom.zones)}")
+print(f"Default parameters zones: {len(result_default.zones)}")
 ```
 
-### Экспорт результатов анализа
+### Экспорт результатов анализа (Universal Pipeline)
 
 ```python
 import json
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 
-# Анализ
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
+# Universal Pipeline анализ
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
 
 # Подготовка данных для экспорта
 export_data = {
@@ -354,16 +431,15 @@ export_data = {
         'timeframe': '1H',
         'records_count': len(data)
     },
-    'macd_analysis': {
+    'universal_analysis': {
         'zones_count': len(result.zones),
         'statistics': result.statistics,
         'zones': [
             {
                 'type': zone.zone_type,
-                'start': str(zone.start_date),
-                'end': str(zone.end_date),
-                'duration': zone.duration,
-                'amplitude': zone.amplitude
+                'start': str(zone.start_time),
+                'end': str(zone.end_time),
+                'features': zone.features
             }
             for zone in result.zones
         ]
@@ -371,10 +447,10 @@ export_data = {
 }
 
 # Экспорт в JSON
-with open('macd_analysis.json', 'w') as f:
+with open('universal_analysis.json', 'w') as f:
     json.dump(export_data, f, indent=2, default=str)
 
-print("Analysis exported to macd_analysis.json")
+print("Universal analysis exported to universal_analysis.json")
 ```
 
 ## 🔗 Связанные разделы
@@ -386,10 +462,11 @@ print("Analysis exported to macd_analysis.json")
 
 ## 📖 Детальная документация
 
+- **[Universal Pipeline](../analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
 - **[Base Module](base.md)** - Подробная документация базовых классов
-- **[MACD Module](macd.md)** - Документация MACD индикатора
+- **[MACD Module](macd.md)** - Документация MACD индикатора (Deprecated)
 - **[PRELOADED Module](preloaded.md)** - Документация PRELOADED индикаторов
-- **[Factory Module](factory.md)** - Документация фабрики индикаторов
+- **[Factory Module](factory.md)** - Документация Universal Indicator Factory
 
 ## 🚀 Руководство по расширению
 

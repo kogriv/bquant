@@ -1,87 +1,90 @@
-# bquant.indicators.macd — MACD и анализ зон
+# bquant.indicators.macd — MACD и анализ зон (Deprecated)
+
+⚠️ **DEPRECATED:** `MACDZoneAnalyzer` устарел в v2.1. Используйте Universal Pipeline.
 
 ## Обзор
 
-Современный анализатор зон MACD: расчёт индикаторов, идентификация зон (bull/bear), извлечение признаков, статистика, гипотезы, последовательности, кластеризация.
+`MACDZoneAnalyzer` - это тонкий wrapper с @deprecated decorator, который делегирует всю работу в Universal Pipeline. Сохранен для backward compatibility до v3.0.0.
 
 ## Классы
 
-### MACDZoneAnalyzer
+### MACDZoneAnalyzer (Deprecated)
 
-**Current Methods:**
+⚠️ **DEPRECATED:** Используйте Universal Pipeline вместо этого класса.
+
+**Deprecation Warning:**
+```python
+@deprecated(
+    message="MACDZoneAnalyzer is deprecated. Use universal API instead: "
+            "from bquant.analysis.zones import analyze_zones",
+    version="2.0.0",
+    removal_version="3.0.0"
+)
+class MACDZoneAnalyzer:
+    # Тонкий wrapper с делегированием в Universal Pipeline
+```
+
+**Current Methods (Delegation Pattern):**
+- `analyze_complete(df, perform_clustering=True, n_clusters=3) -> ZoneAnalysisResult` - делегирует в Universal Pipeline
 - `calculate_macd_with_atr(df) -> DataFrame` - calculate MACD and ATR indicators
 - `identify_zones(df) -> List[ZoneInfo]` - identify bull/bear zones
-- `analyze_complete(df, perform_clustering=True, n_clusters=3) -> ZoneAnalysisResult` - complete analysis using modular architecture
 
-**Helper Methods:**
+**Helper Methods (Internal):**
 - `_zone_to_dict(zone) -> Dict` - convert ZoneInfo to dict for modular analyzers
 - `_features_to_dict(features) -> Dict` - convert ZoneFeatures to dict
 - `_adapt_statistics_format(stats_data) -> Dict` - adapt statistics format for compatibility
 
-## Migration Notice (Phase 4, v0.X.X)
+## Migration Guide (v2.1)
 
-### Removed Methods
+### От старого API к новому
 
-The following methods have been **removed** in Phase 4:
-
-| Method | Removed | Replacement |
-|--------|---------|-------------|
-| `calculate_zone_features()` | Phase 4 | Use `ZoneFeaturesAnalyzer.extract_zone_features()` |
-| `analyze_zones_distribution()` | Phase 4 | Use `ZoneFeaturesAnalyzer.analyze_zones_distribution()` |
-| `test_hypotheses()` | Phase 4 | Use `HypothesisTestSuite` from `bquant.analysis.statistical` |
-| `analyze_zone_sequences()` | Phase 4 | Use `ZoneSequenceAnalyzer.analyze_zone_transitions()` |
-| `cluster_zones_by_shape()` | Phase 4 | Use `ZoneSequenceAnalyzer.cluster_zones()` |
-
-### Why Removed?
-
-These methods duplicated functionality from modular analyzers in `bquant.analysis.*`.
-The modular analyzers are:
-- More flexible (Strategy Pattern)
-- Better tested
-- More maintainable
-- Extensible
-
-### Recommended Approach
-
-Use `analyze_complete()` which automatically delegates to modular analyzers:
-
+**Старый способ (Deprecated):**
 ```python
 from bquant.indicators.macd import MACDZoneAnalyzer
 
 analyzer = MACDZoneAnalyzer()
 result = analyzer.analyze_complete(df)
-
-# All analysis is performed using modular analyzers:
-# - ZoneFeaturesAnalyzer (features)
-# - HypothesisTestSuite (statistical tests)
-# - ZoneSequenceAnalyzer (sequences, clustering)
+zones_dict = analyzer._zone_to_dict(zones[0])  # Deprecated
 ```
 
-### For Direct Access to Modular Analyzers
-
+**Новый способ (Universal Pipeline):**
 ```python
-from bquant.analysis.zones import ZoneFeaturesAnalyzer, ZoneSequenceAnalyzer
-from bquant.analysis.statistical import HypothesisTestSuite
+from bquant.analysis.zones import analyze_zones
 
-# Features
-features_analyzer = ZoneFeaturesAnalyzer()
-features = features_analyzer.extract_zone_features(zone_dict)
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .analyze(clustering=True)
+    .build()
+)
 
-# Statistical tests
-test_suite = HypothesisTestSuite()
-results = test_suite.run_all_tests(zones_features)
-
-# Sequences and clustering
-seq_analyzer = ZoneSequenceAnalyzer()
-transitions = seq_analyzer.analyze_zone_transitions(zones_features)
-clusters = seq_analyzer.cluster_zones(zones_features, n_clusters=3)
+# Прямой доступ к features
+zone_features = result.zones[0].features.get('zone_type')
 ```
 
-**See also:**
-- [Zone Analysis](../analysis/zones.md) - zone features and strategies
-- [Strategies Documentation](../analysis/strategies.md) - Strategy Pattern (stable API)
-- [Statistical Analysis](../analysis/statistical.md) - hypothesis tests, regression, validation
-- `devref/gaps/phase4_completion_report.md` - technical details
+### API Evolution
+
+| Старый API | Новый API | Изменения |
+|------------|-----------|-----------|
+| `MACDZoneAnalyzer().analyze_complete()` | `analyze_zones().build()` | Fluent builder pattern |
+| `_zone_to_dict()` | `zone.features.get()` | Прямой доступ к features |
+| `extract_zone_features()` | Автоматически в `.analyze()` | Автоматическое извлечение |
+| Hardcoded MACD | Universal API | Работает с любым индикатором |
+
+### Backward Compatibility
+
+**Parameter Adaptation:**
+- `fast/slow/signal` → `fast_period/slow_period/signal_period`
+- Lazy import для избежания circular dependency
+- Identical results - результаты идентичны новому API
+
+**Convenience Presets:**
+```python
+# Shortcut для MACD
+from bquant.analysis.zones.presets import analyze_macd_zones
+result = analyze_macd_zones(df, fast=12, slow=26, signal=9)
+```
 
 ---
 
@@ -105,30 +108,51 @@ PRELOADED индикатор для работы с готовыми MACD дан
 
 ## Примеры
 
-### Полный анализ зон MACD
+### Universal Pipeline (Рекомендуемый способ)
 
 ```python
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 
-an = MACDZoneAnalyzer()
-res = an.analyze_complete(df)
-print(len(res.zones), res.statistics.keys())
+# Universal Pipeline - MACD
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', divergence='classic')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
+)
+
+print(f"Найдено зон: {len(result.zones)}")
+print(f"Статистика: {list(result.statistics.keys())}")
 ```
 
-### Просмотр зон и признаков
+### Просмотр зон и признаков (Universal Pipeline)
 
 ```python
-for z in res.zones:
-    print(z.type, z.start_time, z.end_time, z.duration)
-    if z.features:
-        print(z.features['macd_amplitude'], z.features['price_return'])
+for zone in result.zones:
+    print(f"Зона {zone.zone_type}: {zone.start_time} - {zone.end_time}")
+    if zone.features:
+        print(f"  Swings: {zone.features.get('num_swings', 0)}")
+        print(f"  Divergence: {zone.features.get('has_classic_divergence', False)}")
 ```
 
-### Сценарий с удобной функцией
+### Convenience Preset для MACD
 
 ```python
-from bquant.indicators.macd import analyze_macd_zones
-res = analyze_macd_zones(df, perform_clustering=False)
+from bquant.analysis.zones.presets import analyze_macd_zones
+result = analyze_macd_zones(df, fast=12, slow=26, signal=9)
+```
+
+### Legacy API (Deprecated)
+
+⚠️ **DEPRECATED:** Используйте Universal Pipeline вместо этого.
+
+```python
+from bquant.indicators.macd import MACDZoneAnalyzer  # ⚠️ Deprecated
+
+analyzer = MACDZoneAnalyzer()
+result = analyzer.analyze_complete(df)  # Показывает deprecation warning
 ```
 
 ### PRELOADED MACD индикатор
@@ -190,6 +214,9 @@ except ValueError as e:
 
 ## См. также
 
-- [База индикаторов](base.md)
-- [PRELOADED индикаторы](preloaded.md)
-- [Фабрика и библиотека](factory.md)
+- **[Universal Pipeline](../analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
+- **[Zone Analysis](../analysis/zones.md)** - Universal API для анализа зон
+- **[Zone Detection Strategies](../analysis/strategies.md)** - Детальное описание стратегий
+- **[База индикаторов](base.md)** - Базовые классы индикаторов
+- **[PRELOADED индикаторы](preloaded.md)** - Работа с готовыми данными
+- **[Universal Indicator Factory](factory.md)** - Фабрика индикаторов
