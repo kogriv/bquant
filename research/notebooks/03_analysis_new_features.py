@@ -114,17 +114,17 @@ with nb.error_handling("Time metrics testing"):
         if zone.features:  # v2.1: Check if features available
             peak_time_ratio = zone.features.get('peak_time_ratio')
             trough_time_ratio = zone.features.get('trough_time_ratio')
-            
-            zones_with_time.append({
-                'zone_id': zone.zone_id,
-                'type': zone.type,
-                'duration': zone.duration,
+        
+        zones_with_time.append({
+            'zone_id': zone.zone_id,
+            'type': zone.type,
+            'duration': zone.duration,
                 'peak_time_ratio': peak_time_ratio,
                 'trough_time_ratio': trough_time_ratio
-            })
-            
-            nb.log(f"  - Zone {zone.zone_id} ({zone.type}):")
-            nb.log(f"    * Duration: {zone.duration} bars")
+        })
+        
+        nb.log(f"  - Zone {zone.zone_id} ({zone.type}):")
+        nb.log(f"    * Duration: {zone.duration} bars")
             nb.log(f"    * Peak time ratio: {peak_time_ratio:.3f}" if peak_time_ratio else "    * Peak time ratio: None")
             nb.log(f"    * Trough time ratio: {trough_time_ratio:.3f}" if trough_time_ratio else "    * Trough time ratio: None")
     
@@ -329,7 +329,7 @@ with nb.error_handling("Volatility analysis testing"):
             # v2.1: volatility metrics in flat features (not nested metadata)
             vol_score = zone.features.get('volatility_score')
             if vol_score is not None:
-                volatility_scores.append(vol_score)
+            volatility_scores.append(vol_score)
     
     if volatility_scores:
         nb.log(f"  Volatility scores collected: {len(volatility_scores)}")
@@ -355,7 +355,7 @@ with nb.error_handling("Volatility analysis testing"):
                 elif vol_score < 8:
                     size_mult = 0.5
                     regime = "HIGH"
-                else:
+        else:
                     size_mult = 0.25
                     regime = "EXTREME"
                 
@@ -465,7 +465,7 @@ with nb.error_handling("Hypothesis tests"):
                 
                 if isinstance(p_value, float):
                     nb.log(f"    {test_name}: p={p_value:.4f} {status}")
-                else:
+    else:
                     nb.log(f"    {test_name}: p={p_value} {status}")
         
         nb.info("7.3. Significant tests analysis:")
@@ -479,7 +479,7 @@ with nb.error_handling("Hypothesis tests"):
         
         if significant_count > 0:
             nb.success("v2.1 pipeline: Hypothesis tests work automatically!")
-        else:
+    else:
             nb.log("  No significant patterns detected (normal for some datasets)")
         
         nb.info("7.4. Educational note:")
@@ -536,7 +536,7 @@ with nb.error_handling("Regression & Validation"):
                 nb.success("  Sufficient data for regression (would work with manual ZoneRegressionAnalyzer)")
                 nb.log("  Note: Regression/Validation are advanced manual features")
                 nb.log("  Use: For custom predictive modeling beyond standard pipeline")
-            else:
+    else:
                 nb.warning("  Insufficient features for regression (need 10+)")
         
         nb.info("8.3. v2.1 Validation with updated analyze_func:")

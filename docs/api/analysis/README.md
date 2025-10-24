@@ -24,7 +24,7 @@ Analysis модули содержат инструменты для стати�
 **Базовый анализ:**
 - **StatisticalAnalyzer** - Статистический анализатор
 - **run_all_hypothesis_tests()** - Запуск всех статистических тестов
-- **test_single_hypothesis()** - Тестирование отдельной гипотезы
+- **HypothesisTestSuite** - Набор статистических тестов
 - **HypothesisTestResult** - Результат тестирования гипотезы
 
 **New in Phase 3.7-3.8 (🟢 Stable):**
@@ -73,10 +73,10 @@ Analysis модули содержат инструменты для стати�
 - **Factory functions** - Strategy creation from config
 
 ### 🏗️ [bquant.analysis (base)](base.md) - Базовые классы анализа
-- **BaseAnalyzer** - Базовый класс анализатора
-- **AnalysisResult** - Результат анализа
-- **AnalysisParams** - Параметры анализа
-- **AnalysisRegistry** - Реестр анализаторов
+- **BaseAnalyzer** - Базовый класс анализатора (из bquant.analysis)
+- **AnalysisResult** - Результат анализа (из bquant.analysis)
+- **AnalysisParams** - Параметры анализа (из bquant.analysis)
+- **AnalysisRegistry** - Реестр анализаторов (из bquant.analysis)
 
 ## 🔍 Быстрый поиск
 
@@ -84,10 +84,10 @@ Analysis модули содержат инструменты для стати�
 
 #### Статистический анализ
 - `run_all_hypothesis_tests()` - Все статистические тесты
-- `test_single_hypothesis()` - Один статистический тест
+- `HypothesisTestSuite` - Набор статистических тестов
+- `StatisticalAnalyzer` - Статистический анализатор
 - `calculate_correlation()` - Расчет корреляции
 - `perform_t_test()` - T-тест
-- `perform_chi_square_test()` - Chi-square тест
 
 #### Анализ зон
 - `ZoneFeaturesAnalyzer.analyze()` - Анализ характеристик зон
@@ -111,7 +111,7 @@ Analysis модули содержат инструменты для стати�
 
 #### 🔧 Функции
 - `run_all_hypothesis_tests()` - Статистические тесты
-- `test_single_hypothesis()` - Тестирование гипотезы
+- `HypothesisTestSuite` - Набор статистических тестов
 - `extract_zone_features()` - Извлечение характеристик зон
 - `analyze_transitions()` - Анализ переходов
 
@@ -147,33 +147,38 @@ print(f"Найдено зон: {len(result.zones)}")
 if result.hypothesis_tests:
     for test_name, test_result in result.hypothesis_tests.results.items():
         print(f"{test_name}:")
-        print(f"  p-value: {test_result['p_value']:.4f}")
-        print(f"  Significant: {test_result['is_significant']}")
+        # Проверяем структуру результата
+        if hasattr(test_result, 'p_value'):
+            print(f"  p-value: {test_result.p_value:.4f}")
+            print(f"  Significant: {test_result.is_significant}")
+        elif isinstance(test_result, dict) and 'p_value' in test_result:
+            print(f"  p-value: {test_result['p_value']:.4f}")
+            print(f"  Significant: {test_result['is_significant']}")
+        else:
+            print(f"  Result: {test_result}")
 ```
 
 ### Тестирование отдельной гипотезы
 
 ```python
-from bquant.analysis.statistical import test_single_hypothesis
+from bquant.analysis.statistical import run_all_hypothesis_tests
+import numpy as np
+from scipy import stats
 
 # Тестирование гипотезы о различии волатильности между bull и bear зонами
-bull_volatility = [zone.features.avg_volatility for zone in result.zones 
-                   if zone.zone_type == 'bull' and zone.features]
-bear_volatility = [zone.features.avg_volatility for zone in result.zones 
-                   if zone.zone_type == 'bear' and zone.features]
+bull_volatility = [zone.features.get('avg_volatility', 0) for zone in result.zones 
+                   if zone.type == 'bull' and zone.features]
+bear_volatility = [zone.features.get('avg_volatility', 0) for zone in result.zones 
+                   if zone.type == 'bear' and zone.features]
 
-# T-тест
-t_test_result = test_single_hypothesis(
-    't_test',
-    data1=bull_volatility,
-    data2=bear_volatility,
-    alpha=0.05
-)
-
-print(f"T-test result:")
-print(f"  p-value: {t_test_result.p_value:.4f}")
-print(f"  Significant: {t_test_result.is_significant}")
-print(f"  Effect size: {t_test_result.effect_size:.4f}")
+if len(bull_volatility) > 0 and len(bear_volatility) > 0:
+    # T-тест
+    t_stat, p_value = stats.ttest_ind(bull_volatility, bear_volatility)
+    
+    print(f"T-test result:")
+    print(f"  p-value: {p_value:.4f}")
+    print(f"  Significant: {p_value < 0.05}")
+    print(f"  t-statistic: {t_stat:.4f}")
 ```
 
 ### Анализ характеристик зон (Universal Pipeline)
@@ -207,7 +212,7 @@ result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_col='macd_hist')
-    .analyze(clustering=True, sequence_analysis=True)
+    .analyze(clustering=True)  # sequence analysis включен автоматически
     .build()
 )
 
@@ -234,8 +239,8 @@ from bquant.analysis.statistical import StatisticalAnalyzer
 stat_analyzer = StatisticalAnalyzer()
 
 # Подготовка данных для анализа
-bull_zones = [zone for zone in result.zones if zone.zone_type == 'bull']
-bear_zones = [zone for zone in result.zones if zone.zone_type == 'bear']
+bull_zones = [zone for zone in result.zones if zone.type == 'bull']
+bear_zones = [zone for zone in result.zones if zone.type == 'bear']
 
 # Извлечение характеристик
 bull_durations = [zone.duration for zone in bull_zones]
@@ -244,48 +249,60 @@ bull_amplitudes = [zone.amplitude for zone in bull_zones]
 bear_amplitudes = [zone.amplitude for zone in bear_zones]
 
 # Комплексный статистический анализ
-analysis_results = {
-    'duration_comparison': stat_analyzer.compare_groups(bull_durations, bear_durations),
-    'amplitude_comparison': stat_analyzer.compare_groups(bull_amplitudes, bear_amplitudes),
-    'bull_duration_stats': stat_analyzer.descriptive_statistics(bull_durations),
-    'bear_duration_stats': stat_analyzer.descriptive_statistics(bear_durations)
+from scipy import stats
+
+# T-тест для сравнения групп
+duration_t_stat, duration_p_value = stats.ttest_ind(bull_durations, bear_durations)
+amplitude_t_stat, amplitude_p_value = stats.ttest_ind(bull_amplitudes, bear_amplitudes)
+
+# Описательная статистика
+bull_duration_stats = {
+    'mean': np.mean(bull_durations),
+    'std': np.std(bull_durations),
+    'min': np.min(bull_durations),
+    'max': np.max(bull_durations)
+}
+
+bear_duration_stats = {
+    'mean': np.mean(bear_durations),
+    'std': np.std(bear_durations),
+    'min': np.min(bear_durations),
+    'max': np.max(bear_durations)
 }
 
 # Вывод результатов
-for analysis_name, result in analysis_results.items():
-    print(f"\n{analysis_name}:")
-    if hasattr(result, 'p_value'):
-        print(f"  p-value: {result.p_value:.4f}")
-        print(f"  Significant: {result.is_significant}")
-    else:
-        print(f"  Mean: {result.mean:.4f}")
-        print(f"  Std: {result.std:.4f}")
-        print(f"  Min: {result.min:.4f}")
-        print(f"  Max: {result.max:.4f}")
+print(f"\nDuration comparison:")
+print(f"  p-value: {duration_p_value:.4f}")
+print(f"  Significant: {duration_p_value < 0.05}")
+
+print(f"\nBull duration stats:")
+print(f"  Mean: {bull_duration_stats['mean']:.4f}")
+print(f"  Std: {bull_duration_stats['std']:.4f}")
+print(f"  Min: {bull_duration_stats['min']:.4f}")
+print(f"  Max: {bull_duration_stats['max']:.4f}")
 ```
 
 ### Создание собственного анализатора
 
 ```python
-from bquant.analysis.base import BaseAnalyzer, AnalysisResult
+from bquant.analysis import BaseAnalyzer, AnalysisResult
 import numpy as np
 
 class VolatilityAnalyzer(BaseAnalyzer):
     """Анализатор волатильности"""
     
     def __init__(self, window_size=20):
-        super().__init__('VolatilityAnalyzer', {'window_size': window_size})
+        super().__init__('VolatilityAnalyzer')
+        self.window_size = window_size
     
     def analyze(self, data):
         """Анализ волатильности"""
         if not self.validate_data(data):
             raise ValueError("Invalid data for volatility analysis")
         
-        window_size = self.params['window_size']
-        
         # Расчет волатильности
         returns = data['close'].pct_change()
-        volatility = returns.rolling(window=window_size).std()
+        volatility = returns.rolling(window=self.window_size).std()
         
         # Статистики волатильности
         volatility_stats = {
@@ -297,10 +314,10 @@ class VolatilityAnalyzer(BaseAnalyzer):
         }
         
         return AnalysisResult(
-            analyzer_name='VolatilityAnalyzer',
-            data=volatility,
-            statistics=volatility_stats,
-            params=self.params
+            analysis_type='VolatilityAnalyzer',
+            results=volatility_stats,
+            data_size=len(volatility),
+            metadata={'window_size': self.window_size}
         )
     
     def validate_data(self, data):
@@ -313,8 +330,8 @@ volatility_analyzer = VolatilityAnalyzer(window_size=20)
 volatility_result = volatility_analyzer.analyze(data)
 
 print(f"Volatility analysis:")
-print(f"  Mean volatility: {volatility_result.statistics['mean']:.4f}")
-print(f"  Current volatility: {volatility_result.statistics['current']:.4f}")
+print(f"  Mean volatility: {volatility_result.results['mean']:.4f}")
+print(f"  Current volatility: {volatility_result.results['current']:.4f}")
 ```
 
 ### Экспорт результатов анализа

@@ -40,62 +40,135 @@
 
 ## 🔍 Поиск по API
 
-### По функциональности
+> **📊 Статистика пакета (на 24.10.2025):** BQuant содержит **1110+ сущностей** в **85 модулях**:
+> - **491 класс** (индикаторы, анализаторы, визуализаторы)
+> - **619 функций** (утилиты, расчеты, обработка данных)
+> - **164+ индикатора** (включая pandas-ta интеграцию)
+> 
+> Ниже перечислены только **ключевые entry points** для быстрого старта. 
+> Полная документация доступна в соответствующих разделах.
+
+### 🎯 Основные entry points
+
+#### 🚀 Быстрый старт
+- `analyze_zones()` - **Universal Pipeline** для анализа зон (основной API)
+- `load_ohlcv_data()` - Загрузка OHLCV данных
+- `get_sample_data()` - Получение sample данных
+
+#### 🔧 Ключевые компоненты
+- `ZoneAnalysisBuilder` - Fluent builder для Universal Pipeline
+- `IndicatorFactory` - Фабрика индикаторов (164+ доступных)
+- `FinancialCharts` - Создание финансовых графиков
+
+### 📚 Подробная документация
+
+#### 📈 [Indicators API](indicators/README.md) - 164+ индикаторов
+- **6 встроенных:** SMA, EMA, RSI, MACD, Bollinger Bands, Custom
+- **158 pandas-ta:** Полная интеграция с pandas-ta библиотекой
+- **PRELOADED:** Готовые индикаторы для sample данных
+- **Factory pattern:** Универсальное создание любых индикаторов
+
+#### 🔬 [Analysis API](analysis/README.md) - Аналитические модули
+- **Universal Zone Analysis v2.1:** Анализ зон с любыми индикаторами
+- **5 Detection Strategies:** zero_crossing, threshold, line_crossing, preloaded, combined
+- **5 Analysis Strategies:** swing, divergence, shape, volume, volatility
+- **Statistical Analysis:** Гипотезные тесты, регрессия, валидация
+- **Clustering:** Автоматическая группировка зон
+
+#### 📊 [Visualization API](visualization/README.md) - Графики и визуализация
+- **FinancialCharts:** Candlestick, line, bar графики
+- **ZoneVisualizer:** Визуализация зон с контекстом
+- **StatisticalPlots:** Статистические графики и распределения
+- **Themes:** 5 готовых тем оформления
+
+#### 💾 [Data API](data/README.md) - Работа с данными
+- **Loader:** Загрузка OHLCV данных из файлов
+- **Processor:** Очистка и валидация данных
+- **Samples:** 8 встроенных sample датасетов
+- **Schemas:** Типизация и валидация структур данных
+
+### 🔍 Поиск по функциональности
 
 #### 📊 Работа с данными
-- `bquant.data.loader.load_ohlcv_data()` - Загрузка OHLCV данных
-- `bquant.data.samples.get_sample_data()` - Получение sample данных
-- `bquant.data.processor.clean_ohlcv_data()` - Очистка данных
+- `load_ohlcv_data()` - Загрузка OHLCV данных
+- `get_sample_data()` - Получение sample данных  
+- `clean_ohlcv_data()` - Очистка и валидация данных
 
 #### 📈 Технические индикаторы
-- `bquant.indicators.MACDZoneAnalyzer` - ⚠️ Deprecated wrapper (используйте analyze_zones())
-- `bquant.indicators.MACDPreloadedIndicator` - PRELOADED MACD индикатор
-- `bquant.indicators.BaseIndicator` - Базовый класс индикатора
-- `bquant.indicators.IndicatorFactory` - Фабрика индикаторов
+- `IndicatorFactory.create()` - Создание любого из 164+ индикаторов
+- `MACDPreloadedIndicator` - PRELOADED MACD для готовых данных
+- `BaseIndicator` - Базовый класс для создания custom индикаторов
 
 #### 🔬 Universal Zone Analysis (v2.1)
-- `bquant.analysis.zones.analyze_zones()` - Universal Pipeline entry point
-- `bquant.analysis.zones.ZoneAnalysisBuilder` - Fluent builder interface
-- `bquant.analysis.zones.UniversalZoneAnalyzer` - Zone-agnostic analyzer
-- `bquant.analysis.statistical.run_all_hypothesis_tests()` - Статистические тесты
+- `analyze_zones()` - **Основной API** для анализа зон
+- `ZoneAnalysisBuilder` - Fluent builder с полной настройкой
+- `run_all_hypothesis_tests()` - Статистические тесты
 
 #### 📊 Визуализация
-- `bquant.visualization.FinancialCharts` - Создание финансовых графиков
-- `bquant.visualization.ZoneVisualizer` - Визуализация зон
-- `bquant.visualization.StatisticalPlots` - Статистические графики
+- `FinancialCharts` - Создание финансовых графиков
+- `ZoneVisualizer` - Визуализация зон с контекстом
+- `create_candlestick_chart()` - Быстрое создание candlestick
 
-### По типу
+### ⚠️ Deprecated API
+- `MACDZoneAnalyzer` - Используйте `analyze_zones()` вместо этого
+- `analyze_complete()` - Заменен на Universal Pipeline
+- `_zone_to_dict()` - Заменен на `zone.features.get()`
 
-#### 🏗️ Классы
-- `BaseIndicator` - Базовый класс для индикаторов
-- `PreloadedIndicator` - Базовый класс для PRELOADED индикаторов
-- `MACDPreloadedIndicator` - PRELOADED MACD индикатор
-- `MACDZoneAnalyzer` - ⚠️ Deprecated анализатор MACD
-- `ZoneAnalysisBuilder` - Fluent builder для Universal Pipeline
-- `UniversalZoneAnalyzer` - Zone-agnostic анализатор
-- `FinancialCharts` - Создание графиков
+## Актуальные примеры работы с MACD
 
-#### 🔧 Функции
-- `load_ohlcv_data()` - Загрузка данных
-- `get_sample_data()` - Получение sample данных
-- `analyze_zones()` - Universal Pipeline entry point
-- `run_all_hypothesis_tests()` - Статистические тесты
-- `create_candlestick_chart()` - Создание candlestick графика
+### Universal Pipeline (рекомендуемый подход)
 
-#### 📋 Исключения
-- `BQuantError` - Базовое исключение BQuant
-- `DataError` - Ошибки данных
-- `AnalysisError` - Ошибки анализа
-- `VisualizationError` - Ошибки визуализации
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+# Загружаем данные
+data = get_sample_data('tv_xauusd_1h')
+
+# Анализ MACD через Universal Pipeline
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks', shape='statistical')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
+)
+
+print(f"Найдено зон: {len(result.zones)}")
+print(f"Статистика: {result.statistics}")
+```
+
+### PRELOADED MACD индикатор
+
+```python
+from bquant.indicators.preloaded import MACDPreloadedIndicator
+
+# Создание PRELOADED MACD индикатора
+macd_indicator = MACDPreloadedIndicator()
+macd_data = macd_indicator.calculate(data)
+
+# Использование в Universal Pipeline
+result = (
+    analyze_zones(data)
+    .with_indicator('preloaded', 'macd_preloaded')
+    .detect_zones('zero_crossing', indicator_col='macd')
+    .analyze(clustering=False)
+    .build()
+)
+```
 
 ## 📖 Как читать документацию
 
 ### Структура документации класса
 
 ```python
-class MACDZoneAnalyzer:
+class MACDZoneAnalyzer:  # ⚠️ DEPRECATED - используйте analyze_zones()
     """
     Анализатор MACD с идентификацией зон.
+    
+    ⚠️ DEPRECATED: Этот класс устарел. Используйте Universal Pipeline:
+    analyze_zones().with_indicator('custom', 'macd').detect_zones().build()
     
     Этот класс выполняет полный анализ MACD индикатора,
     включая расчет значений, идентификацию зон и статистический анализ.
@@ -104,10 +177,13 @@ class MACDZoneAnalyzer:
         macd_params (dict): Параметры MACD (fast, slow, signal)
         zone_params (dict): Параметры зон (min_duration, min_amplitude)
     
-    Example:
-        >>> analyzer = MACDZoneAnalyzer()
+    Example (DEPRECATED):
+        >>> analyzer = MACDZoneAnalyzer()  # ⚠️ Не рекомендуется
         >>> result = analyzer.analyze_complete(data)
         >>> print(f"Найдено зон: {len(result.zones)}")
+        
+    Example (рекомендуемый):
+        >>> result = analyze_zones(data).with_indicator('custom', 'macd').build()
     """
     
     def __init__(self, macd_params=None, zone_params=None):
@@ -124,6 +200,8 @@ class MACDZoneAnalyzer:
     def analyze_complete(self, data):
         """
         Выполняет полный анализ данных.
+        
+        ⚠️ DEPRECATED: Используйте analyze_zones().build() вместо этого метода.
         
         Args:
             data (pd.DataFrame): OHLCV данные

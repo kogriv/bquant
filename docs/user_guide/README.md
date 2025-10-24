@@ -11,7 +11,7 @@
 - Первый анализ за 5 минут
 - Основные концепции
 
-### 🏗️ [Core Concepts](../api/core/README.md) - Основные концепции
+### 🏗️ [Core Modules](../api/core/README.md) - Основные модули
 - Архитектура BQuant
 - Основные компоненты
 - Принципы работы
@@ -23,8 +23,8 @@
 - Sample данные
 
 ### 📈 [Technical Analysis](../api/indicators/README.md) - Технический анализ
-- MACD анализ
-- Анализ зон
+- Universal Zone Analysis Pipeline v2.1
+- Анализ зон с любыми индикаторами (MACD, RSI, AO, custom)
 - Создание индикаторов
 - «Простой способ» работы с pandas-ta через [LibraryManager](../api/indicators/library_manager.md)
 
@@ -78,9 +78,9 @@ pip install pandas numpy matplotlib seaborn plotly
 Рекомендуемый порядок изучения:
 
 1. **[Quick Start](quick_start.md)** - Быстрый старт
-2. **[Core Concepts](../api/core/README.md)** - Основные концепции
+2. **[Core Modules](../api/core/README.md)** - Основные модули
 3. **[Data Management](../api/data/README.md)** - Работа с данными
-4. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Индикаторы и LibraryManager
+4. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Universal Zone Analysis v2.1
 5. **[Visualization](../api/visualization/README.md)** - Визуализация
 6. **[Statistical Analysis](../api/analysis/README.md)** - Статистический анализ
 

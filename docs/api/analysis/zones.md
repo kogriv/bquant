@@ -1,35 +1,35 @@
 # bquant.analysis.zones — Анализ зон
 
-> **✅ v2.1 - Truly Universal Architecture**
+> **Универсальная Архитектура**
 > 
-> Zone analysis now works with **ANY indicator** without code changes!
+> Анализ зон теперь работает с **ЛЮБЫМ индикатором** без изменений кода!
 > 
-> **Supported indicators:**
-> - ANY oscillator: MACD, RSI, AO, CCI, Stochastic, Williams %R, MFI, CMF, ROC
-> - Custom indicators from pandas_ta (158 indicators)
-> - Your own custom calculations
+> **Поддерживаемые индикаторы:**
+> - ЛЮБОЙ осциллятор: MACD, RSI, AO, CCI, Stochastic, Williams %R, MFI, CMF, ROC
+> - Пользовательские индикаторы из pandas_ta (158 индикаторов)
+> - Ваши собственные расчеты
 > 
-> **Key innovation:** `ZoneInfo.indicator_context` - zones self-describe their detection strategy
+> **Ключевая инновация:** `ZoneInfo.indicator_context` - зоны сами описывают свою стратегию детекции
 > 
-> **Proven universality:**
-> - ✅ 115 tests with 10+ real indicators (MACD, RSI, AO, CCI, Stochastic, Williams, MFI, CMF, ROC, custom)
-> - ✅ 100% pass rate
-> - ✅ FICTIONAL_INDICATOR_99 test - works with indicator that doesn't exist!
-> - ✅ NO hardcoded indicator names anywhere
+> **Доказанная универсальность:**
+> - ✅ 115 тестов с 10+ реальными индикаторами (MACD, RSI, AO, CCI, Stochastic, Williams, MFI, CMF, ROC, custom)
+> - ✅ 100% прохождение тестов
+> - ✅ FICTIONAL_INDICATOR_99 тест - работает с индикатором, которого не существует!
+> - ✅ НЕТ жестко закодированных имен индикаторов
 > 
-> **API Reference:**
-> - [Universal Strategies](strategies.md) - analytical strategies for ANY indicator
-> - [Extension Guide](extension_guide.md) - create custom strategies
+> **Справочник API:**
+> - [Универсальные Стратегии](strategies.md) - аналитические стратегии для ЛЮБОГО индикатора
+> - [Руководство по Расширению](extension_guide.md) - создание пользовательских стратегий
 
 ## Обзор
 
 Инструменты работы с торговыми зонами: поддержка/сопротивление, признаки зон, последовательности и кластеризация.
 
-## Universal Architecture (v2.1)
+## Универсальная Архитектура (v2.1)
 
-### Key Concept: indicator_context
+### Ключевая Концепция: indicator_context
 
-Every detected zone contains `indicator_context` dictionary that describes **HOW** the zone was detected:
+Каждая обнаруженная зона содержит словарь `indicator_context`, который описывает **КАК** зона была обнаружена:
 
 ```python
 from bquant.analysis.zones import analyze_zones
@@ -45,13 +45,13 @@ print(context['detection_strategy'])   # → 'zero_crossing'
 print(context['signal_line'])          # → None (single-line indicator)
 ```
 
-**Standard fields (populated by detection strategy):**
-- `detection_indicator`: Primary indicator column name (e.g., 'RSI_14', 'macd_hist')
-- `detection_strategy`: Strategy used (e.g., 'zero_crossing', 'threshold', 'line_crossing')
-- `signal_line`: Secondary indicator for 2-line strategies (e.g., 'STOCH_D')
-- `detection_rules`: Full rules dictionary for reference
+**Стандартные поля (заполняются стратегией детекции):**
+- `detection_indicator`: Имя основного столбца индикатора (например, 'RSI_14', 'macd_hist')
+- `detection_strategy`: Используемая стратегия (например, 'zero_crossing', 'threshold', 'line_crossing')
+- `signal_line`: Вторичный индикатор для 2-линейных стратегий (например, 'STOCH_D')
+- `detection_rules`: Полный словарь правил для справки
 
-**Convenience methods:**
+**Удобные методы:**
 ```python
 # Get primary indicator column
 indicator = zone.get_primary_indicator_column()  # → 'RSI_14'
@@ -60,7 +60,7 @@ indicator = zone.get_primary_indicator_column()  # → 'RSI_14'
 signal = zone.get_signal_line_column()  # → 'STOCH_D' or None
 ```
 
-### Examples with Different Indicators
+### Примеры с Разными Индикаторами
 
 #### MACD (zero-crossing oscillator)
 ```python
@@ -75,7 +75,7 @@ result = (
 # Context: {'detection_indicator': 'macd_hist', 'detection_strategy': 'zero_crossing'}
 ```
 
-#### RSI (threshold-based bounded indicator)
+#### RSI (ограниченный индикатор на основе порогов)
 ```python
 result = (
     analyze_zones(df)
@@ -91,7 +91,7 @@ result = (
 # Context: {'detection_indicator': 'RSI_14', 'detection_strategy': 'threshold'}
 ```
 
-#### Stochastic (2-line crossing)
+#### Stochastic (пересечение 2 линий)
 ```python
 result = (
     analyze_zones(df)
@@ -106,7 +106,7 @@ result = (
 # Context: {'detection_indicator': 'STOCHk_14_3_3', 'signal_line': 'STOCHd_14_3_3'}
 ```
 
-#### Custom Indicator (proves universality!)
+#### Пользовательский Индикатор (доказывает универсальность!)
 ```python
 # Create your own indicator
 df['MY_CUSTOM_OSC'] = df['close'].diff(5) / df['close'].rolling(20).std()
@@ -118,53 +118,40 @@ result = (
     .build()
 )
 
-# ✅ Works immediately - NO code changes needed!
+# ✅ Работает сразу - НЕТ необходимости в изменениях кода!
 # Context: {'detection_indicator': 'MY_CUSTOM_OSC', 'detection_strategy': 'zero_crossing'}
 ```
 
-### Why This Matters
 
-**Before v2.1:** Hardcoded MACD support
-- ❌ Only worked with MACD
-- ❌ Analytical strategies assumed 'macd_hist' column
-- ❌ Required code changes for new indicators
 
-**After v2.1:** True Universality
-- ✅ Works with ANY indicator
-- ✅ Analytical strategies read from `indicator_context`
-- ✅ NO code changes for new indicators
-- ✅ Proven with FICTIONAL_INDICATOR_99 (indicator that doesn't exist!)
+### Что Нового в v2.1
 
-**Reference:** See `devref/gaps/zo/zouni_v2.md` for complete architecture specification
+**Универсальный Анализ Зон:**
+- ✨ **5 Стратегий Детекции** - zero_crossing, threshold, line_crossing, preloaded, combined
+- ✨ **Работает с ЛЮБЫМ индикатором** - MACD, RSI, Stochastic, AO, CCI, custom, etc.
+- ✨ **indicator_context** - зоны сами описывают параметры детекции
+- ✨ **Pipeline API** - fluent builder с поддержкой кэширования
+- ✨ **Доказанная универсальность** - FICTIONAL_INDICATOR_99 тест проходит
 
-### What's New in v2.1
+**Аналитические Стратегии (67 метрик всего):**
+- ✨ **Паттерн Стратегия** для расширяемых метрик (8 стратегий)
+- ✨ **Swing анализ:** 23 метрики через 3 стратегии (ZigZag, FindPeaks, PivotPoints)
+- ✨ **Shape анализ:** 3 метрики через StatisticalShapeStrategy (универсальный - любой осциллятор)
+- ✨ **Детекция дивергенции:** 4 метрики через ClassicDivergenceStrategy (универсальный)
+- ✨ **Оценка волатильности:** 10 метрик через CombinedVolatilityStrategy
+- ✨ **Volume анализ:** 4 метрики через StandardVolumeStrategy (универсальная корреляция)
+- ✨ **Временные метрики:** 2 метрики (peak_time_ratio, trough_time_ratio)
 
-**Universal Zone Analysis:**
-- ✨ **5 Detection Strategies** - zero_crossing, threshold, line_crossing, preloaded, combined
-- ✨ **Works with ANY indicator** - MACD, RSI, Stochastic, AO, CCI, custom, etc.
-- ✨ **indicator_context** - zones self-describe detection parameters
-- ✨ **Pipeline API** - fluent builder with caching support
-- ✨ **Proven universality** - FICTIONAL_INDICATOR_99 test passes
+**Документация:**
+- **Универсальная Архитектура:** См. выше (🟢 v2.1 - стабильно)
+- **Паттерн Стратегия:** См. [strategies.md](strategies.md) (🟢 стабильный API)
+- **Руководство по Расширению:** См. [extension_guide.md](extension_guide.md) (пользовательские стратегии)
 
-**Analytical Strategies (67 total metrics):**
-- ✨ **Strategy Pattern** for extensible metrics (8 strategies)
-- ✨ **Swing analysis:** 23 metrics via 3 strategies (ZigZag, FindPeaks, PivotPoints)
-- ✨ **Shape analysis:** 3 metrics via StatisticalShapeStrategy (universal - any oscillator)
-- ✨ **Divergence detection:** 4 metrics via ClassicDivergenceStrategy (universal)
-- ✨ **Volatility assessment:** 10 metrics via CombinedVolatilityStrategy
-- ✨ **Volume analysis:** 4 metrics via StandardVolumeStrategy (universal correlation)
-- ✨ **Time metrics:** 2 metrics (peak_time_ratio, trough_time_ratio)
+### Использование Аналитических Стратегий (v2.1)
 
-**Documentation:**
-- **Universal Architecture:** See above (🟢 v2.1 - stable)
-- **Strategy Pattern:** See [strategies.md](strategies.md) (🟢 stable API)
-- **Extension Guide:** See [extension_guide.md](extension_guide.md) (custom strategies)
+🎯 **НОВЫЙ API:** Настройка swing, shape, divergence, volatility и volume стратегий с помощью `.with_strategies()`
 
-### Using Analytical Strategies (v2.1)
-
-🎯 **NEW API:** Configure swing, shape, divergence, volatility, and volume strategies using `.with_strategies()`
-
-**Simple swing analysis:**
+**Простой swing анализ:**
 ```python
 from bquant.analysis.zones import analyze_zones
 
@@ -183,7 +170,7 @@ print(f"Troughs: {zone.features['num_troughs']}")
 print(f"Drawdown: {zone.features['drawdown_from_peak']}")
 ```
 
-**Multiple strategies:**
+**Множественные стратегии:**
 ```python
 result = (
     analyze_zones(df)
@@ -206,14 +193,14 @@ print(f"Divergence: {zone.features.get('has_classic_divergence', False)}")
 print(f"Volume: {zone.features.get('volume_indicator_corr', 0)} correlation")
 ```
 
-**Available strategies:**
-- **swing:** `'find_peaks'`, `'zigzag'`, `'pivot_points'`, or custom instance
-- **shape:** `'statistical'` or custom instance (default: 'statistical')
-- **divergence:** `'classic'` or custom instance
-- **volatility:** custom instance (default: CombinedVolatilityStrategy)
-- **volume:** `'standard'` or custom instance
+**Доступные стратегии:**
+- **swing:** `'find_peaks'`, `'zigzag'`, `'pivot_points'`, или пользовательский экземпляр
+- **shape:** `'statistical'` или пользовательский экземпляр (по умолчанию: 'statistical')
+- **divergence:** `'classic'` или пользовательский экземпляр
+- **volatility:** пользовательский экземпляр (по умолчанию: CombinedVolatilityStrategy)
+- **volume:** `'standard'` или пользовательский экземпляр
 
-**Works with ANY indicator:**
+**Работает с ЛЮБЫМ индикатором:**
 ```python
 # RSI with swing analysis
 result = (
@@ -241,17 +228,17 @@ result = (
 )
 ```
 
-**Notes:**
-- Features are automatically available in `zone.features` (no manual extraction needed)
-- All strategies are optional (default: None = skip)
-- Backward compatible with existing code
+**Примечания:**
+- Характеристики автоматически доступны в `zone.features` (не требуется ручное извлечение)
+- Все стратегии опциональны (по умолчанию: None = пропустить)
+- Обратно совместимо с существующим кодом
 
 ## Universal Pipeline API (v2.1)
 
 ### Основные компоненты
 
 #### `analyze_zones(df) -> ZoneAnalysisBuilder`
-Entry point для Universal Pipeline. Возвращает fluent builder для настройки анализа.
+Точка входа для Universal Pipeline. Возвращает fluent builder для настройки анализа.
 
 #### `ZoneAnalysisBuilder`
 Fluent interface для настройки анализа:
@@ -273,7 +260,7 @@ Fluent interface для настройки анализа:
 #### `ZoneInfo`
 Модель зоны с полным контекстом:
 - `zone_id: int` - уникальный идентификатор
-- `zone_type: str` - тип зоны ('bull'/'bear')
+- `type: str` - тип зоны ('bull'/'bear')
 - `start_time: Timestamp` - время начала
 - `end_time: Timestamp` - время окончания
 - `features: Optional[Dict]` - извлеченные характеристики
@@ -288,7 +275,7 @@ Fluent interface для настройки анализа:
 - `ZoneAnalyzer` → `UniversalZoneAnalyzer` через pipeline
 - `extract_zone_features()` → автоматическое извлечение в pipeline
 
-**Migration Guide:**
+**Руководство по Миграции:**
 ```python
 # Старый способ (Deprecated)
 from bquant.analysis.zones import find_support_resistance, extract_zone_features
@@ -309,7 +296,7 @@ features = zones[0].features  # Автоматически извлечены
 
 ## Примеры
 
-### Universal Pipeline Examples
+### Примеры Universal Pipeline
 
 #### MACD Analysis
 ```python
@@ -330,7 +317,7 @@ result = (
 print(f"Найдено зон: {len(result.zones)}")
 for zone in result.zones[:3]:
     if zone.features:
-        print(f"Зона {zone.zone_id}: {zone.features.get('zone_type', 'unknown')}")
+        print(f"Зона {zone.zone_id}: {zone.type}")
 ```
 
 #### RSI Analysis
@@ -346,7 +333,7 @@ result = (
 )
 ```
 
-#### Custom Indicator
+#### Пользовательский Индикатор
 ```python
 # Создаем собственный индикатор
 data['MY_OSC'] = data['close'].diff(5) / data['close'].rolling(20).std()
@@ -360,7 +347,7 @@ result = (
 )
 ```
 
-### Legacy Examples (Deprecated)
+### Legacy Примеры (Deprecated)
 
 ⚠️ **DEPRECATED:** Используйте Universal Pipeline вместо этих примеров:
 
@@ -377,6 +364,6 @@ zone_features = zfa.extract_zone_features({'type':'bull', 'data': zone_df})
 
 - **[Universal Pipeline](pipeline.md)** - Полная документация Universal Pipeline v2.1
 - **[Zone Detection Strategies](strategies.md)** - Детальное описание 5 стратегий детекции
-- **[Statistical Analysis](statistical.md)** - Hypothesis tests и статистический анализ
+- **[Statistical Analysis](statistical.md)** - Тесты гипотез и статистический анализ
 - **[Examples](../../examples/README.md)** - Готовые примеры использования
-- **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
+- **[Migration Guide](../../examples/README.md)** - Переход с legacy API
