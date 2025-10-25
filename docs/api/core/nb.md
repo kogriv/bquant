@@ -1,4 +1,4 @@
-# bquant.core.nb - Notebook-Style Scripts API
+# bquant.core.nb — API сценариев в стиле ноутбука
 
 ## 📚 Обзор
 
@@ -6,7 +6,7 @@
 
 ## 🏗️ Основные компоненты
 
-### NotebookSimulator - Основной класс
+### NotebookSimulator — основной класс
 
 Центральный класс для управления выполнением notebook-style скриптов с автоматической настройкой.
 
@@ -28,9 +28,9 @@ nb.finish()
 ```
 
 
-## 📖 API Reference
+## 📖 Справочник API
 
-### NotebookSimulator Class
+### Класс NotebookSimulator
 
 #### Инициализация
 
@@ -75,6 +75,12 @@ step(title: str, level: int = 0, separator_char: str = "-") -> None
 - `level`: Уровень (0=основной, 1=подшаг)
 - `separator_char`: Символ разделителя
 
+##### substep()
+```python
+substep(title: str) -> None
+```
+Подшаг внутри текущего шага.
+
 ##### wait()
 ```python
 wait() -> None
@@ -92,11 +98,11 @@ log(message: str, to_file_only: bool = False) -> None
 ##### success() / error() / warning() / info()
 ```python
 success(message: str) -> None    # ✅
-error(message: str) -> None      # ❌  
+error(message: str) -> None      # ❌
 warning(message: str) -> None    # ⚠️
 info(message: str) -> None       # ℹ️
 ```
-Специализированные методы с эмодзи-префиксами.
+Специализированные методы с префиксами `[OK]`, `[FAIL]`, `[WARN]`, `[INFO]`.
 
 ##### data_info()
 ```python
@@ -128,8 +134,8 @@ summary_item(label: str, value: Any, success: Optional[bool] = None) -> None
 nb.summary_item("Data loaded", "Successfully", success=True)
 nb.summary_item("Tests passed", "5/10", success=False)
 # Output:
-# ✅ Data loaded: Successfully
-# ❌ Tests passed: 5/10
+# [OK] Data loaded: Successfully
+# [FAIL] Tests passed: 5/10
 ```
 
 ##### next_steps()
@@ -141,11 +147,11 @@ next_steps(steps: List[str]) -> None
 ```python
 nb.next_steps([
     "Run validation tests",
-    "Process missing data", 
+    "Process missing data",
     "Generate reports"
 ])
 # Output:
-# 🚀 Next Steps:
+# [NEXT] Next Steps:
 # - Run validation tests
 # - Process missing data
 # - Generate reports
@@ -240,9 +246,16 @@ nb.finish()
 
 ```python
 from bquant.core.nb import NotebookSimulator
+from bquant.data.samples import get_sample_data
 
 # Автоматическое определение параметров из командной строки
 nb = NotebookSimulator("Advanced Data Analysis")
+
+
+def load_data():
+    """Загрузка sample данных для воспроизведения примера документации."""
+
+    return get_sample_data("tv_xauusd_1h")
 
 # Шаг 1: Загрузка с обработкой ошибок
 nb.step("Data Loading and Validation")
@@ -273,7 +286,7 @@ nb.section_header("Analysis Results")
 
 nb.summary_item("Records processed", len(data), success=True)
 nb.summary_item("Variables analyzed", len(data.columns), success=True)
-nb.summary_item("Missing values", data.isnull().sum().sum(), 
+nb.summary_item("Missing values", data.isnull().sum().sum(),
                success=data.isnull().sum().sum() == 0)
 
 nb.next_steps([
@@ -283,7 +296,6 @@ nb.next_steps([
 ])
 
 nb.finish()
-```
 ```
 
 ### Максимальная простота использования
