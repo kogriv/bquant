@@ -179,8 +179,8 @@ from bquant.indicators.preloaded import MACDPreloadedIndicator
 # Создание индикатора только для MACD линии
 macd_only = MACDPreloadedIndicator(required_columns=['macd'])
 
-# Создание индикатора для всех доступных колонок
-macd_full = MACDPreloadedIndicator(required_columns=['macd', 'signal', 'histogram'])
+# Создание индикатора для ключевых колонок
+macd_full = MACDPreloadedIndicator(required_columns=['macd', 'signal'])
 
 # Валидация данных
 try:
@@ -203,6 +203,7 @@ from bquant.data.samples import get_sample_data
 
 # Загрузка данных
 data = get_sample_data('tv_xauusd_1h')
+data['macd_hist'] = data['macd'] - data['signal']
 
 # Universal Pipeline - MACD
 result = (
@@ -220,7 +221,7 @@ print(f"Статистика: {result.statistics}")
 
 # Анализ отдельных зон
 for zone in result.zones:
-    print(f"Зона {zone.zone_type}: {zone.start_time} - {zone.end_time}")
+    print(f"Зона {zone.type}: {zone.start_time} - {zone.end_time}")
     if zone.features:
         print(f"  Swings: {zone.features.get('num_swings', 0)}")
         print(f"  Divergence: {zone.features.get('has_classic_divergence', False)}")
@@ -260,62 +261,65 @@ result = (
 ### Создание собственного индикатора
 
 ```python
-from bquant.indicators.base import BaseIndicator, IndicatorResult
+from bquant.indicators.base import CustomIndicator, IndicatorResult
 import pandas as pd
-import numpy as np
 
-class SimpleMovingAverage(BaseIndicator):
+
+class SimpleMovingAverage(CustomIndicator):
     """Простая скользящая средняя"""
-    
+
     def __init__(self, period=20):
-        super().__init__('SMA', {'period': period})
-    
-    def calculate(self, data):
-        """Расчет SMA"""
+        self.period = period
+        super().__init__('sma_custom', {'period': period})
+
+    def get_output_columns(self):
+        return [f'sma_{self.period}']
+
+    def get_description(self):
+        return f"Simple Moving Average (period={self.period})"
+
+    def calculate(self, data, **kwargs):
         if not self.validate_data(data):
             raise ValueError("Invalid data for SMA calculation")
-        
-        period = self.params['period']
+
+        period = kwargs.get('period', self.period)
         sma = data['close'].rolling(window=period).mean()
-        
+        result_data = pd.DataFrame({f'sma_{period}': sma}, index=data.index)
+
         return IndicatorResult(
-            indicator_name='SMA',
-            values=sma,
-            params=self.params,
+            name='sma_custom',
+            data=result_data,
+            config=self.config,
             metadata={'period': period}
         )
-    
-    def validate_data(self, data):
-        """Валидация данных"""
-        required_columns = ['close']
-        return all(col in data.columns for col in required_columns)
+
+    def get_required_columns(self):
+        return ['close']
+
 
 # Использование собственного индикатора
 sma = SimpleMovingAverage(period=20)
 result = sma.calculate(data)
-print(f"SMA values: {result.values.tail()}")
+print(f"SMA values: {result.data.tail()}")
 ```
 
 ### Работа с фабрикой индикаторов
 
 ```python
-from bquant.indicators.factory import IndicatorFactory
+from bquant.indicators.base import IndicatorFactory
 
-# Создание фабрики
-factory = IndicatorFactory()
-
-# Регистрация индикатора
-factory.register_indicator(SimpleMovingAverage)
+# Регистрация индикатора (используем уникальное имя)
+IndicatorFactory.register_indicator('sma_custom', SimpleMovingAverage)
 
 # Создание индикатора через фабрику
-sma = factory.create('SMA', period=20)
+sma = IndicatorFactory.create('custom', 'sma_custom', period=20)
 
 # Получение списка доступных индикаторов
-indicators = factory.list_indicators()
+indicators = IndicatorFactory.list_indicators()
 print(f"Available indicators: {indicators}")
 
 # Получение информации об индикаторе
-info = factory.get_info('SMA')
+info = IndicatorFactory.get_indicator_info('sma_custom')
 print(f"SMA info: {info}")
 ```
 
@@ -324,11 +328,10 @@ print(f"SMA info: {info}")
 ```python
 from bquant.analysis.zones import analyze_zones
 from bquant.indicators.preloaded import MACDPreloadedIndicator
-from bquant.indicators.factory import IndicatorFactory
+from bquant.indicators.base import IndicatorFactory
 
-# Создание нескольких индикаторов
-factory = IndicatorFactory()
-factory.register_indicator(SimpleMovingAverage)
+# Регистрация пользовательского SMA
+IndicatorFactory.register_indicator('sma_custom', SimpleMovingAverage)
 
 # PRELOADED MACD анализ
 macd_preloaded = MACDPreloadedIndicator()
@@ -344,7 +347,7 @@ macd_zones_result = (
 )
 
 # SMA анализ
-sma = factory.create('SMA', period=20)
+sma = IndicatorFactory.create('custom', 'sma_custom', period=20)
 sma_result = sma.calculate(data)
 
 # Комбинированный анализ
@@ -352,8 +355,8 @@ combined_analysis = {
     'preloaded_macd_columns': list(macd_result.data.columns),
     'macd_zones': len(macd_zones_result.zones),
     'macd_statistics': macd_zones_result.statistics,
-    'sma_current': sma_result.values.iloc[-1],
-    'sma_trend': 'up' if sma_result.values.iloc[-1] > sma_result.values.iloc[-2] else 'down'
+    'sma_current': float(sma_result.data.iloc[-1, 0]),
+    'sma_trend': 'up' if sma_result.data.iloc[-1, 0] > sma_result.data.iloc[-2, 0] else 'down'
 }
 
 print(f"Combined analysis: {combined_analysis}")
@@ -376,7 +379,7 @@ result = (
 for zone in result.zones:
     if zone.features:
         features = zone.features
-        print(f"Зона {zone.zone_type}:")
+        print(f"Зона {zone.type}:")
         print(f"  Swings: {features.get('num_swings', 0)}")
         print(f"  Volatility regime: {features.get('volatility_regime', 'unknown')}")
         print(f"  Rally count: {features.get('rally_count', 0)}")
@@ -436,7 +439,7 @@ export_data = {
         'statistics': result.statistics,
         'zones': [
             {
-                'type': zone.zone_type,
+                'type': zone.type,
                 'start': str(zone.start_time),
                 'end': str(zone.end_time),
                 'features': zone.features
@@ -472,7 +475,7 @@ print("Universal analysis exported to universal_analysis.json")
 
 ### Создание нового индикатора
 
-1. **Наследование от BaseIndicator**
+1. **Наследование от CustomIndicator**
 2. **Реализация метода calculate()**
 3. **Валидация данных**
 4. **Регистрация в фабрике**
