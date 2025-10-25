@@ -265,7 +265,7 @@ from bquant.core.logging_config import setup_logging
 setup_logging(profile='verbose')
 
 # Теперь видны все DEBUG сообщения
-from bquant.indicators.macd import calculate_macd
+from bquant.indicators.calculators import calculate_macd
 result = calculate_macd(data)  # DEBUG+ в консоль
 ```
 
@@ -445,8 +445,8 @@ setup_logging(
 
 - [NotebookSimulator API](nb.md#logging) - интеграция с логированием
 - [Data API](../data/README.md#logging) - логирование в модулях данных
-- [Development Guide](../../dev/logging_best_practices.md) - лучшие практики логирования
-- [Troubleshooting](../../troubleshooting/logging.md) - решение проблем с логированием
+- [Development Guide](../../developer_guide/README.md#настройка-логирования) - лучшие практики логирования
+- [Troubleshooting](../../developer_guide/README.md#обработка-ошибок) - решение проблем с логированием
 
 ## 🎉 Заключение
 
