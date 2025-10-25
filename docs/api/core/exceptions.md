@@ -16,6 +16,8 @@
 - `VisualizationError(BQuantError)`: ошибки визуализации.
 - `MLError(BQuantError)`: ошибки ML (будущие модули).
   - `FeatureExtractionError`, `ModelTrainingError`.
+- `FileOperationError(BQuantError)`: ошибки файловых операций.
+- `NotImplementedError(BQuantError)`: обращение к ещё не реализованной функциональности.
 
 ## Фабрики ошибок
 
