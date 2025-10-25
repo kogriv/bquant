@@ -31,7 +31,12 @@ print(get_performance_monitor().get_stats())
 
 Контекст измерений:
 ```python
+import time
 from bquant.core.performance import performance_context
+
+
+def process():
+    time.sleep(0.1)
 
 with performance_context("data_processing"):
     process()

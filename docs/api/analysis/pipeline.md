@@ -107,8 +107,8 @@ result = (
 **Опции:**
 - `clustering=True/False` - кластеризация зон
 - `n_clusters=3` - количество кластеров
-- `hypothesis_tests=True/False` - статистические тесты
-- `sequence_analysis=True/False` - анализ последовательностей
+- `regression=True/False` - регрессионный анализ
+- `validation=True/False` - валидация моделей
 
 **Примеры:**
 ```python
@@ -116,7 +116,7 @@ result = (
 .analyze(clustering=True, n_clusters=3)
 
 # Полный анализ
-.analyze(clustering=True, hypothesis_tests=True, sequence_analysis=True)
+.analyze(clustering=True, regression=True, validation=True)
 ```
 
 #### `.with_cache(enable=True, ttl=3600)`
@@ -200,11 +200,10 @@ UniversalZoneAnalyzer НЕ ЗНАЕТ откуда зоны (MACD, AO, preloaded
 ### Standard Fields
 ```python
 indicator_context = {
-    'line1_col': 'macd_hist',      # Основная линия индикатора
-    'line2_col': 'macd_signal',    # Вторичная линия (если есть)
-    'indicator_name': 'macd',      # Имя индикатора
-    'source_type': 'custom',       # Тип источника
-    'params': {...}                # Параметры индикатора
+    'detection_strategy': 'zero_crossing',   # Стратегия детекции
+    'detection_indicator': 'macd_hist',      # Основная колонка
+    'signal_line': 'macd_signal',            # Вторичная линия (если есть)
+    'detection_rules': {...}                 # Правила детекции
 }
 ```
 
@@ -212,9 +211,9 @@ indicator_context = {
 ```python
 def detect_zones(self, data, config):
     context = config.indicator_context
-    line1_col = context.get('line1_col')  # Универсальный доступ
-    indicator_name = context.get('indicator_name')
-    
+    indicator_col = context.get('detection_indicator')  # Универсальный доступ
+    rules = context.get('detection_rules', {})
+
     # Стратегия работает с любым индикатором
     # без hardcode названий колонок
 ```
@@ -266,9 +265,9 @@ result = (
 result = (
     analyze_zones(data)
     .with_indicator('pandas_ta', 'ao', fast=5, slow=34)
-    .detect_zones('zero_crossing', indicator_col='ao')
+    .detect_zones('zero_crossing', indicator_col='AO_5_34')
     .with_strategies(swing='zigzag', shape='statistical')
-    .analyze(clustering=True, hypothesis_tests=True)
+    .analyze(clustering=True)
     .build()
 )
 ```
@@ -296,7 +295,7 @@ from bquant.indicators import MACDZoneAnalyzer
 
 analyzer = MACDZoneAnalyzer()
 result = analyzer.analyze_complete(data)
-zones_dict = analyzer._zone_to_dict(zones[0])  # Deprecated
+legacy_zone = result.zones[0]
 ```
 
 **Новый способ (Universal Pipeline):**

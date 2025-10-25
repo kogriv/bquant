@@ -36,7 +36,7 @@ class MyAnalyzer(BaseAnalyzer):
         return AnalysisResult('my_analysis', results={'rows': len(data)}, data_size=len(data))
 
 an = MyAnalyzer('MyAnalyzer')
-res = an.analyze(pd.DataFrame({'close':[1,2,3]}))
+res = an.analyze(pd.DataFrame({'close': list(range(1, 11))}))
 print(res.to_dict())
 ```
 

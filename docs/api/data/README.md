@@ -107,13 +107,13 @@ Data модули обеспечивают работу с финансовым�
 from bquant.data.loader import load_ohlcv_data, load_symbol_data, load_xauusd_data
 
 # Загрузка из CSV файла (с указанием контекста)
-data = load_ohlcv_data('data.csv', symbol='XAUUSD', timeframe='1H')
+data = load_ohlcv_data('data.csv', symbol='XAUUSD', timeframe='1h')
 
 # Загрузка по символу/таймфрейму через конфиг
-tv_data = load_symbol_data('XAUUSD', '1H', data_source='tradingview', quote_provider='oanda')
+tv_data = load_symbol_data('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
 
 # Быстрая загрузка XAUUSD
-xau = load_xauusd_data('1H')
+xau = load_xauusd_data('1h')
 ```
 
 ### Обработка данных
