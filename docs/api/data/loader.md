@@ -10,9 +10,9 @@
   - Загружает CSV, нормализует имена колонок (`open/high/low/close/volume`), пытается распарсить дату, опционально валидирует структуру.
 
 - `load_symbol_data(symbol, timeframe, data_source='tradingview', quote_provider='default', validate_data=True) -> DataFrame`
-  - Находит путь с помощью `config.get_data_path()` и загружает файл.
+  - Находит путь с помощью `bquant.core.config.get_data_path()` и загружает файл.
 
-- `load_xauusd_data(timeframe='1H', data_source='tradingview', quote_provider='oanda') -> DataFrame`
+- `load_xauusd_data(timeframe='1h', data_source='tradingview', quote_provider='oanda') -> DataFrame`
   - Удобный хелпер для XAUUSD.
 
 - `load_all_data_files(data_dir=None, pattern='*.csv', recursive=False) -> Dict[str, DataFrame]`
@@ -29,7 +29,7 @@
 ```python
 from bquant.data.loader import load_ohlcv_data, get_data_info
 
-df = load_ohlcv_data('data/XAUUSD_1H.csv', symbol='XAUUSD', timeframe='1H')
+df = load_ohlcv_data('data/XAUUSD_1h.csv', symbol='XAUUSD', timeframe='1h')
 print(get_data_info(df))
 ```
 
@@ -37,7 +37,7 @@ print(get_data_info(df))
 ```python
 from bquant.data.loader import load_symbol_data
 
-df = load_symbol_data('XAUUSD', '1H', data_source='tradingview', quote_provider='oanda')
+df = load_symbol_data('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
 ```
 
 Загрузка всех файлов:
