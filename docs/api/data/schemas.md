@@ -6,12 +6,12 @@
 
 ## Модели и классы
 
-- `OHLCVRecord` — запись OHLCV (timestamp, open, high, low, close, volume?) с методом `validate()`
+- `OHLCVRecord` — запись OHLCV (timestamp, open, high, low, close, volume) с методом `validate()`
 - `DataSourceConfig` — описание источника данных (паттерн файлов, маппинги таймфреймов, провайдеры котировок)
 - `ValidationResult` — результат валидации (is_valid, issues, warnings, stats, recommendations)
 - `DataSchema` — базовый класс схем: поля, типы, правила, `validate_dataframe(df)`
 - `OHLCVSchema(DataSchema)` — схема для OHLCV
-- `IndicatorSchema(DataSchema)` — схема для индикаторов (варианты: macd, rsi, bollinger_bands)
+- `IndicatorSchema(DataSchema)` — схема для индикаторов (поддерживаются варианты `macd`, `rsi`)
 
 ## Предопределённые схемы
 
