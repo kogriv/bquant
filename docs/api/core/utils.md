@@ -25,7 +25,13 @@ from bquant.core.utils import calculate_returns, normalize_data
 prices = pd.Series([1, 1.1, 1.2])
 r = calculate_returns(prices, method='simple')
 
-df = pd.DataFrame({'a':[1,2,3], 'b':[10,20,30]})
+df = pd.DataFrame({
+    'open': [100, 102, 105],
+    'high': [101, 103, 106],
+    'low': [99, 101, 104],
+    'close': [100.5, 102.5, 105.5],
+    'volume': [1200, 1350, 1280],
+})
 norm = normalize_data(df, method='zscore')
 ```
 
@@ -51,17 +57,17 @@ ensure_directory('results/charts')
 
 ---
 
-## Deprecation Tools (New in Phase 2)
+## Инструменты устаревания (новое во второй фазе)
 
-> **API Stability:** 🟢 STABLE
+> **Стабильность API:** 🟢 СТАБИЛЬНО
 
 ### @deprecated decorator
 
-Marks methods as deprecated with automatic warning generation.
+Помечает методы как устаревшие и автоматически формирует предупреждение.
 
-**Purpose:** Gracefully deprecate methods while maintaining backward compatibility.
+**Назначение:** Аккуратно отмечать методы как устаревшие, сохраняя обратную совместимость.
 
-**Usage:**
+**Использование:**
 ```python
 from bquant.core.utils import deprecated
 
@@ -75,23 +81,23 @@ old_method()
 # DeprecationWarning: old_method is deprecated. Use new_method() instead
 ```
 
-**Effect:**
-- Generates `DeprecationWarning` on first call per session
-- Logs warning message to bquant logger
-- Method still works (backward compatibility maintained)
-- Warning can be filtered if needed
+**Эффект:**
+- Генерирует `DeprecationWarning` при первом вызове в рамках сессии
+- Записывает предупреждение в логгер bquant
+- Метод продолжает работать (обратная совместимость сохраняется)
+- При необходимости предупреждение можно отфильтровать
 
-**Parameters:**
-- `message`: String describing what to use instead
+**Параметры:**
+- `message`: строка с описанием альтернативы
 
-**Best practices:**
-1. Always provide clear alternative in message
-2. Deprecate for 1-2 versions before removal
-3. Document deprecation in changelog
-4. Update all examples to not use deprecated methods
-5. Consider adding migration guide
+**Рекомендации:**
+1. Всегда указывайте понятную альтернативу в сообщении
+2. Поддерживайте устаревший метод 1–2 версии до удаления
+3. Документируйте факт устаревания в changelog
+4. Обновляйте примеры, чтобы они не использовали устаревшие методы
+5. При необходимости добавляйте миграционное руководство
 
-**Example from BQuant:**
+**Пример из BQuant:**
 ```python
 @deprecated("Use ZoneFeaturesAnalyzer.extract_zone_features() from bquant.analysis.zones instead")
 def calculate_zone_features(self, zone):
@@ -99,6 +105,6 @@ def calculate_zone_features(self, zone):
     pass
 ```
 
-**See also:**
-- Phase 4 migration: removed 5 deprecated methods
-- `docs/api/indicators/macd.md` - migration notice
+**См. также:**
+- Миграция фазы 4: удалены 5 устаревших методов
+- `docs/api/indicators/macd.md` — уведомление о миграции
