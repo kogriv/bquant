@@ -8,13 +8,48 @@ import sys
 import os
 import traceback
 from pathlib import Path
+from typing import Iterable
 
 import numpy as np
 import pandas as pd
 
+# Ускоряем работу pandas-ta в тестовой среде
+os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+
 # Добавляем корень проекта в sys.path
 project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
+
+
+def _prepare_pandas_ta(minimal_functions: Iterable[str] = ("rsi", "ao", "stoch")) -> None:
+    """Ограничиваем регистрацию pandas-ta минимумом индикаторов."""
+
+    try:
+        from bquant.indicators.library import pandas_ta as pandas_ta_loader
+    except Exception:
+        return
+
+    try:
+        import pandas_ta as ta
+    except Exception:
+        return
+
+    loader = pandas_ta_loader.PandasTALoader
+    selected = {}
+    for name in minimal_functions:
+        func = getattr(ta, name, None)
+        if func is not None:
+            selected[name] = func
+
+    if not selected:
+        return
+
+    loader._function_cache = selected
+    loader._available_indicators = sorted(selected.keys())
+    loader._indicators_registered = False
+
+
+_prepare_pandas_ta()
 
 
 def _create_synthetic_zone_data() -> pd.DataFrame:
