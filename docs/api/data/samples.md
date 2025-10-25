@@ -108,7 +108,7 @@ for record in preview:
 xauusd_data = find_datasets(symbol='XAUUSD')
 
 # Все часовые данные
-hourly_data = find_datasets(timeframe='1H')
+hourly_data = find_datasets(timeframe='1h')
 
 # Все данные от TradingView
 tv_data = find_datasets(source='TradingView')
@@ -140,16 +140,16 @@ print_sample_data_status()
 
 ```python
 from bquant.data.samples import get_sample_data
-from bquant.indicators import MACDAnalyzer
+from bquant.indicators.macd import MACDZoneAnalyzer
 
 # Загружаем данные
 data = get_sample_data('tv_xauusd_1h')
 
 # Используем с MACD анализатором
-analyzer = MACDAnalyzer(data)
-zones = analyzer.identify_zones()
+analyzer = MACDZoneAnalyzer()
+result = analyzer.analyze_complete(data)
 
-print(f"Found {len(zones)} MACD zones")
+print(f"Found {len(result.zones)} MACD zones")
 ```
 
 ### С визуализацией
@@ -163,7 +163,7 @@ data = get_sample_data('tv_xauusd_1h')
 
 # Создаем график
 charts = FinancialCharts()
-fig = charts.plot_candlestick(data, title="Sample XAUUSD Data")
+fig = charts.create_candlestick_chart(data, title="Sample XAUUSD Data")
 fig.show()
 ```
 
@@ -171,19 +171,23 @@ fig.show()
 
 ```python
 from bquant.data.samples import get_sample_data
+from bquant.indicators.macd import MACDZoneAnalyzer
 from bquant.analysis.statistical import run_all_hypothesis_tests
+from bquant.analysis.zones.zone_features import ZoneFeaturesAnalyzer
 
 # Загружаем данные
 data = get_sample_data('tv_xauusd_1h')
 
 # Анализируем MACD зоны
-analyzer = MACDAnalyzer(data)
-zones_info = analyzer.analyze_complete()
+analyzer = MACDZoneAnalyzer()
+result = analyzer.analyze_complete(data)
 
 # Статистические тесты
-test_results = run_all_hypothesis_tests(zones_info)
-for test_name, result in test_results.items():
-    print(f"{test_name}: p-value = {result.p_value:.4f}")
+features = ZoneFeaturesAnalyzer().extract_all_zones_features(result.zones)
+zones_features = [feature.to_dict() for feature in features]
+test_results = run_all_hypothesis_tests(zones_features)
+for test_name, outcome in test_results["tests"].items():
+    print(f"{test_name}: p-value = {outcome['p_value']:.4f}")
 ```
 
 ## 📁 Структура данных
