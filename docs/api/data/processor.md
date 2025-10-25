@@ -25,8 +25,8 @@ prep = prepare_data_for_analysis(clean, add_tech_features=True, normalize=True)
 Ресемплинг:
 ```python
 from bquant.data.processor import resample_ohlcv
-hourly = resample_ohlcv(df, '1H')
-daily = resample_ohlcv(df, '1D')
+hourly = resample_ohlcv(df, '1h')
+daily = resample_ohlcv(df, '1d')
 ```
 
 Производные индикаторы:
