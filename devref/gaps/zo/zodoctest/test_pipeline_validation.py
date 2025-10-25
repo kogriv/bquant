@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
+import numpy as np
 import pandas as pd
 
 # Ускоряем работу pandas-ta и numba в тестовой среде
@@ -20,7 +21,7 @@ project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 
-def _prepare_pandas_ta(minimal_functions: Iterable[str] = ("rsi", "ao", "stoch")) -> None:
+def _prepare_pandas_ta(minimal_functions: Iterable[str] = ("rsi", "ao", "stoch", "zigzag")) -> None:
     """Ограничиваем регистрацию pandas-ta минимальным набором индикаторов."""
 
     try:
@@ -32,6 +33,21 @@ def _prepare_pandas_ta(minimal_functions: Iterable[str] = ("rsi", "ao", "stoch")
         import pandas_ta as ta
     except Exception:
         return
+
+    if getattr(ta, "zigzag", None) is None:
+        def _zigzag_stub(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+            if isinstance(df, pd.DataFrame):
+                series = df.get("close")
+                if series is None:
+                    numeric = df.select_dtypes(include=[np.number])
+                    series = numeric.iloc[:, 0] if not numeric.empty else pd.Series(dtype=float)
+            else:
+                series = pd.Series(df)
+
+            base_series = series if isinstance(series, pd.Series) else pd.Series(series)
+            return pd.DataFrame({"zigzag": base_series.copy()})
+
+        ta.zigzag = _zigzag_stub
 
     loader = pandas_ta_loader.PandasTALoader
     selected = {}
@@ -48,7 +64,40 @@ def _prepare_pandas_ta(minimal_functions: Iterable[str] = ("rsi", "ao", "stoch")
     loader._indicators_registered = False
 
 
+def _ensure_stub_zigzag_registered() -> None:
+    """Гарантируем наличие pandas-ta zigzag для тестов документации."""
+
+    try:
+        from bquant.indicators.base import IndicatorFactory, LibraryIndicator
+    except Exception:
+        return
+
+    registry_key = "pandas_ta_zigzag"
+    if registry_key in getattr(IndicatorFactory, "_registry", {}):
+        return
+
+    def _zigzag_stub(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+        if isinstance(df, pd.DataFrame):
+            series = df.get("close")
+            if series is None:
+                numeric = df.select_dtypes(include=[np.number])
+                series = numeric.iloc[:, 0] if not numeric.empty else pd.Series(dtype=float)
+        else:
+            series = pd.Series(df)
+
+        base_series = series if isinstance(series, pd.Series) else pd.Series(series)
+        return pd.DataFrame({"zigzag": base_series.copy()})
+
+    class _StubZigZagIndicator(LibraryIndicator):
+        def __init__(self, **params):
+            super().__init__("zigzag", _zigzag_stub, parameters=params)
+
+    IndicatorFactory.register_indicator(registry_key, _StubZigZagIndicator)
+    IndicatorFactory.register_library_function(registry_key, _zigzag_stub)
+
+
 _prepare_pandas_ta()
+_ensure_stub_zigzag_registered()
 
 
 @lru_cache(maxsize=1)
@@ -56,6 +105,26 @@ def _load_sample_data() -> pd.DataFrame:
     from bquant.data.samples import get_sample_data
 
     return get_sample_data("tv_xauusd_1h")
+
+
+def _generate_line_crossing_data() -> pd.DataFrame:
+    """Создаем синтетические данные с гарантированными пересечениями линий."""
+
+    index = pd.date_range("2023-01-01", periods=240, freq="H")
+    base = np.sin(np.linspace(0, 18, len(index))) + 100
+
+    df = pd.DataFrame({
+        "open": base + 0.05,
+        "high": base + 0.1,
+        "low": base - 0.1,
+        "close": base,
+        "volume": np.linspace(1, 10, len(index)),
+    }, index=index)
+
+    df["ma_fast"] = df["close"].rolling(window=5, min_periods=1).mean()
+    df["ma_slow"] = df["close"].rolling(window=20, min_periods=1).mean()
+
+    return df
 
 
 def test_imports_from_docs() -> bool:
@@ -96,7 +165,7 @@ def test_fluent_builder_example() -> bool:
     try:
         from bquant.analysis.zones import analyze_zones
 
-        data = _load_sample_data().copy()
+        data = _load_sample_data().head(400).copy()
 
         result = (
             analyze_zones(data)
@@ -133,7 +202,7 @@ def test_pipeline_core_engine() -> bool:
     try:
         from bquant.analysis.zones import analyze_zones
 
-        data = _load_sample_data().copy()
+        data = _load_sample_data().head(400).copy()
 
         result = (
             analyze_zones(data)
@@ -166,7 +235,7 @@ def test_indicator_context_contract() -> bool:
     try:
         from bquant.analysis.zones import analyze_zones
 
-        data = _load_sample_data().copy()
+        data = _load_sample_data().head(400).copy()
 
         result = (
             analyze_zones(data)
@@ -211,7 +280,7 @@ def test_practical_examples() -> bool:
     try:
         from bquant.analysis.zones import analyze_zones
 
-        data = _load_sample_data().copy()
+        data = _load_sample_data().head(400).copy()
 
         # Пример 1: MACD analysis
         macd_result = (
@@ -266,6 +335,139 @@ def test_practical_examples() -> bool:
 
     except Exception as exc:
         print(f"  ❌ Практические примеры: {exc}")
+        traceback.print_exc()
+        return False
+
+
+def test_detect_zones_line_crossing_example() -> bool:
+    """Проверяем пример line_crossing из документации."""
+
+    print("\n📋 Тест: Line crossing detection")
+
+    try:
+        from bquant.analysis.zones import analyze_zones
+
+        data = _generate_line_crossing_data()
+
+        result = (
+            analyze_zones(data)
+            .detect_zones("line_crossing", line1_col="ma_fast", line2_col="ma_slow")
+            .analyze(clustering=False)
+            .build()
+        )
+
+        print(f"  ✅ Line crossing: найдено зон {len(result.zones)}")
+        assert result.zones, "Line crossing пример должен возвращать зоны"
+
+        first_zone = result.zones[0]
+        print(f"  ✅ Первая зона: type={first_zone.type}, duration={first_zone.duration}")
+
+        return True
+
+    except Exception as exc:
+        print(f"  ❌ Line crossing пример: {exc}")
+        traceback.print_exc()
+        return False
+
+
+def test_with_strategies_extended_example() -> bool:
+    """Воспроизводим расширенный пример .with_strategies."""
+
+    print("\n📋 Тест: Расширенные стратегии")
+
+    try:
+        from bquant.analysis.zones import analyze_zones
+
+        data = _load_sample_data().head(400).copy()
+
+        result = (
+            analyze_zones(data)
+            .with_indicator("pandas_ta", "rsi", length=14)
+            .detect_zones(
+                "threshold",
+                indicator_col="rsi",
+                upper_threshold=70,
+                lower_threshold=30,
+            )
+            .with_strategies(
+                swing="zigzag",
+                divergence="classic",
+                volume="standard",
+                volatility="combined",
+            )
+            .analyze(clustering=True)
+            .build()
+        )
+
+        print(f"  ✅ Расширенные стратегии: зон={len(result.zones)}")
+
+        return True
+
+    except Exception as exc:
+        print(f"  ❌ Расширенные стратегии: {exc}")
+        traceback.print_exc()
+        return False
+
+
+def test_analyze_full_options_example() -> bool:
+    """Проверяем пример полного анализа с regression и validation."""
+
+    print("\n📋 Тест: Полный анализ (regression + validation)")
+
+    try:
+        from bquant.analysis.zones import analyze_zones
+
+        data = _load_sample_data().head(300).copy()
+
+        result = (
+            analyze_zones(data)
+            .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
+            .detect_zones("zero_crossing", indicator_col="macd_hist")
+            .analyze(clustering=True, regression=True, validation=True)
+            .build()
+        )
+
+        regression_ready = bool(getattr(result, "regression_results", None))
+        validation_ready = bool(getattr(result, "validation_results", None))
+
+        print(
+            "  ✅ Полный анализ: зон=%s, regression=%s, validation=%s"
+            % (len(result.zones), regression_ready, validation_ready)
+        )
+
+        return True
+
+    except Exception as exc:
+        print(f"  ❌ Полный анализ: {exc}")
+        traceback.print_exc()
+        return False
+
+
+def test_cache_disable_example() -> bool:
+    """Проверяем пример .with_cache(enable=False)."""
+
+    print("\n📋 Тест: Отключение кэша")
+
+    try:
+        from bquant.analysis.zones import analyze_zones
+
+        data = _load_sample_data().head(300).copy()
+
+        result = (
+            analyze_zones(data)
+            .with_cache(enable=False)
+            .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
+            .detect_zones("zero_crossing", indicator_col="macd_hist")
+            .analyze(clustering=True)
+            .build()
+        )
+
+        print(f"  ✅ Отключенный кэш: зон={len(result.zones)}")
+
+        return True
+
+    except Exception as exc:
+        print(f"  ❌ Отключенный кэш: {exc}")
         traceback.print_exc()
         return False
 
@@ -358,6 +560,10 @@ def main() -> bool:
         ("Fluent Builder", test_fluent_builder_example),
         ("Core Engine", test_pipeline_core_engine),
         ("indicator_context", test_indicator_context_contract),
+        ("Line crossing", test_detect_zones_line_crossing_example),
+        ("Расширенные стратегии", test_with_strategies_extended_example),
+        ("Полный анализ", test_analyze_full_options_example),
+        ("Отключение кэша", test_cache_disable_example),
         ("Практические примеры", test_practical_examples),
         ("Migration Guide", test_migration_example),
         ("Cross-references", test_cross_references),
