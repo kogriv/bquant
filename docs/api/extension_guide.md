@@ -210,13 +210,13 @@ import numpy as np
 #### Step 2: Implement Strategy Class
 
 ```python
-class MyCustomSwingStrategy:
+class MyCustomSwingStrategy(SwingCalculationStrategy):
     """My custom swing detection algorithm."""
 
     def __init__(self, threshold: float = 0.02):
         """
         Initialize strategy.
-        
+
         Args:
             threshold: Minimum price movement to consider as swing (e.g., 0.02 = 2%)
         """
@@ -232,7 +232,7 @@ class MyCustomSwingStrategy:
         Returns:
             SwingMetrics with all 23 fields populated
         """
-        if len(data) < 3:
+        if len(data) < self.min_required_length:
             # Graceful degradation for short zones
             return self._empty_metrics()
 
@@ -364,11 +364,10 @@ class MyCustomSwingStrategy:
 #### Step 3: Register Strategy
 
 ```python
-# Option A: Using decorator (recommended)
-@StrategyRegistry.register_swing_strategy('my_custom')
-class MyCustomSwingStrategy:
-    # ... implementation ...
-    pass
+# Option A: Добавьте декоратор к определению класса выше
+# @StrategyRegistry.register_swing_strategy('my_custom')
+# class MyCustomSwingStrategy(SwingCalculationStrategy):
+#     ...
 
 # Option B: Manual registration
 StrategyRegistry.register_swing_strategy('my_custom')(MyCustomSwingStrategy)
@@ -588,7 +587,7 @@ def test_strategy_with_analyzer():
     
     # Verify swing metrics present
     assert 'swing_metrics' in features.metadata
-    assert features.metadata['swing_metrics'].strategy_name == 'MyCustomSwing'
+    assert features.metadata['swing_metrics']['strategy_name'] == 'MyCustomSwing'
 ```
 
 ### Best Practices
@@ -749,58 +748,49 @@ strategy = create_swing_strategy('my_custom')
 ### Шаг 1: Наследование от BaseChart
 
 ```python
-from bquant.visualization.base import BaseChart
+from bquant.visualization.charts import ChartBuilder
+from bquant.visualization.themes import ChartThemes
 import plotly.graph_objects as go
-import plotly.express as px
 
-class CustomChart(BaseChart):
+
+class CustomChart(ChartBuilder):
     """Кастомный график"""
-    
+
     def __init__(self, theme='default'):
-        super().__init__(theme)
-    
+        super().__init__(backend='plotly')
+        self.theme_name = theme
+        self.themes = ChartThemes()
+
     def create_chart(self, data, title="Custom Chart", **kwargs):
         """Создание графика"""
-        # Ваша логика создания графика
+        self.validate_data(data, ["close"])
         fig = self._build_chart(data, title, **kwargs)
-        
-        # Применение темы
         self._apply_theme(fig)
-        
         return fig
-    
+
     def _build_chart(self, data, title, **kwargs):
         """Построение графика"""
         fig = go.Figure()
-        
-        # Добавление данных
-        fig.add_trace(go.Scatter(
-            x=data.index,
-            y=data['close'],
-            mode='lines',
-            name='Close Price',
-            line=dict(color=self.theme.colors['primary'])
-        ))
-        
-        # Настройка макета
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data['close'],
+                mode='lines',
+                name='Close Price',
+                line=dict(color=kwargs.get('color', '#00A3E0'))
+            )
+        )
         fig.update_layout(
             title=title,
             xaxis_title="Date",
             yaxis_title="Price",
-            height=600
+            height=kwargs.get('height', 600)
         )
-        
         return fig
-    
+
     def _apply_theme(self, fig):
         """Применение темы"""
-        fig.update_layout(
-            template=self.theme.template,
-            font=dict(
-                family=self.theme.font_family,
-                size=self.theme.font_size
-            )
-        )
+        self.themes.apply_theme_to_figure(fig, self.theme_name)
 ```
 
 ### Шаг 2: Использование
@@ -814,39 +804,28 @@ fig.show()
 
 ## 📥 Создание собственного загрузчика данных
 
-### Шаг 1: Наследование от DataLoader
+### Шаг 1: Реализация адаптера DataLoader
 
 ```python
-from bquant.data.loader import DataLoader
+from bquant.data import loader
 import pandas as pd
 
-class CustomDataLoader(DataLoader):
+
+class CustomDataLoader:
     """Кастомный загрузчик данных"""
-    
-    def __init__(self, source_type='custom'):
-        super().__init__()
+
+    def __init__(self, source_type='custom_csv'):
         self.source_type = source_type
-    
-    def load(self, source, **kwargs):
+
+    def load(self, source, *, validate=True, **kwargs):
         """Загрузка данных"""
-        if self.source_type == 'custom':
-            return self._load_custom_data(source, **kwargs)
-        else:
-            return super().load(source, **kwargs)
-    
-    def _load_custom_data(self, source, **kwargs):
-        """Загрузка кастомных данных"""
-        # Ваша логика загрузки
-        data = pd.read_csv(source, **kwargs)
-        
-        # Стандартизация колонок
-        data = self._standardize_columns(data)
-        
-        return data
-    
+        if self.source_type == 'custom_csv':
+            data = loader.load_ohlcv_data(source, validate_data=validate, **kwargs)
+            return self._standardize_columns(data)
+        return loader.load_ohlcv_data(source, validate_data=validate, **kwargs)
+
     def _standardize_columns(self, data):
         """Стандартизация колонок"""
-        # Маппинг колонок к стандартным именам
         column_mapping = {
             'Date': 'time',
             'Open': 'open',
@@ -855,91 +834,71 @@ class CustomDataLoader(DataLoader):
             'Close': 'close',
             'Volume': 'volume'
         }
-        
-        data = data.rename(columns=column_mapping)
-        
-        # Установка индекса времени
-        if 'time' in data.columns:
-            data['time'] = pd.to_datetime(data['time'])
-            data.set_index('time', inplace=True)
-        
-        return data
+
+        standardized = data.rename(columns=column_mapping)
+
+        if 'time' in standardized.columns:
+            standardized['time'] = pd.to_datetime(standardized['time'])
+            standardized.set_index('time', inplace=True)
+            standardized = standardized.sort_index()
+
+        return standardized
 ```
 
 ## 🔧 Создание собственного процессора данных
 
-### Шаг 1: Наследование от DataProcessor
+### Шаг 1: Реализация адаптера DataProcessor
 
 ```python
-from bquant.data.processor import DataProcessor
+from bquant.data import processor
 import pandas as pd
 import numpy as np
 
-class CustomDataProcessor(DataProcessor):
+
+class CustomDataProcessor:
     """Кастомный процессор данных"""
-    
-    def __init__(self, processing_config=None):
-        super().__init__()
-        self.config = processing_config or {}
-    
+
+    def __init__(self, *, remove_outliers=True, add_features=True, normalize=False):
+        self.remove_outliers = remove_outliers
+        self.add_features = add_features
+        self.normalize = normalize
+
     def process(self, data):
         """Обработка данных"""
-        processed_data = data.copy()
-        
-        # Применение кастомных обработок
-        if self.config.get('remove_outliers', False):
-            processed_data = self._remove_outliers(processed_data)
-        
-        if self.config.get('add_features', False):
+        processed_data = processor.clean_ohlcv_data(data, remove_outliers=self.remove_outliers)
+
+        if self.add_features:
             processed_data = self._add_features(processed_data)
-        
-        if self.config.get('normalize', False):
+
+        if self.normalize:
             processed_data = self._normalize_data(processed_data)
-        
+
         return processed_data
-    
-    def _remove_outliers(self, data):
-        """Удаление выбросов"""
-        for col in ['open', 'high', 'low', 'close']:
-            if col in data.columns:
-                Q1 = data[col].quantile(0.25)
-                Q3 = data[col].quantile(0.75)
-                IQR = Q3 - Q1
-                
-                lower_bound = Q1 - 1.5 * IQR
-                upper_bound = Q3 + 1.5 * IQR
-                
-                data = data[(data[col] >= lower_bound) & (data[col] <= upper_bound)]
-        
-        return data
-    
+
     def _add_features(self, data):
         """Добавление признаков"""
-        # Технические индикаторы
-        data['sma_20'] = data['close'].rolling(window=20).mean()
-        data['sma_50'] = data['close'].rolling(window=50).mean()
-        data['rsi'] = self._calculate_rsi(data['close'])
-        
-        return data
-    
+        result = data.copy()
+        result['sma_20'] = result['close'].rolling(window=20, min_periods=5).mean()
+        result['sma_50'] = result['close'].rolling(window=50, min_periods=5).mean()
+        result['rsi_14'] = self._calculate_rsi(result['close'])
+        return result
+
     def _calculate_rsi(self, prices, period=14):
         """Расчет RSI"""
         delta = prices.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-        
-        rs = gain / loss
+        gain = delta.clip(lower=0).rolling(window=period, min_periods=period).mean()
+        loss = (-delta.clip(upper=0)).rolling(window=period, min_periods=period).mean()
+        rs = gain / loss.replace(0, np.nan)
         rsi = 100 - (100 / (1 + rs))
-        
-        return rsi
-    
+        return rsi.fillna(50)
+
     def _normalize_data(self, data):
         """Нормализация данных"""
+        normalized = data.copy()
         for col in ['open', 'high', 'low', 'close']:
-            if col in data.columns:
-                data[col] = (data[col] - data[col].mean()) / data[col].std()
-        
-        return data
+            if col in normalized.columns:
+                normalized[col] = (normalized[col] - normalized[col].mean()) / normalized[col].std()
+        return normalized
 ```
 
 ## 🧪 Тестирование расширений
