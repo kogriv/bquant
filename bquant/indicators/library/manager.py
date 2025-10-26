@@ -5,6 +5,7 @@ This module provides centralized management of external indicator libraries.
 """
 
 import importlib
+import os
 from typing import Dict, Any, Optional, List, Callable
 import warnings
 
@@ -50,6 +51,17 @@ class LibraryManager:
         
         return cls._loaders[library_name]
     
+    @staticmethod
+    def _is_library_disabled(library_name: str) -> bool:
+        """Определяет, отключена ли библиотека через переменные окружения."""
+
+        env_key = f"BQUANT_SKIP_{library_name.upper()}"
+        value = os.environ.get(env_key)
+        if value is None:
+            return False
+
+        return value.lower() in {"1", "true", "yes", "on"}
+
     @classmethod
     def load_all_libraries(cls) -> Dict[str, int]:
         """
@@ -60,7 +72,14 @@ class LibraryManager:
         """
         results = {}
         
-        for lib_name in cls._loaders.keys():
+        for lib_name in list(cls._loaders.keys()):
+            if cls._is_library_disabled(lib_name):
+                logger.info(
+                    "Skipping %s library registration due to %s=1",
+                    lib_name,
+                    f"BQUANT_SKIP_{lib_name.upper()}",
+                )
+                continue
             try:
                 count = cls.load_library(lib_name)
                 results[lib_name] = count
@@ -87,6 +106,14 @@ class LibraryManager:
         """
         if library_name not in cls._loaders:
             logger.error(f"Unknown library: {library_name}")
+            return 0
+
+        if cls._is_library_disabled(library_name):
+            logger.info(
+                "Skipping %s library registration due to %s=1",
+                library_name,
+                f"BQUANT_SKIP_{library_name.upper()}",
+            )
             return 0
         
         try:
