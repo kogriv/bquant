@@ -26,60 +26,73 @@
 ### Шаг 1: Наследование от BaseIndicator
 
 ```python
-from bquant.indicators.base import BaseIndicator, IndicatorResult
+from bquant.indicators.base import (
+    BaseIndicator,
+    CustomIndicator as BQuantCustomIndicator,
+    IndicatorResult,
+    IndicatorSource,
+)
 import pandas as pd
 import numpy as np
 
-class CustomIndicator(BaseIndicator):
+
+class CustomIndicator(BQuantCustomIndicator):
     """Кастомный индикатор"""
-    
+
     def __init__(self, param1=10, param2=20):
-        super().__init__('CustomIndicator', {
-            'param1': param1,
-            'param2': param2
-        })
-    
+        parameters = {
+            "param1": param1,
+            "param2": param2,
+        }
+        # Наследуемся от BQuant CustomIndicator, чтобы фабрика могла создавать экземпляры
+        super().__init__("CustomIndicator", parameters)
+        self.params = self.config.parameters
+
+    def get_output_columns(self):
+        return ["custom_indicator"]
+
+    def get_description(self):
+        return "Документированный пример пользовательского индикатора"
+
+    def get_required_columns(self):
+        return ["close", "volume"]
+
     def calculate(self, data):
         """Расчет индикатора"""
         if not self.validate_data(data):
             raise ValueError("Invalid data for CustomIndicator")
-        
+
         # Ваша логика расчета
         result = self._calculate_indicator(data)
-        
+        result_frame = pd.DataFrame({"custom_indicator": result}, index=data.index)
+
         return IndicatorResult(
-            indicator_name='CustomIndicator',
-            values=result,
-            params=self.params,
-            metadata={'calculated_at': pd.Timestamp.now()}
+            name=self.name,
+            data=result_frame,
+            config=self.config,
+            metadata={"calculated_at": pd.Timestamp.utcnow()},
         )
-    
-    def validate_data(self, data):
-        """Валидация данных"""
-        required_columns = ['close', 'volume']
-        return all(col in data.columns for col in required_columns)
-    
+
     def _calculate_indicator(self, data):
         """Внутренний метод расчета"""
-        param1 = self.params['param1']
-        param2 = self.params['param2']
-        
+        param1 = self.params["param1"]
+        param2 = self.params["param2"]
+
         # Пример расчета
-        indicator = (data['close'] * data['volume']).rolling(window=param1).mean()
-        return indicator
+        indicator = (data["close"] * data["volume"]).rolling(window=param1, min_periods=1).mean()
+        return indicator / max(param2, 1)
 ```
 
 ### Шаг 2: Регистрация в фабрике
 
 ```python
-from bquant.indicators.factory import IndicatorFactory
+from bquant.indicators.base import IndicatorFactory
 
-# Регистрация индикатора
-factory = IndicatorFactory()
-factory.register_indicator(CustomIndicator)
+# Регистрация индикатора (обновленный API v2.1 использует классовые методы)
+IndicatorFactory.register_indicator("custom_indicator", CustomIndicator)
 
 # Использование
-indicator = factory.create('CustomIndicator', param1=15, param2=25)
+indicator = IndicatorFactory.create('custom', 'custom_indicator', param1=15, param2=25)
 result = indicator.calculate(data)
 ```
 
@@ -88,58 +101,60 @@ result = indicator.calculate(data)
 ### Шаг 1: Наследование от BaseAnalyzer
 
 ```python
-from bquant.analysis.base import BaseAnalyzer, AnalysisResult
+from bquant.analysis import BaseAnalyzer, AnalysisResult
 import numpy as np
+
 
 class CustomAnalyzer(BaseAnalyzer):
     """Кастомный анализатор"""
-    
+
     def __init__(self, analysis_type='default'):
         super().__init__('CustomAnalyzer', {'analysis_type': analysis_type})
-    
+        self.params = self.config  # сохраняем ссылку, как в исходном примере
+
     def analyze(self, data):
         """Выполнение анализа"""
         if not self.validate_data(data):
             raise ValueError("Invalid data for CustomAnalyzer")
-        
+
         # Ваша логика анализа
         analysis_result = self._perform_analysis(data)
-        
+
         return AnalysisResult(
-            analyzer_name='CustomAnalyzer',
-            data=analysis_result['data'],
-            statistics=analysis_result['statistics'],
-            params=self.params
+            analysis_type=self.params['analysis_type'],
+            results=analysis_result['statistics'],
+            data_size=len(data),
+            metadata={'series_tail': analysis_result['data'].tail(5).to_dict()}
         )
-    
+
     def validate_data(self, data):
         """Валидация данных"""
         return len(data) > 0 and 'close' in data.columns
-    
+
     def _perform_analysis(self, data):
         """Внутренний метод анализа"""
         analysis_type = self.params['analysis_type']
-        
+
         if analysis_type == 'volatility':
             result = self._analyze_volatility(data)
         elif analysis_type == 'trend':
             result = self._analyze_trend(data)
         else:
             result = self._analyze_default(data)
-        
+
         return result
-    
+
     def _analyze_volatility(self, data):
         """Анализ волатильности"""
-        returns = data['close'].pct_change()
-        volatility = returns.rolling(window=20).std()
-        
+        returns = data['close'].pct_change().fillna(0)
+        volatility = returns.rolling(window=20, min_periods=5).std().fillna(0)
+
         return {
             'data': volatility,
             'statistics': {
-                'mean_volatility': volatility.mean(),
-                'max_volatility': volatility.max(),
-                'current_volatility': volatility.iloc[-1]
+                'mean_volatility': float(volatility.mean()),
+                'max_volatility': float(volatility.max()),
+                'current_volatility': float(volatility.iloc[-1])
             }
         }
 ```
@@ -151,36 +166,36 @@ class CustomAnalyzer(BaseAnalyzer):
 analyzer = CustomAnalyzer(analysis_type='volatility')
 result = analyzer.analyze(data)
 
-print(f"Mean volatility: {result.statistics['mean_volatility']:.4f}")
+print(f"Mean volatility: {result.results['mean_volatility']:.4f}")
 ```
 
-## 🎨 Creating Custom Strategies (New in Phase 3)
+## 🎨 Создание пользовательских стратегий (новое в этапе 3)
 
-> **API Stability:** 🟢 STABLE - Strategy Pattern API is finalized
+> **Стабильность API:** 🟢 STABLE — интерфейс паттерна стратегий зафиксирован
 
-### Overview
+### Обзор
 
-BQuant uses Strategy Pattern for extensible metrics calculation. You can create custom strategies without modifying core analyzers.
+BQuant использует паттерн Strategy для расширяемого расчёта метрик. Вы можете добавлять собственные стратегии, не изменяя базовые анализаторы.
 
-**Benefits:**
-- Add new metrics without changing `ZoneFeaturesAnalyzer`
-- Switch algorithms via configuration
-- A/B test different approaches
-- Maintain multiple strategies simultaneously
+**Преимущества:**
+- Добавляйте новые метрики без изменения `ZoneFeaturesAnalyzer`
+- Переключайте алгоритмы через конфигурацию
+- Проводите A/B-тестирование разных подходов
+- Поддерживайте несколько стратегий одновременно
 
-### Strategy Types
+### Типы стратегий
 
-| Strategy Type | Purpose | Protocol |
-|---------------|---------|----------|
-| **SwingCalculationStrategy** | Detect swings/impulses in price movement | 23 metrics |
-| **ShapeCalculationStrategy** | Analyze indicator histogram shape | 3 metrics |
-| **DivergenceCalculationStrategy** | Detect price-indicator divergences | 4 metrics |
-| **VolatilityCalculationStrategy** | Measure market volatility | 10 metrics |
-| **VolumeCalculationStrategy** | Analyze volume patterns | 4 metrics |
+| Тип стратегии | Назначение | Протокол |
+|---------------|------------|----------|
+| **SwingCalculationStrategy** | Обнаружение свингов/импульсов в движении цены | 23 метрики |
+| **ShapeCalculationStrategy** | Анализ формы гистограммы индикатора | 3 метрики |
+| **DivergenceCalculationStrategy** | Поиск дивергенций между ценой и индикатором | 4 метрики |
+| **VolatilityCalculationStrategy** | Оценка волатильности рынка | 10 метрик |
+| **VolumeCalculationStrategy** | Анализ объёмных паттернов | 4 метрики |
 
-### Step-by-Step: Creating a Custom Swing Strategy
+### Пошагово: создание пользовательской свинговой стратегии
 
-#### Step 1: Import Protocol and Dataclass
+#### Шаг 1: импорт протокола и dataclass
 
 ```python
 from bquant.analysis.zones.strategies.base import (
@@ -192,94 +207,146 @@ import pandas as pd
 import numpy as np
 ```
 
-#### Step 2: Implement Strategy Class
+#### Шаг 2: реализация класса стратегии
 
 ```python
-class MyCustomSwingStrategy:
+class MyCustomSwingStrategy(SwingCalculationStrategy):
     """My custom swing detection algorithm."""
-    
+
     def __init__(self, threshold: float = 0.02):
         """
         Initialize strategy.
-        
+
         Args:
             threshold: Minimum price movement to consider as swing (e.g., 0.02 = 2%)
         """
         self.threshold = threshold
-    
-    def calculate_swing(self, data: pd.DataFrame) -> SwingMetrics:
+        self.min_required_length = 3
+
+    def calculate_swings(self, data: pd.DataFrame) -> SwingMetrics:
         """
         Calculate swing metrics.
-        
+
         Args:
             data: DataFrame with OHLC columns (high, low, close)
             
         Returns:
             SwingMetrics with all 23 fields populated
         """
-        if len(data) < 3:
+        if len(data) < self.min_required_length:
             # Graceful degradation for short zones
-            return SwingMetrics(
-                num_swings=0,
-                avg_rally_pct=0.0,
-                avg_drop_pct=0.0,
-                max_rally_pct=0.0,
-                max_drop_pct=0.0,
-                rally_to_drop_ratio=1.0,
-                rally_count=0,
-                drop_count=0,
-                min_rally_pct=0.0,
-                min_drop_pct=0.0,
-                rally_amplitude_std=0.0,
-                drop_amplitude_std=0.0,
-                rally_amplitude_median=0.0,
-                drop_amplitude_median=0.0,
-                avg_rally_duration_bars=0,
-                avg_drop_duration_bars=0,
-                max_rally_duration_bars=0,
-                max_drop_duration_bars=0,
-                avg_rally_speed_pct_per_bar=0.0,
-                avg_drop_speed_pct_per_bar=0.0,
-                max_rally_speed_pct_per_bar=0.0,
-                max_drop_speed_pct_per_bar=0.0,
-                duration_symmetry=1.0,
-                strategy_name='MyCustomSwing',
-                strategy_params={'threshold': self.threshold}
-            )
-        
-        # Your algorithm here
-        rallies = self._detect_rallies(data)
-        drops = self._detect_drops(data)
-        
-        # Calculate metrics from detected swings
-        rally_amplitudes = [r['amplitude'] for r in rallies]
-        drop_amplitudes = [d['amplitude'] for d in drops]
-        
-        return SwingMetrics(
-            num_swings=len(rallies) + len(drops),
-            avg_rally_pct=np.mean(rally_amplitudes) if rally_amplitudes else 0.0,
-            avg_drop_pct=np.mean(drop_amplitudes) if drop_amplitudes else 0.0,
-            max_rally_pct=max(rally_amplitudes) if rally_amplitudes else 0.0,
-            max_drop_pct=max(drop_amplitudes) if drop_amplitudes else 0.0,
-            rally_to_drop_ratio=(np.mean(rally_amplitudes) / np.mean(drop_amplitudes)) if drop_amplitudes and rally_amplitudes else 1.0,
-            rally_count=len(rallies),
-            drop_count=len(drops),
-            # ... populate all 23 fields ...
+            return self._empty_metrics()
+
+        # Your algorithm here (упрощенная реализация для документации)
+        price = data['close']
+        returns = price.pct_change().fillna(0)
+        rallies = returns[returns >= self.threshold]
+        drops = -returns[returns <= -self.threshold]
+
+        rally_stats = self._stats(rallies)
+        drop_stats = self._stats(drops)
+
+        duration = max(len(data), 1)
+        rally_speed = rally_stats['avg'] / duration if duration else 0.0
+        drop_speed = drop_stats['avg'] / duration if duration else 0.0
+
+        metrics = SwingMetrics(
+            num_swings=rally_stats['count'] + drop_stats['count'],
+            avg_rally_pct=rally_stats['avg'],
+            avg_drop_pct=drop_stats['avg'],
+            max_rally_pct=rally_stats['max'],
+            max_drop_pct=drop_stats['max'],
+            rally_to_drop_ratio=(rally_stats['avg'] / drop_stats['avg']) if drop_stats['avg'] else 1.0,
+            rally_count=rally_stats['count'],
+            drop_count=drop_stats['count'],
+            min_rally_pct=rally_stats['min'],
+            min_drop_pct=drop_stats['min'],
+            rally_amplitude_std=rally_stats['std'],
+            drop_amplitude_std=drop_stats['std'],
+            rally_amplitude_median=rally_stats['median'],
+            drop_amplitude_median=drop_stats['median'],
+            avg_rally_duration_bars=rally_stats['duration'],
+            avg_drop_duration_bars=drop_stats['duration'],
+            max_rally_duration_bars=rally_stats['max_duration'],
+            max_drop_duration_bars=drop_stats['max_duration'],
+            avg_rally_speed_pct_per_bar=rally_speed,
+            avg_drop_speed_pct_per_bar=drop_speed,
+            max_rally_speed_pct_per_bar=rally_stats['max_speed'],
+            max_drop_speed_pct_per_bar=drop_stats['max_speed'],
+            duration_symmetry=(rally_stats['duration'] / drop_stats['duration']) if drop_stats['duration'] else 1.0,
             strategy_name='MyCustomSwing',
             strategy_params={'threshold': self.threshold}
         )
-    
-    def _detect_rallies(self, data: pd.DataFrame):
-        """Detect upward swings exceeding threshold."""
-        rallies = []
-        # Your algorithm
-        return rallies
-    
-    def _detect_drops(self, data: pd.DataFrame):
-        """Detect downward swings exceeding threshold."""
-        drops = []
-        # Your algorithm
-        return drops
+
+        metrics.validate()
+        return metrics
+
+    def calculate(self, data: pd.DataFrame) -> SwingMetrics:
+        """Совместимость с ZoneFeaturesAnalyzer (ожидает метод calculate)."""
+        return self.calculate_swings(data)
+
+    def _stats(self, series: pd.Series) -> dict:
+        if series.empty:
+            return {
+                'count': 0,
+                'avg': 0.0,
+                'max': 0.0,
+                'min': 0.0,
+                'std': 0.0,
+                'median': 0.0,
+                'duration': 0.0,
+                'max_duration': 0,
+                'max_speed': 0.0,
+            }
+
+        durations = max(1, len(series))
+        return {
+            'count': int(series.count()),
+            'avg': float(series.mean()),
+            'max': float(series.max()),
+            'min': float(series.min()),
+            'std': float(series.std(ddof=0)) if series.count() > 1 else 0.0,
+            'median': float(series.median()),
+            'duration': float(durations / max(series.count(), 1)),
+            'max_duration': int(durations),
+            'max_speed': float(series.max()),
+        }
+
+    def _empty_metrics(self) -> SwingMetrics:
+        return SwingMetrics(
+            num_swings=0,
+            avg_rally_pct=0.0,
+            avg_drop_pct=0.0,
+            max_rally_pct=0.0,
+            max_drop_pct=0.0,
+            rally_to_drop_ratio=1.0,
+            rally_count=0,
+            drop_count=0,
+            min_rally_pct=0.0,
+            min_drop_pct=0.0,
+            rally_amplitude_std=0.0,
+            drop_amplitude_std=0.0,
+            rally_amplitude_median=0.0,
+            drop_amplitude_median=0.0,
+            avg_rally_duration_bars=0.0,
+            avg_drop_duration_bars=0.0,
+            max_rally_duration_bars=0,
+            max_drop_duration_bars=0,
+            avg_rally_speed_pct_per_bar=0.0,
+            avg_drop_speed_pct_per_bar=0.0,
+            max_rally_speed_pct_per_bar=0.0,
+            max_drop_speed_pct_per_bar=0.0,
+            duration_symmetry=1.0,
+            strategy_name='MyCustomSwing',
+            strategy_params={'threshold': self.threshold}
+        )
+
+    def get_metadata(self) -> dict:
+        return {
+            'strategy': 'MyCustomSwing',
+            'threshold': self.threshold,
+            'algorithm': 'Custom threshold-based swing detection'
+        }
     
     def get_name(self) -> str:
         """Return strategy name."""
@@ -295,24 +362,23 @@ class MyCustomSwingStrategy:
         }
 ```
 
-#### Step 3: Register Strategy
+#### Шаг 3: регистрация стратегии
 
 ```python
-# Option A: Using decorator (recommended)
-@StrategyRegistry.register_swing_strategy('my_custom')
-class MyCustomSwingStrategy:
-    # ... implementation ...
-    pass
+# Option A: Добавьте декоратор к определению класса выше
+# @StrategyRegistry.register_swing_strategy('my_custom')
+# class MyCustomSwingStrategy(SwingCalculationStrategy):
+#     ...
 
-# Option B: Manual registration
-StrategyRegistry.register_swing_strategy('my_custom', MyCustomSwingStrategy)
+# Option B: Регистрируем после определения
+StrategyRegistry.register_swing_strategy('my_custom')(MyCustomSwingStrategy)
 
 # Verify registration
 print(StrategyRegistry.list_swing_strategies())
 # Output: ['zigzag', 'find_peaks', 'pivot_points', 'my_custom']
 ```
 
-#### Step 4: Use Strategy
+#### Шаг 4: использование стратегии
 
 ```python
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
@@ -329,16 +395,16 @@ features = analyzer.extract_zone_features(zone_dict)
 
 # Access swing metrics
 swing_metrics = features.metadata['swing_metrics']
-print(f"Swings detected: {swing_metrics.num_swings}")
-print(f"Avg rally: {swing_metrics.avg_rally_pct:.2%}")
-print(f"Strategy used: {swing_metrics.strategy_name}")
+print(f"Swings detected: {swing_metrics['num_swings']}")
+print(f"Avg rally: {swing_metrics['avg_rally_pct']:.2%}")
+print(f"Strategy used: {swing_metrics['strategy_name']}")
 ```
 
-### Creating Other Strategy Types
+### Создание стратегий других типов
 
-The process is identical for other strategy types. Just change the protocol and dataclass:
+Процесс идентичен для остальных типов стратегий — достаточно заменить протокол и dataclass:
 
-#### Shape Strategy Example
+#### Пример стратегии формы
 
 ```python
 from typing import Optional
@@ -346,7 +412,7 @@ from bquant.analysis.zones.strategies.base import ShapeCalculationStrategy, Shap
 
 @StrategyRegistry.register_shape_strategy('my_shape')
 class MyShapeStrategy:
-    def calculate(self, data: pd.DataFrame, indicator_col: Optional[str] = None) -> ShapeMetrics:
+    def calculate_shape(self, data: pd.DataFrame, indicator_col: Optional[str] = None) -> ShapeMetrics:
         """
         Calculate shape metrics for ANY oscillator (v2.1 universal).
         
@@ -360,9 +426,9 @@ class MyShapeStrategy:
         
         Examples:
             # Works with ANY oscillator
-            metrics = strategy.calculate(data, indicator_col='RSI_14')
-            metrics = strategy.calculate(data, indicator_col='macd_hist')
-            metrics = strategy.calculate(data, indicator_col='CUSTOM_OSC')
+            metrics = strategy.calculate_shape(data, indicator_col='RSI_14')
+            metrics = strategy.calculate_shape(data, indicator_col='macd_hist')
+            metrics = strategy.calculate_shape(data, indicator_col='CUSTOM_OSC')
         """
         if indicator_col is None or indicator_col not in data.columns:
             raise ValueError(f"indicator_col required and must exist in data")
@@ -375,24 +441,31 @@ class MyShapeStrategy:
         hist_kurtosis = oscillator.kurtosis()
         hist_smoothness = 1.0 - oscillator.diff().abs().mean() / oscillator.abs().mean()
         
-        return ShapeMetrics(
+        metrics = ShapeMetrics(
             hist_skewness=hist_skewness,
             hist_kurtosis=hist_kurtosis,
             hist_smoothness=hist_smoothness,
             strategy_name='MyShape',
             strategy_params={'indicator_col': indicator_col}  # ← Track which indicator used
         )
-    
+
+        metrics.validate()
+        return metrics
+
+    def calculate(self, data: pd.DataFrame, indicator_col: Optional[str] = None) -> ShapeMetrics:
+        """Совместимость с ZoneFeaturesAnalyzer (ожидает метод calculate)."""
+        return self.calculate_shape(data, indicator_col=indicator_col)
+
     def get_name(self) -> str:
         return 'MyShape'
-    
+
     def get_metadata(self) -> dict:
         return {'strategy': 'MyShape', 'algorithm': 'Custom shape analysis'}
 ```
 
-**v2.1 Best Practice:** Always track `indicator_col` in `strategy_params` for traceability!
+**Рекомендация v2.1:** всегда сохраняйте `indicator_col` в `strategy_params`, чтобы обеспечить трассируемость!
 
-#### Divergence Strategy Example
+#### Пример стратегии дивергенций
 
 ```python
 from typing import Optional
@@ -433,18 +506,21 @@ class MyDivergenceStrategy:
         
         # Detect divergences between price and indicator
         # ... your divergence logic here ...
-        
-        return DivergenceMetrics(
-            divergence_type='regular_bullish',  # or None, 'regular_bearish', etc.
+
+        metrics = DivergenceMetrics(
+            divergence_type='regular',  # or 'hidden', 'mixed', 'none'
             divergence_count=1,
             divergence_strength=0.75,
-            divergence_direction=1,
+            divergence_direction='bullish',
             strategy_name='MyDivergence',
             strategy_params={
                 'indicator_col': indicator_col,              # ← Track primary indicator
                 'indicator_line_col': indicator_line_col     # ← Track signal line (if any)
             }
         )
+
+        metrics.validate()
+        return metrics
     
     def get_name(self) -> str:
         return 'MyDivergence'
@@ -453,11 +529,13 @@ class MyDivergenceStrategy:
         return {'strategy': 'MyDivergence', 'supports_2line': True}
 ```
 
-**v2.1 Best Practice:** Track both `indicator_col` and `indicator_line_col` (if applicable) in `strategy_params`!
+**Рекомендация v2.1:** отслеживайте и `indicator_col`, и `indicator_line_col` (если применимо) в `strategy_params`!
 
-### Testing Your Strategy
+### Тестирование вашей стратегии
 
 ```python
+import numpy as np
+import pandas as pd
 import pytest
 
 def test_my_custom_strategy():
@@ -473,7 +551,7 @@ def test_my_custom_strategy():
     }, index=dates)
     
     # Calculate swing metrics
-    result = strategy.calculate_swing(data)
+    result = strategy.calculate_swings(data)
     
     # Validate contract (all required fields present)
     assert isinstance(result, SwingMetrics)
@@ -490,7 +568,7 @@ def test_my_custom_strategy():
         assert result.rally_to_drop_ratio > 0
 ```
 
-### Integration Testing
+### Интеграционное тестирование
 
 ```python
 def test_strategy_with_analyzer():
@@ -510,17 +588,17 @@ def test_strategy_with_analyzer():
     
     # Verify swing metrics present
     assert 'swing_metrics' in features.metadata
-    assert features.metadata['swing_metrics'].strategy_name == 'MyCustomSwing'
+    assert features.metadata['swing_metrics']['strategy_name'] == 'MyCustomSwing'
 ```
 
-### Best Practices
+### Лучшие практики
 
-#### 1. Graceful Degradation
+#### 1. Плавная деградация
 
-Handle edge cases gracefully:
+Аккуратно обрабатывайте крайние случаи:
 
 ```python
-def calculate_swing(self, data: pd.DataFrame) -> SwingMetrics:
+def calculate_swings(self, data: pd.DataFrame) -> SwingMetrics:
     # Check data sufficiency
     if len(data) < self.min_required_length:
         return self._empty_metrics()  # Return zeros
@@ -533,9 +611,9 @@ def calculate_swing(self, data: pd.DataFrame) -> SwingMetrics:
     # Your algorithm...
 ```
 
-#### 2. Meaningful Metadata
+#### 2. Содержательные метаданные
 
-Always record strategy configuration:
+Всегда сохраняйте конфигурацию стратегии:
 
 ```python
 def get_metadata(self) -> dict:
@@ -553,7 +631,7 @@ def get_metadata(self) -> dict:
     }
 ```
 
-#### 3. Performance Optimization
+#### 3. Оптимизация производительности
 
 ```python
 # Use NumPy for vectorized operations
@@ -568,7 +646,7 @@ for i in range(len(data)):
 result = data['close'].rolling(5).apply(calculate_something)
 ```
 
-#### 4. Validate Inputs
+#### 4. Валидируйте входные данные
 
 ```python
 def _validate_data(self, data: pd.DataFrame) -> None:
@@ -585,7 +663,7 @@ def _validate_data(self, data: pd.DataFrame) -> None:
         raise ValueError("Data contains NaN values")
 ```
 
-### Strategy Comparison (A/B Testing)
+### Сравнение стратегий (A/B-тестирование)
 
 ```python
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
@@ -611,14 +689,14 @@ comparison = pd.DataFrame(results).T
 print(comparison)
 ```
 
-### Built-in Strategies
+### Встроенные стратегии
 
-For full documentation of all 8 built-in strategies, see:
-- [Strategies API Reference](analysis/strategies.md)
-- Examples: `tests/unit/test_*_strategy.py`
-- Implementations: `bquant/analysis/zones/strategies/`
+Полную документацию по всем восьми встроенным стратегиям смотрите здесь:
+- [Справочник по API стратегий](analysis/strategies.md)
+- Примеры: `tests/unit/test_*_strategy.py`
+- Реализации: `bquant/analysis/zones/strategies/`
 
-### Registry API
+### API реестра
 
 ```python
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
@@ -640,9 +718,9 @@ print(f"Total strategies: {stats['total']}")
 print(f"By type: {stats['by_type']}")
 ```
 
-### Factory Configuration
+### Конфигурация фабрики
 
-Add your strategy to configuration:
+Добавьте свою стратегию в конфигурацию:
 
 ```python
 # In bquant/core/config.py
@@ -671,58 +749,49 @@ strategy = create_swing_strategy('my_custom')
 ### Шаг 1: Наследование от BaseChart
 
 ```python
-from bquant.visualization.base import BaseChart
+from bquant.visualization.charts import ChartBuilder
+from bquant.visualization.themes import ChartThemes
 import plotly.graph_objects as go
-import plotly.express as px
 
-class CustomChart(BaseChart):
+
+class CustomChart(ChartBuilder):
     """Кастомный график"""
-    
+
     def __init__(self, theme='default'):
-        super().__init__(theme)
-    
+        super().__init__(backend='plotly')
+        self.theme_name = theme
+        self.themes = ChartThemes()
+
     def create_chart(self, data, title="Custom Chart", **kwargs):
         """Создание графика"""
-        # Ваша логика создания графика
+        self.validate_data(data, ["close"])
         fig = self._build_chart(data, title, **kwargs)
-        
-        # Применение темы
         self._apply_theme(fig)
-        
         return fig
-    
+
     def _build_chart(self, data, title, **kwargs):
         """Построение графика"""
         fig = go.Figure()
-        
-        # Добавление данных
-        fig.add_trace(go.Scatter(
-            x=data.index,
-            y=data['close'],
-            mode='lines',
-            name='Close Price',
-            line=dict(color=self.theme.colors['primary'])
-        ))
-        
-        # Настройка макета
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data['close'],
+                mode='lines',
+                name='Close Price',
+                line=dict(color=kwargs.get('color', '#00A3E0'))
+            )
+        )
         fig.update_layout(
             title=title,
             xaxis_title="Date",
             yaxis_title="Price",
-            height=600
+            height=kwargs.get('height', 600)
         )
-        
         return fig
-    
+
     def _apply_theme(self, fig):
         """Применение темы"""
-        fig.update_layout(
-            template=self.theme.template,
-            font=dict(
-                family=self.theme.font_family,
-                size=self.theme.font_size
-            )
-        )
+        self.themes.apply_theme_to_figure(fig, self.theme_name)
 ```
 
 ### Шаг 2: Использование
@@ -736,39 +805,28 @@ fig.show()
 
 ## 📥 Создание собственного загрузчика данных
 
-### Шаг 1: Наследование от DataLoader
+### Шаг 1: Реализация адаптера DataLoader
 
 ```python
-from bquant.data.loader import DataLoader
+from bquant.data import loader
 import pandas as pd
 
-class CustomDataLoader(DataLoader):
+
+class CustomDataLoader:
     """Кастомный загрузчик данных"""
-    
-    def __init__(self, source_type='custom'):
-        super().__init__()
+
+    def __init__(self, source_type='custom_csv'):
         self.source_type = source_type
-    
-    def load(self, source, **kwargs):
+
+    def load(self, source, *, validate=True, **kwargs):
         """Загрузка данных"""
-        if self.source_type == 'custom':
-            return self._load_custom_data(source, **kwargs)
-        else:
-            return super().load(source, **kwargs)
-    
-    def _load_custom_data(self, source, **kwargs):
-        """Загрузка кастомных данных"""
-        # Ваша логика загрузки
-        data = pd.read_csv(source, **kwargs)
-        
-        # Стандартизация колонок
-        data = self._standardize_columns(data)
-        
-        return data
-    
+        if self.source_type == 'custom_csv':
+            data = loader.load_ohlcv_data(source, validate_data=validate, **kwargs)
+            return self._standardize_columns(data)
+        return loader.load_ohlcv_data(source, validate_data=validate, **kwargs)
+
     def _standardize_columns(self, data):
         """Стандартизация колонок"""
-        # Маппинг колонок к стандартным именам
         column_mapping = {
             'Date': 'time',
             'Open': 'open',
@@ -777,91 +835,71 @@ class CustomDataLoader(DataLoader):
             'Close': 'close',
             'Volume': 'volume'
         }
-        
-        data = data.rename(columns=column_mapping)
-        
-        # Установка индекса времени
-        if 'time' in data.columns:
-            data['time'] = pd.to_datetime(data['time'])
-            data.set_index('time', inplace=True)
-        
-        return data
+
+        standardized = data.rename(columns=column_mapping)
+
+        if 'time' in standardized.columns:
+            standardized['time'] = pd.to_datetime(standardized['time'])
+            standardized.set_index('time', inplace=True)
+            standardized = standardized.sort_index()
+
+        return standardized
 ```
 
 ## 🔧 Создание собственного процессора данных
 
-### Шаг 1: Наследование от DataProcessor
+### Шаг 1: Реализация адаптера DataProcessor
 
 ```python
-from bquant.data.processor import DataProcessor
+from bquant.data import processor
 import pandas as pd
 import numpy as np
 
-class CustomDataProcessor(DataProcessor):
+
+class CustomDataProcessor:
     """Кастомный процессор данных"""
-    
-    def __init__(self, processing_config=None):
-        super().__init__()
-        self.config = processing_config or {}
-    
+
+    def __init__(self, *, remove_outliers=True, add_features=True, normalize=False):
+        self.remove_outliers = remove_outliers
+        self.add_features = add_features
+        self.normalize = normalize
+
     def process(self, data):
         """Обработка данных"""
-        processed_data = data.copy()
-        
-        # Применение кастомных обработок
-        if self.config.get('remove_outliers', False):
-            processed_data = self._remove_outliers(processed_data)
-        
-        if self.config.get('add_features', False):
+        processed_data = processor.clean_ohlcv_data(data, remove_outliers=self.remove_outliers)
+
+        if self.add_features:
             processed_data = self._add_features(processed_data)
-        
-        if self.config.get('normalize', False):
+
+        if self.normalize:
             processed_data = self._normalize_data(processed_data)
-        
+
         return processed_data
-    
-    def _remove_outliers(self, data):
-        """Удаление выбросов"""
-        for col in ['open', 'high', 'low', 'close']:
-            if col in data.columns:
-                Q1 = data[col].quantile(0.25)
-                Q3 = data[col].quantile(0.75)
-                IQR = Q3 - Q1
-                
-                lower_bound = Q1 - 1.5 * IQR
-                upper_bound = Q3 + 1.5 * IQR
-                
-                data = data[(data[col] >= lower_bound) & (data[col] <= upper_bound)]
-        
-        return data
-    
+
     def _add_features(self, data):
         """Добавление признаков"""
-        # Технические индикаторы
-        data['sma_20'] = data['close'].rolling(window=20).mean()
-        data['sma_50'] = data['close'].rolling(window=50).mean()
-        data['rsi'] = self._calculate_rsi(data['close'])
-        
-        return data
-    
+        result = data.copy()
+        result['sma_20'] = result['close'].rolling(window=20, min_periods=5).mean()
+        result['sma_50'] = result['close'].rolling(window=50, min_periods=5).mean()
+        result['rsi_14'] = self._calculate_rsi(result['close'])
+        return result
+
     def _calculate_rsi(self, prices, period=14):
         """Расчет RSI"""
         delta = prices.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-        
-        rs = gain / loss
+        gain = delta.clip(lower=0).rolling(window=period, min_periods=period).mean()
+        loss = (-delta.clip(upper=0)).rolling(window=period, min_periods=period).mean()
+        rs = gain / loss.replace(0, np.nan)
         rsi = 100 - (100 / (1 + rs))
-        
-        return rsi
-    
+        return rsi.fillna(50)
+
     def _normalize_data(self, data):
         """Нормализация данных"""
+        normalized = data.copy()
         for col in ['open', 'high', 'low', 'close']:
-            if col in data.columns:
-                data[col] = (data[col] - data[col].mean()) / data[col].std()
-        
-        return data
+            if col in normalized.columns:
+                normalized[col] = (normalized[col] - normalized[col].mean()) / normalized[col].std()
+        return normalized
 ```
 
 ## 🧪 Тестирование расширений
@@ -869,11 +907,12 @@ class CustomDataProcessor(DataProcessor):
 ### Создание тестов
 
 ```python
-import pytest
-import pandas as pd
 import numpy as np
-from bquant.indicators import CustomIndicator
-from bquant.analysis import CustomAnalyzer
+import pandas as pd
+import pytest
+
+from my_bquant_extension.indicators.custom_indicator import CustomIndicator
+from my_bquant_extension.analyzers.custom_analyzer import CustomAnalyzer
 
 class TestCustomIndicator:
     """Тесты для кастомного индикатора"""
@@ -892,17 +931,17 @@ class TestCustomIndicator:
         """Тест расчета индикатора"""
         indicator = CustomIndicator(param1=10, param2=20)
         result = indicator.calculate(sample_data)
-        
-        assert result.indicator_name == 'CustomIndicator'
-        assert len(result.values) == len(sample_data)
-        assert not result.values.isna().all()
+
+        assert result.name == 'CustomIndicator'
+        assert len(result.data) == len(sample_data)
+        assert not result.data['custom_indicator'].isna().all()
     
     def test_indicator_validation(self, sample_data):
         """Тест валидации данных"""
         indicator = CustomIndicator()
         
         # Тест с валидными данными
-        assert indicator.validate_data(sample_data) == True
+        assert indicator.validate_data(sample_data) is True
         
         # Тест с невалидными данными
         invalid_data = sample_data.drop(columns=['close'])
@@ -924,10 +963,10 @@ class TestCustomAnalyzer:
         """Тест анализа волатильности"""
         analyzer = CustomAnalyzer(analysis_type='volatility')
         result = analyzer.analyze(sample_data)
-        
-        assert result.analyzer_name == 'CustomAnalyzer'
-        assert 'mean_volatility' in result.statistics
-        assert result.statistics['mean_volatility'] > 0
+
+        assert result.analysis_type == 'volatility'
+        assert 'mean_volatility' in result.results
+        assert result.results['mean_volatility'] >= 0
 ```
 
 ### Запуск тестов
@@ -967,7 +1006,7 @@ my_bquant_extension/
     └── test_visualizations.py
 ```
 
-### setup.py
+### Файл setup.py
 
 ```python
 from setuptools import setup, find_packages
@@ -1012,19 +1051,20 @@ from .indicators.custom_indicator import CustomIndicator
 from .analyzers.custom_analyzer import CustomAnalyzer
 from .visualizations.custom_chart import CustomChart
 
+# Локальный реестр анализаторов расширения (пример интеграции)
+ANALYZERS_REGISTRY = {}
+
+
 # Автоматическая регистрация при импорте
 def register_extensions():
     """Регистрация расширений"""
-    from bquant.indicators.factory import IndicatorFactory
-    from bquant.analysis.registry import AnalysisRegistry
-    
-    # Регистрация индикаторов
-    factory = IndicatorFactory()
-    factory.register_indicator(CustomIndicator)
-    
-    # Регистрация анализаторов
-    registry = AnalysisRegistry()
-    registry.register_analyzer(CustomAnalyzer)
+    from bquant.indicators.base import IndicatorFactory
+
+    # Регистрация индикаторов в глобальной фабрике BQuant
+    IndicatorFactory.register_indicator('custom_indicator', CustomIndicator)
+
+    # Регистрация анализаторов в собственном реестре расширения
+    ANALYZERS_REGISTRY['CustomAnalyzer'] = CustomAnalyzer
 
 # Автоматическая регистрация при импорте модуля
 register_extensions()
@@ -1083,8 +1123,8 @@ def main():
     analysis_result = analyzer.analyze(data)
     
     # Вывод результатов
-    print(f"Indicator result: {indicator_result.values.tail()}")
-    print(f"Analysis result: {analysis_result.statistics}")
+    print(f"Indicator result: {indicator_result.data.tail()}")
+    print(f"Analysis result: {analysis_result.results}")
 
 if __name__ == "__main__":
     main()
@@ -1157,7 +1197,7 @@ class CustomIndicator(BaseIndicator):
     --------
     >>> indicator = CustomIndicator(param1=15, param2=25)
     >>> result = indicator.calculate(data)
-    >>> print(result.values.tail())
+    >>> print(result.data.tail())
     
     Notes
     -----
