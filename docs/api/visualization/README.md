@@ -125,7 +125,7 @@ ohlc_fig = charts.create_ohlc_chart(
 
 # Линейный график
 line_fig = charts.create_line_chart(
-    data['close'],
+    data[['close']],
     title="XAUUSD 1H - Close Price",
     theme='blue'
 )
@@ -155,7 +155,7 @@ result = (
 fig = result.visualize('overview')  # Общий обзор
 fig.show()
 
-fig = result.visualize('detail', zone_id=5)  # Детальный просмотр
+fig = result.visualize('detail', zone_id=result.zones[0].zone_id)  # Детальный просмотр
 fig.show()
 
 fig = result.visualize('comparison', max_zones=5)  # Сравнение
@@ -189,7 +189,7 @@ fig = zone_viz.plot_zones_comparison(
     data,
     result.zones,
     date_range=(datetime(2024, 1, 1), datetime(2024, 3, 1)),
-    max_zones=5,
+    max_zones=min(5, len(result.zones)),
     title="Zones Comparison"
 )
 fig.show()
@@ -241,10 +241,10 @@ if result.hypothesis_tests:
     hypothesis_fig.show()
 
 # Box plot для сравнения зон
-bull_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones 
-                  if zone.zone_type == 'bull' and zone.features]
-bear_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones 
-                  if zone.zone_type == 'bear' and zone.features]
+bull_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones
+                  if zone.type == 'bull' and zone.features]
+bear_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones
+                  if zone.type == 'bear' and zone.features]
 
 box_fig = stat_plots.plot_box_plot(
     data=[bull_volatility, bear_volatility],
@@ -262,7 +262,12 @@ box_fig.show()
 ### Настройка тем
 
 ```python
-from bquant.visualization import ChartThemes
+from bquant.visualization.themes import (
+    ChartThemes,
+    create_custom_theme,
+    apply_theme,
+    apply_theme_to_figure,
+)
 
 # Создание менеджера тем
 themes = ChartThemes()
@@ -271,31 +276,38 @@ themes = ChartThemes()
 available_themes = themes.get_available_themes()
 print(f"Available themes: {available_themes}")
 
-# Установка темы
-themes.set_theme('dark')
+# Установка базовой темы
+apply_theme('bquant_dark')
 
 # Создание кастомной темы
-custom_theme = themes.create_custom_theme(
+create_custom_theme(
     name='my_theme',
     colors={
-        'primary': '#1f77b4',
-        'secondary': '#ff7f0e',
         'background': '#f8f9fa',
-        'text': '#2c3e50'
+        'paper': '#ffffff',
+        'text': '#2c3e50',
+        'grid': '#d1d5db',
+        'bullish': '#1f77b4',
+        'bearish': '#ff7f0e',
+        'volume': '#2c3e50'
     },
-    font_family='Arial',
-    font_size=12
+    layout={
+        'font_family': 'Arial',
+        'font_size': 12,
+        'title_font_size': 16,
+        'show_legend': True
+    }
 )
 
-# Применение темы
-themes.apply_theme('my_theme')
+# Активация кастомной темы
+apply_theme('my_theme')
 
-# Создание графика с кастомной темой
+# Создание графика и применение темы
 fig = charts.create_candlestick_chart(
     data,
-    title="Custom Theme Chart",
-    theme='my_theme'
+    title="Custom Theme Chart"
 )
+fig = apply_theme_to_figure(fig, 'my_theme')
 fig.show()
 ```
 
@@ -339,7 +351,7 @@ def create_comprehensive_analysis(data, result):
     # 3. Сравнение зон
     comparison_fig = zone_viz.plot_zones_comparison(
         data, result.zones,
-        max_zones=5,
+        max_zones=min(5, len(result.zones)),
         title="Zones Comparison",
         theme='blue'
     )
@@ -394,11 +406,8 @@ fig.write_image(f"{export_dir}/chart.png", width=1200, height=800)
 # HTML (интерактивный)
 fig.write_html(f"{export_dir}/chart.html")
 
-# PDF
-fig.write_image(f"{export_dir}/chart.pdf", width=1200, height=800)
-
-# SVG (векторный)
-fig.write_image(f"{export_dir}/chart.svg", width=1200, height=800)
+# JSON (для интеграции)
+fig.write_json(f"{export_dir}/chart.json")
 
 print(f"Charts exported to {export_dir}/")
 ```
@@ -406,48 +415,55 @@ print(f"Charts exported to {export_dir}/")
 ### Создание собственного графика
 
 ```python
-from bquant.visualization.base import BaseChart
+from bquant.visualization.charts import ChartBuilder
+from bquant.visualization.themes import ChartThemes
 import plotly.graph_objects as go
-import plotly.express as px
 
-class CustomVolatilityChart(BaseChart):
+class CustomVolatilityChart(ChartBuilder):
     """Кастомный график волатильности"""
-    
-    def __init__(self, theme='default'):
-        super().__init__(theme)
-    
+
+    def __init__(self, theme='bquant_dark'):
+        super().__init__(backend='plotly')
+        self.theme_manager = ChartThemes()
+        self.theme_name = theme
+        self.theme_config = self.theme_manager.get_theme(self.theme_name)
+
     def create_chart(self, data, window_size=20, title="Volatility Chart"):
         """Создание графика волатильности"""
-        
+
+        self.validate_data(data, ['close'])
+        data = self._prepare_datetime_index(data.copy())
+
         # Расчет волатильности
         returns = data['close'].pct_change()
         volatility = returns.rolling(window=window_size).std()
-        
+
+        colors = self.theme_config.get('colors', {})
+
         # Создание графика
         fig = go.Figure()
-        
+
         # Добавление линии волатильности
         fig.add_trace(go.Scatter(
             x=data.index,
             y=volatility,
             mode='lines',
             name='Volatility',
-            line=dict(color=self.theme.colors['primary'])
+            line=dict(color=colors.get('neutral', '#3498db'))
         ))
-        
+
         # Настройка макета
         fig.update_layout(
             title=title,
             xaxis_title="Date",
             yaxis_title="Volatility",
-            template=self.theme.template,
             height=600
         )
-        
-        return fig
+
+        return self.theme_manager.apply_theme_to_figure(fig, self.theme_name)
 
 # Использование кастомного графика
-volatility_chart = CustomVolatilityChart(theme='dark')
+volatility_chart = CustomVolatilityChart(theme='bquant_dark')
 vol_fig = volatility_chart.create_chart(data, window_size=20)
 vol_fig.show()
 ```
@@ -520,16 +536,16 @@ fig.show()
 ## 📖 Детальная документация
 
 - **[Universal Pipeline](../analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
-- **[Charts Module](charts.md)** - Подробная документация финансовых графиков
-- **[Zones Module](zones.md)** - Universal Zone Visualization
-- **[Statistical Module](statistical.md)** - Документация статистических графиков
-- **[Themes Module](themes.md)** - Документация тем и стилей
+- **[Zones Analysis](../analysis/zones.md)** - Детали работы с зонами и результатами анализа
+- **[Strategies](../analysis/strategies.md)** - Настройка стратегий и анализ зон
+- **[Core Logging](../core/logging.md)** - Настройка логирования и мониторинга выполнения
+- **[Indicators README](../indicators/README.md)** - Работа с индикаторами и фабрикой
 
 ## 🚀 Руководство по расширению
 
 ### Создание нового типа графика
 
-1. **Наследование от BaseChart**
+1. **Наследование от ChartBuilder**
 2. **Реализация метода create_chart()**
 3. **Настройка темы**
 4. **Добавление интерактивности**

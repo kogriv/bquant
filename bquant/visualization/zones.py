@@ -1,18 +1,11 @@
-"""
-Модуль визуализации зон BQuant
+"""Модуль визуализации зон BQuant."""
 
-Предоставляет инструменты для визуализации торговых зон:
-- Отображение MACD зон на графиках
-- Визуализация характеристик зон
-- Интерактивные графики анализа зон
-- Статистические диаграммы зон
-"""
-
-import pandas as pd
-import numpy as np
-from typing import Dict, Any, List, Optional, Union, Tuple
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
-import warnings
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import pandas as pd
 
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
@@ -81,20 +74,41 @@ class ZoneChartBuilder:
         
         self.logger.info(f"Zone chart builder initialized with {self.backend} backend")
     
-    def _prepare_zone_data(self, zones_data: Union[List[Dict], pd.DataFrame]) -> List[Dict]:
+    def _prepare_zone_data(self, zones_data: Union[List[Dict], pd.DataFrame, List[Any]]) -> List[Dict]:
         """
         Подготовка данных зон для визуализации.
-        
+
         Args:
             zones_data: Данные зон
-        
+
         Returns:
             Список словарей с данными зон
         """
         if isinstance(zones_data, pd.DataFrame):
             return zones_data.to_dict('records')
         elif isinstance(zones_data, list):
-            return zones_data
+            normalized: List[Dict[str, Any]] = []
+            for zone in zones_data:
+                if isinstance(zone, dict):
+                    normalized.append(zone)
+                    continue
+
+                if hasattr(zone, "to_analyzer_format"):
+                    try:
+                        normalized.append(zone.to_analyzer_format())
+                        continue
+                    except Exception:  # pragma: no cover - диагностический вывод
+                        self.logger.debug("Failed to call to_analyzer_format() on %s", zone)
+
+                if is_dataclass(zone):
+                    normalized.append(asdict(zone))
+                elif hasattr(zone, "__dict__"):
+                    normalized.append({key: getattr(zone, key) for key in dir(zone)
+                                       if not key.startswith("_") and not callable(getattr(zone, key))})
+                else:
+                    raise ValueError("Unsupported zone object type: %r" % (type(zone),))
+
+            return normalized
         else:
             raise ValueError("zones_data must be DataFrame or list of dicts")
 
@@ -123,7 +137,7 @@ class ZoneVisualizer(ZoneChartBuilder):
             'opacity': kwargs.get('opacity', 0.3)
         }
     
-    def plot_zones_on_price_chart(self, price_data: pd.DataFrame, 
+    def plot_zones_on_price_chart(self, price_data: pd.DataFrame,
                                  zones_data: Union[List[Dict], pd.DataFrame],
                                  title: str = "Price Chart with Zones",
                                  **kwargs) -> Union[go.Figure, plt.Figure]:
@@ -145,7 +159,83 @@ class ZoneVisualizer(ZoneChartBuilder):
             return self._create_plotly_zones_on_price(price_data, zones, title, **kwargs)
         else:
             return self._create_matplotlib_zones_on_price(price_data, zones, title, **kwargs)
-    
+
+    def plot_zone_detail(self, price_data: pd.DataFrame,
+                         zone: Union[Dict[str, Any], Any],
+                         context_bars: int = 20,
+                         title: str = "Zone Detail",
+                         **kwargs) -> Union[go.Figure, plt.Figure]:
+        """Детализированный просмотр отдельной зоны."""
+
+        zone_dict = self._prepare_zone_data([zone])[0]
+        zone_start = zone_dict.get('start_time')
+        zone_end = zone_dict.get('end_time')
+
+        detail_data = price_data
+        if zone_start is not None and zone_end is not None and not price_data.empty:
+            index = price_data.index
+
+            def _get_position(target):
+                try:
+                    loc = index.get_loc(target)
+                    if isinstance(loc, slice):
+                        return loc.start
+                    return int(loc)
+                except KeyError:
+                    idx = index.get_indexer([target], method='nearest')
+                    if idx.size and idx[0] != -1:
+                        return int(idx[0])
+                    return None
+
+            start_idx = _get_position(zone_start)
+            end_idx = _get_position(zone_end)
+
+            if start_idx is not None and end_idx is not None:
+                left = max(0, min(start_idx, end_idx) - int(context_bars))
+                right = min(len(price_data) - 1, max(start_idx, end_idx) + int(context_bars))
+                detail_data = price_data.iloc[left : right + 1]
+
+        return self.plot_zones_on_price_chart(
+            detail_data,
+            [zone_dict],
+            title=title,
+            **kwargs,
+        )
+
+    def plot_zones_comparison(self, price_data: pd.DataFrame,
+                              zones_data: Union[List[Dict], pd.DataFrame, List[Any]],
+                              max_zones: int = 5,
+                              date_range: Optional[Tuple[datetime, datetime]] = None,
+                              title: str = "Zones Comparison",
+                              **kwargs) -> Union[go.Figure, plt.Figure]:
+        """Сравнение нескольких зон на ценовом графике."""
+
+        zones = self._prepare_zone_data(zones_data)
+
+        if date_range is not None:
+            start_range, end_range = date_range
+            zones = [
+                zone for zone in zones
+                if zone.get('start_time') is not None and zone.get('end_time') is not None
+                and start_range <= zone['end_time'] and zone['start_time'] <= end_range
+            ]
+
+        if max_zones:
+            zones = zones[:max(1, max_zones)]
+
+        if not zones:
+            return self.plot_zones_on_price_chart(price_data, [], title=title, **kwargs)
+
+        subset = price_data
+        start_times = [zone.get('start_time') for zone in zones if zone.get('start_time') is not None]
+        end_times = [zone.get('end_time') for zone in zones if zone.get('end_time') is not None]
+        if start_times and end_times and isinstance(price_data.index, pd.DatetimeIndex):
+            global_start = min(start_times)
+            global_end = max(end_times)
+            subset = price_data[(price_data.index >= global_start) & (price_data.index <= global_end)]
+
+        return self.plot_zones_on_price_chart(subset, zones, title=title, **kwargs)
+
     def plot_macd_zones(self, macd_data: pd.DataFrame,
                        zones_data: Union[List[Dict], pd.DataFrame],
                        title: str = "MACD with Zones",

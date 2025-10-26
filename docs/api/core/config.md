@@ -91,35 +91,28 @@ csv_path = get_results_path('zone_analysis_2025-08-29', file_type='csv')
 
 ---
 
-## Strategy Factories (New in Phase 3)
+## Фабрики стратегий (новое в фазе 3)
 
-> **API Stability:** 🟢 MOSTLY STABLE
-> 
-> **Note:** Function signatures are stable. Internal implementation may change
-> during universalization (column name handling).
+> **Стабильность API:** 🟢 В ОСНОВНОМ СТАБИЛЕН
+>
+> **Примечание:** Сигнатуры функций стабильны. Внутренняя реализация может
+> изменяться в процессе унификации (например, обработка имён столбцов).
 
-Factory functions for creating strategy instances from configuration.
+Фабричные функции создают экземпляры стратегий на основе конфигурации.
 
 ### create_swing_strategy()
 
-Creates swing detection strategy instance.
+Создание стратегии для определения свингов.
 
 ```python
 from bquant.core.config import create_swing_strategy
 
-# Default parameters
-strategy = create_swing_strategy(name='zigzag')
-
-# Custom parameters
-strategy = create_swing_strategy(
-    name='zigzag',
-    legs=15,
-    deviation=0.03
-)
-
-# Other strategies
-strategy = create_swing_strategy(name='find_peaks', prominence=0.02, distance=5)
-strategy = create_swing_strategy(name='pivot_points', left_bars=7, right_bars=7)
+strategy_default = create_swing_strategy()
+strategy_by_name = create_swing_strategy('find_peaks')
+strategy_custom = create_swing_strategy({
+    'type': 'zigzag',
+    'params': {'legs': 15, 'deviation': 0.03}
+})
 ```
 
 ### create_shape_strategy()
@@ -127,7 +120,7 @@ strategy = create_swing_strategy(name='pivot_points', left_bars=7, right_bars=7)
 ```python
 from bquant.core.config import create_shape_strategy
 
-strategy = create_shape_strategy(name='statistical')
+strategy = create_shape_strategy('statistical')
 ```
 
 ### create_divergence_strategy()
@@ -135,7 +128,7 @@ strategy = create_shape_strategy(name='statistical')
 ```python
 from bquant.core.config import create_divergence_strategy
 
-strategy = create_divergence_strategy(name='classic', use_macd_line=False)
+strategy = create_divergence_strategy('classic')
 ```
 
 ### create_volatility_strategy()
@@ -143,12 +136,10 @@ strategy = create_divergence_strategy(name='classic', use_macd_line=False)
 ```python
 from bquant.core.config import create_volatility_strategy
 
-strategy = create_volatility_strategy(
-    name='combined',
-    bb_window=20,
-    bb_std=2,
-    atr_window=14
-)
+strategy = create_volatility_strategy({
+    'type': 'combined',
+    'params': {'bb_length': 20, 'bb_std': 2.0, 'touch_threshold': 0.02}
+})
 ```
 
 ### create_volume_strategy()
@@ -156,42 +147,56 @@ strategy = create_volatility_strategy(
 ```python
 from bquant.core.config import create_volume_strategy
 
-strategy = create_volume_strategy(name='standard')
+strategy = create_volume_strategy('standard')
 ```
 
 ### ANALYSIS_CONFIG
 
-Strategy configurations:
+Конфигурация стратегий анализа:
 
 ```python
 ANALYSIS_CONFIG = {
-    'strategies': {
-        'swing': {
-            'default': 'zigzag',
-            'zigzag': {'legs': 10, 'deviation': 0.05},
-            'find_peaks': {'prominence': 0.02, 'distance': 3},
-            'pivot_points': {'left_bars': 5, 'right_bars': 5}
+    'zone_analysis': {
+        'min_duration': 2,
+        'min_amplitude': 0.001,
+        'normalization_method': 'atr',
+        'detection_method': 'sign_change',
+    },
+    'zone_features': {
+        'min_duration': 2,
+        'min_amplitude': 0.001,
+        'swing_strategy': {
+            'type': 'zigzag',
+            'params': {'legs': 10, 'deviation': 0.05},
         },
-        'shape': {
-            'default': 'statistical'
+        'divergence_strategy': {
+            'type': 'none',
+            'params': {},
         },
-        'divergence': {
-            'default': None,  # disabled by default
-            'classic': {'use_macd_line': False}
+        'shape_strategy': {
+            'type': 'statistical',
+            'params': {'calculate_smoothness': True, 'bias_correction': True},
         },
-        'volatility': {
-            'default': None,  # disabled by default
-            'combined': {'bb_window': 20, 'bb_std': 2}
+        'volume_strategy': {
+            'type': 'none',
+            'params': {},
         },
-        'volume': {
-            'default': None,  # disabled by default
-            'standard': {}
-        }
-    }
+    },
+    'pattern_analysis': {
+        'min_pattern_length': 3,
+        'max_pattern_length': 50,
+        'similarity_threshold': 0.8,
+    },
+    'statistical_analysis': {
+        'confidence_level': 0.95,
+        'significance_level': 0.05,
+        'bootstrap_samples': 1000,
+        'random_state': 42,
+    },
 }
 ```
 
-For detailed strategy documentation, see [strategies.md](../analysis/strategies.md).
+Подробную документацию по стратегиям см. в [strategies.md](../analysis/strategies.md).
 
 ---
 
