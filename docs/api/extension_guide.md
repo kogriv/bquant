@@ -169,33 +169,33 @@ result = analyzer.analyze(data)
 print(f"Mean volatility: {result.results['mean_volatility']:.4f}")
 ```
 
-## 🎨 Creating Custom Strategies (New in Phase 3)
+## 🎨 Создание пользовательских стратегий (новое в этапе 3)
 
-> **API Stability:** 🟢 STABLE - Strategy Pattern API is finalized
+> **Стабильность API:** 🟢 STABLE — интерфейс паттерна стратегий зафиксирован
 
-### Overview
+### Обзор
 
-BQuant uses Strategy Pattern for extensible metrics calculation. You can create custom strategies without modifying core analyzers.
+BQuant использует паттерн Strategy для расширяемого расчёта метрик. Вы можете добавлять собственные стратегии, не изменяя базовые анализаторы.
 
-**Benefits:**
-- Add new metrics without changing `ZoneFeaturesAnalyzer`
-- Switch algorithms via configuration
-- A/B test different approaches
-- Maintain multiple strategies simultaneously
+**Преимущества:**
+- Добавляйте новые метрики без изменения `ZoneFeaturesAnalyzer`
+- Переключайте алгоритмы через конфигурацию
+- Проводите A/B-тестирование разных подходов
+- Поддерживайте несколько стратегий одновременно
 
-### Strategy Types
+### Типы стратегий
 
-| Strategy Type | Purpose | Protocol |
-|---------------|---------|----------|
-| **SwingCalculationStrategy** | Detect swings/impulses in price movement | 23 metrics |
-| **ShapeCalculationStrategy** | Analyze indicator histogram shape | 3 metrics |
-| **DivergenceCalculationStrategy** | Detect price-indicator divergences | 4 metrics |
-| **VolatilityCalculationStrategy** | Measure market volatility | 10 metrics |
-| **VolumeCalculationStrategy** | Analyze volume patterns | 4 metrics |
+| Тип стратегии | Назначение | Протокол |
+|---------------|------------|----------|
+| **SwingCalculationStrategy** | Обнаружение свингов/импульсов в движении цены | 23 метрики |
+| **ShapeCalculationStrategy** | Анализ формы гистограммы индикатора | 3 метрики |
+| **DivergenceCalculationStrategy** | Поиск дивергенций между ценой и индикатором | 4 метрики |
+| **VolatilityCalculationStrategy** | Оценка волатильности рынка | 10 метрик |
+| **VolumeCalculationStrategy** | Анализ объёмных паттернов | 4 метрики |
 
-### Step-by-Step: Creating a Custom Swing Strategy
+### Пошагово: создание пользовательской свинговой стратегии
 
-#### Step 1: Import Protocol and Dataclass
+#### Шаг 1: импорт протокола и dataclass
 
 ```python
 from bquant.analysis.zones.strategies.base import (
@@ -207,7 +207,7 @@ import pandas as pd
 import numpy as np
 ```
 
-#### Step 2: Implement Strategy Class
+#### Шаг 2: реализация класса стратегии
 
 ```python
 class MyCustomSwingStrategy(SwingCalculationStrategy):
@@ -361,7 +361,7 @@ class MyCustomSwingStrategy(SwingCalculationStrategy):
         }
 ```
 
-#### Step 3: Register Strategy
+#### Шаг 3: регистрация стратегии
 
 ```python
 # Option A: Добавьте декоратор к определению класса выше
@@ -377,7 +377,7 @@ print(StrategyRegistry.list_swing_strategies())
 # Output: ['zigzag', 'find_peaks', 'pivot_points', 'my_custom']
 ```
 
-#### Step 4: Use Strategy
+#### Шаг 4: использование стратегии
 
 ```python
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
@@ -399,11 +399,11 @@ print(f"Avg rally: {swing_metrics['avg_rally_pct']:.2%}")
 print(f"Strategy used: {swing_metrics['strategy_name']}")
 ```
 
-### Creating Other Strategy Types
+### Создание стратегий других типов
 
-The process is identical for other strategy types. Just change the protocol and dataclass:
+Процесс идентичен для остальных типов стратегий — достаточно заменить протокол и dataclass:
 
-#### Shape Strategy Example
+#### Пример стратегии формы
 
 ```python
 from typing import Optional
@@ -462,9 +462,9 @@ class MyShapeStrategy:
         return {'strategy': 'MyShape', 'algorithm': 'Custom shape analysis'}
 ```
 
-**v2.1 Best Practice:** Always track `indicator_col` in `strategy_params` for traceability!
+**Рекомендация v2.1:** всегда сохраняйте `indicator_col` в `strategy_params`, чтобы обеспечить трассируемость!
 
-#### Divergence Strategy Example
+#### Пример стратегии дивергенций
 
 ```python
 from typing import Optional
@@ -528,9 +528,9 @@ class MyDivergenceStrategy:
         return {'strategy': 'MyDivergence', 'supports_2line': True}
 ```
 
-**v2.1 Best Practice:** Track both `indicator_col` and `indicator_line_col` (if applicable) in `strategy_params`!
+**Рекомендация v2.1:** отслеживайте и `indicator_col`, и `indicator_line_col` (если применимо) в `strategy_params`!
 
-### Testing Your Strategy
+### Тестирование вашей стратегии
 
 ```python
 import numpy as np
@@ -567,7 +567,7 @@ def test_my_custom_strategy():
         assert result.rally_to_drop_ratio > 0
 ```
 
-### Integration Testing
+### Интеграционное тестирование
 
 ```python
 def test_strategy_with_analyzer():
@@ -590,11 +590,11 @@ def test_strategy_with_analyzer():
     assert features.metadata['swing_metrics']['strategy_name'] == 'MyCustomSwing'
 ```
 
-### Best Practices
+### Лучшие практики
 
-#### 1. Graceful Degradation
+#### 1. Плавная деградация
 
-Handle edge cases gracefully:
+Аккуратно обрабатывайте крайние случаи:
 
 ```python
 def calculate_swings(self, data: pd.DataFrame) -> SwingMetrics:
@@ -610,9 +610,9 @@ def calculate_swings(self, data: pd.DataFrame) -> SwingMetrics:
     # Your algorithm...
 ```
 
-#### 2. Meaningful Metadata
+#### 2. Содержательные метаданные
 
-Always record strategy configuration:
+Всегда сохраняйте конфигурацию стратегии:
 
 ```python
 def get_metadata(self) -> dict:
@@ -630,7 +630,7 @@ def get_metadata(self) -> dict:
     }
 ```
 
-#### 3. Performance Optimization
+#### 3. Оптимизация производительности
 
 ```python
 # Use NumPy for vectorized operations
@@ -645,7 +645,7 @@ for i in range(len(data)):
 result = data['close'].rolling(5).apply(calculate_something)
 ```
 
-#### 4. Validate Inputs
+#### 4. Валидируйте входные данные
 
 ```python
 def _validate_data(self, data: pd.DataFrame) -> None:
@@ -662,7 +662,7 @@ def _validate_data(self, data: pd.DataFrame) -> None:
         raise ValueError("Data contains NaN values")
 ```
 
-### Strategy Comparison (A/B Testing)
+### Сравнение стратегий (A/B-тестирование)
 
 ```python
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
@@ -688,14 +688,14 @@ comparison = pd.DataFrame(results).T
 print(comparison)
 ```
 
-### Built-in Strategies
+### Встроенные стратегии
 
-For full documentation of all 8 built-in strategies, see:
-- [Strategies API Reference](analysis/strategies.md)
-- Examples: `tests/unit/test_*_strategy.py`
-- Implementations: `bquant/analysis/zones/strategies/`
+Полную документацию по всем восьми встроенным стратегиям смотрите здесь:
+- [Справочник по API стратегий](analysis/strategies.md)
+- Примеры: `tests/unit/test_*_strategy.py`
+- Реализации: `bquant/analysis/zones/strategies/`
 
-### Registry API
+### API реестра
 
 ```python
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
@@ -717,9 +717,9 @@ print(f"Total strategies: {stats['total']}")
 print(f"By type: {stats['by_type']}")
 ```
 
-### Factory Configuration
+### Конфигурация фабрики
 
-Add your strategy to configuration:
+Добавьте свою стратегию в конфигурацию:
 
 ```python
 # In bquant/core/config.py
@@ -1005,7 +1005,7 @@ my_bquant_extension/
     └── test_visualizations.py
 ```
 
-### setup.py
+### Файл setup.py
 
 ```python
 from setuptools import setup, find_packages
