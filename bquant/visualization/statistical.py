@@ -202,6 +202,81 @@ class StatisticalPlots:
             return self._create_plotly_box(data, y_column, x_column, title, **kwargs)
         else:
             return self._create_matplotlib_box(data, y_column, x_column, title, **kwargs)
+
+    # Документационные алиасы
+    def plot_correlation_matrix(self, data: pd.DataFrame,
+                                title: str = "Correlation Matrix",
+                                **kwargs) -> Union[go.Figure, plt.Figure]:
+        return self.create_correlation_matrix(data, title=title, **kwargs)
+
+    def plot_distribution(self, data: Union[pd.Series, np.ndarray],
+                          title: str = "Distribution",
+                          plot_type: str = "histogram",
+                          **kwargs) -> Union[go.Figure, plt.Figure]:
+        if plot_type == "histogram":
+            return self.create_histogram(data, title=title, **kwargs)
+        return self.create_distribution_plot(data, title=title, **kwargs)
+
+    def plot_box_plot(self, data: List[List[float]],
+                      labels: List[str],
+                      title: str = "Box Plot",
+                      **kwargs) -> Union[go.Figure, plt.Figure]:
+        records = []
+        for label, series in zip(labels, data):
+            for value in series:
+                records.append({"label": label, "value": value})
+
+        frame = pd.DataFrame(records)
+        return self.create_box_plot(frame, y_column="value", x_column="label", title=title, **kwargs)
+
+    def plot_hypothesis_results(self, results: Dict[str, Any],
+                                title: str = "Hypothesis Test Results",
+                                **kwargs) -> Union[go.Figure, plt.Figure]:
+        tests = []
+        if isinstance(results, dict):
+            tests = results.get("tests") or results.get("summary") or []
+
+        names: List[str] = []
+        values: List[float] = []
+        colors: List[str] = []
+
+        for entry in tests:
+            if isinstance(entry, dict):
+                name = entry.get("name") or entry.get("test") or "Test"
+                status = entry.get("passed") or entry.get("status")
+                metric = entry.get("p_value") or entry.get("statistic")
+            else:
+                name = str(entry)
+                status = None
+                metric = None
+
+            names.append(name)
+            values.append(float(metric) if metric is not None else 0.0)
+            colors.append("#2ecc71" if status in {True, "pass", "passed", "ok"} else "#e74c3c")
+
+        if self.backend == 'plotly' and go is not None:
+            fig = go.Figure()
+            fig.add_trace(
+                go.Bar(
+                    x=names,
+                    y=values if any(values) else [1.0] * len(names),
+                    marker_color=colors,
+                    text=["PASS" if color == "#2ecc71" else "FAIL" for color in colors],
+                    textposition="outside",
+                    name="Hypothesis Tests",
+                )
+            )
+            fig.update_layout(title=title, showlegend=False, height=self.default_config['height'])
+            return fig
+
+        if not MATPLOTLIB_AVAILABLE:
+            raise AnalysisError("Matplotlib backend is required for hypothesis plotting")
+
+        fig, ax = plt.subplots(figsize=(10, 4))  # type: ignore[attr-defined]
+        ax.bar(names, values if any(values) else [1.0] * len(names), color=colors)  # type: ignore[attr-defined]
+        ax.set_title(title)
+        ax.set_ylabel("metric")
+        return fig  # type: ignore[return-value]
     
     def create_time_series_plot(self, data: pd.DataFrame,
                                y_columns: List[str],

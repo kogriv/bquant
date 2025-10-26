@@ -472,11 +472,11 @@ class ZoneAnalysisResult:
             zone = next((z for z in self.zones if z.zone_id == zone_id), None)
             if not zone:
                 raise ValueError(f"Zone {zone_id} not found")
-            return visualizer.plot_zone_detail(zone, self.data, **kwargs)
-        
+            return visualizer.plot_zone_detail(self.data, zone, **kwargs)
+
         elif mode == 'comparison':
             return visualizer.plot_zones_comparison(
-                self.zones, self.data, date_range=date_range, **kwargs
+                self.data, self.zones, date_range=date_range, **kwargs
             )
         
         elif mode == 'statistics':
