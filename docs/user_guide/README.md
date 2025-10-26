@@ -11,6 +11,12 @@
 - Первый анализ за 5 минут
 - Основные концепции
 
+### 🧠 [Core Concepts](core_concepts.md) - Базовые концепции
+- Универсальный пайплайн Zone Analysis
+- Конфигурация индикаторов и стратегий
+- Как интерпретировать результаты `ZoneAnalysisResult`
+- Переход к практическим сценариям
+
 ### 🏗️ [Core Modules](../api/core/README.md) - Основные модули
 - Архитектура BQuant
 - Основные компоненты
@@ -78,11 +84,12 @@ pip install pandas numpy matplotlib seaborn plotly
 Рекомендуемый порядок изучения:
 
 1. **[Quick Start](quick_start.md)** - Быстрый старт
-2. **[Core Modules](../api/core/README.md)** - Основные модули
-3. **[Data Management](../api/data/README.md)** - Работа с данными
-4. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Universal Zone Analysis v2.1
-5. **[Visualization](../api/visualization/README.md)** - Визуализация
-6. **[Statistical Analysis](../api/analysis/README.md)** - Статистический анализ
+2. **[Core Concepts](core_concepts.md)** - Ключевые идеи Universal Pipeline
+3. **[Core Modules](../api/core/README.md)** - Основные модули
+4. **[Data Management](../api/data/README.md)** - Работа с данными
+5. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Universal Zone Analysis v2.1
+6. **[Visualization](../api/visualization/README.md)** - Визуализация
+7. **[Statistical Analysis](../api/analysis/README.md)** - Статистический анализ
 
 ## 💡 Советы по изучению
 
