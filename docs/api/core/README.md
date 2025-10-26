@@ -32,10 +32,10 @@ Core модули содержат базовую функциональност
 - `memory_usage_info()`, `ensure_directory()`
 
 ### 📓 [bquant.core.nb](nb.md) - Notebook-Style Scripts API
-- **NotebookRunner** - Класс для управления пошаговым выполнением скриптов
+- **NotebookSimulator** - Класс для управления пошаговым выполнением скриптов
 - Утилиты логирования: `log()`, `success()`, `error()`, `warning()`, `info()`
 - Интерактивное управление: `step()`, `wait()`, `substep()`
-- Парсинг аргументов: `create_argument_parser()`, `create_runner_from_args()`
+- Настройка окружения: `setup_logging()`, `set_trap_mode()`
 
 ## 🔍 Быстрый поиск
 
@@ -52,7 +52,7 @@ Core модули содержат базовую функциональност
 - `logger.info()` - Информационные сообщения
 
 #### Производительность
-- `@performance_monitor` - Декоратор профилирования
+- `@performance_monitor()` - Декоратор профилирования
 - `performance_context()` - Контекстный менеджер
 - `get_performance_monitor().get_stats()` - Получение метрик
 
@@ -62,7 +62,7 @@ Core модули содержат базовую функциональност
 - `normalize_data()` - Нормализация данных
 
 #### Notebook-style скрипты
-- `NotebookRunner()` - Создание runner для скрипта
+- `NotebookSimulator()` - Создание runner для скрипта
 - `step()` / `wait()` - Пошаговое выполнение
 - `success()` / `error()` - Логирование с эмодзи
 
@@ -71,7 +71,7 @@ Core модули содержат базовую функциональност
 #### 🏗️ Классы
 - `BQuantError` - Базовое исключение
 - `PerformanceMonitor` - Сбор метрик
-- `NotebookRunner` - Управление notebook-style скриптами
+- `NotebookSimulator` - Управление notebook-style скриптами
 
 #### 🔧 Функции
 - `setup_logging()` - Настройка логирования
@@ -121,7 +121,7 @@ logger.error("Analysis failed")
 from bquant.core.performance import performance_monitor, performance_context
 
 # Декоратор для профилирования
-@performance_monitor
+@performance_monitor()
 def slow_function():
     """Функция с профилированием"""
     import time
@@ -165,10 +165,10 @@ ret = calculate_returns(df['close'], method='log')
 ### Notebook-style скрипты
 
 ```python
-from bquant.core.nb import NotebookRunner, create_argument_parser
+from bquant.core.nb import NotebookSimulator
 
 # Создание и настройка runner
-runner = NotebookRunner("Data Analysis Script")
+runner = NotebookSimulator("Data Analysis Script", auto_setup=False)
 runner.setup_logging('analysis.log')
 
 # Пошаговое выполнение

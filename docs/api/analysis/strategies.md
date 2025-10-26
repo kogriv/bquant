@@ -1,19 +1,19 @@
-# bquant.analysis.zones.strategies — Strategy Pattern
+# bquant.analysis.zones.strategies — паттерн Strategy
 
-> **✅ v2.1 - Universal Strategies**
+> **✅ v2.1 - Универсальные стратегии**
 > 
-> All analytical strategies now work with **ANY indicator**!
+> Все аналитические стратегии теперь работают с **ЛЮБЫМ индикатором**!
 > 
-> **What changed:**
-> - All strategies accept explicit `indicator_col` parameter
-> - `VolumeMetrics.volume_macd_corr` → `volume_indicator_corr` (universal naming)
-> - Protocol signatures updated for universality
+> **Что изменилось:**
+> - Все стратегии принимают явный параметр `indicator_col`
+> - `VolumeMetrics.volume_macd_corr` → `volume_indicator_corr` (универсальное именование)
+> - Сигнатуры протоколов обновлены для универсальности
 > 
-> **Examples:** Each strategy now shows usage with MACD, RSI, AO, and custom indicators
+> **Примеры:** Каждая стратегия теперь показывает использование с MACD, RSI, AO и пользовательскими индикаторами
 > 
-> **Proven:** Works with FICTIONAL_INDICATOR_99 and 10+ real indicators (100% test coverage)
+> **Подтверждено:** Работает с FICTIONAL_INDICATOR_99 и 10+ реальными индикаторами (100% покрытие тестами)
 >
-> **API Stability:** 🟢 STABLE - этот API не изменится после универсализации
+> **Стабильность API:** 🟢 STABLE - этот API не изменится после универсализации
 
 ## Обзор
 
@@ -101,8 +101,8 @@ class SwingCalculationStrategy(Protocol):
 **Интерпретация:**
 - `rally_to_drop_ratio > 2`: Сильные импульсы, слабые коррекции
 - `duration_symmetry > 1.5`: Импульсы длиннее коррекций
-- High `*_speed`: Быстрые резкие движения
-- Low `*_std`: Однородные свинги
+- Высокое значение `*_speed`: Быстрые резкие движения
+- Низкое значение `*_std`: Однородные свинги
 
 ---
 
@@ -117,11 +117,11 @@ class ShapeCalculationStrategy(Protocol):
     def get_metadata(self) -> dict: ...
 ```
 
-**v2.1 Universal Usage:**
+**Универсальное использование v2.1:**
 
-The `indicator_col` parameter is **required** for universal usage with any oscillator.
+Параметр `indicator_col` **обязателен** для универсального использования с любым осциллятором.
 
-**Examples:**
+**Примеры:**
 ```python
 from bquant.analysis.zones.strategies.shape import StatisticalShapeStrategy
 
@@ -143,10 +143,10 @@ shape = strategy.calculate(zone_data, indicator_col='CCI_20')
 shape = strategy.calculate(zone_data, indicator_col='MY_CUSTOM_OSC')
 ```
 
-**All return the same ShapeMetrics structure:**
-- `hist_skewness`: Distribution asymmetry
-- `hist_kurtosis`: Peak sharpness
-- `hist_smoothness`: Change consistency
+**Все возвращают одну и ту же структуру ShapeMetrics:**
+- `hist_skewness`: Асимметрия распределения
+- `hist_kurtosis`: Острота пика
+- `hist_smoothness`: Согласованность изменений
 
 ### ShapeMetrics Dataclass (3 поля)
 
@@ -180,7 +180,7 @@ class DivergenceCalculationStrategy(Protocol):
     def get_metadata(self) -> dict: ...
 ```
 
-**v2.1 Universal Examples:**
+**Универсальные примеры v2.1:**
 ```python
 from bquant.analysis.zones.strategies.divergence import ClassicDivergenceStrategy
 
@@ -211,8 +211,8 @@ div = strategy.calculate_divergence(data, indicator_col='AO_5_34')
 - `divergence_direction`: Направление дивергенции (+1, -1, 0)
 
 **Интерпретация:**
-- **Regular bullish:** Цена делает lower low, индикатор - higher low → потенциальный разворот вверх
-- **Regular bearish:** Цена делает higher high, индикатор - lower high → потенциальный разворот вниз
+- **Regular bullish:** Цена формирует более низкий минимум (lower low), индикатор — более высокий минимум (higher low) → потенциальный разворот вверх
+- **Regular bearish:** Цена формирует более высокий максимум (higher high), индикатор — более низкий максимум (lower high) → потенциальный разворот вниз
 - **Strength > 0.7:** Сильная дивергенция
 - **Strength < 0.3:** Слабая дивергенция
 
@@ -270,16 +270,16 @@ class VolumeCalculationStrategy(Protocol):
 
 - `volume_zone_ratio`: Отношение среднего объема зоны к baseline
 - `volume_at_entry_change`: Изменение объема при входе в зону (%)
-- `volume_indicator_corr`: Корреляция объема с индикатором ✨ **v2.1: renamed from volume_macd_corr**
+- `volume_indicator_corr`: Корреляция объема с индикатором ✨ **v2.1: переименовано из volume_macd_corr**
 - `avg_volume_zone`: Средний объем в зоне
 
 **Интерпретация:**
 - `volume_zone_ratio > 1.5`: Высокий объем - сильное движение
 - `volume_zone_ratio < 0.7`: Низкий объем - слабое движение
-- `volume_indicator_corr > 0.7`: Объем подтверждает индикатор ✨ **v2.1: universal**
-- `volume_at_entry_change > 0.5`: Объем растет при входе - confirmation
+- `volume_indicator_corr > 0.7`: Объем подтверждает индикатор ✨ **v2.1: универсальный**
+- `volume_at_entry_change > 0.5`: Объем растет при входе — подтверждение
 
-**v2.1 Universal Examples:**
+**Универсальные примеры v2.1:**
 ```python
 from bquant.analysis.zones.strategies.volume import StandardVolumeStrategy
 
@@ -343,24 +343,24 @@ print(f"By type: {stats['by_type']}")
 
 ---
 
-## Implemented Strategies
+## Реализованные стратегии
 
-### Swing Strategies
+### Стратегии свингов
 
 #### ZigZagSwingStrategy
 
-**Algorithm:** Uses pandas-ta ZigZag indicator to detect significant price reversals.
+**Алгоритм:** Использует индикатор pandas-ta ZigZag для обнаружения значимых разворотов цены.
 
-**Parameters:**
-- `legs` (default: 10): Number of bars to look back/forward
-- `deviation` (default: 0.05): Minimum 5% price change to form new leg
+**Параметры:**
+- `legs` (по умолчанию: 10): Количество баров для анализа назад/вперед
+- `deviation` (по умолчанию: 0.05): Минимальное изменение цены 5% для формирования новой ноги
 
-**When to use:**
-- ✅ Smooth trending markets
-- ✅ Larger timeframes (H4, D1)
-- ✅ Want to filter out noise
+**Когда применять:**
+- ✅ Плавные трендовые рынки
+- ✅ Старшие таймфреймы (H4, D1)
+- ✅ Необходимо отфильтровать шум
 
-**Example:**
+**Пример:**
 ```python
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
 
@@ -371,80 +371,80 @@ strategy = create_swing_strategy('zigzag', legs=15, deviation=0.03)
 analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
 ```
 
-**Metrics focus:** Larger, more significant swings
+**Фокус метрик:** Более крупные и значимые свинги
 
 ---
 
 #### FindPeaksSwingStrategy
 
-**Algorithm:** Uses scipy.signal.find_peaks to detect all local extrema.
+**Алгоритм:** Использует scipy.signal.find_peaks для обнаружения всех локальных экстремумов.
 
-**Parameters:**
-- `prominence` (default: 0.02): Minimum 2% prominence for peak
-- `distance` (default: 3): Minimum 3 bars between peaks
+**Параметры:**
+- `prominence` (по умолчанию: 0.02): Минимальная выраженность 2% для пика
+- `distance` (по умолчанию: 3): Минимум 3 бара между пиками
 
-**When to use:**
-- ✅ Choppy/ranging markets
-- ✅ Detect all local extrema
-- ✅ Smaller timeframes (M15, H1)
-- ✅ Detailed swing analysis
+**Когда применять:**
+- ✅ Рынки во флэте/волатильные диапазоны
+- ✅ Нужно находить все локальные экстремумы
+- ✅ Младшие таймфреймы (M15, H1)
+- ✅ Детальный анализ свингов
 
-**Example:**
+**Пример:**
 ```python
 analyzer = ZoneFeaturesAnalyzer(swing_strategy='find_peaks')
 # Custom parameters
 strategy = create_swing_strategy('find_peaks', prominence=0.01, distance=5)
 ```
 
-**Metrics focus:** More numerous, smaller swings
+**Фокус метрик:** Более многочисленные, но меньшие свинги
 
 ---
 
 #### PivotPointsSwingStrategy
 
-**Algorithm:** Classic N-bar pattern - high/low that is highest/lowest among N bars left and right.
+**Алгоритм:** Классический N-барный паттерн — максимум/минимум, являющийся наивысшим/наименьшим среди N баров слева и справа.
 
-**Parameters:**
-- `left_bars` (default: 5): Bars to left of pivot
-- `right_bars` (default: 5): Bars to right of pivot
+**Параметры:**
+- `left_bars` (по умолчанию: 5): Количество баров слева от пивота
+- `right_bars` (по умолчанию: 5): Количество баров справа от пивота
 
-**When to use:**
-- ✅ Classic technical analysis approach
-- ✅ Well-defined pivot points
-- ✅ Any timeframe
-- ✅ Conservative swing detection
+**Когда применять:**
+- ✅ Классический подход технического анализа
+- ✅ Требуются четко определенные пивоты
+- ✅ Любой таймфрейм
+- ✅ Консервативное определение свингов
 
-**Example:**
+**Пример:**
 ```python
 analyzer = ZoneFeaturesAnalyzer(swing_strategy='pivot_points')
 # Asymmetric window
 strategy = create_swing_strategy('pivot_points', left_bars=7, right_bars=3)
 ```
 
-**Metrics focus:** Confirmed, validated swings
+**Фокус метрик:** Подтвержденные, проверенные свинги
 
 ---
 
-### Shape Strategies
+### Стратегии формы
 
 #### StatisticalShapeStrategy
 
-**Algorithm:** Statistical analysis of indicator histogram shape using scipy.stats.
+**Алгоритм:** Статистический анализ формы гистограммы индикатора с использованием scipy.stats.
 
-**Parameters:** None (uses statistical moments)
+**Параметры:** Нет (используются статистические моменты)
 
-**Metrics calculated:**
-- `hist_skewness`: Skewness (scipy.stats.skew)
-- `hist_kurtosis`: Kurtosis (scipy.stats.kurtosis)
-- `hist_smoothness`: Smoothness (inverse of changes variance)
+**Рассчитываемые метрики:**
+- `hist_skewness`: Коэффициент асимметрии (scipy.stats.skew)
+- `hist_kurtosis`: Куртозис (scipy.stats.kurtosis)
+- `hist_smoothness`: Гладкость (обратная дисперсии изменений)
 
-**When to use:**
-- ✅ Understand distribution characteristics
-- ✅ Identify explosive vs gradual zones
-- ✅ Cluster zones by shape
-- ✅ Any indicator with histogram
+**Когда применять:**
+- ✅ Понять характеристики распределения
+- ✅ Выявить взрывные vs плавные зоны
+- ✅ Кластеризовать зоны по форме
+- ✅ Любой индикатор с гистограммой
 
-**Example:**
+**Пример:**
 ```python
 analyzer = ZoneFeaturesAnalyzer(shape_strategy='statistical')
 
@@ -456,34 +456,34 @@ print(f"Kurtosis: {shape.hist_kurtosis:.2f}")
 print(f"Smoothness: {shape.hist_smoothness:.2f}")
 ```
 
-**Interpretation:**
-- Positive skew + high kurtosis → Explosive movements
-- Negative skew + low kurtosis → Gradual decline
-- High smoothness → Steady trend
-- Low smoothness → Choppy movement
+**Интерпретация:**
+- Положительная асимметрия + высокий куртозис → Взрывные движения
+- Отрицательная асимметрия + низкий куртозис → Плавное снижение
+- Высокая гладкость → Устойчивый тренд
+- Низкая гладкость → Рваное движение
 
 ---
 
-### Divergence Strategies
+### Стратегии дивергенций
 
 #### ClassicDivergenceStrategy
 
-**Algorithm:** Detects regular bullish/bearish divergences using peak detection.
+**Алгоритм:** Обнаруживает обычные бычьи/медвежьи дивергенции через детекцию пиков.
 
-**Parameters:**
-- `use_macd_line` (default: False): Use MACD line instead of histogram
+**Параметры:**
+- `use_macd_line` (по умолчанию: False): Использовать линию MACD вместо гистограммы
 
-**Divergence types:**
-- **Regular Bullish:** Price makes lower low, indicator makes higher low
-- **Regular Bearish:** Price makes higher high, indicator makes lower high
+**Типы дивергенций:**
+- **Regular Bullish:** Цена формирует lower low, индикатор — higher low
+- **Regular Bearish:** Цена формирует higher high, индикатор — lower high
 
-**When to use:**
-- ✅ Potential reversal points
-- ✅ Entry signal confirmation
-- ✅ Exit signal generation
-- ✅ Works with any oscillator
+**Когда применять:**
+- ✅ Потенциальные точки разворота
+- ✅ Подтверждение сигналов на вход
+- ✅ Генерация сигналов на выход
+- ✅ Работает с любым осциллятором
 
-**Example:**
+**Пример:**
 ```python
 analyzer = ZoneFeaturesAnalyzer(divergence_strategy='classic')
 
@@ -496,55 +496,55 @@ if div.divergence_count > 0:
     print(f"Count: {div.divergence_count}")
 ```
 
-**Strength calculation:**
-- Based on vertical distance between peaks
-- Normalized correlation between price and indicator peaks
-- Range: 0.0 (weak) to 1.0 (strong)
+**Расчет силы:**
+- Основан на вертикальном расстоянии между пиками
+- Нормализованная корреляция между пиками цены и индикатора
+- Диапазон: 0.0 (слабая) до 1.0 (сильная)
 
-**Trading applications:**
-- Filter entries: only take signals with divergence_strength > 0.5
-- Size positions: larger size for stronger divergences
-- Set stops: based on divergence_direction
+**Применение в торговле:**
+- Фильтрация входов: принимать сигналы только при `divergence_strength > 0.5`
+- Размер позиции: увеличивать для более сильных дивергенций
+- Установка стопов: ориентироваться на `divergence_direction`
 
 ---
 
-### Volatility Strategies
+### Стратегии волатильности
 
 #### CombinedVolatilityStrategy
 
-**Algorithm:** Combined assessment using Bollinger Bands and ATR.
+**Алгоритм:** Комбинированная оценка через Bollinger Bands и ATR.
 
-**Parameters:**
-- `bb_window` (default: 20): Bollinger Bands window
-- `bb_std` (default: 2): Number of standard deviations
-- `atr_window` (default: 14): ATR window
-- `atr_multiplier` (default: 1.0): ATR multiplier for range
+**Параметры:**
+- `bb_window` (по умолчанию: 20): Окно для полос Боллинджера
+- `bb_std` (по умолчанию: 2): Количество стандартных отклонений
+- `atr_window` (по умолчанию: 14): Окно ATR
+- `atr_multiplier` (по умолчанию: 1.0): Множитель ATR для диапазона
 
-**Components:**
+**Компоненты:**
 
 **Bollinger Bands:**
-- Width metrics: how wide/narrow the bands
-- Squeeze detection: bands compressing
-- Touch counts: price testing bands
+- Метрики ширины: насколько широкие/узкие полосы
+- Обнаружение сжатия: полосы сужаются
+- Подсчет касаний: цена тестирует полосы
 
 **ATR:**
-- Normalized range: zone range vs typical range
-- ATR trend: volatility increasing/decreasing
-- Graceful degradation: estimates via True Range if no ATR column
+- Нормализованный диапазон: диапазон зоны относительно типичного
+- Тренд ATR: волатильность растет/снижается
+- Постепенная деградация: оценки через True Range при отсутствии колонки ATR
 
-**Volatility Score (0-10):**
-Weighted combination:
-- 40%: Bollinger width percentile
-- 30%: ATR trend
-- 30%: Squeeze ratio
+**Показатель волатильности (0-10):**
+Взвешенная комбинация:
+- 40%: перцентиль ширины полос Боллинджера
+- 30%: тренд ATR
+- 30%: коэффициент сжатия
 
-**Regime Classification:**
-- **Low (0-3):** Consolidation, range trading
-- **Medium (3-6):** Normal volatility, standard strategies
-- **High (6-8):** Increased risk, smaller positions
-- **Extreme (8-10):** Crisis mode, minimal exposure
+**Классификация режимов:**
+- **Low (0-3):** Консолидация, торговля в диапазоне
+- **Medium (3-6):** Нормальная волатильность, стандартные стратегии
+- **High (6-8):** Повышенный риск, меньшие позиции
+- **Extreme (8-10):** Кризисный режим, минимальная экспозиция
 
-**Example:**
+**Пример:**
 ```python
 analyzer = ZoneFeaturesAnalyzer(volatility_strategy='combined')
 
@@ -569,33 +569,33 @@ else:  # extreme
 
 ---
 
-### Volume Strategies
+### Стратегии объема
 
 #### StandardVolumeStrategy
 
-**Algorithm:** Standard volume analysis with baseline comparison.
+**Алгоритм:** Стандартный анализ объема с сопоставлением с базовым значением.
 
-**Parameters:**
-- `baseline_volume` (optional): Reference volume for comparison
+**Параметры:**
+- `baseline_volume` (опционально): Эталонный объем для сравнения
 
-**Metrics:**
-- `volume_zone_ratio`: Zone volume / baseline volume
-- `volume_at_entry_change`: Volume change at zone entry (%)
-- `volume_indicator_corr`: Correlation between volume and indicator ✨ **v2.1: universal**
-- `avg_volume_zone`: Average volume in zone
+**Метрики:**
+- `volume_zone_ratio`: Объем зоны / базовый объем
+- `volume_at_entry_change`: Изменение объема при входе в зону (%)
+- `volume_indicator_corr`: Корреляция между объемом и индикатором ✨ **v2.1: универсальный**
+- `avg_volume_zone`: Средний объем в зоне
 
-**Graceful degradation:**
-- Works without baseline (ratio = None)
-- Works without volume column (all metrics = None)
-- No crashes on missing data
+**Постепенная деградация:**
+- Работает без baseline (ratio = None)
+- Работает без колонки объема (все метрики = None)
+- Не падает при отсутствии данных
 
-**When to use:**
-- ✅ Confirm signal strength
-- ✅ Detect accumulation/distribution
-- ✅ Volume-price divergence
-- ✅ Any market with volume data
+**Когда применять:**
+- ✅ Подтверждать силу сигнала
+- ✅ Определять накопление/распределение
+- ✅ Дивергенции объема и цены
+- ✅ Любой рынок с объемами
 
-**Example:**
+**Пример:**
 ```python
 # Without baseline
 analyzer = ZoneFeaturesAnalyzer(volume_strategy='standard')
@@ -619,9 +619,9 @@ if vol:
 
 ---
 
-## Usage Examples
+## Примеры использования
 
-### Basic: Using Universal Pipeline v2.1
+### Базовый: использование Universal Pipeline v2.1
 
 ```python
 from bquant.analysis.zones import analyze_zones
@@ -644,7 +644,7 @@ if zone.features:
     print(f"Volatility: {zone.features.get('volatility_regime', 'unknown')}")
 ```
 
-### Advanced: Switching Strategies with Universal Pipeline
+### Продвинутый: переключение стратегий в Universal Pipeline
 
 ```python
 from bquant.analysis.zones import analyze_zones
@@ -669,7 +669,7 @@ for strategy_name in strategies:
         print(f"  Avg rally: {features.get('avg_rally_pct', 0):.2%}")
 ```
 
-### Expert: A/B Testing Strategies with Universal Pipeline
+### Экспертный: A/B-тестирование стратегий в Universal Pipeline
 
 ```python
 import pandas as pd
@@ -731,7 +731,7 @@ print(summary)
 # - PivotPoints: balanced, validated swings
 ```
 
-### Custom: Creating and Using Your Own
+### Пользовательский: создание и использование собственной стратегии
 
 ```python
 # 1. Create strategy
@@ -758,7 +758,7 @@ strategy = ThresholdSwingStrategy(threshold=0.03)
 analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
 ```
 
-### Combining Multiple Strategies with Universal Pipeline
+### Комбинация нескольких стратегий в Universal Pipeline
 
 ```python
 # Use different strategies for different purposes with Universal Pipeline
@@ -789,17 +789,17 @@ if zone.features:
 
 ---
 
-## Strategy Comparison Table
+## Сравнительная таблица стратегий
 
-| Strategy | Speed | Detail | Noise | Best For |
-|----------|-------|--------|-------|----------|
-| **ZigZag** | Medium | Low | Low | Trends, larger TF |
-| **FindPeaks** | Fast | High | High | Choppy, all extrema |
-| **PivotPoints** | Medium | Medium | Low | Classic TA |
-| **Statistical** | Fast | N/A | N/A | Shape analysis |
-| **Classic** | Medium | N/A | N/A | Divergences |
-| **Combined** | Medium | High | N/A | Volatility |
-| **Standard** | Fast | Medium | N/A | Volume |
+| Стратегия | Скорость | Детализация | Шум | Лучшее применение |
+|-----------|----------|------------|-----|-------------------|
+| **ZigZag** | Medium | Low | Low | Тренды, старшие ТФ |
+| **FindPeaks** | Fast | High | High | Волатильные рынки, все экстремумы |
+| **PivotPoints** | Medium | Medium | Low | Классический ТА |
+| **Statistical** | Fast | N/A | N/A | Анализ формы |
+| **Classic** | Medium | N/A | N/A | Дивергенции |
+| **Combined** | Medium | High | N/A | Волатильность |
+| **Standard** | Fast | Medium | N/A | Объем |
 
 ---
 
@@ -807,21 +807,21 @@ if zone.features:
 
 ### 📚 Core API
 - **[Universal Pipeline](pipeline.md)** - Полная документация Universal Pipeline v2.1
-- **[Zone Features](zones.md)** - Universal API для анализа зон
-- **[Statistical Analysis](statistical.md)** - Hypothesis tests и статистика
+- **[Zone Features](zones.md)** - Универсальный API для анализа зон
+- **[Statistical Analysis](statistical.md)** - Проверки гипотез и статистика
 - **[Quick Start](../../user_guide/quick_start.md)** - Быстрый старт с Universal Pipeline
 
 ### 🎯 Learning Path
 - **[Examples](../../examples/README.md)** - Готовые примеры использования
-- **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis
-- **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
+- **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Подробный разбор
+- **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Свинги, дивергенции, регрессия
 - **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
 
 ### 🏗️ Developer Resources
-- **[Architecture Patterns](../../developer_guide/README.md)** - Design Patterns, Extension Points
-- **[Testing Framework](../../tests/integration/)** - Integration tests, Backward compatibility
-- **[Visualization](../../api/visualization/README.md)** - Zone visualization, Statistical plots
-- **[Indicators](../../api/indicators/README.md)** - IndicatorFactory, Custom indicators
+- **[Architecture Patterns](../../developer_guide/README.md)** - Паттерны проектирования, точки расширения
+- **[Testing Framework](../../tests/integration/)** - Интеграционные тесты, обратная совместимость
+- **[Visualization](../../api/visualization/README.md)** - Визуализация зон, статистические графики
+- **[Indicators](../../api/indicators/README.md)** - IndicatorFactory, пользовательские индикаторы
 
 ### 🔧 Technical Resources
 - **Implementations:** `bquant/analysis/zones/strategies/`
