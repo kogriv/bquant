@@ -1,4 +1,4 @@
-# Examples - Примеры использования BQuant
+# Примеры использования BQuant
 
 ## 📚 Обзор
 
@@ -6,42 +6,57 @@
 
 ## 🗂️ Категории примеров
 
-### 🚀 Universal Zone Analysis Examples
-- **02a_universal_zones.py** - **MAIN TUTORIAL** (297 строк)
-  - **Universal API demonstration:** MACD, RSI, AO, MA crossover, Preloaded zones
-  - **Zero Code Duplication:** один API для всех индикаторов
-  - **Caching & Persistence:** 3 формата сохранения (pickle, JSON, parquet)
-  - **Modular Usage:** детекция отдельно, анализ отдельно
+### 🚀 Примеры универсального анализа зон
+- **01_basic_indicators.py** — **ОСНОВЫ ИНДИКАТОРОВ** (314 строк)
+  - **IndicatorFactory и LibraryManager:** базовые SMA, RSI, MACD, Bollinger Bands
+  - **Создание данных:** `create_sample_ohlcv_data()` без внешних источников
+  - **Авто-загрузка библиотек:** `LibraryManager.load_all_libraries()` и интеграция с pandas-ta
 
-- **02_macd_zone_analysis.py** - **MIGRATION GUIDE** (241 строка)
-  - **Legacy vs New API:** сравнение старого и нового подходов
-  - **Deprecation Warnings:** демонстрация предупреждений
-  - **Performance Comparison:** время выполнения и использование памяти
-  - **Multiple Strategies:** zero_crossing, line_crossing, combined rules
+- **02a_universal_zones.py** — **ГЛАВНЫЙ ТУТОРИАЛ** (552 строки)
+  - **Универсальный API:** MACD, RSI, AO, MA crossover, Stochastic, кастомные индикаторы и preloaded-зоны
+  - **Отсутствие дублирования:** один pipeline для всех стратегий детекции
+  - **Кэширование и сохранение:** pickle, JSON и parquet для результатов анализа
+  - **Модульный запуск:** отдельные функции для подготовки, анализа и визуализации
 
-### 📈 Advanced Features Examples  
-- **05_strategies_demo.py** - **STRATEGIES DEEP DIVE**
-  - **Swing Strategies:** FindPeaks, PivotPoints, ZigZag
-  - **Strategy Configuration:** `.with_strategies()` API
-  - **Feature Extraction:** доступ к zone.features
+- **02_macd_zone_analysis.py** — **РУКОВОДСТВО ПО МИГРАЦИИ** (319 строк)
+- **Legacy vs Universal (сравнение):** пошаговое сопоставление старого и нового API
+- **Предупреждения об устаревании (Deprecation Warnings):** демонстрация предупреждений и путей миграции
+- **Бенчмарк производительности:** измерение времени и памяти для обоих подходов
+  - **Несколько стратегий:** `zero_crossing`, `line_crossing`, комбинированные правила
 
-- **06_regression_demo.py** - **REGRESSION ANALYSIS**
-  - **Statistical Modeling:** регрессионный анализ зон
-  - **Feature Engineering:** подготовка данных для ML
-  - **Model Validation:** оценка качества моделей
+### 📈 Примеры продвинутых возможностей
+- **03_data_processing.py** — **ДЕМОНСТРАЦИЯ PIPELINE ДАННЫХ** (510 строк)
+- **ETL-конвейер:** очистка, агрегация и нормализация рыночных данных
+- **Инженерия признаков (feature engineering):** генерация признаков для последующего анализа зон
+  - **Отчётность:** структурированный вывод метрик и логирование прогресса
 
-- **07_validation_demo.py** - **VALIDATION FRAMEWORK**
-  - **Cross-validation:** проверка стабильности результатов
-  - **Performance Metrics:** оценка качества детекции
-  - **Robustness Testing:** тестирование на разных данных
+- **04_comprehensive_analysis.py** — **ПОЛНЫЙ PIPELINE** (301 строка)
+  - **UniversalZoneAnalyzer:** конфигурация через `ZoneDetectionRegistry`
+  - **Смешанные режимы рынка:** демонстрация тренда, коррекции и боковика
+  - **Полный цикл:** от подготовки данных до сохранения результатов анализа
 
-### 🔬 Research Notebooks
-- **03_zones_universal.py** - Deep dive analysis (412 строк)
-- **03_analysis_new_features.py** - Advanced features testing
+- **05_strategies_demo.py** — **ГЛУБОКОЕ ПОГРУЖЕНИЕ В СТРАТЕГИИ** (339 строк)
+- **Колебательные и дивергенционные стратегии:** FindPeaks, PivotPoints, ZigZag, классические дивергенции
+- **`.with_strategies()` API:** комбинирование нескольких стратегий в одном пайплайне
+- **`zone.features`:** доступ к расширенным метрикам и печать симметрии длительности
+
+- **06_regression_demo.py** — **РЕГРЕССИОННЫЙ АНАЛИЗ** (273 строки)
+  - **Статистическое моделирование:** регрессия по метрикам зон
+  - **Подготовка признаков:** масштабирование, train/test split и оценка
+  - **Валидация:** сравнение моделей и вывод коэффициентов
+
+- **07_validation_demo.py** — **ФРЕЙМВОРК ВАЛИДАЦИИ** (413 строк)
+- **Кросс-валидация (cross-validation):** проверка стабильности стратегий на нескольких срезах
+  - **Метрики качества:** precision/recall, вероятность срабатывания и устойчивость
+  - **Стресс-тесты:** анализ поведения при разных объёмах данных
+
+### 🔬 Исследовательские ноутбуки
+- [**03_zones_universal.py**](../../research/notebooks/03_zones_universal.py) — Глубокий разбор универсального анализа зон (412 строк)
+- [**03_analysis_new_features.py**](../../research/notebooks/03_analysis_new_features.py) — Тестирование новых аналитических возможностей
 
 ## 🎯 Быстрый старт с примерами
 
-### 1. Universal Zone Analysis
+### 1. Универсальный анализ зон
 
 ```python
 # examples/02a_universal_zones.py
@@ -56,7 +71,7 @@ data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
     .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='rsi', 
+    .detect_zones('threshold', indicator_col='RSI_14',  # колонка создаётся pandas-ta
                   upper_threshold=70, lower_threshold=30)
     .analyze(clustering=True)
     .build()
@@ -64,20 +79,22 @@ result = (
 
 # Выводим результаты
 print(f"Найдено зон: {len(result.zones)}")
+if not result.zones:
+    print("⚠️ RSI на текущем датасете не пересёк пороги 70/30 — зон может не быть.")
 print(f"Статистика: {result.statistics}")
 ```
 
-### 2. Migration Guide - Legacy vs New API
+### 2. Руководство по миграции — Legacy vs New API
 
 ```python
 # examples/02_macd_zone_analysis.py
 
-# ⚠️ DEPRECATED: Старый способ
+# ⚠️ УСТАРЕВШИЙ СПОСОБ (DEPRECATED)
 from bquant.indicators import MACDZoneAnalyzer
 analyzer = MACDZoneAnalyzer()
 result = analyzer.analyze_complete(data)
 
-# ✅ NEW: Universal Pipeline
+# ✅ Новый способ: Universal Pipeline
 from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
@@ -88,7 +105,7 @@ result = (
 )
 ```
 
-### 3. Advanced Features - Strategies & Analysis
+### 3. Продвинутые возможности — стратегии и анализ
 
 ```python
 # examples/05_strategies_demo.py
@@ -97,16 +114,16 @@ from bquant.data.samples import get_sample_data
 
 data = get_sample_data('tv_xauusd_1h')
 
-# Advanced strategies
+# Продвинутые стратегии
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_col='macd_hist')
     .with_strategies(
-        swing='find_peaks',      # Swing analysis
-        divergence='classic',    # Divergence detection
-        volume='standard',       # Volume analysis
-        volatility='combined'    # Volatility analysis
+        swing='find_peaks',      # Анализ swing-движений
+        divergence='classic',    # Обнаружение дивергенций
+        volume='standard',       # Анализ объёма
+        volatility='combined'    # Анализ волатильности
     )
     .analyze(clustering=True)
     .build()
@@ -115,21 +132,26 @@ result = (
 # Hypothesis tests автоматически в pipeline
 if result.hypothesis_tests:
     for test_name, test_result in result.hypothesis_tests.results.items():
-        print(f"{test_name}: p={test_result['p_value']:.4f}")
+        p_value = test_result.get('p_value')
+        if p_value is not None:
+            print(f"{test_name}: p={p_value:.4f}")
+        else:
+            print(f"{test_name}: {test_result}")
 ```
 
-## 🗺️ Examples Navigation
+## 🗺️ Навигация по примерам
 
 ### 🚀 Quick Start
-- [Universal Zones](02a_universal_zones.py) - **START HERE** - любой индикатор за 3 строки
+- [Basic Indicators](../../examples/01_basic_indicators.py) — стартовая демонстрация IndicatorFactory
+- [Universal Zones](../../examples/02a_universal_zones.py) — **НАЧНИТЕ ЗДЕСЬ**: любой индикатор за 3 строки
 
-### 📚 Learning Path  
-- [Migration Guide](02_macd_zone_analysis.py) - переход с deprecated API
-- [Strategies Deep Dive](05_strategies_demo.py) - все типы стратегий
-- [Regression Analysis](06_regression_demo.py) - статистическое моделирование
-- [Validation Framework](07_validation_demo.py) - проверка качества
+### 📚 Маршрут изучения
+- [Migration Guide](../../examples/02_macd_zone_analysis.py) — переход с deprecated API
+- [Strategies Deep Dive](../../examples/05_strategies_demo.py) — все типы стратегий
+- [Regression Analysis](../../examples/06_regression_demo.py) — статистическое моделирование
+- [Validation Framework](../../examples/07_validation_demo.py) — проверка качества
 
-### 🔗 Cross-References
+### 🔗 Перекрёстные ссылки
 - **API Documentation:** [Pipeline API](../api/analysis/pipeline.md)
 - **Strategy Reference:** [Detection Strategies](../api/analysis/strategies.md)
 - **Visualization:** [Zone Visualization](../api/visualization/README.md)
@@ -162,7 +184,10 @@ from bquant.visualization import FinancialCharts
 
 # Настройка логирования
 import logging
+import plotly.io as pio
+
 logging.basicConfig(level=logging.INFO)
+pio.renderers.default = "json"  # безопасный renderer для headless-среды
 ```
 
 ### 💻 Основной код
@@ -187,8 +212,11 @@ def main():
     # 4. Визуализация
     print("Создаем визуализацию...")
     charts = FinancialCharts()
-    fig = charts.plot_macd_with_zones(data, result.zones)
-    fig.show()
+    try:
+        fig = charts.plot_macd_with_zones(data, result.zones)
+        fig.show()
+    except Exception as exc:
+        print(f"⚠️ Визуализация недоступна: {exc}")
 
 if __name__ == "__main__":
     main()
@@ -243,7 +271,7 @@ if __name__ == "__main__":
 
 ### 1. Клонирование репозитория
 ```bash
-git clone https://github.com/your-username/bquant.git
+git clone https://github.com/bquant-team/bquant.git
 cd bquant
 ```
 
@@ -255,24 +283,26 @@ pip install -e .
 ### 3. Запуск примера
 ```bash
 # Базовый пример
-python docs/examples/basic/simple_macd.py
+python examples/01_basic_indicators.py
 
 # Продвинутый пример
-python docs/examples/advanced/macd_zone_analysis.py
+python examples/02a_universal_zones.py
 
 # С параметрами
-python docs/examples/real_world/trading_analysis.py --symbol XAUUSD --timeframe 1h
+python examples/06_regression_demo.py
 ```
 
 ### 4. В Jupyter Notebook
 ```python
-# Загружаем пример как модуль
-import sys
-sys.path.append('docs/examples/basic')
-import simple_macd
+# Запускаем пример в интерактивном режиме
+from pathlib import Path
+import runpy
 
-# Запускаем
-simple_macd.main()
+example_path = Path("examples/02a_universal_zones.py")
+try:
+    runpy.run_path(example_path, run_name="__main__")
+except TypeError as exc:
+    print("⚠️ Скрипт ожидает явное имя датасета в get_sample_data():", exc)
 ```
 
 ## 💡 Советы по использованию примеров
@@ -342,4 +372,4 @@ if __name__ == "__main__":
 
 ---
 
-**Начать изучение:** [Basic Examples](basic/) 🚀
+**Начать изучение:** [02a_universal_zones.py](../../examples/02a_universal_zones.py) 🚀
