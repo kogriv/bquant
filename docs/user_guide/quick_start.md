@@ -50,7 +50,7 @@ print(f"Период: {data.index[0]} - {data.index[-1]}")
 result = (
     analyze_zones(data)
     .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='rsi', 
+    .detect_zones('threshold', indicator_col='RSI_14',
                   upper_threshold=70, lower_threshold=30)
     .analyze(clustering=True)
     .build()
@@ -79,19 +79,29 @@ for i, zone in enumerate(zones[:3]):  # Первые 3 зоны
 
 ```python
 # Создаем график
+from bquant.visualization.zones import ZoneVisualizer
+import plotly.io as pio
+
+pio.renderers.default = "json"  # Безопасный renderer для headless-среды
 charts = FinancialCharts()
+zone_viz = ZoneVisualizer()
 
 # Candlestick график с RSI
-fig = charts.create_candlestick_chart(
-    data, 
+fig_price = charts.create_candlestick_chart(
+    data,
     title="XAUUSD 1H - RSI Zone Analysis"
 )
+fig_price.show()
 
-# Добавляем RSI с зонами
-fig = charts.plot_indicator_with_zones(data, zones, indicator_col='rsi')
+# Зоны RSI на ценовом графике
+fig_zones = zone_viz.plot_zones_on_price_chart(
+    data,
+    zones,
+    title="XAUUSD 1H - RSI Zones"
+)
 
 # Показываем график
-fig.show()
+fig_zones.show()
 ```
 
 ### 6. Подключение внешних индикаторов одной командой
@@ -106,7 +116,7 @@ LibraryManager.load_all_libraries()
 rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
 rsi_result = rsi.calculate(data)
 
-print(rsi_result.data.tail())
+print(rsi_result.data[['RSI_14']].tail())
 ```
 
 > ℹ️ Подробности и дополнительные примеры смотрите в разделе
@@ -119,6 +129,9 @@ import bquant as bq
 from bquant.data.samples import get_sample_data, list_dataset_names
 from bquant.analysis.zones import analyze_zones
 from bquant.visualization import FinancialCharts
+import plotly.io as pio
+
+pio.renderers.default = "json"
 
 def quick_analysis():
     """Быстрый анализ sample данных с Universal Pipeline"""
@@ -138,7 +151,7 @@ def quick_analysis():
     result = (
         analyze_zones(data)
         .with_indicator('pandas_ta', 'rsi', length=14)
-        .detect_zones('threshold', indicator_col='rsi', 
+        .detect_zones('threshold', indicator_col='RSI_14',
                       upper_threshold=70, lower_threshold=30)
         .analyze(clustering=True)
         .build()
@@ -213,13 +226,13 @@ result = (
 4. **[Examples](../examples/README.md)** - Готовые примеры для всех индикаторов
 
 ### 🔬 Advanced Features
-5. **[Deep Dive Tutorial](../research/notebooks/03_zones_universal.py)** - Comprehensive analysis (412 строк)
-6. **[Advanced Features](../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
-7. **[Migration Guide](../examples/02_macd_zone_analysis.py)** - Переход с deprecated API
+5. **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis (412 строк)
+6. **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
+7. **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с deprecated API
 
 ### 🏗️ Developer Resources
 8. **[Architecture Patterns](../developer_guide/README.md)** - Design Patterns, Extension Points
-9. **[Testing Framework](../tests/integration/)** - Integration tests, Backward compatibility
+9. **[Testing Framework](../../tests/integration/)** - Integration tests, Backward compatibility
 10. **[Visualization](../api/visualization/README.md)** - Zone visualization, Statistical plots
 
 ## 💡 Советы
