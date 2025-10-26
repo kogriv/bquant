@@ -221,7 +221,6 @@ class MyCustomSwingStrategy(SwingCalculationStrategy):
             threshold: Minimum price movement to consider as swing (e.g., 0.02 = 2%)
         """
         self.threshold = threshold
-        self.min_required_length = 3
 
     def calculate_swings(self, data: pd.DataFrame) -> SwingMetrics:
         """
@@ -370,7 +369,7 @@ class MyCustomSwingStrategy(SwingCalculationStrategy):
 # class MyCustomSwingStrategy(SwingCalculationStrategy):
 #     ...
 
-# Option B: Регистрируем после определения
+# Option B: Manual registration
 StrategyRegistry.register_swing_strategy('my_custom')(MyCustomSwingStrategy)
 
 # Verify registration
