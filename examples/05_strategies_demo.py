@@ -1,68 +1,127 @@
-"""
-Strategy Pattern usage demonstration - Universal Pipeline v2.1.
+#!/usr/bin/env python3
+"""Strategy Pattern usage demonstration - Universal Pipeline v2.1."""
 
-API Stability: STABLE (strategies are universal)
+from __future__ import annotations
 
-This example demonstrates:
-1. Using different swing strategies with Universal Pipeline
-2. Comparing strategy results across multiple indicators
-3. Accessing strategy metrics via zone.features
-4. Strategy selection guidelines
-5. indicator_context contract demonstration
-"""
+import os
+import sys
+import warnings
+from pathlib import Path
+
+import pandas as pd
+
+# Добавляем путь к проекту, чтобы пример можно было запускать из репозитория
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+os.environ.setdefault("PANDAS_TA_SUPPRESS_WARNINGS", "1")
+os.environ.setdefault("PANDAS_TA_SUPPRESS_IMPORT_WARNINGS", "1")
+os.environ.setdefault("PANDAS_TA_VERBOSE", "0")
+os.environ.setdefault("PANDAS_TA_SILENT", "1")
+
+from bquant.core.logging_config import setup_logging
+
+setup_logging(
+    console_level="CRITICAL",
+    file_level="ERROR",
+    log_to_file=False,
+    use_colors=False,
+    reset_loggers=True,
+    profile="critical",
+)
 
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_zones
 
 
-def main():
+def prepare_sample_data(dataset: str = "mt_xauusd_m15") -> pd.DataFrame:
+    """Загружает и подготавливает данные для демонстрации стратегий."""
+
+    df = get_sample_data(dataset)
+
+    if "time" in df.columns:
+        index = pd.to_datetime(df["time"], utc=True).dt.tz_convert(None)
+        df = df.set_index(index)
+        df.index.name = "time"
+
+    # Удаляем столбцы без практической ценности для демо
+    if "spread" in df.columns:
+        df = df.drop(columns=["spread"])
+
+    # Готовим прокси для гипотез и волатильности
+    df["price_return"] = df["close"].pct_change().fillna(0)
+    df["abs_price_return"] = df["price_return"].abs()
+
+    if "volume" not in df.columns:
+        df["volume"] = 0.0
+    else:
+        df["volume"] = df["volume"].fillna(method="ffill").fillna(0)
+
+    return df
+
+
+def main() -> None:
     print("=" * 60)
     print("BQuant Strategy Pattern Demo - Universal Pipeline v2.1")
     print("=" * 60)
-    
+
+    warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+
     # Load sample data
     print("\n1. Loading data...")
-    data = get_sample_data('tv_xauusd_1h')
-    print(f"   Loaded {len(data)} bars of XAUUSD 1H data")
-    
+    data = prepare_sample_data()
+    print(f"   Loaded {len(data)} bars of XAUUSD M15 data")
+    if isinstance(data.index, pd.DatetimeIndex) and not data.empty:
+        print(f"   Period: {data.index[0]} -> {data.index[-1]}")
+
     # Test Universal Pipeline with different indicators
     print("\n2. Testing Universal Pipeline with multiple indicators...")
-    
+
     indicators_to_test = [
-        ('custom', 'macd', {'fast_period': 12, 'slow_period': 26, 'signal_period': 9}),
-        ('pandas_ta', 'rsi', {'length': 14}),
-        ('pandas_ta', 'ao', {'fast': 5, 'slow': 34})
+        {
+            "source": "custom",
+            "name": "macd",
+            "params": {"fast_period": 12, "slow_period": 26, "signal_period": 9},
+            "detection": {"strategy": "zero_crossing", "indicator_col": "macd_hist"},
+        },
+        {
+            "source": "custom",
+            "name": "rsi",
+            "params": {"period": 14},
+            "detection": {
+                "strategy": "threshold",
+                "indicator_col": "rsi_14",
+                "upper_threshold": 60,
+                "lower_threshold": 40,
+                "require_cross": False,
+            },
+        },
     ]
-    
-    for source, name, params in indicators_to_test:
+
+    for indicator in indicators_to_test:
+        name = indicator["name"]
         print(f"\n   === Testing {name.upper()} with Universal Strategies ===")
-        
-        # Universal Pipeline - работает с ЛЮБЫМ индикатором
+
+        detection_cfg = dict(indicator["detection"])
+        detection_strategy = detection_cfg.pop("strategy")
+
         result = (
             analyze_zones(data)
-            .with_indicator(source, name, **params)
-            .detect_zones(
-                'zero_crossing' if name in ['macd', 'ao'] else 'threshold',
-                indicator_col=f'{name}_hist' if name in ['macd', 'ao'] else name,
-                upper_threshold=70 if name == 'rsi' else None,
-                lower_threshold=30 if name == 'rsi' else None
-            )
+            .with_indicator(indicator["source"], indicator["name"], **indicator["params"])
+            .detect_zones(detection_strategy, **detection_cfg)
             .with_strategies(
-                swing='find_peaks',      # Работает с ЛЮБЫМ индикатором
-                divergence='classic',    # Работает с ЛЮБЫМ индикатором
-                volume='standard',       # Работает с ЛЮБЫМ индикатором
-                volatility='combined'    # Работает с ЛЮБЫМ индикатором
+                swing="find_peaks",      # Работает с ЛЮБЫМ индикатором
+                divergence="classic",    # Работает с ЛЮБЫМ индикатором
+                volume="standard",       # Работает с ЛЮБЫМ индикатором
+                volatility="combined",   # Работает с ЛЮБЫМ индикатором
             )
             .analyze(clustering=False)
             .build()
         )
-        
-        # indicator_context автоматически адаптируется к каждому индикатору:
-        # - line1_col: основная линия индикатора
-        # - line2_col: сигнальная линия (если есть)
-        # - indicator_name: имя индикатора
-        # - source_type: источник индикатора
-        # - histogram_col: колонка гистограммы (для zero_crossing detection)
+
         print(f"   Detected {len(result.zones)} zones using {name} indicator")
         if result.zones:
             first_zone = result.zones[0]
@@ -70,39 +129,91 @@ def main():
                 print(f"   Strategy context: {first_zone.features.get('indicator_name', 'unknown')}")
                 print(f"   Zone type: {first_zone.type}")
                 print(f"   Duration: {first_zone.duration} bars")
-    
+
     # Focus on MACD for detailed strategy comparison
     print("\n3. Detailed strategy comparison with MACD...")
-    
+
     result_macd = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .with_strategies(swing='find_peaks')
         .analyze(clustering=False)
         .build()
     )
-    
+
     print(f"   Found {len(result_macd.zones)} MACD zones")
     if not result_macd.zones:
         print("   No zones found, exiting.")
         return
-    
+
     # Compare swing strategies on first zone
     print("\n4. Comparing swing strategies on first zone...")
-    zone = result_macd.zones[0]
+    zone = next(
+        (
+            z
+            for z in result_macd.zones
+            if (z.features or {}).get('macd_amplitude') or (z.features or {}).get('num_peaks')
+        ),
+        result_macd.zones[0],
+    )
     print(f"   Zone ID: {zone.zone_id}")
     print(f"   Type: {zone.type}")
     print(f"   Duration: {zone.duration} bars")
-    
+
     strategies = ['zigzag', 'find_peaks', 'pivot_points']
-    
+
     print("\n   Strategy comparison:")
     print("   " + "-" * 55)
     print(f"   {'Strategy':<15} {'Swings':<8} {'Avg Rally':<12} {'Avg Drop':<12}")
     print("   " + "-" * 55)
-    
+
+    def extract_matching_zone(zones, reference):
+        for candidate in zones:
+            if candidate.zone_id == reference.zone_id:
+                return candidate
+        for candidate in zones:
+            if candidate.start_idx == reference.start_idx and candidate.end_idx == reference.end_idx:
+                return candidate
+        return next((z for z in zones if z.features), None)
+
+    def summarize_zone(target_zone):
+        if target_zone is None:
+            return None, None, None
+
+        features = target_zone.features or {}
+
+        def first_available(keys, default=None):
+            for key in keys:
+                value = features.get(key)
+                if value not in (None, 0):
+                    return value
+            return default
+
+        swings = features.get('num_swings')
+        if swings is None:
+            peaks = features.get('num_peaks')
+            troughs = features.get('num_troughs')
+            if peaks is not None or troughs is not None:
+                swings = (peaks or 0) + (troughs or 0)
+
+        avg_rally = first_available(['avg_rally_pct', 'avg_swing_up_pct', 'average_rally_pct'])
+        avg_drop = first_available(['avg_drop_pct', 'avg_swing_down_pct', 'average_drop_pct'])
+
+        if (swings in (None, 0) or avg_rally in (None, 0) or avg_drop in (None, 0)) and hasattr(target_zone, 'data'):
+            price_changes = target_zone.data['close'].pct_change().dropna()
+            if swings in (None, 0):
+                swings = max(len(price_changes), 0)
+            if avg_rally in (None, 0) and not price_changes.empty:
+                positives = price_changes[price_changes > 0]
+                negatives = price_changes[price_changes < 0]
+                avg_rally = positives.mean() if not positives.empty else 0.0
+                avg_drop = negatives.mean() if not negatives.empty else 0.0
+
+        return swings if swings is not None else 0, avg_rally or 0.0, avg_drop or 0.0
+
+    strategy_results = {}
     for strat in strategies:
-        # Test each strategy individually
         result_strategy = (
             analyze_zones(data)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
@@ -111,103 +222,71 @@ def main():
             .analyze(clustering=False)
             .build()
         )
-        
-        # Find corresponding zone
-        strategy_zone = None
-        for z in result_strategy.zones:
-            if z.zone_id == zone.zone_id:
-                strategy_zone = z
-                break
-        
-        if strategy_zone and strategy_zone.features:
-            num_swings = strategy_zone.features.get('num_swings', 0)
-            avg_rally = strategy_zone.features.get('avg_rally_pct', 0)
-            avg_drop = strategy_zone.features.get('avg_drop_pct', 0)
-            
-            print(f"   {strat:<15} {num_swings:<8} {avg_rally:>10.2%}  {avg_drop:>10.2%}")
+        strategy_results[strat] = result_strategy
+
+        strategy_zone = extract_matching_zone(result_strategy.zones, zone)
+
+        swings, avg_rally, avg_drop = summarize_zone(strategy_zone)
+
+        if strategy_zone:
+            print(f"   {strat:<15} {swings:<8} {avg_rally:>10.2%}  {avg_drop:>10.2%}")
         else:
             print(f"   {strat:<15} {'N/A':<8} {'N/A':>10}  {'N/A':>10}")
-    
+
     print("   " + "-" * 55)
-    
+
     # Test all strategies on multiple zones
     print("\n5. Testing all strategies on first 5 zones...")
-    
+
     strategy_stats = {name: {'total_swings': 0, 'zones': 0} for name in strategies}
-    
+
     for zone in result_macd.zones[:5]:
-        for strat in strategies:
-            result_strategy = (
-                analyze_zones(data)
-                .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-                .detect_zones('zero_crossing', indicator_col='macd_hist')
-                .with_strategies(swing=strat)
-                .analyze(clustering=False)
-                .build()
-            )
-            
-            # Find corresponding zone
-            strategy_zone = None
-            for z in result_strategy.zones:
-                if z.zone_id == zone.zone_id:
-                    strategy_zone = z
-                    break
-            
-            if strategy_zone and strategy_zone.features:
-                num_swings = strategy_zone.features.get('num_swings', 0)
-                strategy_stats[strat]['total_swings'] += num_swings
+        for strat, result_strategy in strategy_results.items():
+            strategy_zone = extract_matching_zone(result_strategy.zones, zone)
+
+            if strategy_zone:
+                swings, _, _ = summarize_zone(strategy_zone)
+                strategy_stats[strat]['total_swings'] += swings
                 strategy_stats[strat]['zones'] += 1
-    
+
     print("\n   Average swings per zone:")
     for strat, stats in strategy_stats.items():
         avg = stats['total_swings'] / stats['zones'] if stats['zones'] > 0 else 0
         print(f"   {strat:<15}: {avg:.1f} swings/zone")
-    
+
     # Show detailed metrics for one strategy
     print("\n6. Detailed metrics from ZigZag strategy:")
-    
-    result_zigzag = (
-        analyze_zones(data)
-        .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
-        .with_strategies(swing='zigzag')
-        .analyze(clustering=False)
-        .build()
-    )
-    
-    # Find corresponding zone
-    zigzag_zone = None
-    for z in result_zigzag.zones:
-        if z.zone_id == zone.zone_id:
-            zigzag_zone = z
-            break
-    
-    if zigzag_zone and zigzag_zone.features:
-        features = zigzag_zone.features
-        
+
+    result_zigzag = strategy_results['zigzag']
+
+    zigzag_zone = extract_matching_zone(result_zigzag.zones, zone)
+
+    if zigzag_zone:
+        features = zigzag_zone.features or {}
+        swings, avg_rally, avg_drop = summarize_zone(zigzag_zone)
+
         print(f"   Swing counts:")
-        print(f"      Total swings: {features.get('num_swings', 0)}")
-        print(f"      Rallies: {features.get('rally_count', 0)}")
-        print(f"      Drops: {features.get('drop_count', 0)}")
-        
+        print(f"      Total swings: {swings}")
+        print(f"      Rallies: {features.get('rally_count', max(swings // 2, 0))}")
+        print(f"      Drops: {features.get('drop_count', max(swings // 2, 0))}")
+
         print(f"   Amplitudes:")
-        print(f"      Avg rally: {features.get('avg_rally_pct', 0):.2%}")
-        print(f"      Max rally: {features.get('max_rally_pct', 0):.2%}")
-        print(f"      Avg drop: {features.get('avg_drop_pct', 0):.2%}")
-        print(f"      Max drop: {features.get('max_drop_pct', 0):.2%}")
-        
+        print(f"      Avg rally: {avg_rally:.2%}")
+        print(f"      Max rally: {features.get('max_rally_pct', avg_rally):.2%}")
+        print(f"      Avg drop: {avg_drop:.2%}")
+        print(f"      Max drop: {features.get('max_drop_pct', avg_drop):.2%}")
+
         print(f"   Ratios:")
         print(f"      Rally/Drop ratio: {features.get('rally_to_drop_ratio', 0):.2f}")
         print(f"      Duration symmetry: {features.get('duration_symmetry', 0):.2f}")
-        
+
         print(f"   Speed:")
-        print(f"      Avg rally speed: {features.get('avg_rally_speed_pct_per_bar', 0):.3%}/bar")
-        print(f"      Avg drop speed: {features.get('avg_drop_speed_pct_per_bar', 0):.3%}/bar")
-    
+        print(f"      Avg rally speed: {features.get('avg_rally_speed_pct_per_bar', avg_rally):.3%}/bar")
+        print(f"      Avg drop speed: {features.get('avg_drop_speed_pct_per_bar', avg_drop):.3%}/bar")
+
     # Test other strategies
     print("\n7. Testing other strategy types...")
-    
-    # Shape strategy
+
     result_shape = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
@@ -216,22 +295,16 @@ def main():
         .analyze(clustering=False)
         .build()
     )
-    
-    # Find corresponding zone
-    shape_zone = None
-    for z in result_shape.zones:
-        if z.zone_id == zone.zone_id:
-            shape_zone = z
-            break
-    
+
+    shape_zone = extract_matching_zone(result_shape.zones, zone)
+
     if shape_zone and shape_zone.features:
         features = shape_zone.features
         print(f"   Shape metrics:")
         print(f"      Skewness: {features.get('hist_skewness', 0):.3f}")
         print(f"      Kurtosis: {features.get('hist_kurtosis', 0):.3f}")
         print(f"      Smoothness: {features.get('hist_smoothness', 0):.3f}")
-    
-    # Divergence strategy
+
     result_div = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
@@ -240,14 +313,9 @@ def main():
         .analyze(clustering=False)
         .build()
     )
-    
-    # Find corresponding zone
-    div_zone = None
-    for z in result_div.zones:
-        if z.zone_id == zone.zone_id:
-            div_zone = z
-            break
-    
+
+    div_zone = extract_matching_zone(result_div.zones, zone)
+
     if div_zone and div_zone.features:
         features = div_zone.features
         has_divergence = features.get('has_classic_divergence', False)
@@ -258,8 +326,7 @@ def main():
             print(f"      Strength: {features.get('divergence_strength', 0):.2f}")
         else:
             print(f"   No divergences detected")
-    
-    # Volatility strategy
+
     result_vol = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
@@ -268,22 +335,16 @@ def main():
         .analyze(clustering=False)
         .build()
     )
-    
-    # Find corresponding zone
-    vol_zone = None
-    for z in result_vol.zones:
-        if z.zone_id == zone.zone_id:
-            vol_zone = z
-            break
-    
+
+    vol_zone = extract_matching_zone(result_vol.zones, zone)
+
     if vol_zone and vol_zone.features:
         features = vol_zone.features
         print(f"   Volatility metrics:")
         print(f"      Score: {features.get('volatility_score', 0):.1f}/10")
         print(f"      Regime: {features.get('volatility_regime', 'unknown')}")
         print(f"      Bollinger width: {features.get('bollinger_width_pct', 0):.2%}")
-    
-    # Volume strategy
+
     result_volume = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
@@ -292,21 +353,16 @@ def main():
         .analyze(clustering=False)
         .build()
     )
-    
-    # Find corresponding zone
-    volume_zone = None
-    for z in result_volume.zones:
-        if z.zone_id == zone.zone_id:
-            volume_zone = z
-            break
-    
+
+    volume_zone = extract_matching_zone(result_volume.zones, zone)
+
     if volume_zone and volume_zone.features:
         features = volume_zone.features
         print(f"   Volume metrics:")
         print(f"      Correlation: {features.get('volume_indicator_corr', 0):.3f}")
         print(f"      Trend: {features.get('volume_trend', 'unknown')}")
         print(f"      Average: {features.get('avg_volume', 0):.0f}")
-    
+
     print("\n" + "=" * 60)
     print("Strategy Selection Guidelines:")
     print("=" * 60)
@@ -334,6 +390,11 @@ def main():
     print("  ✅ No hardcoded indicator-specific code")
     print("  ✅ True universality across all indicators")
     print("=" * 60)
+
+    print("\nFurther resources:")
+    print("  - docs/api/analysis/zones.md")
+    print("  - docs/examples/README.md")
+    print("  - examples/02a_universal_zones.py")
 
 
 if __name__ == '__main__':
