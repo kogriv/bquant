@@ -47,7 +47,7 @@ nb.log(f"Source: {macd_custom.config.source}")
 # 3. Попытка создания LIBRARY MACD (pandas_ta)
 nb.info("3. LIBRARY MACD (pandas_ta):")
 try:
-    macd_library = IndicatorFactory.create('pandas_ta', 'pandas_ta_macd', fast=12, slow=26, signal=9)
+    macd_library = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
     nb.log(f"Created: {macd_library.name}")
     nb.log(f"Type: {type(macd_library)}")
     nb.log(f"Source: {macd_library.config.source}")

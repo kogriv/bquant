@@ -11,8 +11,10 @@
 """
 
 from typing import Dict, Any, Optional, List
-import pandas as pd
 from datetime import datetime
+
+import pandas as pd
+from pandas.api.types import is_dict_like
 
 from ..core.logging_config import get_logger
 
@@ -89,7 +91,21 @@ class AnalysisResult:
             # Пытаемся конвертировать результаты в DataFrame
             if isinstance(self.results, dict) and self.results:
                 # Если результаты можно представить как табличные данные
-                df = pd.DataFrame(self.results)
+                try:
+                    df = pd.DataFrame(self.results)
+                except ValueError:
+                    # Поддержка словарей со скалярными значениями
+                    df = pd.DataFrame([self.results])
+
+                if df.empty:
+                    df = pd.DataFrame([self.results])
+
+                # Нормализуем вложенные словари (например, статистики)
+                if any(is_dict_like(value) for value in self.results.values()):
+                    normalized = pd.json_normalize(self.results)
+                    if not normalized.empty:
+                        df = normalized
+
                 df.to_csv(file_path, index=False)
                 logger.info(f"Analysis results saved to {file_path}")
             else:

@@ -570,14 +570,21 @@ with nb.error_handling("Exporting zone analysis results"):
         # Экспорт сводного отчета в JSON
         import json
         json_filename = "zone_analysis_report.json"
-        
-        # Конвертируем numpy типы в Python типы для JSON
+
+        # Конвертируем numpy и time-like типы в сериализуемые значения для JSON
         def convert_numpy(obj):
             if isinstance(obj, np.integer):
                 return int(obj)
-            elif isinstance(obj, np.floating):
+            if isinstance(obj, np.floating):
                 return float(obj)
-            elif isinstance(obj, np.ndarray):
+            if isinstance(obj, (np.bool_, bool)):
+                return bool(obj)
+            if isinstance(obj, (datetime, pd.Timestamp)):
+                return obj.isoformat()
+            if isinstance(obj, (timedelta, pd.Timedelta, np.timedelta64)):
+                # Timedelta -> строка формата "X days HH:MM:SS"
+                return str(pd.Timedelta(obj))
+            if isinstance(obj, np.ndarray):
                 return obj.tolist()
             return obj
         
@@ -604,17 +611,17 @@ with nb.error_handling("Exporting zone analysis results"):
         # Создаем DataFrame с характеристиками зон
         features_data = []
         for features in zone_features_list:
-                    features_data.append({
-            'zone_id': features.zone_id,
-            'zone_type': features.zone_type,
-            'duration': features.duration,
-            'price_return': features.price_return,
-            'price_range_pct': features.price_range_pct,
-            'volume_avg': features.metadata.get('volume_avg', 0),
-            'volatility_avg': features.metadata.get('volatility_avg', 0),
-            'price_momentum': features.metadata.get('price_momentum', 0),
-            'price_acceleration': features.metadata.get('price_acceleration', 0)
-        })
+            features_data.append({
+                'zone_id': features.zone_id,
+                'zone_type': features.zone_type,
+                'duration': str(features.duration),
+                'price_return': features.price_return,
+                'price_range_pct': features.price_range_pct,
+                'volume_avg': features.metadata.get('volume_avg', 0),
+                'volatility_avg': features.metadata.get('volatility_avg', 0),
+                'price_momentum': features.metadata.get('price_momentum', 0),
+                'price_acceleration': features.metadata.get('price_acceleration', 0)
+            })
         
         features_df = pd.DataFrame(features_data)
         features_df.to_csv(csv_filename, index=False)

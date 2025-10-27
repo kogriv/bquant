@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-10-22 13:22:44
-[OUTPUT] Output will be written to: research\notebooks\03_analysis_statistical_log.txt
+[LOG] Log started: 2025-10-27 10:51:57
+[OUTPUT] Output will be written to: research/notebooks/03_analysis_statistical_log.txt
 [>>] Starting Изучаем статистический анализ данных и тестирование гипотез
 ===============================================================================
 [SCRIPT] Изучаем статистический анализ данных и тестирование гипотез
-[DATE] Started: 2025-10-22 13:22:44
+[DATE] Started: 2025-10-27 10:51:57
 ===============================================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Инициализация и обзор
@@ -276,9 +276,18 @@
     * Коэффициент Шарпа: 0.0088
 
 9.3. Тестирование различий между стратегиями:
-  - Buy & Hold vs Volatility Strategy: ошибка тестирования - 'numpy.dtypes.ObjectDType' object has no attribute 'dtype'
-  - Buy & Hold vs Volume Strategy: ошибка тестирования - 'numpy.dtypes.ObjectDType' object has no attribute 'dtype'
-  - Volatility Strategy vs Volume Strategy: ошибка тестирования - 'numpy.dtypes.ObjectDType' object has no attribute 'dtype'
+  - Buy & Hold vs Volatility Strategy:
+    * t-статистика: -0.4471
+    * p-значение: 0.654915
+    * Значимое различие: Нет
+  - Buy & Hold vs Volume Strategy:
+    * t-статистика: 0.1731
+    * p-значение: 0.862616
+    * Значимое различие: Нет
+  - Volatility Strategy vs Volume Strategy:
+    * t-статистика: 0.7680
+    * p-значение: 0.442691
+    * Значимое различие: Нет
 [OK] Testing trading strategies completed successfully
 ================================================================================
 [STEP] STEP 10: Шаг 10: Интеграция и экспорт результатов
@@ -291,9 +300,9 @@
 
 10.2. Экспорт результатов:
   - JSON отчет: statistical_analysis_report.json
-  - Размер файла: 1375 байт
+  - Размер файла: 1314 байт
   - CSV данные: statistical_analysis_data.csv
-  - Размер файла: 327 байт
+  - Размер файла: 322 байт
   - Содержимое CSV:
      indicator         mean          std  skewness  kurtosis  is_normal
 0      returns     0.000310     0.019684  0.248874  0.336517      False
@@ -318,5 +327,5 @@
 Готово к созданию скриптов для других модулей анализа!
 
 [END] Script finished successfully!
-[END] Log ended: 2025-10-22 13:22:44
-[TIME] Duration: 0:00:00.182163
+[END] Log ended: 2025-10-27 10:51:57
+[TIME] Duration: 0:00:00.147660

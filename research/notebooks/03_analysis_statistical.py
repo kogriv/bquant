@@ -346,15 +346,25 @@ with nb.error_handling("Testing trading strategies"):
     
     # Стратегия 2: Стратегия на основе волатильности (покупка при низкой волатильности)
     volatility_strategy = test_data.copy()
-    volatility_strategy['volatility_signal'] = volatility_strategy['volatility'] < volatility_strategy['volatility'].rolling(20).mean()
-    volatility_strategy['strategy_return'] = volatility_strategy['returns'] * volatility_strategy['volatility_signal'].shift(1)
-    volatility_returns = volatility_strategy['strategy_return'].dropna()
+    volatility_strategy['volatility_signal'] = (
+        volatility_strategy['volatility']
+        < volatility_strategy['volatility'].rolling(20).mean()
+    ).astype(float)
+    volatility_strategy['strategy_return'] = volatility_strategy['returns'] * (
+        volatility_strategy['volatility_signal'].shift(1).fillna(0.0)
+    )
+    volatility_returns = volatility_strategy['strategy_return'].dropna().astype(float)
     
     # Стратегия 3: Стратегия на основе объема (покупка при высоком объеме)
     volume_strategy = test_data.copy()
-    volume_strategy['volume_signal'] = volume_strategy['volume'] > volume_strategy['volume'].rolling(20).mean()
-    volume_strategy['strategy_return'] = volume_strategy['returns'] * volume_strategy['volume_signal'].shift(1)
-    volume_returns = volume_strategy['strategy_return'].dropna()
+    volume_strategy['volume_signal'] = (
+        volume_strategy['volume']
+        > volume_strategy['volume'].rolling(20).mean()
+    ).astype(float)
+    volume_strategy['strategy_return'] = volume_strategy['returns'] * (
+        volume_strategy['volume_signal'].shift(1).fillna(0.0)
+    )
+    volume_returns = volume_strategy['strategy_return'].dropna().astype(float)
     
     nb.log(f"  - Buy & Hold: {len(buy_hold_returns)} наблюдений")
     nb.log(f"  - Волатильностная стратегия: {len(volatility_returns)} наблюдений")
