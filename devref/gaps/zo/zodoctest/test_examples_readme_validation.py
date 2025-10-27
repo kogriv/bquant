@@ -1,4 +1,4 @@
-"""Валидация раздела docs/examples/README.md (этап 4.2)."""
+"""Валидация раздела docs/examples/README.md (этап 5.6)."""
 
 from __future__ import annotations
 
@@ -7,12 +7,17 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 EXAMPLES_README = PROJECT_ROOT / "docs/examples/README.md"
+EXAMPLES_DIR = PROJECT_ROOT / "examples"
 
 os.environ.setdefault("BQUANT_LOG_LEVEL", "ERROR")
+os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
+os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
+os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+os.environ.setdefault("PANDAS_TA_SILENT", "1")
 logging.getLogger().setLevel(logging.WARNING)
 
 
@@ -24,6 +29,14 @@ def _extract_links(markdown_text: str) -> List[str]:
 def _extract_code_blocks(markdown_text: str, language: str) -> List[str]:
     pattern = re.compile(rf"```{language}\n(.*?)```", re.DOTALL)
     return [block.strip() for block in pattern.findall(markdown_text)]
+
+
+def _extract_line_expectations(markdown_text: str) -> List[Tuple[str, int]]:
+    pattern = re.compile(
+        r"\*\*(\d{2}[a-z]?_[^*]+?\.py)\*\* — [^()]+\((\d+) строк\)",
+        re.IGNORECASE,
+    )
+    return [(match[0], int(match[1])) for match in pattern.findall(markdown_text)]
 
 
 def test_relative_links() -> bool:
@@ -140,6 +153,60 @@ def test_language_markers() -> bool:
     return found >= 5
 
 
+def test_line_counts() -> bool:
+    print("📏 Сверяем количество строк в перечисленных примерах")
+    content = EXAMPLES_README.read_text(encoding="utf-8")
+    expectations = _extract_line_expectations(content)
+
+    if not expectations:
+        print("  ❌ Не удалось найти утверждения о количестве строк")
+        return False
+
+    success = True
+    for filename, expected_lines in expectations:
+        target = EXAMPLES_DIR / filename
+        if not target.exists():
+            print(f"  ❌ Файл {filename} не найден")
+            success = False
+            continue
+
+        with target.open(encoding="utf-8") as handle:
+            actual_lines = sum(1 for _ in handle)
+
+        if actual_lines != expected_lines:
+            print(
+                f"  ❌ {filename}: заявлено {expected_lines}, фактически {actual_lines} строк",
+            )
+            success = False
+        else:
+            print(f"  ✅ {filename}: {actual_lines} строк")
+
+    return success
+
+
+def test_quality_standards_structure() -> bool:
+    print("📚 Проверяем раздел стандартов качества")
+    content = EXAMPLES_README.read_text(encoding="utf-8")
+    required_markers: Iterable[str] = (
+        "## 📏 Example Quality Standards",
+        "### Self-contained",
+        "### Well-documented",
+        "### Error-handled",
+        "### Performance-aware",
+    )
+
+    missing = [marker for marker in required_markers if marker not in content]
+    for marker in required_markers:
+        status = "✅" if marker in content else "❌"
+        print(f"  {status} {marker}")
+
+    if missing:
+        print("  ❌ Отсутствуют обязательные секции: " + ", ".join(missing))
+        return False
+
+    return True
+
+
 def main() -> bool:
     print("🔍 Валидация docs/examples/README.md")
     print("=" * 50)
@@ -149,6 +216,8 @@ def main() -> bool:
         ("Python-блоки", test_python_code_blocks),
         ("Bash-команды", test_bash_blocks),
         ("Русскоязычное содержание", test_language_markers),
+        ("Количество строк примеров", test_line_counts),
+        ("Стандарты качества", test_quality_standards_structure),
     ]
 
     passed = 0
