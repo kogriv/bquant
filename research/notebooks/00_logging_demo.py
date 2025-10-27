@@ -11,6 +11,10 @@
 
 from bquant.core.logging_config import setup_logging, LoggingConfigurator
 import logging
+from bquant.indicators.calculators import calculate_macd
+
+import pandas as pd
+import numpy as np
 
 # =============================================================================
 # 🚀 ФУНКЦИЯ ДЛЯ ДЕМОНСТРАЦИИ ЛОГИРОВАНИЯ
@@ -35,10 +39,6 @@ def demo_logging_behavior():
     # 2. Расчет индикаторов (обычно INFO уровень)
     logger.info("2. Расчет MACD")
     try:
-        from bquant.indicators.macd import calculate_macd
-        import pandas as pd
-        import numpy as np
-        
         # Создаем тестовые данные
         dates = pd.date_range('2024-01-01', periods=100, freq='D')
         test_data = pd.DataFrame({
@@ -53,8 +53,6 @@ def demo_logging_behavior():
     # 3. Анализ зон (обычно INFO уровень)
     logger.info("3. Анализ зон")
     try:
-        from bquant.analysis.zones import find_support_resistance
-        
         # Создаем тестовые OHLCV данные
         test_ohlcv = pd.DataFrame({
             'open': np.random.randn(100).cumsum() + 100,
@@ -63,7 +61,8 @@ def demo_logging_behavior():
             'close': np.random.randn(100).cumsum() + 100,
             'volume': np.random.randint(1000, 10000, 100)
         }, index=dates)
-        
+
+        from bquant.analysis.zones import find_support_resistance
         zones_result = find_support_resistance(test_ohlcv)
         logger.info(f"Анализ зон завершен, найдено {len(zones_result)} зон")
     except Exception as e:

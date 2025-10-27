@@ -146,7 +146,7 @@ with nb.error_handling("Testing data validation"):
     valid_data = pd.DataFrame({
         'price': np.random.randn(100).cumsum() + 100,
         'volume': np.random.randint(1000, 10000, 100),
-        'timestamp': pd.date_range('2024-01-01', periods=100, freq='H')
+        'timestamp': pd.date_range('2024-01-01', periods=100, freq='h')
     })
     valid_data.set_index('timestamp', inplace=True)
     
