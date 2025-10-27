@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-10-22 13:27:19
-[OUTPUT] Output will be written to: research\notebooks\bq_log.txt
+[LOG] Log started: 2025-10-27 11:19:36
+[OUTPUT] Output will be written to: research/notebooks/bq_log.txt
 [>>] Starting Демонстрация работы пакета bquant
 =====================================================
 [SCRIPT] Демонстрация работы пакета bquant
-[DATE] Started: 2025-10-22 13:27:19
+[DATE] Started: 2025-10-27 11:19:36
 =====================================================
 ================================================================================
 [STEP] STEP 1: Определение рабочей директории, получение списка доступных символов и таймфреймов, загрузка данных
@@ -13,10 +13,10 @@
 [SUBSTEP] Определение рабочей директории
 ==============================
 [INFO] 1.1. get_data_dir() - Текущая рабочая директория:
-C:\Users\Ivan\Documents\pro\bquant\data
+/workspace/bquant/data
 [OK] Listing available data directory completed successfully
 [INFO] 1.2. set_data_dir() - Установка рабочей директории:
-C:\Users\Ivan\Documents\pro\bquant\data\raw
+/workspace/bquant/data/raw
 [OK] Setting data directory completed successfully
 [INFO] 1.2. get_available_symbols() - Список доступных символов:
 []

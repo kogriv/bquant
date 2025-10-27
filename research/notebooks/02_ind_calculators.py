@@ -18,6 +18,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 
+from bquant.indicators.base import IndicatorResult
+
 # НАСТРОЙКА ЛОГИРОВАНИЯ ДО ИМПОРТА МОДУЛЕЙ
 from bquant.core.logging_config import setup_logging
 setup_logging(profile='research')
@@ -43,6 +45,42 @@ pd.set_option('display.width', 200)
 
 # Инициализируем симулятор
 nb = NotebookSimulator("Демонстрация работы высокоуровневых калькуляторов индикаторов bquant.indicators.calculators")
+
+
+def calculate_with_alias(
+    calculator: IndicatorCalculator,
+    indicator_name: str,
+    alias: Optional[str] = None,
+    **params: Any,
+) -> IndicatorResult:
+    """Вычислить индикатор и сохранить результат под удобным псевдонимом."""
+
+    alias_name = alias or indicator_name
+    base_result = calculator.calculate(indicator_name, **params)
+
+    metadata = dict(base_result.metadata or {})
+    metadata.update({"alias": alias_name, **params})
+
+    data = base_result.data.copy()
+    if alias_name != indicator_name:
+        if data.shape[1] == 1:
+            column_name = data.columns[0]
+            data = data.rename(columns={column_name: alias_name})
+        else:
+            data = data.add_prefix(f"{alias_name}_")
+
+    aliased_result = IndicatorResult(
+        name=alias_name,
+        data=data,
+        config=base_result.config,
+        metadata=metadata,
+    )
+
+    calculator.results[alias_name] = aliased_result
+    if alias_name != indicator_name and indicator_name in calculator.results:
+        del calculator.results[indicator_name]
+
+    return aliased_result
 
 # --- Шаг 1: Загрузка тестовых данных ---
 nb.step("Шаг 1: Загрузка тестовых данных")
@@ -242,23 +280,37 @@ with nb.error_handling("Testing indicator suites"):
         nb.log(f"    * Метаданные: {result.metadata}")
     
     nb.info("5.3. Создание пользовательского набора индикаторов:")
-    
+
     # Создаем пользовательский набор через IndicatorCalculator
     custom_calculator = IndicatorCalculator(df_sample, auto_load_libraries=False)
-    
-    custom_indicators = {
-        'sma_5': {'period': 5},
-        'sma_10': {'period': 10},
-        'ema_5': {'period': 5},
-        'ema_10': {'period': 10},
-        'rsi_7': {'period': 7},
-        'rsi_21': {'period': 21}
+
+    custom_specs = {
+        'sma_5': ('sma', {'period': 5}),
+        'sma_10': ('sma', {'period': 10}),
+        'ema_5': ('ema', {'period': 5}),
+        'ema_10': ('ema', {'period': 10}),
+        'rsi_7': ('rsi', {'period': 7}),
+        'rsi_21': ('rsi', {'period': 21})
     }
-    
-    custom_suite = custom_calculator.calculate_multiple(custom_indicators)
-    nb.log(f"Пользовательский набор индикаторов создан:")
+
+    custom_suite: Dict[str, IndicatorResult] = {}
+    for alias, (indicator_name, params) in custom_specs.items():
+        custom_suite[alias] = calculate_with_alias(
+            custom_calculator,
+            indicator_name,
+            alias=alias,
+            **params,
+        )
+
+    nb.log("Пользовательский набор индикаторов создан:")
     nb.log(f"  - Количество индикаторов: {len(custom_suite)}")
     nb.log(f"  - Доступные индикаторы: {list(custom_suite.keys())}")
+
+    for alias, result in custom_suite.items():
+        nb.log(f"  - {alias}:")
+        nb.log(f"    * Размер данных: {result.data.shape}")
+        nb.log(f"    * Колонки: {list(result.data.columns)}")
+        nb.log(f"    * Метаданные: {result.metadata}")
 
 nb.wait()
 
@@ -463,22 +515,30 @@ with nb.error_handling("Creating comprehensive datasets"):
     
     # Создаем калькулятор для комплексного анализа
     comprehensive_calc = IndicatorCalculator(df_sample, auto_load_libraries=False)
-    
+
     # Определяем комплексный набор индикаторов
-    comprehensive_indicators = {
-        'sma_10': {'period': 10},
-        'sma_20': {'period': 20},
-        'sma_50': {'period': 50},
-        'ema_12': {'period': 12},
-        'ema_26': {'period': 26},
-        'rsi_14': {'period': 14},
-        'rsi_21': {'period': 21},
-        'bbands': {'period': 20, 'std_dev': 2.0}
+    comprehensive_specs = {
+        'sma_10': ('sma', {'period': 10}),
+        'sma_20': ('sma', {'period': 20}),
+        'sma_50': ('sma', {'period': 50}),
+        'ema_12': ('ema', {'period': 12}),
+        'ema_26': ('ema', {'period': 26}),
+        'rsi_14': ('rsi', {'period': 14}),
+        'rsi_21': ('rsi', {'period': 21}),
+        'bbands_20_2': ('bbands', {'period': 20, 'std_dev': 2.0})
     }
-    
+
     # Вычисляем все индикаторы
-    comprehensive_results = comprehensive_calc.calculate_multiple(comprehensive_indicators)
-    nb.log(f"Комплексный набор индикаторов создан:")
+    comprehensive_results: Dict[str, IndicatorResult] = {}
+    for alias, (indicator_name, params) in comprehensive_specs.items():
+        comprehensive_results[alias] = calculate_with_alias(
+            comprehensive_calc,
+            indicator_name,
+            alias=alias,
+            **params,
+        )
+
+    nb.log("Комплексный набор индикаторов создан:")
     nb.log(f"  - Количество индикаторов: {len(comprehensive_results)}")
     nb.log(f"  - Доступные индикаторы: {list(comprehensive_results.keys())}")
     

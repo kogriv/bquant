@@ -423,8 +423,14 @@ class HypothesisTestSuite:
                 volatility_proxy = df_features['atr']
                 vol_column = 'atr'
             else:
+                if 'price_return' not in df_features.columns:
+                    raise StatisticalAnalysisError(
+                        "No price_return data available for volatility proxy"
+                    )
+
                 volatility_proxy = df_features['price_return'].abs()
                 vol_column = 'abs_price_return'
+                df_features[vol_column] = volatility_proxy
             
             correlations = {}
             

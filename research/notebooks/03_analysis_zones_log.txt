@@ -1,9 +1,9 @@
-[LOG] Log started: 2025-10-22 13:24:26
-[OUTPUT] Output will be written to: research\notebooks\03_analysis_zones_log.txt
+[LOG] Log started: 2025-10-27 10:57:29
+[OUTPUT] Output will be written to: research/notebooks/03_analysis_zones_log.txt
 [>>] Starting Изучаем анализ зон, их характеристик и последовательностей
 ==============================================================================
 [SCRIPT] Изучаем анализ зон, их характеристик и последовательностей
-[DATE] Started: 2025-10-22 13:24:26
+[DATE] Started: 2025-10-27 10:57:29
 ==============================================================================
 ================================================================================
 [STEP] STEP 1: Шаг 1: Инициализация и обзор
@@ -342,7 +342,20 @@
   - Создано кластеров: 3
 
 10.2. Экспорт результатов:
-  - Ошибка экспорта: Object of type Timedelta is not JSON serializable
+  - JSON отчет: zone_analysis_report.json
+  - Размер файла: 3478 байт
+  - CSV характеристики: zone_features_analysis.csv
+  - Размер файла: 2070 байт
+  - Содержимое CSV:
+       zone_id zone_type         duration  price_return  ...   volume_avg  volatility_avg  price_momentum  price_acceleration
+0  bull_zone_0      bull  2 days 11:00:00     -0.177593  ...  5299.816667        0.018296       -0.003145            0.000387
+1  bull_zone_1      bull  2 days 11:00:00      0.005177  ...  5259.050000        0.018057        0.000101            0.000418
+2  bull_zone_2      bull  2 days 11:00:00      0.099083  ...  6276.033333        0.019634        0.002036            0.000677
+3  bull_zone_3      bull  2 days 11:00:00      0.057242  ...  5962.650000        0.020892        0.001349            0.000078
+4  bull_zone_4      bull  2 days 11:00:00     -0.005892  ...  6151.133333        0.021603       -0.000148            0.000481
+
+[5 rows x 9 columns]
+  - Тестовые файлы удалены
 [OK] Exporting zone analysis results completed successfully
 ================================================================================
 [STEP] STEP 11: Завершение
@@ -361,5 +374,5 @@
 Готово к созданию скриптов для других модулей анализа!
 
 [END] Script finished successfully!
-[END] Log ended: 2025-10-22 13:24:26
-[TIME] Duration: 0:00:00.065221
+[END] Log ended: 2025-10-27 10:57:29
+[TIME] Duration: 0:00:00.076761
