@@ -113,44 +113,58 @@ nb.wait()
 # --- Шаг 3: Использование конфигурационных хелперов ---
 nb.step("Шаг 3: Использование конфигурационных хелперов для гибкой загрузки")
 
-nb.info("Функция load_symbol_data() использует config.py для поиска файлов. " 
-        "По умолчанию она ищет в /data. Мы временно изменим путь на /data/row, " 
+nb.info("Функция load_symbol_data() использует config.py для поиска файлов. "
+        "По умолчанию она ищет в /data. Мы временно изменим путь на /data/row, "
         "чтобы продемонстрировать гибкость системы конфигурации.")
 
-original_data_dir = get_data_dir()
-nb.info(f"Текущая директория данных: {original_data_dir}")
+available_raw_files = sorted(p.name for p in raw_data_path.glob('*.csv'))
 
-set_data_dir(raw_data_path)
-nb.info(f"Временно изменили директорию данных на: {get_data_dir()}")
+if not available_raw_files:
+    nb.warning("В каталоге data/row отсутствуют CSV-файлы. Демонстрация конфигурационных хелперов пропущена.")
+else:
+    nb.info(f"Обнаружены файлы: {available_raw_files}")
 
-with nb.error_handling("Loading with load_symbol_data helper"):
-    nb.info("3.1. Теперь load_symbol_data сможет найти файлы в data/row")
-    df_helper_mt = load_symbol_data("XAUUSD", "1h", data_source='metatrader')
-    nb.info("Загрузка XAUUSD 1h (metatrader) через хелпер:")
-    nb.log(df_helper_mt.head().to_string())
+    original_data_dir = get_data_dir()
+    nb.info(f"Текущая директория данных: {original_data_dir}")
 
-with nb.error_handling("Loading with load_xauusd_data convenience function"):
-    nb.info("3.1.1. Использование convenience функции load_xauusd_data для быстрой загрузки:")
-    df_xauusd_convenience = load_xauusd_data("1h")
-    nb.log(f"Загружено через load_xauusd_data('1h'): {len(df_xauusd_convenience)} строк")
-    nb.log(f"Первые 3 строки:")
-    nb.log(df_xauusd_convenience.head(3).to_string())
+    set_data_dir(raw_data_path)
+    nb.info(f"Временно изменили директорию данных на: {get_data_dir()}")
 
-with nb.error_handling("Getting available symbols and timeframes"):
-    nb.info("3.2. Получение списка доступных символов и таймфреймов из новой директории:")
-    available_symbols = get_available_symbols()
-    available_timeframes = get_available_timeframes('XAUUSD')
-    nb.log(f"Доступные символы: {available_symbols}")
-    nb.log(f"Доступные таймфреймы для XAUUSD: {available_timeframes}")
+    try:
+        if mt_file_path.exists():
+            with nb.error_handling("Loading with load_symbol_data helper"):
+                nb.info("3.1. Теперь load_symbol_data сможет найти файлы в data/row")
+                df_helper_mt = load_symbol_data("XAUUSD", "1h", data_source='metatrader')
+                nb.info("Загрузка XAUUSD 1h (metatrader) через хелпер:")
+                nb.log(df_helper_mt.head().to_string())
+        else:
+            nb.warning(f"Файл {mt_file_path} не найден. Пропускаем демонстрацию load_symbol_data().")
 
-with nb.error_handling("Loading all data files from directory"):
-    nb.info("3.3. Загрузка всех файлов из директории data/row:")
-    all_data = load_all_data_files()
-    nb.log(f"Загружено {len(all_data)} наборов данных:")
-    for name, df in all_data.items():
-        nb.log(f"  - {name}: {len(df)} строк")
+        if tv_file_path.exists():
+            with nb.error_handling("Loading with load_xauusd_data convenience function"):
+                nb.info("3.1.1. Использование convenience функции load_xauusd_data для быстрой загрузки:")
+                df_xauusd_convenience = load_xauusd_data("1h")
+                nb.log(f"Загружено через load_xauusd_data('1h'): {len(df_xauusd_convenience)} строк")
+                nb.log("Первые 3 строки:")
+                nb.log(df_xauusd_convenience.head(3).to_string())
+        else:
+            nb.warning(f"Файл {tv_file_path} не найден. Пропускаем демонстрацию load_xauusd_data().")
 
-reset_directories_to_defaults()
-nb.info(f"Вернули директорию данных к значению по умолчанию: {get_data_dir()}")
+        with nb.error_handling("Getting available symbols and timeframes"):
+            nb.info("3.2. Получение списка доступных символов и таймфреймов из новой директории:")
+            available_symbols = get_available_symbols()
+            available_timeframes = get_available_timeframes('XAUUSD')
+            nb.log(f"Доступные символы: {available_symbols}")
+            nb.log(f"Доступные таймфреймы для XAUUSD: {available_timeframes}")
+
+        with nb.error_handling("Loading all data files from directory"):
+            nb.info("3.3. Загрузка всех файлов из директории data/row:")
+            all_data = load_all_data_files()
+            nb.log(f"Загружено {len(all_data)} наборов данных:")
+            for name, df in all_data.items():
+                nb.log(f"  - {name}: {len(df)} строк")
+    finally:
+        reset_directories_to_defaults()
+        nb.info(f"Вернули директорию данных к значению по умолчанию: {get_data_dir()}")
 
 nb.finish()
