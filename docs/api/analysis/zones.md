@@ -19,7 +19,7 @@
 > 
 > **Справочник API:**
 > - [Универсальные Стратегии](strategies.md) - аналитические стратегии для ЛЮБОГО индикатора
-> - [Руководство по Расширению](extension_guide.md) - создание пользовательских стратегий
+> - [Руководство по Расширению](../developer_guide/zone_detection_strategies.md) - создание пользовательских стратегий
 
 ## Обзор
 
@@ -122,6 +122,32 @@ result = (
 # Context: {'detection_indicator': 'MY_CUSTOM_OSC', 'detection_strategy': 'zero_crossing'}
 ```
 
+#### FICTIONAL_INDICATOR_99 (финальное доказательство)
+
+```python
+import numpy as np
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+df = get_sample_data('tv_xauusd_1h').copy()
+
+# Индикатор, которого НЕ существует в кодовой базе — создаём синусоиду
+df['FICTIONAL_INDICATOR_99'] = np.sin(np.linspace(0, 6 * np.pi, len(df))) * 5
+
+result = (
+    analyze_zones(df)
+    .detect_zones('zero_crossing', indicator_col='FICTIONAL_INDICATOR_99')
+    .analyze()
+    .build()
+)
+
+first_zone = result.zones[0]
+print(len(result.zones))  # → 4 зоны
+print(first_zone.indicator_context['detection_indicator'])  # → 'FICTIONAL_INDICATOR_99'
+```
+
+> ✅ **Если работает с индикатором, которого никогда не было в коде,** то архитектура действительно универсальна.
+
 
 
 ### Что Нового в v2.1
@@ -145,7 +171,7 @@ result = (
 **Документация:**
 - **Универсальная Архитектура:** См. выше (🟢 v2.1 - стабильно)
 - **Паттерн Стратегия:** См. [strategies.md](strategies.md) (🟢 стабильный API)
-- **Руководство по Расширению:** См. [extension_guide.md](extension_guide.md) (пользовательские стратегии)
+- **Руководство по Расширению:** См. [developer guide](../developer_guide/zone_detection_strategies.md) (пользовательские стратегии)
 
 ### Использование Аналитических Стратегий (v2.1)
 
@@ -353,11 +379,42 @@ result = (
 
 ```python
 # Старый способ (Deprecated)
-from bquant.analysis.zones import find_support_resistance, ZoneFeaturesAnalyzer
+import pandas as pd
 
-zones = find_support_resistance(data, window=20, min_touches=2)
-zfa = ZoneFeaturesAnalyzer()
-zone_features = zfa.extract_zone_features({'type':'bull', 'data': zone_df})
+from bquant.analysis.zones import find_support_resistance
+
+data = pd.DataFrame(
+    {
+        "open": [100, 101, 102, 103, 102, 101, 100, 99, 100, 101, 102, 101],
+        "high": [101, 102, 103, 104, 103, 102, 101, 100, 101, 102, 103, 102],
+        "low": [99, 100, 101, 102, 101, 100, 99, 98, 99, 100, 101, 100],
+        "close": [100, 101, 102, 102, 101, 100, 100, 99, 100, 101, 102, 101],
+        "volume": [1000, 1100, 1080, 1150, 1120, 1090, 1110, 1130, 1140, 1125, 1115, 1105],
+    },
+    index=pd.date_range("2024-01-01", periods=12, freq="H"),
+)
+
+zones = find_support_resistance(data, window=3, min_touches=1)
+
+if zones:
+    legacy_zone = zones[0]
+    duration_hours = legacy_zone.duration.total_seconds() / 3600
+    print(
+        f"{legacy_zone.zone_type} zone from {legacy_zone.start_time:%Y-%m-%d %H:%M} "
+        f"to {legacy_zone.end_time:%Y-%m-%d %H:%M} ({duration_hours:.0f} hours)"
+    )
+else:
+    print("No support/resistance zones detected with the legacy API.")
+
+# ZoneFeaturesAnalyzer можно использовать как и раньше, передавая словарь зоны.
+# Пример:
+# zfa = ZoneFeaturesAnalyzer()
+# features = zfa.extract_zone_features({
+#     "zone_id": legacy_zone.zone_id,
+#     "type": legacy_zone.zone_type,
+#     "data": data.loc[legacy_zone.start_time : legacy_zone.end_time],
+#     "indicator_context": {"detection_strategy": "legacy_support_resistance"},
+# })
 ```
 
 ## См. также

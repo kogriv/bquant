@@ -10,6 +10,8 @@ import importlib
 import traceback
 from pathlib import Path
 
+import numpy as np
+
 # Добавляем корень проекта в путь
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -236,6 +238,42 @@ def test_custom_indicator_example():
         traceback.print_exc()
         return False
 
+
+def test_fictional_indicator_example():
+    """Тестируем маркетинговый пример FICTIONAL_INDICATOR_99"""
+    print("\n📋 Тест: FICTIONAL_INDICATOR_99 (proof)")
+
+    try:
+        from bquant.analysis.zones import analyze_zones
+        from bquant.data.samples import get_sample_data
+
+        df = get_sample_data('tv_xauusd_1h').copy()
+        df['FICTIONAL_INDICATOR_99'] = np.sin(np.linspace(0, 6 * np.pi, len(df))) * 5
+
+        result = (
+            analyze_zones(df)
+            .detect_zones('zero_crossing', indicator_col='FICTIONAL_INDICATOR_99')
+            .analyze()
+            .build()
+        )
+
+        zone_count = len(result.zones)
+        print(f"  ✅ Анализ выполнен: {zone_count} зон")
+
+        assert zone_count > 0, "Должны быть обнаружены зоны для FICTIONAL_INDICATOR_99"
+
+        first_zone = result.zones[0]
+        indicator = first_zone.indicator_context.get('detection_indicator')
+        print(f"  ✅ indicator_context: {indicator}")
+        assert indicator == 'FICTIONAL_INDICATOR_99', "indicator_context должен сохранять имя фиктивного индикатора"
+
+        return True
+
+    except Exception as e:
+        print(f"  ❌ FICTIONAL_INDICATOR_99 пример: {e}")
+        traceback.print_exc()
+        return False
+
 def test_strategies_examples():
     """Тестируем примеры стратегий из документации"""
     print("\n📋 Тест: Strategies примеры")
@@ -404,6 +442,7 @@ def test_cross_references():
         'docs/api/analysis/pipeline.md',
         'docs/api/analysis/strategies.md',
         'docs/api/analysis/statistical.md',
+        'docs/developer_guide/zone_detection_strategies.md',
         'docs/examples/README.md'
     ]
     
@@ -455,6 +494,7 @@ def main():
         test_rsi_example,
         test_stochastic_example,
         test_custom_indicator_example,
+        test_fictional_indicator_example,
         test_strategies_examples,
         test_universal_pipeline_examples,
         test_legacy_example,
@@ -480,11 +520,12 @@ def main():
     print(f"  RSI пример: {'✅ ПРОЙДЕН' if passed >= 4 else '❌ ПРОВАЛЕН'}")
     print(f"  Stochastic пример: {'✅ ПРОЙДЕН' if passed >= 5 else '❌ ПРОВАЛЕН'}")
     print(f"  Custom indicator пример: {'✅ ПРОЙДЕН' if passed >= 6 else '❌ ПРОВАЛЕН'}")
-    print(f"  Strategies примеры: {'✅ ПРОЙДЕН' if passed >= 7 else '❌ ПРОВАЛЕН'}")
-    print(f"  Universal Pipeline примеры: {'✅ ПРОЙДЕН' if passed >= 8 else '❌ ПРОВАЛЕН'}")
-    print(f"  Legacy пример (deprecated): {'✅ ПРОЙДЕН' if passed >= 9 else '❌ ПРОВАЛЕН'}")
-    print(f"  Cross-references: {'✅ ПРОЙДЕН' if passed >= 10 else '❌ ПРОВАЛЕН'}")
-    print(f"  Язык текста: {'✅ ПРОЙДЕН' if passed >= 11 else '❌ ПРОВАЛЕН'}")
+    print(f"  FICTIONAL_INDICATOR_99 proof: {'✅ ПРОЙДЕН' if passed >= 7 else '❌ ПРОВАЛЕН'}")
+    print(f"  Strategies примеры: {'✅ ПРОЙДЕН' if passed >= 8 else '❌ ПРОВАЛЕН'}")
+    print(f"  Universal Pipeline примеры: {'✅ ПРОЙДЕН' if passed >= 9 else '❌ ПРОВАЛЕН'}")
+    print(f"  Legacy пример (deprecated): {'✅ ПРОЙДЕН' if passed >= 10 else '❌ ПРОВАЛЕН'}")
+    print(f"  Cross-references: {'✅ ПРОЙДЕН' if passed >= 11 else '❌ ПРОВАЛЕН'}")
+    print(f"  Язык текста: {'✅ ПРОЙДЕН' if passed >= 12 else '❌ ПРОВАЛЕН'}")
     
     print(f"\n🎯 Итого: {passed}/{total} тестов пройдено")
     
