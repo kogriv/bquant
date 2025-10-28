@@ -9,8 +9,7 @@
 - Настраиваемые темы оформления
 """
 
-from typing import Dict, Any, List, Optional, Union
-import warnings
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..core.logging_config import get_logger
 
@@ -31,7 +30,9 @@ try:
     logger.info("Plotly library available")
 except ImportError:
     _plotting_libraries['plotly'] = False
-    logger.warning("Plotly library not available - some visualization features will be limited")
+    logger.warning(
+        "Plotly library not available - interactive visualization features (zones detail/comparison) will be limited"
+    )
 
 try:
     import matplotlib.pyplot as plt
@@ -41,7 +42,9 @@ try:
     logger.info("Matplotlib/Seaborn libraries available")
 except ImportError:
     _plotting_libraries['matplotlib'] = False
-    logger.warning("Matplotlib/Seaborn libraries not available - some visualization features will be limited")
+    logger.warning(
+        "Matplotlib/Seaborn libraries not available - static visualization features (zones detail/comparison fallback) will be limited"
+    )
 
 try:
     import pandas as pd
@@ -86,7 +89,13 @@ if check_visualization_dependencies():
         _charts_available = False
     
     try:
-        from .zones import ZoneVisualizer, ZoneChartBuilder
+        from .zones import (
+            ZoneVisualizer,
+            ZoneChartBuilder,
+            plot_zones_on_chart,
+            plot_macd_zones_chart,
+            analyze_zones_visually,
+        )
         _zones_available = True
         logger.info("Zones visualization module loaded successfully")
     except ImportError as e:
@@ -148,6 +157,57 @@ def create_financial_chart(chart_type: str = 'candlestick', **kwargs):
         return charts.create_area_chart(**kwargs)
     else:
         raise ValueError(f"Unknown chart type: {chart_type}")
+
+
+def plot_zone_detail(price_data,
+                     zone,
+                     context_bars: int = 20,
+                     title: str = "Zone Detail",
+                     **kwargs):
+    """Детализированный просмотр отдельной торговой зоны."""
+
+    if not _zones_available:
+        raise VisualizationError("Zones visualization module not available")
+
+    visualizer = ZoneVisualizer()
+    call_kwargs = dict(kwargs)
+    effective_context = call_kwargs.pop('context_bars', context_bars)
+    effective_title = call_kwargs.pop('title', title)
+
+    return visualizer.plot_zone_detail(
+        price_data,
+        zone,
+        context_bars=effective_context,
+        title=effective_title,
+        **call_kwargs,
+    )
+
+
+def plot_zones_comparison(price_data,
+                          zones_data,
+                          max_zones: int = 5,
+                          date_range: Optional[Tuple[Any, Any]] = None,
+                          title: str = "Zones Comparison",
+                          **kwargs):
+    """Сравнение нескольких торговых зон на едином графике."""
+
+    if not _zones_available:
+        raise VisualizationError("Zones visualization module not available")
+
+    visualizer = ZoneVisualizer()
+    call_kwargs = dict(kwargs)
+    effective_max_zones = call_kwargs.pop('max_zones', max_zones)
+    effective_date_range = call_kwargs.pop('date_range', date_range)
+    effective_title = call_kwargs.pop('title', title)
+
+    return visualizer.plot_zones_comparison(
+        price_data,
+        zones_data,
+        max_zones=effective_max_zones,
+        date_range=effective_date_range,
+        title=effective_title,
+        **call_kwargs,
+    )
 
 
 def plot_zones_analysis(zones_data, analysis_data=None, **kwargs):
@@ -291,6 +351,8 @@ __all__ = [
     # Удобные функции создания графиков
     'create_financial_chart',
     'plot_zones_analysis',
+    'plot_zone_detail',
+    'plot_zones_comparison',
     'create_statistical_plot',
     
     # Функции работы с темами
@@ -303,7 +365,13 @@ if _charts_available:
     __all__.extend(['FinancialCharts', 'ChartBuilder'])
 
 if _zones_available:
-    __all__.extend(['ZoneVisualizer', 'ZoneChartBuilder'])
+    __all__.extend([
+        'ZoneVisualizer',
+        'ZoneChartBuilder',
+        'plot_zones_on_chart',
+        'plot_macd_zones_chart',
+        'analyze_zones_visually',
+    ])
 
 if _statistical_available:
     __all__.extend(['StatisticalPlots', 'DistributionPlotter'])
