@@ -16,9 +16,6 @@
 [11:00:00] [not_included] [Added] Создан файл docs/user_guide/swing_analysis_results.md - документация по результатам swing анализа
 [11:02:15] [not_included] [Added] Создан файл docs/user_guide/zone_analysis_pipeline.md - документация по универсальному pipeline анализа зон
 [11:04:30] [not_included] [Added] Создан файл examples/08_macd_swing_analysis.py - пример MACD swing анализа
-
-==================== COMMIT DIVIDER ====================
-
 [19:00:00] [not_included] [Added] Реализован метод ZoneVisualizer.plot_zone_detail() в bquant/visualization/zones.py - детальная визуализация отдельной зоны с контекстом
 [19:00:30] [not_included] [Added] Реализован метод ZoneVisualizer.plot_zones_comparison() в bquant/visualization/zones.py - сравнение нескольких зон на едином графике
 [19:01:00] [not_included] [Added] Реализован helper _get_zone_window() в bquant/visualization/zones.py - определение окна данных вокруг зоны
@@ -43,4 +40,6 @@
 [19:15:00] [not_included] [Technical] Unit-тесты visualization: 4/4 passed (параметризованы для Plotly и Matplotlib backends)
 [19:15:30] [not_included] [Technical] Пример 09_zones_visualization_demo.py успешно выполнен, создано 9 PNG графиков (~540 KB)
 [19:19:00] [not_included] [Added] Дополнительные методы plot_macd_zones(), plot_zones_analysis(), plot_zones_distribution(), plot_zones_correlation() в zones.py
+
+==================== COMMIT DIVIDER ====================
 
