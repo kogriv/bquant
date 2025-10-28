@@ -19,13 +19,15 @@ class TestZoneFeaturesSwingIntegration:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
-        # Add macd_hist to each zone
+        # Add macd_hist to each zone (already present in new API but ensure name consistency)
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            if 'macd_hist' not in zone.data.columns and 'macd' in zone.data.columns:
+                zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
-        return [z for z in zones if len(z.data) >= 50]  # Only zones with enough data for swings
+        return [z for z in zones if len(z.data) >= 10]  # Lowered threshold from 50 to 10
     
     @pytest.fixture
     def sample_zone_info(self, sample_zones):

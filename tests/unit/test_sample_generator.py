@@ -22,7 +22,7 @@ class TestSampleDataGenerator:
         assert 'tv_xauusd_1h' in generator.data_sources
         assert 'mt_xauusd_m15' in generator.data_sources
         
-        print("✅ test_generator_creation: SampleDataGenerator создается корректно")
+        print("[OK] test_generator_creation: SampleDataGenerator создается корректно")
     
     def test_data_sources_config(self):
         """Тест конфигурации источников данных."""
@@ -42,7 +42,7 @@ class TestSampleDataGenerator:
             assert isinstance(config['rows'], int)
             assert config['rows'] > 0
         
-        print("✅ test_data_sources_config: Конфигурация источников данных корректна")
+        print("[OK] test_data_sources_config: Конфигурация источников данных корректна")
     
     def test_validate_source_files(self):
         """Тест валидации исходных файлов."""
@@ -58,7 +58,7 @@ class TestSampleDataGenerator:
         for dataset, exists in results.items():
             assert isinstance(exists, bool)
         
-        print("✅ test_validate_source_files: Валидация исходных файлов работает")
+        print("[OK] test_validate_source_files: Валидация исходных файлов работает")
     
     def test_convert_value_type(self):
         """Тест конвертации типов значений."""
@@ -78,7 +78,7 @@ class TestSampleDataGenerator:
         # Тест строковых значений
         assert generator._convert_value_type('test_string', 'symbol') == 'test_string'
         
-        print("✅ test_convert_value_type: Конвертация типов значений работает корректно")
+        print("[OK] test_convert_value_type: Конвертация типов значений работает корректно")
     
     def test_identify_time_column(self):
         """Тест определения временной колонки."""
@@ -96,7 +96,7 @@ class TestSampleDataGenerator:
         columns = ['open', 'high', 'low', 'close']
         assert generator._identify_time_column(columns) is None
         
-        print("✅ test_identify_time_column: Определение временной колонки работает")
+        print("[OK] test_identify_time_column: Определение временной колонки работает")
     
     def test_generate_file_content(self):
         """Тест генерации содержимого файла."""
@@ -134,7 +134,7 @@ class TestSampleDataGenerator:
         assert "'time': '2025-01-01T00:00:00'" in content  # Конкретные данные
         assert "'close': 100.0" in content
         
-        print("✅ test_generate_file_content: Генерация содержимого файла работает")
+        print("[OK] test_generate_file_content: Генерация содержимого файла работает")
     
     def test_generate_embedded_file(self):
         """Тест генерации embedded файла."""
@@ -178,7 +178,7 @@ class TestSampleDataGenerator:
                 assert 'DATA = [' in content
                 assert "'time': '2025-01-01T00:00:00'" in content
                 
-                print("✅ test_generate_embedded_file: Генерация embedded файла работает")
+                print("[OK] test_generate_embedded_file: Генерация embedded файла работает")
                 
             finally:
                 # Восстанавливаем оригинальную директорию

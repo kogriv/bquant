@@ -70,7 +70,7 @@ class TestPreloadedIndicators:
         stats = macd_preloaded.get_statistics(test_data)
         assert isinstance(stats, (pd.DataFrame, dict)), "Статистика должна быть DataFrame или dict"
         
-        print("✅ PRELOADED MACD индикатор работает корректно")
+        print("[OK] PRELOADED MACD индикатор работает корректно")
 
 
 class TestCustomIndicators:
@@ -104,7 +104,7 @@ class TestCustomIndicators:
         stats = sma.get_statistics(test_data)
         assert isinstance(stats, (pd.DataFrame, dict)), "Статистика должна быть DataFrame или dict"
         
-        print("✅ CUSTOM SMA индикатор работает корректно")
+        print("[OK] CUSTOM SMA индикатор работает корректно")
     
     def test_ema_custom(self):
         """Тестирует CUSTOM EMA индикатор."""
@@ -134,7 +134,7 @@ class TestCustomIndicators:
         stats = ema.get_statistics(test_data)
         assert isinstance(stats, (pd.DataFrame, dict)), "Статистика должна быть DataFrame или dict"
         
-        print("✅ CUSTOM EMA индикатор работает корректно")
+        print("[OK] CUSTOM EMA индикатор работает корректно")
     
     def test_rsi_custom(self):
         """Тестирует CUSTOM RSI индикатор."""
@@ -164,7 +164,7 @@ class TestCustomIndicators:
         stats = rsi.get_statistics(test_data)
         assert isinstance(stats, (pd.DataFrame, dict)), "Статистика должна быть DataFrame или dict"
         
-        print("✅ CUSTOM RSI индикатор работает корректно")
+        print("[OK] CUSTOM RSI индикатор работает корректно")
     
     def test_macd_custom(self):
         """Тестирует CUSTOM MACD индикатор."""
@@ -198,7 +198,7 @@ class TestCustomIndicators:
         stats = macd.get_statistics(test_data)
         assert isinstance(stats, (pd.DataFrame, dict)), "Статистика должна быть DataFrame или dict"
         
-        print("✅ CUSTOM MACD индикатор работает корректно")
+        print("[OK] CUSTOM MACD индикатор работает корректно")
     
     def test_bbands_custom(self):
         """Тестирует CUSTOM Bollinger Bands индикатор."""
@@ -231,7 +231,7 @@ class TestCustomIndicators:
         stats = bbands.get_statistics(test_data)
         assert isinstance(stats, (pd.DataFrame, dict)), "Статистика должна быть DataFrame или dict"
         
-        print("✅ CUSTOM Bollinger Bands индикатор работает корректно")
+        print("[OK] CUSTOM Bollinger Bands индикатор работает корректно")
 
 
 class TestLibraryIndicators:
@@ -248,10 +248,10 @@ class TestLibraryIndicators:
             # Проверяем конфигурацию
             assert sma.config.source == IndicatorSource.LIBRARY, "Источник должен быть LIBRARY"
             
-            print("✅ pandas_ta библиотека доступна и работает")
+            print("[OK] pandas_ta библиотека доступна и работает")
             
         except Exception as e:
-            print(f"⚠️ pandas_ta библиотека недоступна: {e}")
+            print(f"[WARN] pandas_ta библиотека недоступна: {e}")
     
     def test_talib_availability(self):
         """Тестирует доступность talib библиотеки."""
@@ -264,10 +264,10 @@ class TestLibraryIndicators:
             # Проверяем конфигурацию
             assert sma.config.source == IndicatorSource.LIBRARY, "Источник должен быть LIBRARY"
             
-            print("✅ talib библиотека доступна и работает")
+            print("[OK] talib библиотека доступна и работает")
             
         except Exception as e:
-            print(f"⚠️ talib библиотека недоступна: {e}")
+            print(f"[WARN] talib библиотека недоступна: {e}")
 
 
 class TestIndicatorFactory:
@@ -285,7 +285,7 @@ class TestIndicatorFactory:
         for indicator in expected_indicators:
             assert indicator in all_indicators, f"Индикатор {indicator} должен быть в списке"
         
-        print(f"✅ Найдено {len(all_indicators)} индикаторов: {list(all_indicators.keys())}")
+        print(f"[OK] Найдено {len(all_indicators)} индикаторов: {list(all_indicators.keys())}")
     
     def test_get_indicators_by_source(self):
         """Тестирует получение индикаторов по источнику."""
@@ -307,7 +307,7 @@ class TestIndicatorFactory:
         library = IndicatorFactory.get_indicators_by_source('library')
         assert isinstance(library, list), "get_indicators_by_source('library') должен возвращать список"
         
-        print(f"✅ PRELOADED: {len(preloaded)}, CUSTOM: {len(custom)}, LIBRARY: {len(library)}")
+        print(f"[OK] PRELOADED: {len(preloaded)}, CUSTOM: {len(custom)}, LIBRARY: {len(library)}")
     
     def test_get_indicator_info(self):
         """Тестирует получение информации об индикаторах."""
@@ -323,7 +323,7 @@ class TestIndicatorFactory:
         assert macd_info is not None, "get_indicator_info('macd_preloaded') должен возвращать информацию"
         assert macd_info['source'] == 'preloaded', "macd_preloaded должен быть PRELOADED индикатором"
         
-        print("✅ Получение информации об индикаторах работает корректно")
+        print("[OK] Получение информации об индикаторах работает корректно")
 
 
 class TestIndicatorCompatibility:
@@ -345,7 +345,7 @@ class TestIndicatorCompatibility:
         result = old_sma.calculate(test_data)
         assert hasattr(result, 'data'), "Результат старого метода должен иметь атрибут data"
         
-        print("✅ Старый интерфейс совместим")
+        print("[OK] Старый интерфейс совместим")
     
     def test_result_structure_consistency(self):
         """Тестирует консистентность структуры результатов."""
@@ -374,7 +374,7 @@ class TestIndicatorCompatibility:
             assert hasattr(result.config, 'source'), f"config должен иметь атрибут source для {name}"
             assert isinstance(result.metadata, dict), f"metadata должен быть словарем для {name}"
         
-        print("✅ Структура результатов консистентна")
+        print("[OK] Структура результатов консистентна")
 
 
 def run_all_indicator_tests():
@@ -396,7 +396,7 @@ def run_all_indicator_tests():
     
     for test_class in test_classes:
         class_name = test_class.__class__.__name__
-        print(f"\n📋 {class_name}:")
+        print(f"\n{class_name}:")
         
         # Получаем все методы тестирования
         test_methods = [method for method in dir(test_class) if method.startswith('test_')]
@@ -406,17 +406,17 @@ def run_all_indicator_tests():
             try:
                 method = getattr(test_class, method_name)
                 method()
-                print(f"  ✅ {method_name}")
+                print(f"  [OK] {method_name}")
                 passed_tests += 1
             except Exception as e:
-                print(f"  ❌ {method_name}: {e}")
+                print(f"  [FAIL] {method_name}: {e}")
     
-    print(f"\n📊 Результаты: {passed_tests}/{total_tests} тестов прошли")
+    print(f"\n[DATA] Результаты: {passed_tests}/{total_tests} тестов прошли")
     
     if passed_tests == total_tests:
         print("🎉 Все тесты прошли успешно!")
     else:
-        print(f"⚠️ {total_tests - passed_tests} тестов не прошли")
+        print(f"[WARN] {total_tests - passed_tests} тестов не прошли")
 
 
 if __name__ == "__main__":

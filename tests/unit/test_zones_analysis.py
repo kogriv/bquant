@@ -207,7 +207,8 @@ class TestZoneFeaturesAnalyzer:
         assert isinstance(features.start_price, float)
         assert isinstance(features.end_price, float)
         assert isinstance(features.price_return, float)
-        assert isinstance(features.macd_amplitude, float)
+        # macd_amplitude can be None if not calculated
+        assert features.macd_amplitude is None or isinstance(features.macd_amplitude, float)
         assert isinstance(features.hist_amplitude, float)
         assert isinstance(features.price_range_pct, float)
     

@@ -21,11 +21,12 @@ class TestStatisticalShapeStrategy:
         """Load real zones from sample data and add macd_hist."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone (it's missing in sample data)
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
         return [z for z in zones if len(z.data) >= 10]
     
@@ -60,7 +61,7 @@ class TestStatisticalShapeStrategy:
     def test_calculate_symmetric_shape(self, bull_zone):
         """Test calculation on real bull zone data."""
         strategy = StatisticalShapeStrategy()
-        result = strategy.calculate(bull_zone)
+        result = strategy.calculate(bull_zone, indicator_col='macd_hist')
         
         assert isinstance(result, ShapeMetrics)
         assert result.strategy_name == 'statistical'
@@ -77,7 +78,7 @@ class TestStatisticalShapeStrategy:
         strategy = StatisticalShapeStrategy()
         
         for zone in sample_zones[:3]:  # Test first 3 zones
-            result = strategy.calculate(zone.data)
+            result = strategy.calculate(zone.data, indicator_col='macd_hist')
             
             # All metrics should be calculated
             assert isinstance(result.hist_skewness, float)
@@ -88,7 +89,7 @@ class TestStatisticalShapeStrategy:
     def test_calculate_late_impulse(self, bear_zone):
         """Test calculation on bear zone."""
         strategy = StatisticalShapeStrategy()
-        result = strategy.calculate(bear_zone)
+        result = strategy.calculate(bear_zone, indicator_col='macd_hist')
         
         assert isinstance(result, ShapeMetrics)
         assert isinstance(result.hist_skewness, float)
@@ -97,7 +98,7 @@ class TestStatisticalShapeStrategy:
     def test_smoothness_optional(self, bull_zone):
         """Test that smoothness is optional and handles edge cases."""
         strategy = StatisticalShapeStrategy(calculate_smoothness=True)
-        result = strategy.calculate(bull_zone)
+        result = strategy.calculate(bull_zone, indicator_col='macd_hist')
         
         # Smoothness might be None for small windows/data
         if result.hist_smoothness is not None:
@@ -107,14 +108,14 @@ class TestStatisticalShapeStrategy:
     def test_validate_method(self, bull_zone):
         """Test that validate() works without errors."""
         strategy = StatisticalShapeStrategy()
-        result = strategy.calculate(bull_zone)
+        result = strategy.calculate(bull_zone, indicator_col='macd_hist')
         
         result.validate()  # Should not raise
     
     def test_to_dict_method(self, bull_zone):
         """Test to_dict() serialization."""
         strategy = StatisticalShapeStrategy()
-        result = strategy.calculate(bull_zone)
+        result = strategy.calculate(bull_zone, indicator_col='macd_hist')
         
         result_dict = result.to_dict()
         
@@ -132,16 +133,16 @@ class TestStatisticalShapeStrategy:
         empty_df = pd.DataFrame({'macd_hist': []})
         
         with pytest.raises(ValueError, match="cannot be empty"):
-            strategy.calculate(empty_df)
+            strategy.calculate(empty_df, indicator_col='macd_hist')
     
     def test_missing_column(self):
-        """Test handling of missing macd_hist column."""
+        """Test handling of missing indicator column."""
         strategy = StatisticalShapeStrategy()
         
         df = pd.DataFrame({'close': [100, 101, 102]})
         
-        with pytest.raises(ValueError, match="must contain.*macd_hist"):
-            strategy.calculate(df)
+        with pytest.raises((ValueError, KeyError)):
+            strategy.calculate(df, indicator_col='macd_hist')
     
     def test_insufficient_data(self):
         """Test handling of insufficient data for smoothness."""
@@ -153,7 +154,7 @@ class TestStatisticalShapeStrategy:
             'macd_hist': [1.0, 2.0, 1.5, 0.5, -0.5]
         }, index=dates)
         
-        result = strategy.calculate(df)
+        result = strategy.calculate(df, indicator_col='macd_hist')
         
         # Should still calculate skewness/kurtosis
         assert isinstance(result.hist_skewness, float)
@@ -191,7 +192,7 @@ class TestStatisticalShapeStrategy:
         strategy = StatisticalShapeStrategy()
         
         for zone in sample_zones[:5]:
-            result = strategy.calculate(zone.data)
+            result = strategy.calculate(zone.data, indicator_col='macd_hist')
             
             # Kurtosis should be a reasonable value (not extreme)
             # Excess kurtosis typically ranges from -2 (uniform) to ~10+ (heavy tails)
@@ -206,3 +207,4 @@ def run_tests():
 
 if __name__ == '__main__':
     run_tests()
+

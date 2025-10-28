@@ -83,7 +83,7 @@ def create_test_zones_features(n_zones: int = 50, seed: int = 42) -> List[Dict[s
         end_price = start_price * (1 + price_return)
         
         zone_features = {
-            'type': zone_type,
+            'zone_type': zone_type,  # Changed from 'type' to 'zone_type'
             'duration': duration,
             'price_return': price_return,
             'hist_slope': hist_slope,

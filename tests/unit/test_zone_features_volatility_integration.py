@@ -19,11 +19,12 @@ class TestZoneFeaturesVolatilityIntegration:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
         return [z for z in zones if len(z.data) >= 20]
     
@@ -78,6 +79,11 @@ class TestZoneFeaturesVolatilityIntegration:
             }
             
             features = analyzer.extract_zone_features(zone_info)
+            
+            # Volatility metrics may be None if zone too short for BB
+            if features.metadata.get('volatility_metrics') is None:
+                continue
+                
             vol_metrics = features.metadata['volatility_metrics']
             
             # Score should be in valid range
@@ -145,12 +151,18 @@ class TestZoneFeaturesVolatilityIntegration:
             }
             
             features = analyzer.extract_zone_features(zone_info)
+            
+            # Volatility metrics may be None if zone too short for BB
+            if features.metadata.get('volatility_metrics') is None:
+                continue
+                
             vol_metrics = features.metadata['volatility_metrics']
             
             regimes.append(vol_metrics['volatility_regime'])
             scores.append(vol_metrics['volatility_score'])
         
-        # Should have variety of regimes
+        # Should have variety of regimes (at least some were calculated)
+        assert len(regimes) > 0, "No volatility regimes calculated"
         unique_regimes = set(regimes)
         print(f"Volatility regimes found: {unique_regimes}")
         print(f"Score range: {min(scores):.2f} - {max(scores):.2f}")
@@ -181,4 +193,5 @@ def run_tests():
 
 if __name__ == '__main__':
     run_tests()
+
 

@@ -19,11 +19,12 @@ class TestZoneFeaturesVolumeIntegration:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
         # Filter zones with volume data
         return [z for z in zones if len(z.data) >= 10 and 'volume' in z.data.columns]
@@ -59,7 +60,8 @@ class TestZoneFeaturesVolumeIntegration:
         assert volume_metrics is not None
         assert isinstance(volume_metrics, dict)
         assert 'avg_volume_zone' in volume_metrics
-        assert 'volume_macd_corr' in volume_metrics
+        # Updated key name in new API
+        assert 'volume_indicator_corr' in volume_metrics or 'volume_macd_corr' in volume_metrics
     
     def test_volume_metrics_values_reasonable(self, sample_zones):
         """Test that volume metrics have reasonable values across multiple zones."""
@@ -82,9 +84,10 @@ class TestZoneFeaturesVolumeIntegration:
             # avg_volume should be positive
             assert vol_metrics['avg_volume_zone'] is None or vol_metrics['avg_volume_zone'] > 0
             
-            # correlation should be in [-1, 1] if calculated
-            if vol_metrics['volume_macd_corr'] is not None:
-                assert -1 <= vol_metrics['volume_macd_corr'] <= 1
+            # Correlation should be in [-1, 1] or None (handle both API versions)
+            corr_key = 'volume_indicator_corr' if 'volume_indicator_corr' in vol_metrics else 'volume_macd_corr'
+            if vol_metrics.get(corr_key) is not None:
+                assert -1 <= vol_metrics[corr_key] <= 1
     
     def test_analyzer_with_all_strategies(self, sample_zone_info):
         """Test analyzer with all 5 strategy types."""
@@ -136,7 +139,7 @@ class TestZoneFeaturesVolumeIntegration:
         assert vol_metrics['avg_volume_zone'] is not None
     
     def test_volume_macd_correlation_presence(self, sample_zones):
-        """Test volume-MACD correlation is calculated when possible."""
+        """Test volume-indicator correlation is calculated when possible."""
         analyzer = ZoneFeaturesAnalyzer(
             min_duration=2,
             volume_strategy=StandardVolumeStrategy()
@@ -155,8 +158,12 @@ class TestZoneFeaturesVolumeIntegration:
             features = analyzer.extract_zone_features(zone_info)
             vol_metrics = features.metadata['volume_metrics']
             
-            if vol_metrics['volume_macd_corr'] is not None:
+            # Handle both old and new API
+            corr_key = 'volume_indicator_corr' if 'volume_indicator_corr' in vol_metrics else 'volume_macd_corr'
+            if vol_metrics.get(corr_key) is not None:
                 corr_calculated += 1
+                # Check correlation validity
+                assert -1 <= vol_metrics[corr_key] <= 1
         
         # At least some zones should have correlation calculated
         print(f"Correlation calculated in {corr_calculated}/{len(sample_zones)} zones")

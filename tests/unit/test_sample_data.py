@@ -353,26 +353,21 @@ class TestSampleDataIntegration:
     def test_integration_with_macd_analyzer(self):
         """Тест интеграции с MACD анализатором."""
         try:
-            from bquant.indicators import MACDAnalyzer
+            from bquant.indicators.macd import MACDZoneAnalyzer
             
             # Загружаем данные
             data = get_sample_data('tv_xauusd_1h')
             
-            # Создаем анализатор
-            analyzer = MACDAnalyzer(data)
+            # Создаем анализатор и получаем результат
+            analyzer = MACDZoneAnalyzer()
+            result = analyzer.analyze_complete_modular(data)
             
-            # Проверяем, что анализатор может работать с данными
-            macd_data = analyzer.calculate_macd_with_atr()
-            assert isinstance(macd_data, pd.DataFrame)
-            assert len(macd_data) == 1000
-            
-            # Проверяем идентификацию зон
-            zones = analyzer.identify_zones()
-            assert isinstance(zones, list)
+            # Проверяем результат
+            assert isinstance(result.zones, list)
             # Может быть 0 зон если данные не подходят, но это не ошибка
             
         except ImportError:
-            pytest.skip("MACDAnalyzer not available")
+            pytest.skip("MACDZoneAnalyzer not available")
     
     def test_data_quality_for_analysis(self):
         """Тест качества данных для анализа."""

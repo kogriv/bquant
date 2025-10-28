@@ -19,11 +19,12 @@ class TestZoneFeaturesDivergenceIntegration:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
         return [z for z in zones if len(z.data) >= 20]
     

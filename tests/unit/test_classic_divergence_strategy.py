@@ -21,11 +21,12 @@ class TestClassicDivergenceStrategy:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
         return [z for z in zones if len(z.data) >= 20]
     
@@ -50,23 +51,21 @@ class TestClassicDivergenceStrategy:
         strategy = ClassicDivergenceStrategy()
         assert strategy.min_peak_distance == 5
         assert strategy.min_divergence_strength == 0.01
-        assert strategy.use_macd_line == False
+        # use_macd_line parameter removed in new API
     
     def test_strategy_custom_params(self):
         """Test strategy with custom parameters."""
         strategy = ClassicDivergenceStrategy(
             min_peak_distance=10,
-            min_divergence_strength=0.05,
-            use_macd_line=True
+            min_divergence_strength=0.05
         )
         assert strategy.min_peak_distance == 10
         assert strategy.min_divergence_strength == 0.05
-        assert strategy.use_macd_line == True
     
     def test_calculate_divergence_basic(self, bull_zone):
         """Test basic divergence calculation on real data."""
         strategy = ClassicDivergenceStrategy()
-        result = strategy.calculate_divergence(bull_zone)
+        result = strategy.calculate_divergence(bull_zone, indicator_col='macd_hist')
         
         assert isinstance(result, DivergenceMetrics)
         assert result.strategy_name == 'classic'
@@ -74,7 +73,7 @@ class TestClassicDivergenceStrategy:
     def test_all_fields_populated(self, bull_zone):
         """Test that all divergence fields are populated."""
         strategy = ClassicDivergenceStrategy()
-        result = strategy.calculate_divergence(bull_zone)
+        result = strategy.calculate_divergence(bull_zone, indicator_col='macd_hist')
         
         # Check all required fields exist
         assert result.divergence_type in ['none', 'regular', 'hidden', 'mixed']
@@ -91,7 +90,7 @@ class TestClassicDivergenceStrategy:
         strategy = ClassicDivergenceStrategy()
         
         for zone in sample_zones[:5]:
-            result = strategy.calculate_divergence(zone.data)
+            result = strategy.calculate_divergence(zone.data, indicator_col='macd_hist')
             
             # Counts should be non-negative
             assert result.divergence_count >= 0
@@ -102,14 +101,14 @@ class TestClassicDivergenceStrategy:
     def test_validate_method(self, bull_zone):
         """Test that validate() works without errors."""
         strategy = ClassicDivergenceStrategy()
-        result = strategy.calculate_divergence(bull_zone)
+        result = strategy.calculate_divergence(bull_zone, indicator_col='macd_hist')
         
         result.validate()  # Should not raise
     
     def test_to_dict_method(self, bull_zone):
         """Test to_dict() serialization."""
         strategy = ClassicDivergenceStrategy()
-        result = strategy.calculate_divergence(bull_zone)
+        result = strategy.calculate_divergence(bull_zone, indicator_col='macd_hist')
         
         result_dict = result.to_dict()
         
@@ -128,7 +127,7 @@ class TestClassicDivergenceStrategy:
         empty_df = pd.DataFrame({'close': [], 'high': [], 'low': [], 'macd_hist': []})
         
         with pytest.raises(ValueError, match="cannot be empty"):
-            strategy.calculate_divergence(empty_df)
+            strategy.calculate_divergence(empty_df, indicator_col='macd_hist')
     
     def test_missing_columns(self):
         """Test handling of missing columns."""
@@ -137,7 +136,7 @@ class TestClassicDivergenceStrategy:
         df = pd.DataFrame({'close': [100, 101, 102]})
         
         with pytest.raises(ValueError, match="must contain"):
-            strategy.calculate_divergence(df)
+            strategy.calculate_divergence(df, indicator_col='macd_hist')
     
     def test_insufficient_data(self):
         """Test handling of insufficient data."""
@@ -152,7 +151,7 @@ class TestClassicDivergenceStrategy:
             'macd_hist': [1.0, 2.0, 1.5, 0.5, -0.5]
         }, index=dates)
         
-        result = strategy.calculate_divergence(df)
+        result = strategy.calculate_divergence(df, indicator_col='macd_hist')
         
         # Should return empty metrics, not crash
         assert result.divergence_type == 'none'
@@ -187,23 +186,28 @@ class TestClassicDivergenceStrategy:
         assert strategy.min_divergence_strength == 0.02
     
     def test_use_macd_line_option(self, bull_zone):
-        """Test use_macd_line parameter."""
-        strategy_hist = ClassicDivergenceStrategy(use_macd_line=False)
-        strategy_line = ClassicDivergenceStrategy(use_macd_line=True)
+        """Test using MACD line vs histogram for divergence."""
+        # Note: use_macd_line parameter removed, now uses indicator_col in calculate method
+        strategy = ClassicDivergenceStrategy()
         
-        result_hist = strategy_hist.calculate_divergence(bull_zone)
-        result_line = strategy_line.calculate_divergence(bull_zone)
-        
-        # Both should work (may have different results)
-        assert isinstance(result_hist, DivergenceMetrics)
-        assert isinstance(result_line, DivergenceMetrics)
+        # Use histogram
+        result_hist = strategy.calculate_divergence(bull_zone, indicator_col='macd_hist')
+        # Use MACD line if available
+        if 'macd' in bull_zone.columns:
+            result_line = strategy.calculate_divergence(bull_zone, indicator_col='macd')
+            
+            # Both should work (may have different results)
+            assert isinstance(result_hist, DivergenceMetrics)
+            assert isinstance(result_line, DivergenceMetrics)
+        else:
+            assert isinstance(result_hist, DivergenceMetrics)
     
     def test_direction_consistency(self, sample_zones):
         """Test that direction is consistent with count."""
         strategy = ClassicDivergenceStrategy()
         
         for zone in sample_zones[:5]:
-            result = strategy.calculate_divergence(zone.data)
+            result = strategy.calculate_divergence(zone.data, indicator_col='macd_hist')
             
             # If no divergences, direction should be 'none'
             if result.divergence_count == 0:

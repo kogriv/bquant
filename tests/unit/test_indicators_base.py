@@ -75,7 +75,7 @@ class TestIndicatorBase:
         assert IndicatorSource.LIBRARY.value == "library"
         assert IndicatorSource.CUSTOM.value == "custom"
         
-        print("✅ test_base_indicator: IndicatorSource enum работает корректно")
+        print("[OK] test_base_indicator: IndicatorSource enum работает корректно")
     
     def test_indicator_factory(self):
         """
@@ -95,7 +95,7 @@ class TestIndicatorBase:
         # Проверяем, что это BaseIndicator
         assert isinstance(indicator, BaseIndicator)
         
-        print("✅ test_indicator_factory: IndicatorFactory.create_indicator работает")
+        print("[OK] test_indicator_factory: IndicatorFactory.create_indicator работает")
     
     def test_indicator_config(self):
         """Тест конфигурации индикатора."""
@@ -112,7 +112,7 @@ class TestIndicatorBase:
         assert config.source == IndicatorSource.PRELOADED
         assert 'test_output' in config.columns
         
-        print("✅ test_indicator_config: IndicatorConfig работает корректно")
+        print("[OK] test_indicator_config: IndicatorConfig работает корректно")
     
     def test_indicator_result(self):
         """Тест результата индикатора."""
@@ -140,7 +140,7 @@ class TestIndicatorBase:
         assert result.config == config
         assert result.metadata['test'] is True
         
-        print("✅ test_indicator_result: IndicatorResult работает корректно")
+        print("[OK] test_indicator_result: IndicatorResult работает корректно")
 
 
 class TestBuiltinIndicators:
@@ -169,7 +169,7 @@ class TestBuiltinIndicators:
             check_names=False
         )
         
-        print("✅ test_sma_calculation: SimpleMovingAverage работает корректно")
+        print("[OK] test_sma_calculation: SimpleMovingAverage работает корректно")
     
     def test_macd_calculation(self):
         """Тест расчета MACD согласно прогресс-файлу."""
@@ -194,7 +194,7 @@ class TestBuiltinIndicators:
             check_names=False
         )
         
-        print("✅ test_macd_calculation: MACD работает корректно")
+        print("[OK] test_macd_calculation: MACD работает корректно")
 
 
 class TestHighLevelFunctions:
@@ -212,7 +212,7 @@ class TestHighLevelFunctions:
         assert result.name == 'sma'
         assert 'sma_20' in result.data.columns
         
-        print("✅ test_indicator_factory_new_interface: IndicatorFactory.create работает")
+        print("[OK] test_indicator_factory_new_interface: IndicatorFactory.create работает")
     
     def test_preloaded_indicator(self):
         """Тест PRELOADED индикатора."""
@@ -227,7 +227,7 @@ class TestHighLevelFunctions:
         assert isinstance(result, IndicatorResult)
         assert result.name == 'macd_preloaded'
         
-        print("✅ test_preloaded_indicator: PRELOADED индикатор работает корректно")
+        print("[OK] test_preloaded_indicator: PRELOADED индикатор работает корректно")
     
     def test_indicator_factory_listing(self):
         """Тест получения списка индикаторов через IndicatorFactory."""
@@ -241,7 +241,7 @@ class TestHighLevelFunctions:
         for indicator in expected_indicators:
             assert indicator in all_indicators
         
-        print(f"✅ test_indicator_factory_listing: Найдено {len(all_indicators)} индикаторов")
+        print(f"[OK] test_indicator_factory_listing: Найдено {len(all_indicators)} индикаторов")
 
 
 class TestIndicatorValidation:
@@ -259,7 +259,7 @@ class TestIndicatorValidation:
         except Exception:
             pass  # Expected
         
-        print("✅ test_empty_data_validation: Валидация пустых данных работает")
+        print("[OK] test_empty_data_validation: Валидация пустых данных работает")
     
     def test_insufficient_data_validation(self):
         """Тест валидации недостаточного количества данных."""
@@ -273,7 +273,7 @@ class TestIndicatorValidation:
         except Exception:
             pass  # Expected
         
-        print("✅ test_insufficient_data_validation: Валидация недостаточных данных работает")
+        print("[OK] test_insufficient_data_validation: Валидация недостаточных данных работает")
     
     def test_missing_columns_validation(self):
         """Тест валидации отсутствующих колонок."""
@@ -292,7 +292,7 @@ class TestIndicatorValidation:
         except Exception:
             pass  # Expected
         
-        print("✅ test_missing_columns_validation: Валидация отсутствующих колонок работает")
+        print("[OK] test_missing_columns_validation: Валидация отсутствующих колонок работает")
 
 
 def run_all_tests():
@@ -313,7 +313,7 @@ def run_all_tests():
     
     for test_class in test_classes:
         class_name = test_class.__class__.__name__
-        print(f"\n📋 {class_name}:")
+        print(f"\n{class_name}:")
         
         # Получаем все методы, начинающиеся с test_
         test_methods = [method for method in dir(test_class) if method.startswith('test_')]
@@ -325,10 +325,10 @@ def run_all_tests():
                 method()
                 passed_tests += 1
             except Exception as e:
-                print(f"❌ {method_name}: FAILED - {e}")
+                print(f"[FAIL] {method_name}: FAILED - {e}")
     
     print("\n" + "=" * 60)
-    print(f"🎯 Результаты тестирования:")
+    print(f"[TARGET] Результаты тестирования:")
     print(f"   Всего тестов: {total_tests}")
     print(f"   Пройдено: {passed_tests}")
     print(f"   Провалено: {total_tests - passed_tests}")
@@ -337,7 +337,7 @@ def run_all_tests():
         print("🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО!")
         return True
     else:
-        print("⚠️  Некоторые тесты провалены")
+        print("[WARN] Некоторые тесты провалены")
         return False
 
 

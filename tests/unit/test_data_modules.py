@@ -63,7 +63,7 @@ def create_test_ohlcv_data(rows: int = 100) -> pd.DataFrame:
 
 def test_data_loader_module():
     """Тест модуля загрузки данных."""
-    print("\n📋 Тестирование модуля data.loader:")
+    print("\nТестирование модуля data.loader:")
     
     # Создаем временный CSV файл для тестирования
     test_data = create_test_ohlcv_data(50)
@@ -79,7 +79,7 @@ def test_data_loader_module():
         assert len(loaded_data) > 0
         assert 'close' in loaded_data.columns
         
-        print("✅ load_ohlcv_data() загружает данные корректно")
+        print("[OK] load_ohlcv_data() загружает данные корректно")
         
         # Тест get_data_info
         info = get_data_info(loaded_data)
@@ -88,7 +88,7 @@ def test_data_loader_module():
         assert 'columns' in info
         assert 'date_range' in info
         
-        print("✅ get_data_info() возвращает информацию о данных")
+        print("[OK] get_data_info() возвращает информацию о данных")
         
         # Тест get_available_symbols и get_available_timeframes
         symbols = get_available_symbols()
@@ -97,7 +97,7 @@ def test_data_loader_module():
         assert isinstance(symbols, list)
         assert isinstance(timeframes, list)
         
-        print("✅ get_available_symbols() и get_available_timeframes() работают")
+        print("[OK] get_available_symbols() и get_available_timeframes() работают")
         
     finally:
         # Удаляем временный файл
@@ -107,7 +107,7 @@ def test_data_loader_module():
 
 def test_data_processor_module():
     """Тест модуля обработки данных."""
-    print("\n📋 Тестирование модуля data.processor:")
+    print("\nТестирование модуля data.processor:")
     
     # Создаем тестовые данные
     test_data = create_test_ohlcv_data(100)
@@ -117,27 +117,27 @@ def test_data_processor_module():
     assert isinstance(cleaned_data, pd.DataFrame)
     assert len(cleaned_data) > 0
     
-    print("✅ clean_ohlcv_data() очищает данные")
+    print("[OK] clean_ohlcv_data() очищает данные")
     
     # Тест remove_price_outliers
     cleaned_outliers = remove_price_outliers(test_data.copy(), threshold=3.0)
     assert isinstance(cleaned_outliers, pd.DataFrame)
     
-    print("✅ remove_price_outliers() удаляет выбросы")
+    print("[OK] remove_price_outliers() удаляет выбросы")
     
     # Тест resample_ohlcv
     resampled = resample_ohlcv(test_data.copy(), '4H')
     assert isinstance(resampled, pd.DataFrame)
     assert len(resampled) <= len(test_data)  # Ресемплинг уменьшает количество записей
     
-    print("✅ resample_ohlcv() ресемплирует данные")
+    print("[OK] resample_ohlcv() ресемплирует данные")
     
     # Тест normalize_prices
     normalized = normalize_prices(test_data.copy())
     assert isinstance(normalized, pd.DataFrame)
     assert 'close_normalized' in normalized.columns
     
-    print("✅ normalize_prices() нормализует цены")
+    print("[OK] normalize_prices() нормализует цены")
     
     # Тест add_technical_features
     with_features = add_technical_features(test_data.copy())
@@ -146,37 +146,37 @@ def test_data_processor_module():
     technical_columns = ['body_size', 'upper_shadow', 'lower_shadow', 'true_range']
     for col in technical_columns:
         if col in with_features.columns:
-            print(f"✅ add_technical_features() добавляет {col}")
+            print(f"[OK] add_technical_features() добавляет {col}")
     
     # Тест create_lagged_features
     with_lags = create_lagged_features(test_data.copy(), columns=['close'], lags=[1, 2, 3])
     assert isinstance(with_lags, pd.DataFrame)
     assert 'close_lag_1' in with_lags.columns
     
-    print("✅ create_lagged_features() создает лаговые признаки")
+    print("[OK] create_lagged_features() создает лаговые признаки")
     
     # Тест prepare_data_for_analysis
     prepared = prepare_data_for_analysis(test_data.copy())
     assert isinstance(prepared, pd.DataFrame)
     
-    print("✅ prepare_data_for_analysis() подготавливает данные")
+    print("[OK] prepare_data_for_analysis() подготавливает данные")
     
     # Тест calculate_derived_indicators
     with_derived = calculate_derived_indicators(test_data.copy())
     assert isinstance(with_derived, pd.DataFrame)
     
-    print("✅ calculate_derived_indicators() вычисляет производные индикаторы")
+    print("[OK] calculate_derived_indicators() вычисляет производные индикаторы")
     
     # Тест detect_market_sessions
     with_sessions = detect_market_sessions(test_data.copy())
     assert isinstance(with_sessions, pd.DataFrame)
     
-    print("✅ detect_market_sessions() определяет рыночные сессии")
+    print("[OK] detect_market_sessions() определяет рыночные сессии")
 
 
 def test_data_validator_module():
     """Тест модуля валидации данных."""
-    print("\n📋 Тестирование модуля data.validator:")
+    print("\nТестирование модуля data.validator:")
     
     # Создаем корректные тестовые данные
     test_data = create_test_ohlcv_data(100)
@@ -187,37 +187,37 @@ def test_data_validator_module():
     assert 'is_valid' in validation_result
     assert isinstance(validation_result['is_valid'], bool)
     
-    print("✅ validate_ohlcv_data() валидирует OHLCV данные")
+    print("[OK] validate_ohlcv_data() валидирует OHLCV данные")
     
     # Тест validate_data_completeness
     completeness = validate_data_completeness(test_data)
     assert isinstance(completeness, dict)
     assert 'is_complete' in completeness
     
-    print("✅ validate_data_completeness() проверяет полноту данных")
+    print("[OK] validate_data_completeness() проверяет полноту данных")
     
     # Тест validate_price_consistency
     consistency = validate_price_consistency(test_data)
     assert isinstance(consistency, dict)
     
-    print("✅ validate_price_consistency() проверяет консистентность цен")
+    print("[OK] validate_price_consistency() проверяет консистентность цен")
     
     # Тест validate_time_series_continuity
     continuity = validate_time_series_continuity(test_data)
     assert isinstance(continuity, dict)
     
-    print("✅ validate_time_series_continuity() проверяет непрерывность временного ряда")
+    print("[OK] validate_time_series_continuity() проверяет непрерывность временного ряда")
     
     # Тест validate_statistical_properties
     stats = validate_statistical_properties(test_data)
     assert isinstance(stats, dict)
     
-    print("✅ validate_statistical_properties() проверяет статистические свойства")
+    print("[OK] validate_statistical_properties() проверяет статистические свойства")
 
 
 def test_data_schemas_module():
     """Тест модуля схем данных."""
-    print("\n📋 Тестирование модуля data.schemas:")
+    print("\nТестирование модуля data.schemas:")
     
     # Тест OHLCVRecord
     record = OHLCVRecord(
@@ -231,7 +231,7 @@ def test_data_schemas_module():
     assert record.open == 100.0
     assert record.close == 103.0
     
-    print("✅ OHLCVRecord создается корректно")
+    print("[OK] OHLCVRecord создается корректно")
     
     # Тест DataSourceConfig
     config = DataSourceConfig(
@@ -243,7 +243,7 @@ def test_data_schemas_module():
     assert config.name == "test_source"
     assert 'test_provider' in config.quote_providers
     
-    print("✅ DataSourceConfig создается корректно")
+    print("[OK] DataSourceConfig создается корректно")
     
     # Тест ValidationResult
     result = ValidationResult(
@@ -256,14 +256,14 @@ def test_data_schemas_module():
     assert result.is_valid is True
     assert len(result.warnings) == 1
     
-    print("✅ ValidationResult создается корректно")
+    print("[OK] ValidationResult создается корректно")
     
     # Тест DataSchema
     schema = DataSchema("ohlcv")
     assert schema.schema_type == "ohlcv"
     assert hasattr(schema, 'validate_dataframe')
     
-    print("✅ DataSchema создается корректно")
+    print("[OK] DataSchema создается корректно")
 
 
 def run_data_tests():
@@ -287,10 +287,10 @@ def run_data_tests():
             test_func()
             passed_tests += 1
         except Exception as e:
-            print(f"❌ {test_func.__name__}: FAILED - {e}")
+            print(f"[FAIL] {test_func.__name__}: FAILED - {e}")
     
     print("\n" + "=" * 60)
-    print(f"🎯 Результаты тестирования модуля data:")
+    print(f"[TARGET] Результаты тестирования модуля data:")
     print(f"   Всего тестов: {total_tests}")
     print(f"   Пройдено: {passed_tests}")
     print(f"   Провалено: {total_tests - passed_tests}")
@@ -299,7 +299,7 @@ def run_data_tests():
         print("🎉 ВСЕ ТЕСТЫ МОДУЛЯ DATA ПРОЙДЕНЫ УСПЕШНО!")
         return True
     else:
-        print("⚠️  Некоторые тесты модуля data провалены")
+        print("[WARN] Некоторые тесты модуля data провалены")
         return False
 
 

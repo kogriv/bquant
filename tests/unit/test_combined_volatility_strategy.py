@@ -21,13 +21,15 @@ class TestCombinedVolatilityStrategy:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
-        return [z for z in zones if len(z.data) >= 20]
+        # Filter zones with enough data for Bollinger Bands calculation (need > bb_length)
+        return [z for z in zones if len(z.data) >= 30]  # BB default length is 20, use 30 for safety
     
     @pytest.fixture
     def bull_zone(self, sample_zones):

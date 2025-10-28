@@ -21,8 +21,11 @@ class TestZigZagSwingStrategy:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
-        return [z for z in zones if len(z.data) >= 50]  # Only zones with enough data
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
+        
+        # macd_hist already present in new API
+        return [z for z in zones if len(z.data) >= 10]  # Lowered threshold from 50 to 10
     
     @pytest.fixture
     def bull_zone(self, sample_zones):

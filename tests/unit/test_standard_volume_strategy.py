@@ -21,11 +21,12 @@ class TestStandardVolumeStrategy:
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
         analyzer = MACDZoneAnalyzer()
-        zones = analyzer.identify_zones(df)
+        result = analyzer.analyze_complete_modular(df)
+        zones = result.zones
         
         # Add macd_hist to each zone
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['signal']
+            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
         
         return [z for z in zones if len(z.data) >= 10 and 'volume' in z.data.columns]
     
@@ -98,25 +99,25 @@ class TestStandardVolumeStrategy:
         assert isinstance(result.volume_at_entry_change, (int, float))
         assert isinstance(result.avg_volume_zone, (int, float))
         
-        # volume_macd_corr depends on macd_hist presence
-        if 'macd_hist' in bull_zone.columns:
-            assert result.volume_macd_corr is None or isinstance(result.volume_macd_corr, (int, float))
+        # volume_indicator_corr depends on indicator presence  
+        if 'macd_hist' in bull_zone.columns or 'macd' in bull_zone.columns:
+            assert result.volume_indicator_corr is None or isinstance(result.volume_indicator_corr, (int, float))
         
         assert result.strategy_name == 'standard'
         assert isinstance(result.strategy_params, dict)
     
     def test_volume_macd_correlation(self, bull_zone):
-        """Test volume-MACD correlation calculation."""
+        """Test volume-indicator correlation calculation."""
         strategy = StandardVolumeStrategy()
         result = strategy.calculate_volume(bull_zone, baseline_volume=None)
         
-        # Should calculate correlation if macd_hist is present
-        if 'macd_hist' in bull_zone.columns and len(bull_zone) >= 3:
-            assert result.volume_macd_corr is None or isinstance(result.volume_macd_corr, (int, float))
+        # Should calculate correlation if indicator is present
+        if ('macd_hist' in bull_zone.columns or 'macd' in bull_zone.columns) and len(bull_zone) >= 3:
+            assert result.volume_indicator_corr is None or isinstance(result.volume_indicator_corr, (int, float))
             
-            if result.volume_macd_corr is not None:
+            if result.volume_indicator_corr is not None:
                 # Correlation should be in [-1, 1]
-                assert -1 <= result.volume_macd_corr <= 1
+                assert -1 <= result.volume_indicator_corr <= 1
     
     def test_validate_method(self, bull_zone):
         """Test that validate() works without errors."""
@@ -135,7 +136,7 @@ class TestStandardVolumeStrategy:
         assert isinstance(result_dict, dict)
         assert 'volume_zone_ratio' in result_dict
         assert 'volume_at_entry_change' in result_dict
-        assert 'volume_macd_corr' in result_dict
+        assert 'volume_indicator_corr' in result_dict
         assert 'avg_volume_zone' in result_dict
         assert 'strategy_name' in result_dict
         assert result_dict['strategy_name'] == 'standard'

@@ -28,13 +28,13 @@ from bquant.core.numpy_fix import apply_numpy_fixes
 
 def test_config_module():
     """Тест модуля конфигурации."""
-    print("\n📋 Тестирование модуля config:")
+    print("\nТестирование модуля config:")
     
     # Тест получения пути к данным
     data_path = get_data_path('XAUUSD', '1h')
     assert isinstance(data_path, str) or hasattr(data_path, 'exists')
     
-    print("✅ get_data_path() возвращает корректный путь")
+    print("[OK] get_data_path() возвращает корректный путь")
     
     # Тест получения параметров индикатора
     macd_params = get_indicator_params('macd')
@@ -42,26 +42,26 @@ def test_config_module():
     assert 'fast' in macd_params
     assert 'slow' in macd_params
     
-    print("✅ get_indicator_params() возвращает параметры индикатора")
+    print("[OK] get_indicator_params() возвращает параметры индикатора")
     
     # Тест получения параметров анализа
     analysis_params = get_analysis_params('zone_analysis')
     assert isinstance(analysis_params, dict)
     assert 'min_duration' in analysis_params
     
-    print("✅ get_analysis_params() возвращает параметры анализа")
+    print("[OK] get_analysis_params() возвращает параметры анализа")
     
     # Тест валидации таймфрейма
     valid_timeframe = validate_timeframe('1h')
     assert valid_timeframe == '1h'
     
-    print("✅ validate_timeframe() валидирует таймфреймы")
+    print("[OK] validate_timeframe() валидирует таймфреймы")
     
     # Тест получения пути к результатам
     results_path = get_results_path('test_experiment')
     assert isinstance(results_path, str) or hasattr(results_path, 'exists')
     
-    print("✅ get_results_path() возвращает путь к результатам")
+    print("[OK] get_results_path() возвращает путь к результатам")
     
     # Тест констант конфигурации
     assert isinstance(SUPPORTED_TIMEFRAMES, dict)
@@ -69,12 +69,12 @@ def test_config_module():
     assert isinstance(ANALYSIS_CONFIG, dict)
     assert isinstance(LOGGING, dict)
     
-    print("✅ Константы конфигурации доступны")
+    print("[OK] Константы конфигурации доступны")
 
 
 def test_exceptions_module():
     """Тест модуля исключений."""
-    print("\n📋 Тестирование модуля exceptions:")
+    print("\nТестирование модуля exceptions:")
     
     # Тест базового исключения
     try:
@@ -83,7 +83,7 @@ def test_exceptions_module():
         assert "Test error" in str(e)
         assert e.details['test'] is True
     
-    print("✅ BQuantError работает корректно")
+    print("[OK] BQuantError работает корректно")
     
     # Тест специфических исключений
     exceptions_to_test = [
@@ -97,12 +97,12 @@ def test_exceptions_module():
         assert isinstance(exc, BQuantError)
         assert len(str(exc)) > 0
     
-    print("✅ Все специфические исключения наследуются от BQuantError")
+    print("[OK] Все специфические исключения наследуются от BQuantError")
 
 
 def test_logging_module():
     """Тест модуля логгирования."""
-    print("\n📋 Тестирование модуля logging:")
+    print("\nТестирование модуля logging:")
     
     # Тест получения логгера
     logger = get_logger(__name__)
@@ -111,38 +111,38 @@ def test_logging_module():
     assert hasattr(logger, 'error')
     assert hasattr(logger, 'debug')
     
-    print("✅ get_logger() возвращает корректный логгер")
+    print("[OK] get_logger() возвращает корректный логгер")
     
     # Тест базовой настройки логгирования
     setup_logging(level='DEBUG')
     logger = get_logger('test_logger')
     logger.info("Test log message")
     
-    print("✅ setup_logging() настраивает логгирование")
+    print("[OK] setup_logging() настраивает логгирование")
     
     # Тест профилей логирования
-    print("\n📋 Тестирование профилей логирования:")
+    print("\nТестирование профилей логирования:")
     
     # Тест профиля 'research'
     setup_logging(profile='research')
     research_logger = get_logger('bquant.data.test')
     research_logger.info("Research profile test message")
-    print("✅ Профиль 'research' работает")
+    print("[OK] Профиль 'research' работает")
     
     # Тест профиля 'clean'
     setup_logging(profile='clean')
     clean_logger = get_logger('bquant.indicators.test')
     clean_logger.info("Clean profile test message")
-    print("✅ Профиль 'clean' работает")
+    print("[OK] Профиль 'clean' работает")
     
     # Тест профиля 'debug'
     setup_logging(profile='debug')
     debug_logger = get_logger('bquant.test')
     debug_logger.debug("Debug profile test message")
-    print("✅ Профиль 'debug' работает")
+    print("[OK] Профиль 'debug' работает")
     
     # Тест модульной настройки
-    print("\n📋 Тестирование модульной настройки:")
+    print("\nТестирование модульной настройки:")
     setup_logging(
         modules_config={
             'bquant.test.module1': {'console': 'WARNING', 'file': 'INFO'},
@@ -153,10 +153,10 @@ def test_logging_module():
     module2_logger = get_logger('bquant.test.module2')
     module1_logger.info("Module1 test message")
     module2_logger.debug("Module2 test message")
-    print("✅ Модульная настройка работает")
+    print("[OK] Модульная настройка работает")
     
     # Тест исключений
-    print("\n📋 Тестирование исключений:")
+    print("\nТестирование исключений:")
     setup_logging(
         profile='research',
         exceptions={
@@ -165,22 +165,22 @@ def test_logging_module():
     )
     special_logger = get_logger('bquant.test.special')
     special_logger.debug("Special logger debug message")
-    print("✅ Исключения работают")
+    print("[OK] Исключения работают")
     
     # Тест LoggingConfigurator
-    print("\n📋 Тестирование LoggingConfigurator:")
+    print("\nТестирование LoggingConfigurator:")
     from bquant.core.logging_config import LoggingConfigurator
     
     configurator = LoggingConfigurator()
     configurator.preset('notebook', 'research').apply()
     configurator_logger = get_logger('bquant.test.configurator')
     configurator_logger.info("Configurator test message")
-    print("✅ LoggingConfigurator работает")
+    print("[OK] LoggingConfigurator работает")
 
 
 def test_utils_module():
     """Тест модуля утилит."""
-    print("\n📋 Тестирование модуля utils:")
+    print("\nТестирование модуля utils:")
     
     # Создаем тестовые данные
     test_prices = pd.Series([100, 110, 105, 115, 120])
@@ -196,47 +196,47 @@ def test_utils_module():
     assert isinstance(returns, pd.Series)
     assert len(returns) == len(test_prices)
     
-    print("✅ calculate_returns() работает корректно")
+    print("[OK] calculate_returns() работает корректно")
     
     # Тест normalize_data
     normalized = normalize_data(test_data, method='zscore')
     assert isinstance(normalized, pd.DataFrame)
     assert normalized.shape == test_data.shape
     
-    print("✅ normalize_data() работает корректно")
+    print("[OK] normalize_data() работает корректно")
     
     # Тест validate_ohlcv_columns
     validation = validate_ohlcv_columns(test_data)
     assert isinstance(validation, dict)
     assert 'is_valid' in validation
     
-    print("✅ validate_ohlcv_columns() работает корректно")
+    print("[OK] validate_ohlcv_columns() работает корректно")
     
     # Тест create_timestamp
     timestamp = create_timestamp()
     assert isinstance(timestamp, str)
     assert len(timestamp) > 0
     
-    print("✅ create_timestamp() работает корректно")
+    print("[OK] create_timestamp() работает корректно")
     
     # Тест memory_usage_info
     memory_info = memory_usage_info(test_data)
     assert isinstance(memory_info, dict)
     assert 'total_memory_mb' in memory_info
     
-    print("✅ memory_usage_info() работает корректно")
+    print("[OK] memory_usage_info() работает корректно")
 
 
 def test_numpy_fix_module():
     """Тест модуля исправлений NumPy."""
-    print("\n📋 Тестирование модуля numpy_fix:")
+    print("\nТестирование модуля numpy_fix:")
     
     # Применяем исправления
     apply_numpy_fixes()
     
     # Проверяем, что исправления применены
     # (конкретные проверки зависят от того, какие исправления применяются)
-    print("✅ apply_numpy_fixes() выполняется без ошибок")
+    print("[OK] apply_numpy_fixes() выполняется без ошибок")
 
 
 def run_core_tests():
@@ -261,10 +261,10 @@ def run_core_tests():
             test_func()
             passed_tests += 1
         except Exception as e:
-            print(f"❌ {test_func.__name__}: FAILED - {e}")
+            print(f"[FAIL] {test_func.__name__}: FAILED - {e}")
     
     print("\n" + "=" * 60)
-    print(f"🎯 Результаты тестирования базовых модулей:")
+    print(f"[TARGET] Результаты тестирования базовых модулей:")
     print(f"   Всего тестов: {total_tests}")
     print(f"   Пройдено: {passed_tests}")
     print(f"   Провалено: {total_tests - passed_tests}")
@@ -273,7 +273,7 @@ def run_core_tests():
         print("🎉 ВСЕ ТЕСТЫ БАЗОВЫХ МОДУЛЕЙ ПРОЙДЕНЫ УСПЕШНО!")
         return True
     else:
-        print("⚠️  Некоторые тесты базовых модулей провалены")
+        print("[WARN] Некоторые тесты базовых модулей провалены")
         return False
 
 
