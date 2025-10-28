@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List, Union, Tuple
 from datetime import datetime
 from pathlib import Path
+from importlib import import_module
 import pandas as pd
 import pickle
 import gzip
@@ -416,79 +417,102 @@ class ZoneAnalysisResult:
             indicator_context=zone_dict.get('indicator_context')  # v2.1: Load indicator context
         )
     
-    def visualize(self, 
+    def visualize(self,
                   mode: str = 'overview',
                   zone_id: Optional[int] = None,
-                  date_range: Optional[Tuple] = None,
+                  date_range: Optional[Tuple[datetime, datetime]] = None,
                   **kwargs):
-        """
-        Удобный метод визуализации из результата анализа.
-        
+        """Создать визуализацию по сохранённому результату анализа зон.
+
+        Параметры полностью повторяют интерактивные примеры из
+        :mod:`docs.user_guide.zone_analysis`, поэтому готовые сценарии из
+        руководства можно запускать непосредственно на экземпляре
+        :class:`ZoneAnalysisResult`.
+
         Args:
-            mode: Режим визуализации:
-                - 'overview': Общий график всех зон на цене
-                - 'detail': Детальный просмотр одной зоны
-                - 'comparison': Сравнение нескольких зон
-                - 'statistics': Статистический анализ зон
-            zone_id: ID зоны для mode='detail'
-            date_range: Диапазон дат для mode='comparison'
-            **kwargs: Параметры для ZoneVisualizer
-            
+            mode: Режим визуализации. Поддерживаются режимы ``'overview'``
+                (обзор всех зон на графике цены), ``'detail'`` (детальный
+                просмотр одной зоны), ``'comparison'`` (сравнение нескольких
+                зон) и ``'statistics'`` (анализ агрегированной статистики).
+            zone_id: Идентификатор зоны, обязательный для ``mode='detail'``.
+            date_range: Необязательный диапазон дат для ``mode='comparison'``.
+            **kwargs: Дополнительные параметры визуализации. Специальные ключи
+                ``backend`` и ``visualizer_config`` используются при создании
+                :class:`~bquant.visualization.zones.ZoneVisualizer`, остальные
+                аргументы проксируются в целевой метод визуализатора.
+
         Returns:
-            Plotly/Matplotlib фигура
-            
+            Объект графика (Plotly или Matplotlib в зависимости от выбранного
+            backend визуализатора).
+
+        Raises:
+            ImportError: Если модуль визуализации недоступен или отсутствуют
+                дополнительные зависимости.
+            ValueError: При отсутствии требуемых данных или зон.
+
         Examples:
-            # Общий обзор
-            fig = result.visualize('overview')
-            fig.show()
-            
-            # Детальный просмотр зоны #3
-            fig = result.visualize('detail', zone_id=3, context_bars=20)
-            fig.show()
-            
-            # Сравнение первых 5 зон
-            fig = result.visualize('comparison', max_zones=5)
-            fig.show()
-            
-            # Статистика
-            fig = result.visualize('statistics')
-            fig.show()
+            >>> result.visualize('overview', title='Zones vs Price')
+            >>> result.visualize('detail', zone_id=3, context_bars=20)
+            >>> result.visualize('comparison', max_zones=5)
+            >>> result.visualize('statistics', title='Zone Metrics')
         """
-        from bquant.visualization import ZoneVisualizer
-        
-        if self.data is None:
+        try:
+            visualization_module = import_module('bquant.visualization')
+            ZoneVisualizer = getattr(visualization_module, 'ZoneVisualizer')
+        except (ImportError, AttributeError):
+            try:
+                zones_module = import_module('bquant.visualization.zones')
+                ZoneVisualizer = getattr(zones_module, 'ZoneVisualizer')
+            except (ImportError, AttributeError) as exc:
+                raise ImportError(
+                    "ZoneVisualizer is not available. Install optional "
+                    "visualization dependencies (e.g. 'bquant[viz]') "
+                    "to enable chart rendering."
+                ) from exc
+
+        if self.data is None or self.data.empty:
             raise ValueError("data not available in ZoneAnalysisResult")
-        
-        visualizer = ZoneVisualizer()
-        
+
+        if not self.zones and mode in {'overview', 'detail', 'comparison', 'statistics'}:
+            raise ValueError("zones data is empty - nothing to visualize")
+
+        visualizer_backend = kwargs.pop('backend', None)
+        visualizer_config = kwargs.pop('visualizer_config', {})
+        visualizer_kwargs = {**visualizer_config}
+        if visualizer_backend is not None:
+            visualizer_kwargs['backend'] = visualizer_backend
+
+        visualizer = ZoneVisualizer(**visualizer_kwargs)
+
         if mode == 'overview':
             return visualizer.plot_zones_on_price_chart(
                 self.data, self.zones, **kwargs
             )
-        
-        elif mode == 'detail':
+
+        if mode == 'detail':
             if zone_id is None:
                 raise ValueError("zone_id required for detail mode")
             zone = next((z for z in self.zones if z.zone_id == zone_id), None)
-            if not zone:
+            if zone is None:
                 raise ValueError(f"Zone {zone_id} not found")
             return visualizer.plot_zone_detail(self.data, zone, **kwargs)
 
-        elif mode == 'comparison':
+        if mode == 'comparison':
             return visualizer.plot_zones_comparison(
                 self.data, self.zones, date_range=date_range, **kwargs
             )
-        
-        elif mode == 'statistics':
+
+        if mode == 'statistics':
+            if not self.statistics:
+                raise ValueError("statistics data is empty - cannot build visualization")
             return visualizer.plot_zones_analysis(
                 self.zones, self.statistics, **kwargs
             )
-        
-        else:
-            raise ValueError(
-                f"Unknown mode: {mode}. "
-                f"Available: 'overview', 'detail', 'comparison', 'statistics'"
-            )
+
+        raise ValueError(
+            f"Unknown mode: {mode}. "
+            f"Available: 'overview', 'detail', 'comparison', 'statistics'"
+        )
 
 
 # Экспорт
