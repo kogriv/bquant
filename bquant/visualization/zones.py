@@ -2,13 +2,14 @@
 
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
+from ..analysis.zones.models import ZoneInfo
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
@@ -112,6 +113,186 @@ class ZoneChartBuilder:
         else:
             raise ValueError("zones_data must be DataFrame or list of dicts")
 
+    def _normalize_zone(self, zone: Union[Dict[str, Any], ZoneInfo, Any]) -> Dict[str, Any]:
+        """Приведение зоны к словарю с сохранением метаданных ZoneInfo."""
+
+        if isinstance(zone, dict):
+            return zone
+
+        if isinstance(zone, ZoneInfo):
+            return {
+                'zone_id': zone.zone_id,
+                'type': zone.type,
+                'start_idx': zone.start_idx,
+                'end_idx': zone.end_idx,
+                'start_time': zone.start_time,
+                'end_time': zone.end_time,
+                'duration': zone.duration,
+                'data': zone.data,
+                'features': zone.features,
+                'indicator_context': zone.indicator_context,
+            }
+
+        normalized = self._prepare_zone_data([zone])
+        if not normalized:
+            raise ValueError("Unable to normalize zone object")
+        return normalized[0]
+
+    def _get_zone_window(self,
+                         price_data: pd.DataFrame,
+                         zone: Dict[str, Any],
+                         context_bars: int,
+                         max_bars: Optional[int] = None) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+        """Определение окна данных вокруг зоны с учетом контекста."""
+
+        if price_data is None or price_data.empty:
+            raise ValueError("price_data is empty - cannot build zone window")
+
+        index = price_data.index
+        total_bars = len(price_data)
+
+        def _safe_idx(idx_value: Optional[int], fallback_time: Optional[datetime]) -> Optional[int]:
+            if idx_value is not None:
+                try:
+                    idx_int = int(idx_value)
+                    if 0 <= idx_int < total_bars:
+                        return idx_int
+                except (TypeError, ValueError):
+                    pass
+
+            if fallback_time is None:
+                return None
+
+            if isinstance(index, pd.DatetimeIndex):
+                try:
+                    loc = index.get_loc(fallback_time)
+                    if isinstance(loc, slice):
+                        return loc.start
+                    return int(loc)
+                except KeyError:
+                    position = index.get_indexer([pd.Timestamp(fallback_time)], method='nearest')
+                    if position.size and position[0] != -1:
+                        return int(position[0])
+            return None
+
+        start_idx = _safe_idx(zone.get('start_idx'), zone.get('start_time'))
+        end_idx = _safe_idx(zone.get('end_idx'), zone.get('end_time'))
+
+        if start_idx is None or end_idx is None:
+            self.logger.warning(
+                "Zone %s is missing start/end indices; using entire price range",
+                zone.get('zone_id', '?'),
+            )
+            start_idx = 0
+            end_idx = total_bars - 1
+
+        zone_left = max(0, min(start_idx, end_idx))
+        zone_right = min(total_bars - 1, max(start_idx, end_idx))
+
+        left_idx = max(0, zone_left - int(context_bars))
+        right_idx = min(total_bars - 1, zone_right + int(context_bars))
+
+        window = price_data.iloc[left_idx:right_idx + 1]
+        truncated = False
+        truncation_reason = None
+
+        if max_bars and len(window) > max_bars:
+            truncated = True
+            truncation_reason = 'max_bars'
+            keep = max(1, max_bars)
+            self.logger.warning(
+                "Zone window truncated to %s bars (limit %s) for zone %s",
+                keep,
+                max_bars,
+                zone.get('zone_id', '?'),
+            )
+            # Сохраняем правую часть (последние бары)
+            window = window.iloc[-keep:]
+            left_idx = right_idx - len(window) + 1
+
+        return window, {
+            'start_idx': start_idx,
+            'end_idx': end_idx,
+            'left_idx': left_idx,
+            'right_idx': right_idx,
+            'truncated': truncated,
+            'truncation_reason': truncation_reason,
+            'zone_left': zone_left,
+            'zone_right': zone_right,
+        }
+
+    def _detect_indicators_from_features(self,
+                                         zone: Dict[str, Any],
+                                         data: Optional[pd.DataFrame]) -> List[str]:
+        """Определение индикаторных колонок для отображения."""
+
+        if data is None or data.empty:
+            return []
+
+        candidate_columns: List[str] = []
+        indicator_context = zone.get('indicator_context') or {}
+        features = zone.get('features') or {}
+
+        def _extend_from(value: Any) -> None:
+            if isinstance(value, str):
+                candidate_columns.append(value)
+            elif isinstance(value, Iterable):
+                for item in value:
+                    if isinstance(item, str):
+                        candidate_columns.append(item)
+
+        for key in ('detection_indicator', 'signal_line', 'indicator_columns'):
+            _extend_from(indicator_context.get(key))
+
+        for key in ('primary_indicator', 'secondary_indicator', 'indicator_columns', 'indicators'):
+            _extend_from(features.get(key))
+
+        standard_columns = {'open', 'high', 'low', 'close', 'volume', 'adj_close'}
+
+        # Отбираем только колонки, присутствующие в данных
+        detected = []
+        for column in candidate_columns:
+            if column in data.columns and column not in detected and column not in standard_columns:
+                detected.append(column)
+
+        if not detected:
+            # Попытка автоматически найти индикаторы
+            non_price_columns = [
+                col for col in data.columns
+                if col not in standard_columns and data[col].dtype.kind in {'f', 'i'}
+            ]
+            detected.extend(non_price_columns[:2])
+
+        return detected
+
+    def _filter_zones_by_date(self,
+                              zones: List[Dict[str, Any]],
+                              date_range: Optional[Tuple[datetime, datetime]]) -> List[Dict[str, Any]]:
+        """Фильтрация зон по диапазону дат."""
+
+        if not date_range:
+            return zones
+
+        start_range, end_range = date_range
+        filtered: List[Dict[str, Any]] = []
+        for zone in zones:
+            start_time = zone.get('start_time')
+            end_time = zone.get('end_time')
+            if start_time is None or end_time is None:
+                continue
+
+            if end_time >= start_range and start_time <= end_range:
+                filtered.append(zone)
+
+        if len(filtered) < len(zones):
+            self.logger.info(
+                "Filtered zones by date range: kept %s of %s",
+                len(filtered),
+                len(zones),
+            )
+
+        return filtered
+
 
 class ZoneVisualizer(ZoneChartBuilder):
     """
@@ -134,7 +315,16 @@ class ZoneVisualizer(ZoneChartBuilder):
             'height': kwargs.get('height', 800),
             'show_zone_labels': kwargs.get('show_zone_labels', True),
             'show_zone_stats': kwargs.get('show_zone_stats', True),
-            'opacity': kwargs.get('opacity', 0.3)
+            'opacity': kwargs.get('opacity', 0.3),
+            'zone_detail_context': kwargs.get('zone_detail_context', 40),
+            'max_zone_detail_bars': kwargs.get('max_zone_detail_bars', 500),
+            'comparison_context': kwargs.get('comparison_context', 30),
+            'max_comparison_zones': kwargs.get('max_comparison_zones', 6),
+            'volume_panel_height': kwargs.get('volume_panel_height', 0.25),
+            'indicator_palette': kwargs.get('indicator_palette', [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+            ]),
         }
     
     def plot_zones_on_price_chart(self, price_data: pd.DataFrame,
@@ -161,46 +351,66 @@ class ZoneVisualizer(ZoneChartBuilder):
             return self._create_matplotlib_zones_on_price(price_data, zones, title, **kwargs)
 
     def plot_zone_detail(self, price_data: pd.DataFrame,
-                         zone: Union[Dict[str, Any], Any],
+                         zone: Union[Dict[str, Any], ZoneInfo, Any],
                          context_bars: int = 20,
                          title: str = "Zone Detail",
                          **kwargs) -> Union[go.Figure, plt.Figure]:
         """Детализированный просмотр отдельной зоны."""
 
-        zone_dict = self._prepare_zone_data([zone])[0]
-        zone_start = zone_dict.get('start_time')
-        zone_end = zone_dict.get('end_time')
+        if price_data is None or price_data.empty:
+            raise ValueError("price_data must be a non-empty DataFrame")
 
-        detail_data = price_data
-        if zone_start is not None and zone_end is not None and not price_data.empty:
-            index = price_data.index
+        zone_dict = self._normalize_zone(zone)
+        context = kwargs.get('context_bars', context_bars)
+        if context is None:
+            context = self.default_config['zone_detail_context']
 
-            def _get_position(target):
-                try:
-                    loc = index.get_loc(target)
-                    if isinstance(loc, slice):
-                        return loc.start
-                    return int(loc)
-                except KeyError:
-                    idx = index.get_indexer([target], method='nearest')
-                    if idx.size and idx[0] != -1:
-                        return int(idx[0])
-                    return None
+        max_bars = kwargs.get('max_zone_detail_bars', self.default_config['max_zone_detail_bars'])
 
-            start_idx = _get_position(zone_start)
-            end_idx = _get_position(zone_end)
+        window_df, window_meta = self._get_zone_window(price_data, zone_dict, context, max_bars=max_bars)
 
-            if start_idx is not None and end_idx is not None:
-                left = max(0, min(start_idx, end_idx) - int(context_bars))
-                right = min(len(price_data) - 1, max(start_idx, end_idx) + int(context_bars))
-                detail_data = price_data.iloc[left : right + 1]
+        zone_data = zone_dict.get('data')
+        indicator_source: Optional[pd.DataFrame] = None
+        if isinstance(zone_data, pd.DataFrame) and not zone_data.empty:
+            indicator_source = zone_data.reindex(window_df.index)
+        else:
+            indicator_source = window_df
 
-        return self.plot_zones_on_price_chart(
-            detail_data,
-            [zone_dict],
-            title=title,
-            **kwargs,
-        )
+        indicator_columns = self._detect_indicators_from_features(zone_dict, indicator_source)
+        indicator_data = pd.DataFrame(index=window_df.index)
+        if indicator_columns:
+            indicator_data = indicator_source[indicator_columns].copy()
+            self.logger.debug(
+                "Detected indicators for zone %s: %s",
+                zone_dict.get('zone_id', '?'),
+                indicator_columns,
+            )
+
+        if window_meta['truncated'] and window_meta['truncation_reason'] == 'max_bars':
+            self.logger.warning(
+                "Zone %s window clipped to last %s bars due to configuration limit",
+                zone_dict.get('zone_id', '?'),
+                len(window_df),
+            )
+
+        if self.backend == 'plotly':
+            return self._create_plotly_zone_detail(
+                window_df,
+                zone_dict,
+                indicator_data,
+                title,
+                window_meta,
+                **kwargs,
+            )
+        else:
+            return self._create_matplotlib_zone_detail(
+                window_df,
+                zone_dict,
+                indicator_data,
+                title,
+                window_meta,
+                **kwargs,
+            )
 
     def plot_zones_comparison(self, price_data: pd.DataFrame,
                               zones_data: Union[List[Dict], pd.DataFrame, List[Any]],
@@ -210,31 +420,85 @@ class ZoneVisualizer(ZoneChartBuilder):
                               **kwargs) -> Union[go.Figure, plt.Figure]:
         """Сравнение нескольких зон на ценовом графике."""
 
-        zones = self._prepare_zone_data(zones_data)
+        if price_data is None or price_data.empty:
+            raise ValueError("price_data must be a non-empty DataFrame")
 
-        if date_range is not None:
-            start_range, end_range = date_range
-            zones = [
-                zone for zone in zones
-                if zone.get('start_time') is not None and zone.get('end_time') is not None
-                and start_range <= zone['end_time'] and zone['start_time'] <= end_range
-            ]
+        # Нормализуем входные зоны
+        if isinstance(zones_data, pd.DataFrame):
+            normalized_zones = self._prepare_zone_data(zones_data)
+        else:
+            normalized_zones = [self._normalize_zone(zone) for zone in list(zones_data or [])]
 
-        if max_zones:
-            zones = zones[:max(1, max_zones)]
-
-        if not zones:
+        if not normalized_zones:
+            self.logger.warning("No zones provided for comparison - returning empty chart")
             return self.plot_zones_on_price_chart(price_data, [], title=title, **kwargs)
 
-        subset = price_data
-        start_times = [zone.get('start_time') for zone in zones if zone.get('start_time') is not None]
-        end_times = [zone.get('end_time') for zone in zones if zone.get('end_time') is not None]
-        if start_times and end_times and isinstance(price_data.index, pd.DatetimeIndex):
-            global_start = min(start_times)
-            global_end = max(end_times)
-            subset = price_data[(price_data.index >= global_start) & (price_data.index <= global_end)]
+        filtered_zones = self._filter_zones_by_date(normalized_zones, date_range)
 
-        return self.plot_zones_on_price_chart(subset, zones, title=title, **kwargs)
+        if not filtered_zones:
+            self.logger.warning("No zones fall inside the requested date range")
+            return self.plot_zones_on_price_chart(price_data, [], title=title, **kwargs)
+
+        max_allowed = kwargs.get('max_zones', max_zones)
+        if max_allowed is None:
+            max_allowed = self.default_config['max_comparison_zones']
+
+        if len(filtered_zones) > max_allowed:
+            self.logger.warning(
+                "Limiting zones comparison to first %s zones out of %s",
+                max_allowed,
+                len(filtered_zones),
+            )
+            filtered_zones = filtered_zones[:max_allowed]
+
+        context = kwargs.get('comparison_context', self.default_config['comparison_context'])
+
+        zone_windows: List[Dict[str, Any]] = []
+        global_left = len(price_data)
+        global_right = 0
+
+        for zone in filtered_zones:
+            window_df, window_meta = self._get_zone_window(price_data, zone, context, max_bars=None)
+            zone_data = zone.get('data')
+            if isinstance(zone_data, pd.DataFrame) and not zone_data.empty:
+                indicator_source = zone_data.reindex(window_df.index)
+            else:
+                indicator_source = price_data.reindex(window_df.index)
+
+            indicator_columns = self._detect_indicators_from_features(zone, indicator_source)
+            indicators_df = pd.DataFrame(index=window_df.index)
+            if indicator_columns:
+                indicators_df = indicator_source[indicator_columns].copy()
+
+            zone_windows.append({
+                'zone': zone,
+                'window': window_df,
+                'meta': window_meta,
+                'indicators': indicators_df,
+            })
+
+            global_left = min(global_left, window_meta['left_idx'])
+            global_right = max(global_right, window_meta['right_idx'])
+
+        if global_left > global_right:
+            global_left, global_right = 0, len(price_data) - 1
+
+        global_window = price_data.iloc[global_left:global_right + 1]
+
+        if self.backend == 'plotly':
+            return self._create_plotly_zones_comparison(
+                global_window,
+                zone_windows,
+                title,
+                **kwargs,
+            )
+        else:
+            return self._create_matplotlib_zones_comparison(
+                global_window,
+                zone_windows,
+                title,
+                **kwargs,
+            )
 
     def plot_macd_zones(self, macd_data: pd.DataFrame,
                        zones_data: Union[List[Dict], pd.DataFrame],
@@ -327,8 +591,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             return self._create_matplotlib_zones_correlation(zones_df, title, **kwargs)
     
     # Plotly реализации
-    def _create_plotly_zones_on_price(self, price_data: pd.DataFrame, 
-                                     zones: List[Dict], title: str, 
+    def _create_plotly_zones_on_price(self, price_data: pd.DataFrame,
+                                     zones: List[Dict], title: str,
                                      **kwargs) -> go.Figure:
         """Создание графика цен с зонами с помощью Plotly."""
         # Основной график свечей
@@ -392,9 +656,230 @@ class ZoneVisualizer(ZoneChartBuilder):
             xaxis_rangeslider_visible=False,
             template='plotly_white'
         )
-        
+
         return fig
-    
+
+    def _create_plotly_zone_detail(self,
+                                   price_window: pd.DataFrame,
+                                   zone: Dict[str, Any],
+                                   indicator_data: pd.DataFrame,
+                                   title: str,
+                                   window_meta: Dict[str, Any],
+                                   **kwargs) -> go.Figure:
+        """Создание детального графика зоны с Plotly."""
+
+        show_volume = 'volume' in price_window.columns and price_window['volume'].notna().any()
+        rows = 2 if show_volume else 1
+        volume_height = kwargs.get('volume_panel_height', self.default_config['volume_panel_height'])
+        row_heights = [1.0]
+        if rows == 2:
+            row_heights = [1 - volume_height, volume_height]
+
+        fig = make_subplots(
+            rows=rows,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.05,
+            row_heights=row_heights,
+        )
+
+        # Свечной график
+        fig.add_trace(go.Candlestick(
+            x=price_window.index,
+            open=price_window['open'],
+            high=price_window['high'],
+            low=price_window['low'],
+            close=price_window['close'],
+            name='Price',
+        ), row=1, col=1)
+
+        # Индикаторы
+        palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
+        for i, column in enumerate(indicator_data.columns):
+            color = palette[i % len(palette)]
+            fig.add_trace(
+                go.Scatter(
+                    x=indicator_data.index,
+                    y=indicator_data[column],
+                    mode='lines',
+                    name=column,
+                    line=dict(color=color, width=1.6),
+                ),
+                row=1,
+                col=1,
+            )
+
+        # Заливка зоны
+        window_index = price_window.index
+        zone_start_idx = max(0, window_meta['zone_left'] - window_meta['left_idx'])
+        zone_end_idx = min(len(window_index) - 1, window_meta['zone_right'] - window_meta['left_idx'])
+        if zone_start_idx <= zone_end_idx:
+            x0 = window_index[zone_start_idx]
+            x1 = window_index[zone_end_idx]
+            zone_type = zone.get('type', 'bull')
+            color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+            fig.add_vrect(
+                x0=x0,
+                x1=x1,
+                fillcolor=color_config['fill'],
+                line=dict(color=color_config['line'], width=1),
+                layer="below",
+            )
+
+        if show_volume:
+            fig.add_trace(
+                go.Bar(
+                    x=price_window.index,
+                    y=price_window['volume'],
+                    name='Volume',
+                    marker_color='rgba(100, 149, 237, 0.4)',
+                ),
+                row=2,
+                col=1,
+            )
+            fig.update_yaxes(title_text='Volume', row=2, col=1)
+
+        # Аннотации
+        if self.default_config['show_zone_stats']:
+            stats_parts = [
+                f"Type: {zone.get('type', 'n/a')}",
+                f"Duration: {zone.get('duration', 'n/a')} bars",
+            ]
+            features = zone.get('features') or {}
+            if 'strength' in features:
+                stats_parts.append(f"Strength: {features['strength']:.2f}")
+            fig.add_annotation(
+                text='<br>'.join(stats_parts),
+                xref='paper',
+                yref='paper',
+                x=0.01,
+                y=0.98,
+                showarrow=False,
+                align='left',
+                bgcolor='rgba(255,255,255,0.8)',
+                bordercolor='rgba(0,0,0,0.1)',
+                font=dict(size=11),
+            )
+
+        if self.default_config['show_zone_labels']:
+            fig.add_annotation(
+                xref='x',
+                yref='paper',
+                x=zone.get('start_time', window_index[zone_start_idx]),
+                y=1.05,
+                text=f"Zone {zone.get('zone_id', 'n/a')}",
+                showarrow=False,
+                font=dict(size=12, color='black'),
+                bgcolor='rgba(255,255,255,0.8)',
+            )
+
+        fig.update_layout(
+            title=title,
+            width=self.default_config['width'],
+            height=self.default_config['height'],
+            xaxis_rangeslider_visible=False,
+            template='plotly_white',
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1.0),
+        )
+
+        fig.update_xaxes(matches='x')
+
+        return fig
+
+    def _create_plotly_zones_comparison(self,
+                                        price_window: pd.DataFrame,
+                                        zone_windows: List[Dict[str, Any]],
+                                        title: str,
+                                        **kwargs) -> go.Figure:
+        """Создание сравнительного графика зон (Plotly)."""
+
+        show_volume = 'volume' in price_window.columns and price_window['volume'].notna().any()
+        rows = 2 if show_volume else 1
+        volume_height = kwargs.get('volume_panel_height', self.default_config['volume_panel_height'])
+        row_heights = [1.0]
+        if rows == 2:
+            row_heights = [1 - volume_height, volume_height]
+
+        fig = make_subplots(
+            rows=rows,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.05,
+            row_heights=row_heights,
+        )
+
+        fig.add_trace(go.Candlestick(
+            x=price_window.index,
+            open=price_window['open'],
+            high=price_window['high'],
+            low=price_window['low'],
+            close=price_window['close'],
+            name='Price',
+        ), row=1, col=1)
+
+        palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
+
+        for zone_idx, payload in enumerate(zone_windows):
+            zone = payload['zone']
+            zone_type = zone.get('type', 'bull')
+            color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+            meta = payload['meta']
+            idx = price_window.index
+            start_pos = max(0, meta['zone_left'] - meta['left_idx'])
+            end_pos = min(len(idx) - 1, meta['zone_right'] - meta['left_idx'])
+            if start_pos <= end_pos:
+                fig.add_vrect(
+                    x0=idx[start_pos],
+                    x1=idx[end_pos],
+                    fillcolor=color_config['fill'],
+                    line=dict(color=color_config['line'], width=1),
+                    layer="below",
+                    annotation_text=f"Zone {zone.get('zone_id', zone_idx + 1)}",
+                    annotation_position="top left",
+                )
+
+            indicators = payload['indicators'].reindex(price_window.index)
+            for j, column in enumerate(indicators.columns):
+                color = palette[(zone_idx + j) % len(palette)]
+                fig.add_trace(
+                    go.Scatter(
+                        x=indicators.index,
+                        y=indicators[column],
+                        mode='lines',
+                        name=f"{zone.get('zone_id', zone_idx + 1)} · {column}",
+                        line=dict(color=color, width=1.4),
+                        opacity=0.85,
+                    ),
+                    row=1,
+                    col=1,
+                )
+
+        if show_volume:
+            fig.add_trace(
+                go.Bar(
+                    x=price_window.index,
+                    y=price_window['volume'],
+                    name='Volume',
+                    marker_color='rgba(120, 120, 220, 0.35)',
+                ),
+                row=2,
+                col=1,
+            )
+            fig.update_yaxes(title_text='Volume', row=2, col=1)
+
+        fig.update_layout(
+            title=title,
+            width=self.default_config['width'],
+            height=self.default_config['height'],
+            xaxis_rangeslider_visible=False,
+            template='plotly_white',
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1.0),
+        )
+
+        fig.update_xaxes(matches='x')
+
+        return fig
+
     def _create_plotly_macd_zones(self, macd_data: pd.DataFrame, 
                                  zones: List[Dict], title: str, 
                                  **kwargs) -> go.Figure:
@@ -639,15 +1124,15 @@ class ZoneVisualizer(ZoneChartBuilder):
         return fig
     
     # Matplotlib реализации (упрощенные)
-    def _create_matplotlib_zones_on_price(self, price_data: pd.DataFrame, 
-                                         zones: List[Dict], title: str, 
+    def _create_matplotlib_zones_on_price(self, price_data: pd.DataFrame,
+                                         zones: List[Dict], title: str,
                                          **kwargs) -> plt.Figure:
         """Создание графика цен с зонами с помощью Matplotlib."""
         fig, ax = plt.subplots(figsize=(12, 6))
-        
+
         # Простой линейный график цен
         ax.plot(price_data.index, price_data['close'], label='Close Price', linewidth=1)
-        
+
         # Добавляем зоны как вертикальные полосы
         for i, zone in enumerate(zones):
             if 'start_time' in zone and 'end_time' in zone:
@@ -658,15 +1143,111 @@ class ZoneVisualizer(ZoneChartBuilder):
                           alpha=self.default_config['opacity'], 
                           color=color, 
                           label=f"{zone_type.title()} Zone" if i == 0 else "")
-        
+
         ax.set_title(title)
         ax.legend()
         ax.grid(True, alpha=0.3)
-        
+
         return fig
-    
-    def _create_matplotlib_macd_zones(self, macd_data: pd.DataFrame, 
-                                     zones: List[Dict], title: str, 
+
+    def _create_matplotlib_zone_detail(self,
+                                       price_window: pd.DataFrame,
+                                       zone: Dict[str, Any],
+                                       indicator_data: pd.DataFrame,
+                                       title: str,
+                                       window_meta: Dict[str, Any],
+                                       **kwargs) -> plt.Figure:
+        """Детальный график зоны с Matplotlib (упрощенная версия)."""
+
+        show_volume = 'volume' in price_window.columns and price_window['volume'].notna().any()
+        if show_volume:
+            fig, (ax_price, ax_volume) = plt.subplots(2, 1, figsize=(12, 7), sharex=True,
+                                                     gridspec_kw={'height_ratios': [3, 1]})
+        else:
+            fig, ax_price = plt.subplots(1, 1, figsize=(12, 6))
+            ax_volume = None
+
+        ax_price.plot(price_window.index, price_window['close'], label='Close', color='black', linewidth=1.2)
+
+        for column in indicator_data.columns:
+            ax_price.plot(indicator_data.index, indicator_data[column], label=column, linewidth=1)
+
+        zone_start_idx = max(0, window_meta['zone_left'] - window_meta['left_idx'])
+        zone_end_idx = min(len(price_window.index) - 1, window_meta['zone_right'] - window_meta['left_idx'])
+        if zone_start_idx <= zone_end_idx:
+            x0 = price_window.index[zone_start_idx]
+            x1 = price_window.index[zone_end_idx]
+            zone_type = zone.get('type', 'bull')
+            color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+            ax_price.axvspan(x0, x1, alpha=self.default_config['opacity'], color=color)
+
+        if show_volume and ax_volume is not None:
+            ax_volume.bar(price_window.index, price_window['volume'], color='steelblue', alpha=0.4)
+            ax_volume.set_ylabel('Volume')
+            ax_volume.grid(True, alpha=0.2)
+
+        ax_price.set_title(title)
+        ax_price.legend(loc='upper left')
+        ax_price.grid(True, alpha=0.3)
+
+        if self.default_config['show_zone_stats']:
+            stats_parts = [f"Type: {zone.get('type', 'n/a')}", f"Duration: {zone.get('duration', 'n/a')} bars"]
+            features = zone.get('features') or {}
+            if 'strength' in features:
+                stats_parts.append(f"Strength: {features['strength']:.2f}")
+            ax_price.text(0.01, 0.95, '\n'.join(stats_parts), transform=ax_price.transAxes,
+                          fontsize=10, bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+
+        return fig
+
+    def _create_matplotlib_zones_comparison(self,
+                                            price_window: pd.DataFrame,
+                                            zone_windows: List[Dict[str, Any]],
+                                            title: str,
+                                            **kwargs) -> plt.Figure:
+        """Сравнительный график зон с Matplotlib (упрощенная версия)."""
+
+        show_volume = 'volume' in price_window.columns and price_window['volume'].notna().any()
+        if show_volume:
+            fig, (ax_price, ax_volume) = plt.subplots(2, 1, figsize=(12, 7), sharex=True,
+                                                     gridspec_kw={'height_ratios': [3, 1]})
+        else:
+            fig, ax_price = plt.subplots(1, 1, figsize=(12, 6))
+            ax_volume = None
+
+        ax_price.plot(price_window.index, price_window['close'], label='Close', color='black', linewidth=1.1)
+
+        for idx, payload in enumerate(zone_windows):
+            zone = payload['zone']
+            meta = payload['meta']
+            zone_start_idx = max(0, meta['zone_left'] - meta['left_idx'])
+            zone_end_idx = min(len(price_window.index) - 1, meta['zone_right'] - meta['left_idx'])
+            if zone_start_idx <= zone_end_idx:
+                x0 = price_window.index[zone_start_idx]
+                x1 = price_window.index[zone_end_idx]
+                zone_type = zone.get('type', 'bull')
+                color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+                ax_price.axvspan(x0, x1, alpha=self.default_config['opacity'], color=color,
+                                 label=f"Zone {zone.get('zone_id', idx + 1)}")
+
+            indicators = payload['indicators'].reindex(price_window.index)
+            for column in indicators.columns:
+                ax_price.plot(indicators.index, indicators[column], linewidth=1,
+                              label=f"{zone.get('zone_id', idx + 1)} · {column}")
+
+        if show_volume and ax_volume is not None:
+            ax_volume.bar(price_window.index, price_window['volume'], color='steelblue', alpha=0.35)
+            ax_volume.set_ylabel('Volume')
+            ax_volume.grid(True, alpha=0.2)
+
+        ax_price.set_title(title)
+        ax_price.legend(loc='upper left')
+        ax_price.grid(True, alpha=0.3)
+
+        return fig
+
+    def _create_matplotlib_macd_zones(self, macd_data: pd.DataFrame,
+                                     zones: List[Dict], title: str,
                                      **kwargs) -> plt.Figure:
         """Создание графика MACD с зонами с помощью Matplotlib."""
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
