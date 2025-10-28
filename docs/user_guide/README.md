@@ -17,6 +17,15 @@
 - Как интерпретировать результаты `ZoneAnalysisResult`
 - Переход к практическим сценариям
 
+### 🔄 [Zone Analysis Pipeline](zone_analysis_pipeline.md) - Полный пайплайн анализа зон
+- Детальная архитектура системы
+- Пошаговое выполнение pipeline
+- Стратегии детекции зон (ZeroCrossing, Threshold, LineCrossing, Preloaded, Combined)
+- Извлечение признаков и анализ
+- Модели данных (ZoneInfo, ZoneAnalysisResult)
+- Примеры использования от простых до продвинутых
+- Кэширование и персистентность
+
 ### 🏗️ [Core Modules](../api/core/README.md) - Основные модули
 - Архитектура BQuant
 - Основные компоненты
@@ -85,11 +94,12 @@ pip install pandas numpy matplotlib seaborn plotly
 
 1. **[Quick Start](quick_start.md)** - Быстрый старт
 2. **[Core Concepts](core_concepts.md)** - Ключевые идеи Universal Pipeline
-3. **[Core Modules](../api/core/README.md)** - Основные модули
-4. **[Data Management](../api/data/README.md)** - Работа с данными
-5. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Universal Zone Analysis v2.1
-6. **[Visualization](../api/visualization/README.md)** - Визуализация
-7. **[Statistical Analysis](../api/analysis/README.md)** - Статистический анализ
+3. **[Zone Analysis Pipeline](zone_analysis_pipeline.md)** - Детальное описание пайплайна анализа зон
+4. **[Core Modules](../api/core/README.md)** - Основные модули
+5. **[Data Management](../api/data/README.md)** - Работа с данными
+6. **[Technical Analysis aka Indicators](../api/indicators/README.md)** - Universal Zone Analysis v2.1
+7. **[Visualization](../api/visualization/README.md)** - Визуализация
+8. **[Statistical Analysis](../api/analysis/README.md)** - Статистический анализ
 
 ## 💡 Советы по изучению
 
