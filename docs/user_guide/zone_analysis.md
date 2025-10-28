@@ -457,8 +457,32 @@ print(f"Гипотезы: {result.hypothesis_tests}")
 result.save('results/macd_zones.pkl')
 
 # Визуализация
-fig = result.visualize('overview')
+fig = result.visualize('overview', title='Price + Zones')
 fig.show()
+
+# Детальный разбор одной зоны (см. раздел «Визуализация» ниже)
+detail = result.visualize(
+    'detail',
+    zone_id=result.zones[0].zone_id,
+    context_bars=30,
+)
+detail.show()
+
+# Сравнение нескольких зон с выбором backend визуализатора
+comparison = result.visualize(
+    'comparison',
+    backend='matplotlib',
+    max_zones=4,
+)
+comparison.show()
+
+# Быстрый обзор статистики зон
+stats = result.visualize('statistics', title='Zone Statistics Summary')
+stats.show()
+
+> ⚠️ Визуализатор требует исходный ``DataFrame`` и список зон. Если
+> результат был сохранён без ``data`` или вы очистили ``result.zones``,
+> метод выдаст понятную ошибку с подсказкой.
 ```
 
 ### Модульное использование (только детекция)
