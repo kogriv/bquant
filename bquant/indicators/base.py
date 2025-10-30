@@ -659,7 +659,8 @@ class IndicatorFactory:
             indicator_class: Класс индикатора
         """
         cls._registry[name.lower()] = indicator_class
-        logger.info(f"Registered indicator: {name}")
+        # Снижаем уровень шума при массовой регистрации
+        logger.debug(f"Registered indicator: {name}")
     
     @classmethod
     def register_library_function(cls, name: str, func: Callable):
@@ -671,7 +672,8 @@ class IndicatorFactory:
             func: Функция из библиотеки
         """
         cls._library_functions[name.lower()] = func
-        logger.info(f"Registered library function: {name}")
+        # Снижаем уровень шума при массовой регистрации
+        logger.debug(f"Registered library function: {name}")
     
     @classmethod
     def create(cls, source: str, indicator: str, **params) -> BaseIndicator:

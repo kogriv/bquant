@@ -73,7 +73,8 @@ class ZoneChartBuilder:
             'resistance': {'fill': 'rgba(255, 136, 0, 0.3)', 'line': '#ff8800'}
         }
         
-        self.logger.info(f"Zone chart builder initialized with {self.backend} backend")
+        # Тихий вывод: детально логируем только на DEBUG
+        self.logger.debug(f"Zone chart builder initialized with {self.backend} backend")
     
     def _prepare_zone_data(self, zones_data: Union[List[Dict], pd.DataFrame, List[Any]]) -> List[Dict]:
         """

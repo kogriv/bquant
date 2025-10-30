@@ -79,7 +79,12 @@ def _register_all_indicators():
 
         # Загружаем индикаторы внешних библиотек через LibraryManager
         library_results = LibraryManager.load_all_libraries()
-        logger.info("Loaded external libraries: %s", library_results)
+        # Один сводный INFO по внешним библиотекам
+        try:
+            summary = ', '.join(f"{k}={v}" for k, v in library_results.items())
+        except Exception:
+            summary = str(library_results)
+        logger.info("External indicators registered: %s", summary)
 
     except Exception as e:
         logger.warning("Failed to register some indicators: %s", e)
@@ -91,7 +96,7 @@ def _check_library_availability():
         info = LibraryManager.get_library_info(lib_name)
         if info.get('available'):
             count = info.get('indicators_count', 0)
-            logger.info(
+            logger.debug(
                 "Library %s available with %s indicators", lib_name, count
             )
         else:

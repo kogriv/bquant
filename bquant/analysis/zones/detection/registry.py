@@ -72,8 +72,8 @@ class ZoneDetectionRegistry:
                 'required_rules': required_rules or [],
                 'class': strategy_class.__name__
             }
-            
-            logger.info(f"Registered zone detection strategy: {name}")
+            # Тихая регистрация по умолчанию: деталь на DEBUG
+            logger.debug(f"Registered zone detection strategy: {name}")
             return strategy_class
         
         return decorator
@@ -107,6 +107,12 @@ class ZoneDetectionRegistry:
     def list_strategies(cls) -> List[str]:
         """Список имен доступных стратегий."""
         return list(cls._strategies.keys())
+
+    @classmethod
+    def log_summary(cls) -> None:
+        """Вывести сводку зарегистрированных стратегий одной строкой (INFO)."""
+        strategies = ', '.join(sorted(cls.list_strategies()))
+        logger.info("Zone detection strategies registered: %s", strategies)
     
     @classmethod
     def get_info(cls, name: str) -> Dict[str, Any]:

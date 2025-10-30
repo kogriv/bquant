@@ -7,6 +7,8 @@ This module provides centralized management of external indicator libraries.
 import importlib
 import os
 from typing import Dict, Any, Optional, List, Callable
+from contextlib import contextmanager
+import sys
 import warnings
 
 from ..base import IndicatorFactory, LibraryIndicator
@@ -83,13 +85,13 @@ class LibraryManager:
             try:
                 count = cls.load_library(lib_name)
                 results[lib_name] = count
-                logger.info(f"Loaded {count} indicators from {lib_name}")
+                logger.debug(f"Loaded {count} indicators from {lib_name}")
             except Exception as e:
                 logger.error(f"Failed to load {lib_name}: {e}")
                 results[lib_name] = 0
         
         total = sum(results.values())
-        logger.info(f"Total loaded indicators: {total}")
+        logger.debug(f"Total loaded indicators: {total}")
         
         return results
     
@@ -122,8 +124,10 @@ class LibraryManager:
                 logger.warning(f"Loader for {library_name} not available")
                 return 0
             
-            count = loader_class.register_indicators()
-            logger.info(f"Loaded {count} indicators from {library_name}")
+            with _quiet_stdout_stderr():
+                count = loader_class.register_indicators()
+            # Логи о загрузке держим на DEBUG, чтобы профили 'clean/research' были тихими
+            logger.debug(f"Loaded {count} indicators from {library_name}")
             return count
         except Exception as e:
             logger.error(f"Failed to load {library_name}: {e}")
@@ -243,4 +247,30 @@ def load_all_indicators() -> Dict[str, int]:
     return LibraryManager.load_all_libraries()
 
 
+
+# -----------------------------------------------------------------------------
+# Quiet context to suppress noisy stdout/stderr from external libs (e.g. pandas_ta)
+# -----------------------------------------------------------------------------
+@contextmanager
+def _quiet_stdout_stderr():
+    """Temporarily suppress stdout and stderr.
+
+    Некоторые внешние библиотеки печатают в stdout/stderr напрямую (print),
+    обходя logging. Этот контекст временно перенаправляет вывод в "пустоту"
+    на время регистрации индикаторов.
+    """
+    class _Null:
+        def write(self, *_args, **_kwargs):
+            pass
+        def flush(self):
+            pass
+
+    stdout_backup, stderr_backup = sys.stdout, sys.stderr
+    try:
+        sys.stdout = _Null()
+        sys.stderr = _Null()
+        yield
+    finally:
+        sys.stdout = stdout_backup
+        sys.stderr = stderr_backup
 

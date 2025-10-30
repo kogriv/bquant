@@ -301,6 +301,48 @@ setup_logging(
 )
 ```
 
+## 🤫 Quiet Init (Phase 4)
+
+Чтобы консольные логи были «тихими» по умолчанию в ноутбуках и демо-скриптах, в пакете реализован quiet-init:
+
+- Регистрация внешних индикаторов (например, pandas-ta) теперь выполняется в «тихом» контексте (подавление прямого stdout/stderr) и логируется на уровне DEBUG.
+- Массовые регистрации свернуты в один сводный INFO:
+  - Zone Detection: `Zone detection strategies registered: ...`
+  - External Indicators: `External indicators registered: pandas_ta=N, talib=M`
+
+Рекомендуемый пресет для ноутбуков:
+
+```python
+from bquant.core.logging_config import setup_logging
+
+setup_logging(
+    profile='clean',
+    exceptions={'bquant.core.nb': 'INFO'}  # базовые сообщения NotebookSimulator видны
+)
+```
+
+До quiet-init (пример «шумной» консоли):
+
+```
+[i] Requires TA-Lib to use 2crows. (pip install TA-Lib)
+[i] Requires TA-Lib to use 3blackcrows. (pip install TA-Lib)
+...
+INFO - Registered zone detection strategy: zero_crossing
+INFO - Registered zone detection strategy: threshold
+...
+```
+
+После quiet-init (свернутые сообщения):
+
+```
+INFO - Zone detection strategies registered: combined, line_crossing, preloaded, threshold, zero_crossing
+INFO - External indicators registered: pandas_ta=157, talib=0
+```
+
+Примечания:
+- Детальные записи по стратегиям и регистрации индикаторов доступны на уровне DEBUG (профили `debug/verbose`).
+- Предупреждение об отсутствии TA-Lib остаётся WARNING по умолчанию и может быть скрыто профилем/исключениями при необходимости.
+
 ## 🔍 Troubleshooting
 
 ### Проблема: INFO сообщения все еще видны

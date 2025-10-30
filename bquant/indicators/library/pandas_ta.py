@@ -92,7 +92,8 @@ class PandasTALoader:
 
         cls._function_cache = functions
         cls._available_indicators = sorted(functions.keys())
-        logger.info(
+        # Переводим на DEBUG, чтобы не засорять консоль при тихих профилях
+        logger.debug(
             "Discovered %s pandas-ta callables", len(cls._available_indicators)
         )
         return functions
@@ -155,7 +156,8 @@ class PandasTALoader:
 
         cls._available_indicators = sorted(registered_names)
         cls._indicators_registered = True
-        logger.info("Registered %s pandas-ta indicators", registered)
+        # DEBUG вместо INFO для тихих профилей
+        logger.debug("Registered %s pandas-ta indicators", registered)
 
         return registered
 

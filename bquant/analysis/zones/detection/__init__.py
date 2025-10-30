@@ -46,6 +46,8 @@ from .line_crossing import LineCrossingDetection
 from .preloaded import PreloadedZonesDetection, load_preloaded_zones
 from .combined import CombinedRulesDetection
 
+# After all strategies registered via decorators, print a single INFO summary
+ZoneDetectionRegistry.log_summary()
 
 # Экспорт
 __all__ = [

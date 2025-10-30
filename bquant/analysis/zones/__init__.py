@@ -493,7 +493,7 @@ def find_support_resistance(data: pd.DataFrame, window: int = 20,
 try:
     from .models import ZoneInfo, ZoneAnalysisResult
     _models_available = True
-    logger.info("Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully")
+    logger.debug("Zone models (ZoneInfo, ZoneAnalysisResult) loaded successfully")
 except ImportError as e:
     logger.warning(f"Zone models not available: {e}")
     _models_available = False
@@ -512,7 +512,7 @@ try:
         load_preloaded_zones
     )
     _detection_available = True
-    logger.info("Zone detection strategies loaded successfully")
+    logger.debug("Zone detection strategies loaded successfully")
 except ImportError as e:
     logger.warning(f"Zone detection strategies not available: {e}")
     _detection_available = False
@@ -521,7 +521,7 @@ except ImportError as e:
 try:
     from .analyzer import UniversalZoneAnalyzer
     _analyzer_available = True
-    logger.info("UniversalZoneAnalyzer loaded successfully")
+    logger.debug("UniversalZoneAnalyzer loaded successfully")
 except ImportError as e:
     logger.warning(f"UniversalZoneAnalyzer not available: {e}")
     _analyzer_available = False
@@ -536,7 +536,7 @@ try:
         analyze_zones
     )
     _pipeline_available = True
-    logger.info("Zone analysis pipeline loaded successfully")
+    logger.debug("Zone analysis pipeline loaded successfully")
 except ImportError as e:
     logger.warning(f"Zone analysis pipeline not available: {e}")
     _pipeline_available = False
@@ -550,7 +550,7 @@ try:
         analyze_preloaded_zones
     )
     _presets_available = True
-    logger.info("Zone analysis presets loaded successfully")
+    logger.debug("Zone analysis presets loaded successfully")
 except ImportError as e:
     logger.warning(f"Zone analysis presets not available: {e}")
     _presets_available = False
@@ -564,7 +564,7 @@ try:
         extract_zone_features
     )
     _zone_features_available = True
-    logger.info("Zone features module loaded successfully")
+    logger.debug("Zone features module loaded successfully")
 except ImportError as e:
     logger.warning(f"Zone features module not available: {e}")
     _zone_features_available = False
@@ -578,7 +578,7 @@ try:
         cluster_zone_shapes
     )
     _sequence_analysis_available = True
-    logger.info("Sequence analysis module loaded successfully")
+    logger.debug("Sequence analysis module loaded successfully")
 except ImportError as e:
     logger.warning(f"Sequence analysis module not available: {e}")
     _sequence_analysis_available = False

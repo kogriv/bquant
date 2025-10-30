@@ -27,7 +27,7 @@ try:
     import plotly.subplots as sp
     import plotly.express as px
     _plotting_libraries['plotly'] = True
-    logger.info("Plotly library available")
+    logger.debug("Plotly library available")
 except ImportError:
     _plotting_libraries['plotly'] = False
     logger.warning(
@@ -39,7 +39,7 @@ try:
     import matplotlib.dates as mdates
     import seaborn as sns
     _plotting_libraries['matplotlib'] = True
-    logger.info("Matplotlib/Seaborn libraries available")
+    logger.debug("Matplotlib/Seaborn libraries available")
 except ImportError:
     _plotting_libraries['matplotlib'] = False
     logger.warning(
@@ -83,7 +83,7 @@ if check_visualization_dependencies():
     try:
         from .charts import FinancialCharts, ChartBuilder
         _charts_available = True
-        logger.info("Charts module loaded successfully")
+        logger.debug("Charts module loaded successfully")
     except ImportError as e:
         logger.warning(f"Charts module not available: {e}")
         _charts_available = False
@@ -97,7 +97,7 @@ if check_visualization_dependencies():
             analyze_zones_visually,
         )
         _zones_available = True
-        logger.info("Zones visualization module loaded successfully")
+        logger.debug("Zones visualization module loaded successfully")
     except ImportError as e:
         logger.warning(f"Zones visualization module not available: {e}")
         _zones_available = False
@@ -105,7 +105,7 @@ if check_visualization_dependencies():
     try:
         from .statistical import StatisticalPlots, DistributionPlotter
         _statistical_available = True
-        logger.info("Statistical plots module loaded successfully")
+        logger.debug("Statistical plots module loaded successfully")
     except ImportError as e:
         logger.warning(f"Statistical plots module not available: {e}")
         _statistical_available = False
@@ -113,7 +113,7 @@ if check_visualization_dependencies():
     try:
         from .themes import ChartThemes, get_theme, apply_theme
         _themes_available = True
-        logger.info("Themes module loaded successfully")
+        logger.debug("Themes module loaded successfully")
     except ImportError as e:
         logger.warning(f"Themes module not available: {e}")
         _themes_available = False
@@ -380,6 +380,15 @@ if _themes_available:
     __all__.extend(['ChartThemes', 'get_theme', 'apply_theme'])
 
 # Инициализация модуля
-logger.info(f"BQuant Visualization module v{__version__} initialized")
+# Сводный INFO об инициализации (одна строка)
+logger.info(
+    "Visualization initialized: plotly=%s, matplotlib=%s, charts=%s, zones=%s, statistical=%s, themes=%s",
+    _plotting_libraries.get('plotly'),
+    _plotting_libraries.get('matplotlib'),
+    'yes' if 'FinancialCharts' in globals() else 'no',
+    'yes' if 'ZoneVisualizer' in globals() else 'no',
+    'yes' if 'StatisticalPlots' in globals() else 'no',
+    'yes' if 'ChartThemes' in globals() else 'no',
+)
 if not check_visualization_dependencies():
     logger.warning("Visualization module initialized with limited functionality due to missing dependencies")

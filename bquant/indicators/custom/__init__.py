@@ -40,7 +40,8 @@ try:
     IndicatorFactory.register_indicator("macd", MACD)
     IndicatorFactory.register_indicator("bbands", BollingerBands)
     
-    print(f"[OK] Registered {len(__all__)} BUILTIN indicators in custom module")
+    # Тихая регистрация: используем DEBUG через логгер фабрики на этапе register
+    # (здесь избегаем print, чтобы не шуметь в консоли)
     
 except Exception as e:
     print(f"[WARNING] Failed to auto-register BUILTIN indicators: {e}")
@@ -70,9 +71,9 @@ def register_builtin_indicators():
         IndicatorFactory.register_indicator("bbands", BollingerBands)
         registered_count += 1
         
-        print(f"[OK] Registered {registered_count} BUILTIN indicators via function")
+        # Тихая регистрация: не печатаем в консоль, полагаться на логи фабрики
         return registered_count
         
     except Exception as e:
-        print(f"[WARNING] Failed to register BUILTIN indicators: {e}")
+        # Ошибки будут отражены уровнем ERROR из фабрики/вызовов выше
         return registered_count
