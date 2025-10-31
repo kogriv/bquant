@@ -282,6 +282,9 @@ Fluent interface для настройки анализа:
 - `hypothesis_tests: Optional[HypothesisTestSuite]` - статистические тесты
 - `clustering: Optional[Dict]` - результаты кластеризации
 - `sequence_analysis: Optional[Dict]` - анализ последовательностей
+- **`visualize(mode, **kwargs)`** - встроенная визуализация зон
+
+📊 **[Подробнее о визуализации →](../visualization/zones.md)** - режимы overview/detail/comparison/statistics, backend Plotly/Matplotlib
 
 #### `ZoneInfo`
 Модель зоны с полным контекстом:

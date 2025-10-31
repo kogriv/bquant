@@ -22,6 +22,8 @@ Visualization модули предоставляют инструменты д�
 
 ### 🎯 [bquant.visualization.zones](zones.md) - Universal Zone Visualization
 
+📘 **[Подробная документация →](zones.md)**
+
 **ZoneVisualizer - Core Class:**
 - **plot_zones_on_price_chart()** - общий график цен с зонами
 - **plot_zone_detail()** - детальный просмотр одной зоны
