@@ -103,7 +103,10 @@ class ZoneChartBuilder:
                         self.logger.debug("Failed to call to_analyzer_format() on %s", zone)
 
                 if is_dataclass(zone):
-                    normalized.append(asdict(zone))
+                    zone_dict = asdict(zone)
+                    self.logger.debug(f"asdict result keys: {list(zone_dict.keys())}")
+                    self.logger.debug(f"asdict start_time: {zone_dict.get('start_time')}, end_time: {zone_dict.get('end_time')}")
+                    normalized.append(zone_dict)
                 elif hasattr(zone, "__dict__"):
                     normalized.append({key: getattr(zone, key) for key in dir(zone)
                                        if not key.startswith("_") and not callable(getattr(zone, key))})
@@ -314,7 +317,7 @@ class ZoneVisualizer(ZoneChartBuilder):
         self.default_config = {
             'width': kwargs.get('width', 1200),
             'height': kwargs.get('height', 800),
-            'show_zone_labels': kwargs.get('show_zone_labels', True),
+            'show_zone_labels': kwargs.get('show_zone_labels', False),
             'show_zone_stats': kwargs.get('show_zone_stats', True),
             'opacity': kwargs.get('opacity', 0.3),
             'zone_detail_context': kwargs.get('zone_detail_context', 40),
@@ -331,6 +334,9 @@ class ZoneVisualizer(ZoneChartBuilder):
     def plot_zones_on_price_chart(self, price_data: pd.DataFrame,
                                  zones_data: Union[List[Dict], pd.DataFrame],
                                  title: str = "Price Chart with Zones",
+                                 show_indicators: bool = False,
+                                 indicator_columns: Optional[List[str]] = None,
+                                 indicator_chart_types: Optional[Dict[str, str]] = None,
                                  **kwargs) -> Union[go.Figure, plt.Figure]:
         """
         Отображение зон на графике цен.
@@ -339,6 +345,12 @@ class ZoneVisualizer(ZoneChartBuilder):
             price_data: DataFrame с данными цен (OHLCV)
             zones_data: Данные зон
             title: Заголовок графика
+            show_indicators: Показывать ли индикаторы в отдельной панели (по умолчанию False)
+            indicator_columns: Список колонок индикаторов для отображения.
+                               Если None, автоматически определяется из indicator_context зон
+            indicator_chart_types: Словарь {колонка: тип} для указания типа отображения каждого индикатора.
+                                   Типы: 'line' (линия) или 'bar' (столбики). По умолчанию все 'line'.
+                                   Пример: {'macd_hist': 'bar', 'rsi': 'line'}
             **kwargs: Дополнительные параметры
         
         Returns:
@@ -347,7 +359,13 @@ class ZoneVisualizer(ZoneChartBuilder):
         zones = self._prepare_zone_data(zones_data)
         
         if self.backend == 'plotly':
-            return self._create_plotly_zones_on_price(price_data, zones, title, **kwargs)
+            return self._create_plotly_zones_on_price(
+                price_data, zones, title, 
+                show_indicators=show_indicators,
+                indicator_columns=indicator_columns,
+                indicator_chart_types=indicator_chart_types,
+                **kwargs
+            )
         else:
             return self._create_matplotlib_zones_on_price(price_data, zones, title, **kwargs)
 
@@ -594,12 +612,64 @@ class ZoneVisualizer(ZoneChartBuilder):
     # Plotly реализации
     def _create_plotly_zones_on_price(self, price_data: pd.DataFrame,
                                      zones: List[Dict], title: str,
+                                     show_indicators: bool = False,
+                                     indicator_columns: Optional[List[str]] = None,
+                                     indicator_chart_types: Optional[Dict[str, str]] = None,
                                      **kwargs) -> go.Figure:
         """Создание графика цен с зонами с помощью Plotly."""
-        # Основной график свечей
-        fig = go.Figure()
         
-        # Добавляем свечной график
+        # Определяем, показывать ли индикаторы
+        show_indicators = kwargs.get('show_indicators', show_indicators)
+        
+        # Определяем колонки индикаторов для отображения
+        if show_indicators:
+            if indicator_columns is None:
+                # Автоматически определяем индикаторы из indicator_context зон
+                # Избегаем коллизий: используем первый найденный уникальный индикатор
+                indicator_columns = []
+                seen_indicators = set()
+                
+                for zone in zones:
+                    indicator_context = zone.get('indicator_context') or {}
+                    detection_indicator = indicator_context.get('detection_indicator')
+                    if (detection_indicator and 
+                        detection_indicator not in seen_indicators and
+                        detection_indicator in price_data.columns):
+                        indicator_columns.append(detection_indicator)
+                        seen_indicators.add(detection_indicator)
+                        # Ограничиваем количество автоматически определенных индикаторов
+                        # чтобы избежать перегрузки графика
+                        if len(indicator_columns) >= 3:
+                            break
+            
+            # Фильтруем только те колонки, которые есть в данных
+            if indicator_columns:
+                indicator_columns = [
+                    col for col in indicator_columns 
+                    if col in price_data.columns and col not in {'open', 'high', 'low', 'close', 'volume', 'adj_close'}
+                ]
+            
+            # Если после фильтрации ничего не осталось, не показываем индикаторы
+            if not indicator_columns:
+                show_indicators = False
+        
+        # Определяем количество панелей
+        rows = 2 if show_indicators else 1
+        row_heights = [1.0]
+        if rows == 2:
+            indicator_panel_height = kwargs.get('indicator_panel_height', 0.3)
+            row_heights = [1 - indicator_panel_height, indicator_panel_height]
+        
+        # Создаем subplot с нужным количеством панелей
+        fig = make_subplots(
+            rows=rows,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.05,
+            row_heights=row_heights,
+        )
+        
+        # Добавляем свечной график на первую панель
         fig.add_trace(go.Candlestick(
             x=price_data.index,
             open=price_data['open'],
@@ -609,7 +679,7 @@ class ZoneVisualizer(ZoneChartBuilder):
             name='Price',
             increasing_line_color='#00ff88',
             decreasing_line_color='#ff4444'
-        ))
+        ), row=1, col=1)
         
         # Добавляем зоны
         for i, zone in enumerate(zones):
@@ -626,7 +696,7 @@ class ZoneVisualizer(ZoneChartBuilder):
                     y0 = price_data['low'].min()
                     y1 = price_data['high'].max()
                 
-                # Добавляем прямоугольник зоны
+                # Добавляем прямоугольник зоны на панель с ценой
                 fig.add_shape(
                     type="rect",
                     x0=zone['start_time'],
@@ -635,7 +705,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                     y1=y1,
                     fillcolor=color_config['fill'],
                     line=dict(color=color_config['line'], width=1),
-                    layer="below"
+                    layer="below",
+                    row=1,
+                    col=1,
                 )
                 
                 # Добавляем подпись зоны
@@ -647,8 +719,67 @@ class ZoneVisualizer(ZoneChartBuilder):
                         showarrow=False,
                         font=dict(size=10),
                         bgcolor="white",
-                        opacity=0.8
+                        opacity=0.8,
+                        row=1,
+                        col=1,
                     )
+        
+        # Добавляем индикаторы на отдельную панель (если нужно)
+        if show_indicators and indicator_columns:
+            # Определяем типы отображения для каждого индикатора
+            chart_types = indicator_chart_types or {}
+            
+            # Умолчания: если в имени колонки есть 'hist' - столбики, иначе - линия
+            default_chart_type = lambda col: 'bar' if 'hist' in col.lower() else 'line'
+            
+            palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
+            for i, column in enumerate(indicator_columns):
+                color = palette[i % len(palette)]
+                
+                # Определяем тип графика для этого индикатора
+                chart_type = chart_types.get(column, default_chart_type(column))
+                
+                if chart_type == 'bar':
+                    # Гистограмма (столбики)
+                    fig.add_trace(
+                        go.Bar(
+                            x=price_data.index,
+                            y=price_data[column],
+                            name=column,
+                            marker_color=color,
+                            opacity=0.7,
+                        ),
+                        row=2,
+                        col=1,
+                    )
+                else:
+                    # Линия (по умолчанию)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=price_data.index,
+                            y=price_data[column],
+                            mode='lines',
+                            name=column,
+                            line=dict(color=color, width=1.6),
+                        ),
+                        row=2,
+                        col=1,
+                    )
+            
+            # Добавляем нулевую линию для осцилляторов (если есть хотя бы один индикатор)
+            if len(indicator_columns) == 1:
+                # Если только один индикатор, добавляем горизонтальную линию на y=0
+                fig.add_hline(
+                    y=0,
+                    line_dash="dash",
+                    line_color="gray",
+                    opacity=0.5,
+                    row=2,
+                    col=1,
+                )
+            
+            # Устанавливаем заголовок оси для панели индикаторов
+            fig.update_yaxes(title_text="Indicator", row=2, col=1)
         
         fig.update_layout(
             title=title,

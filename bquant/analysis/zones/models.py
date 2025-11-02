@@ -109,10 +109,15 @@ class ZoneInfo:
             Словарь с данными зоны для анализаторов
         
         NOTE: Includes indicator_context for analytical strategies (v2.1)
+        NOTE: Includes start_time/end_time/start_idx/end_idx for visualization (v2.1.1)
         """
         return {
             'zone_id': self.zone_id,
             'type': self.type,
+            'start_idx': self.start_idx,
+            'end_idx': self.end_idx,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
             'duration': self.duration,
             'data': self.data,
             'indicator_context': self.indicator_context,  # Pass to analyzers
@@ -485,9 +490,25 @@ class ZoneAnalysisResult:
         visualizer = ZoneVisualizer(**visualizer_kwargs)
 
         if mode == 'overview':
-            return visualizer.plot_zones_on_price_chart(
-                self.data, self.zones, **kwargs
-            )
+            # Поддержка date_range для режима overview
+            if date_range is not None:
+                start_date, end_date = date_range
+                # Фильтруем данные по датам
+                filtered_data = self.data[
+                    (self.data.index >= start_date) & (self.data.index <= end_date)
+                ]
+                # Фильтруем зоны, которые пересекаются с диапазоном дат
+                filtered_zones = [
+                    z for z in self.zones
+                    if z.start_time <= end_date and z.end_time >= start_date
+                ]
+                return visualizer.plot_zones_on_price_chart(
+                    filtered_data, filtered_zones, **kwargs
+                )
+            else:
+                return visualizer.plot_zones_on_price_chart(
+                    self.data, self.zones, **kwargs
+                )
 
         if mode == 'detail':
             if zone_id is None:
