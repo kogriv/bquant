@@ -20,8 +20,7 @@ from bquant.visualization.export import save_figure
 # Quiet logging for notebook/demo usage
 # -----------------------------------------------------------------------------
 # Консоль — тихая (ERROR), базовые сообщения NotebookSimulator остаются видимыми.
-# Temporarily enable DEBUG for visualization.zones to see what's happening
-setup_logging(profile='clean', exceptions={'bquant.core.nb': 'INFO', 'bquant.visualization.zones': 'DEBUG'})
+setup_logging(profile='clean', exceptions={'bquant.core.nb': 'INFO'})
 
 # -----------------------------------------------------------------------------
 # Image saving flag (default: False for faster test runs)
@@ -39,6 +38,9 @@ SAVE_IMAGES = True
 SAVE_IMAGE_FORMAT = "png"  # set to "png" to prefer PNG (Plotly falls back to HTML if unavailable)
 
 # use package save_figure directly
+
+# Output directory - относительно текущего скрипта
+OUTPUT_DIR = Path(__file__).parent / "outputs" / "vis" / Path(__file__).stem
 
 nb = NotebookSimulator("Zones Visualization Demo. Crafting")
 
@@ -82,16 +84,16 @@ nb.wait()
 # ---------------------------------------------------------------------
 # Step 3: Overview Visualization
 # ---------------------------------------------------------------------
-nb.step("Overview Visualization")
-# Режим 'overview' показывает все зоны на цене — первичный обзор.
-with nb.error_handling("Creating overview figure"):
-    fig_overview = result.visualize("overview", title="Zones Overview")
-    nb.success("Overview figure created")
-    if SAVE_IMAGES:
-        saved = save_figure(fig_overview, "01_overview")
-        if saved:
-            nb.log(f"Saved: {saved}")
-nb.wait()
+# nb.step("Overview Visualization")
+# # Режим 'overview' показывает все зоны на цене — первичный обзор.
+# with nb.error_handling("Creating overview figure"):
+#     fig_overview = result.visualize("overview", title="Zones Overview")
+#     nb.success("Overview figure created")
+#     if SAVE_IMAGES:
+#         saved = save_figure(fig_overview, "01_overview")
+#         if saved:
+#             nb.log(f"Saved: {saved}")
+# nb.wait()
 
 # ---------------------------------------------------------------------
 # Step 3.1: Overview Visualization with Indicators
@@ -116,22 +118,22 @@ nb.wait()
 # ---------------------------------------------------------------------
 # Step 3.2: Overview Visualization with Explicit Indicator Types
 # ---------------------------------------------------------------------
-nb.step("Overview Visualization with Explicit Indicator Configuration")
-# Демонстрация явного указания типа отображения индикаторов
-with nb.error_handling("Creating overview figure with explicit indicator types"):
-    fig_overview_explicit = result.visualize(
-        "overview",
-        title="Zones Overview with MACD Histogram (explicit config)",
-        show_indicators=True,
-        indicator_columns=['macd_hist'],
-        indicator_chart_types={'macd_hist': 'bar'}  # Явно указываем тип - столбики
-    )
-    nb.success("Overview figure with explicit indicator types created")
-    if SAVE_IMAGES:
-        saved = save_figure(fig_overview_explicit, "01_overview_with_indicators_explicit")
-        if saved:
-            nb.log(f"Saved: {saved}")
-nb.wait()
+# nb.step("Overview Visualization with Explicit Indicator Configuration")
+# # Демонстрация явного указания типа отображения индикаторов
+# with nb.error_handling("Creating overview figure with explicit indicator types"):
+#     fig_overview_explicit = result.visualize(
+#         "overview",
+#         title="Zones Overview with MACD Histogram (explicit config)",
+#         show_indicators=True,
+#         indicator_columns=['macd_hist'],
+#         indicator_chart_types={'macd_hist': 'bar'}  # Явно указываем тип - столбики
+#     )
+#     nb.success("Overview figure with explicit indicator types created")
+#     if SAVE_IMAGES:
+#         saved = save_figure(fig_overview_explicit, "01_overview_with_indicators_explicit")
+#         if saved:
+#             nb.log(f"Saved: {saved}")
+# nb.wait()
 
 # ---------------------------------------------------------------------
 # Step 4: Overview Visualization for Date Range
@@ -144,6 +146,7 @@ with nb.error_handling("Creating overview figure for date range"):
     end_date = pd.Timestamp('2025-07-03', tz=tz) if tz else pd.Timestamp('2025-07-03')
     
     # Используем встроенную поддержку date_range в API
+    # symbol, timeframe, source автоматически извлекаются из метаданных
     fig_overview_range = result.visualize(
         "overview",
         date_range=(start_date, end_date),
@@ -152,7 +155,7 @@ with nb.error_handling("Creating overview figure for date range"):
     )
     nb.success("Overview figure for date range created")
     if SAVE_IMAGES:
-        saved = save_figure(fig_overview_range, "01_overview_date_range")
+        saved = save_figure(fig_overview_range, "01_overview_date_range", output_dir=str(OUTPUT_DIR))
         if saved:
             nb.log(f"Saved: {saved}")
 nb.wait()

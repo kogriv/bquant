@@ -80,7 +80,7 @@ def convert_to_dataframe(data: List[Dict[str, Any]], dataset_name: str) -> pd.Da
         dataset_name: Название датасета (для логирования)
     
     Returns:
-        pandas DataFrame с данными
+        pandas DataFrame с данными (с метаданными в df.attrs)
     """
     logger.debug(f"Converting {len(data)} records to DataFrame for {dataset_name}")
     
@@ -104,6 +104,17 @@ def convert_to_dataframe(data: List[Dict[str, Any]], dataset_name: str) -> pd.Da
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        # Добавляем метаданные в df.attrs
+        try:
+            dataset_info = get_dataset_info(dataset_name)
+            df.attrs['symbol'] = dataset_info.get('symbol')
+            df.attrs['timeframe'] = dataset_info.get('timeframe')
+            df.attrs['source'] = dataset_info.get('source')
+            df.attrs['dataset_name'] = dataset_name
+            logger.debug(f"Added metadata to DataFrame.attrs: symbol={df.attrs['symbol']}, timeframe={df.attrs['timeframe']}")
+        except Exception as e:
+            logger.warning(f"Could not add metadata to DataFrame.attrs: {e}")
         
         logger.debug(f"Successfully created DataFrame with shape {df.shape}")
         return df

@@ -141,6 +141,16 @@ class ZoneAnalysisPipeline:
         cached_result = self.cache_manager.get(cache_key)
         if cached_result is not None:
             self.logger.info(f"Zone analysis result loaded from cache (key: {cache_key[:8]}...)")
+            # Обновляем метаданные из df.attrs (могли измениться после кэширования)
+            if hasattr(df, 'attrs'):
+                if 'symbol' in df.attrs:
+                    cached_result.metadata['symbol'] = df.attrs['symbol']
+                if 'timeframe' in df.attrs:
+                    cached_result.metadata['timeframe'] = df.attrs['timeframe']
+                if 'source' in df.attrs:
+                    cached_result.metadata['source'] = df.attrs['source']
+                if 'dataset_name' in df.attrs:
+                    cached_result.metadata['dataset_name'] = df.attrs['dataset_name']
             return cached_result
         
         # Выполняем анализ

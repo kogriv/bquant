@@ -426,6 +426,9 @@ class ZoneAnalysisResult:
                   mode: str = 'overview',
                   zone_id: Optional[int] = None,
                   date_range: Optional[Tuple[datetime, datetime]] = None,
+                  symbol: Optional[str] = None,
+                  timeframe: Optional[str] = None,
+                  source: Optional[str] = None,
                   **kwargs):
         """Создать визуализацию по сохранённому результату анализа зон.
 
@@ -488,6 +491,19 @@ class ZoneAnalysisResult:
             visualizer_kwargs['backend'] = visualizer_backend
 
         visualizer = ZoneVisualizer(**visualizer_kwargs)
+        
+        # Собираем метаинформацию из параметров или metadata
+        chart_info = {}
+        if symbol or self.metadata.get('symbol'):
+            chart_info['symbol'] = symbol or self.metadata.get('symbol')
+        if timeframe or self.metadata.get('timeframe'):
+            chart_info['timeframe'] = timeframe or self.metadata.get('timeframe')
+        if source or self.metadata.get('source'):
+            chart_info['source'] = source or self.metadata.get('source')
+        
+        # Передаем chart_info в kwargs для visualizer
+        if chart_info:
+            kwargs['chart_info'] = chart_info
 
         if mode == 'overview':
             # Поддержка date_range для режима overview
@@ -497,10 +513,12 @@ class ZoneAnalysisResult:
                 filtered_data = self.data[
                     (self.data.index >= start_date) & (self.data.index <= end_date)
                 ]
-                # Фильтруем зоны, которые пересекаются с диапазоном дат
+                # Фильтруем зоны, которые реально пересекаются с диапазоном данных
+                # Зона должна НАЧАТЬСЯ до конца диапазона И ЗАКОНЧИТЬСЯ после начала диапазона
+                # Исключаем зоны которые заканчиваются ДО ИЛИ РОВНО в начале диапазона
                 filtered_zones = [
                     z for z in self.zones
-                    if z.start_time <= end_date and z.end_time >= start_date
+                    if z.start_time < end_date and z.end_time > start_date
                 ]
                 return visualizer.plot_zones_on_price_chart(
                     filtered_data, filtered_zones, **kwargs

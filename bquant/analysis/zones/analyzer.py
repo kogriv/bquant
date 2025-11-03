@@ -192,6 +192,26 @@ class UniversalZoneAnalyzer:
             # Это будет реализовано позже в integration тестах
             self.logger.info("Validation requested but not executed (need analyze_func)")
         
+        # Извлекаем метаданные из DataFrame.attrs (если есть)
+        metadata = {
+            'analysis_timestamp': datetime.now().isoformat(),
+            'total_zones': len(zones),
+            'zone_types': list(set(z.type for z in zones)),
+            'clustering_performed': clustering is not None,
+            'regression_performed': regression_results is not None
+        }
+        
+        # Добавляем метаданные о данных из df.attrs
+        if hasattr(data, 'attrs'):
+            if 'symbol' in data.attrs:
+                metadata['symbol'] = data.attrs['symbol']
+            if 'timeframe' in data.attrs:
+                metadata['timeframe'] = data.attrs['timeframe']
+            if 'source' in data.attrs:
+                metadata['source'] = data.attrs['source']
+            if 'dataset_name' in data.attrs:
+                metadata['dataset_name'] = data.attrs['dataset_name']
+        
         # Сборка результата
         result = ZoneAnalysisResult(
             zones=zones,
@@ -202,13 +222,7 @@ class UniversalZoneAnalyzer:
             regression_results=regression_results,
             validation_results=validation_results,
             data=data,
-            metadata={
-                'analysis_timestamp': datetime.now().isoformat(),
-                'total_zones': len(zones),
-                'zone_types': list(set(z.type for z in zones)),
-                'clustering_performed': clustering is not None,
-                'regression_performed': regression_results is not None
-            }
+            metadata=metadata
         )
         
         self.logger.info(

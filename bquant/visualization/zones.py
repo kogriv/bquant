@@ -788,6 +788,33 @@ class ZoneVisualizer(ZoneChartBuilder):
             xaxis_rangeslider_visible=False,
             template='plotly_white'
         )
+        
+        # Добавляем метаинформацию о данных (symbol, timeframe, source)
+        chart_info = kwargs.get('chart_info', {})
+        if chart_info:
+            info_parts = []
+            if 'symbol' in chart_info:
+                info_parts.append(f"<b>{chart_info['symbol']}</b>")
+            if 'timeframe' in chart_info:
+                info_parts.append(chart_info['timeframe'])
+            if 'source' in chart_info:
+                info_parts.append(f"<i>{chart_info['source']}</i>")
+            
+            if info_parts:
+                info_text = " | ".join(info_parts)
+                fig.add_annotation(
+                    text=info_text,
+                    xref="paper",
+                    yref="paper",
+                    x=1.0,
+                    y=1.02,
+                    xanchor='right',
+                    yanchor='bottom',
+                    showarrow=False,
+                    font=dict(size=11, color='#666'),
+                    bgcolor='rgba(255,255,255,0.8)',
+                    borderpad=4
+                )
 
         return fig
 
