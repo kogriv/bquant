@@ -35,7 +35,7 @@ SAVE_IMAGES = True
 #   - "html": always save Plotly as HTML (no external deps), Matplotlib as PNG
 #   - "png":  try to save Plotly as PNG (requires kaleido); on failure fallback to HTML
 #              Matplotlib remains PNG
-SAVE_IMAGE_FORMAT = "png"  # set to "png" to prefer PNG (Plotly falls back to HTML if unavailable)
+SAVE_IMAGE_FORMAT = "html"  # set to "png" to prefer PNG (Plotly falls back to HTML if unavailable)
 
 # use package save_figure directly
 
@@ -110,7 +110,7 @@ with nb.error_handling("Creating overview figure with indicators"):
     )
     nb.success("Overview figure with indicators created (auto-detected)")
     if SAVE_IMAGES:
-        saved = save_figure(fig_overview_indicators, "01_overview_with_indicators")
+        saved = save_figure(fig_overview_indicators, "01_overview_with_indicators", prefer=SAVE_IMAGE_FORMAT)
         if saved:
             nb.log(f"Saved: {saved}")
 nb.wait()
@@ -136,28 +136,46 @@ nb.wait()
 # nb.wait()
 
 # ---------------------------------------------------------------------
-# Step 4: Overview Visualization for Date Range
+# Step 4: Overview Visualization for Date Range (Dense vs. Timeseries)
 # ---------------------------------------------------------------------
 nb.step("Overview Visualization (Date Range: 25.06.2025 - 03.07.2025)")
+nb.log(f"Output directory for charts: {OUTPUT_DIR.resolve()}")
+
 with nb.error_handling("Creating overview figure for date range"):
     # Создаем даты с тем же timezone, что и данные
     tz = result.data.index.tz
     start_date = pd.Timestamp('2025-06-25', tz=tz) if tz else pd.Timestamp('2025-06-25')
     end_date = pd.Timestamp('2025-07-03', tz=tz) if tz else pd.Timestamp('2025-07-03')
     
-    # Используем встроенную поддержку date_range в API
-    # symbol, timeframe, source автоматически извлекаются из метаданных
-    fig_overview_range = result.visualize(
+    # 1. Создаем график в режиме 'dense' (по умолчанию)
+    title_dense = f"Zones Overview (Dense Mode) - {start_date.strftime('%d.%m.%Y')} to {end_date.strftime('%d.%m.%Y')}"
+    fig_overview_dense = result.visualize(
         "overview",
         date_range=(start_date, end_date),
-        title=f"Zones Overview ({start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')})",
-        show_indicators=True
+        title=title_dense,
+        show_indicators=True,
+        time_axis_mode='dense' # Явно указываем для наглядности
     )
-    nb.success("Overview figure for date range created")
+    nb.success("Created DENSE overview for date range.")
     if SAVE_IMAGES:
-        saved = save_figure(fig_overview_range, "01_overview_date_range", output_dir=str(OUTPUT_DIR))
+        saved = save_figure(fig_overview_dense, "01_overview_date_range_dense", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
         if saved:
-            nb.log(f"Saved: {saved}")
+            nb.log(f"Saved dense chart: {saved}")
+
+    # 2. Создаем график в режиме 'timeseries'
+    title_timeseries = f"Zones Overview (Timeseries Mode) - {start_date.strftime('%d.%m.%Y')} to {end_date.strftime('%d.%m.%Y')}"
+    fig_overview_timeseries = result.visualize(
+        "overview",
+        date_range=(start_date, end_date),
+        title=title_timeseries,
+        show_indicators=True,
+        time_axis_mode='timeseries' # Используем новый режим
+    )
+    nb.success("Created TIMESERIES overview for date range.")
+    if SAVE_IMAGES:
+        saved = save_figure(fig_overview_timeseries, "01_overview_date_range_timeseries", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
+        if saved:
+            nb.log(f"Saved timeseries chart: {saved}")
 nb.wait()
 
 # ---------------------------------------------------------------------

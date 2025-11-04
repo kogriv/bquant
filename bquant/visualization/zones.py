@@ -10,6 +10,7 @@ import pandas as pd
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
 from ..analysis.zones.models import ZoneInfo
+from .utils import find_all_gaps
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
@@ -337,6 +338,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                                  show_indicators: bool = False,
                                  indicator_columns: Optional[List[str]] = None,
                                  indicator_chart_types: Optional[Dict[str, str]] = None,
+                                 show_gap_lines: bool = False,
+                                 xaxis_num_ticks: int = 16,
+                                 time_axis_mode: str = 'dense',
                                  **kwargs) -> Union[go.Figure, plt.Figure]:
         """
         Отображение зон на графике цен.
@@ -351,6 +355,11 @@ class ZoneVisualizer(ZoneChartBuilder):
             indicator_chart_types: Словарь {колонка: тип} для указания типа отображения каждого индикатора.
                                    Типы: 'line' (линия) или 'bar' (столбики). По умолчанию все 'line'.
                                    Пример: {'macd_hist': 'bar', 'rsi': 'line'}
+            show_gap_lines: Показывать ли вертикальные пунктирные линии для разрывов (выходные) (по умолчанию False)
+            xaxis_num_ticks: Количество меток на оси X (по умолчанию 16). Автоматически корректируется
+                            на основе диапазона данных для оптимальной читаемости.
+            time_axis_mode: Режим оси времени ('dense' или 'timeseries'). 'dense' для плотного графика,
+                            'timeseries' для реальной временной шкалы с пропуском выходных.
             **kwargs: Дополнительные параметры
         
         Returns:
@@ -364,6 +373,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                 show_indicators=show_indicators,
                 indicator_columns=indicator_columns,
                 indicator_chart_types=indicator_chart_types,
+                show_gap_lines=show_gap_lines,
+                xaxis_num_ticks=xaxis_num_ticks,
+                time_axis_mode=time_axis_mode,
                 **kwargs
             )
         else:
@@ -615,20 +627,20 @@ class ZoneVisualizer(ZoneChartBuilder):
                                      show_indicators: bool = False,
                                      indicator_columns: Optional[List[str]] = None,
                                      indicator_chart_types: Optional[Dict[str, str]] = None,
+                                     show_gap_lines: bool = False,
+                                     xaxis_num_ticks: int = 16,
+                                     time_axis_mode: str = 'dense',
                                      **kwargs) -> go.Figure:
         """Создание графика цен с зонами с помощью Plotly."""
         
         # Определяем, показывать ли индикаторы
         show_indicators = kwargs.get('show_indicators', show_indicators)
-        
+
         # Определяем колонки индикаторов для отображения
         if show_indicators:
             if indicator_columns is None:
-                # Автоматически определяем индикаторы из indicator_context зон
-                # Избегаем коллизий: используем первый найденный уникальный индикатор
                 indicator_columns = []
                 seen_indicators = set()
-                
                 for zone in zones:
                     indicator_context = zone.get('indicator_context') or {}
                     detection_indicator = indicator_context.get('detection_indicator')
@@ -637,19 +649,13 @@ class ZoneVisualizer(ZoneChartBuilder):
                         detection_indicator in price_data.columns):
                         indicator_columns.append(detection_indicator)
                         seen_indicators.add(detection_indicator)
-                        # Ограничиваем количество автоматически определенных индикаторов
-                        # чтобы избежать перегрузки графика
                         if len(indicator_columns) >= 3:
                             break
-            
-            # Фильтруем только те колонки, которые есть в данных
             if indicator_columns:
                 indicator_columns = [
                     col for col in indicator_columns 
                     if col in price_data.columns and col not in {'open', 'high', 'low', 'close', 'volume', 'adj_close'}
                 ]
-            
-            # Если после фильтрации ничего не осталось, не показываем индикаторы
             if not indicator_columns:
                 show_indicators = False
         
@@ -660,7 +666,6 @@ class ZoneVisualizer(ZoneChartBuilder):
             indicator_panel_height = kwargs.get('indicator_panel_height', 0.3)
             row_heights = [1 - indicator_panel_height, indicator_panel_height]
         
-        # Создаем subplot с нужным количеством панелей
         fig = make_subplots(
             rows=rows,
             cols=1,
@@ -668,153 +673,252 @@ class ZoneVisualizer(ZoneChartBuilder):
             vertical_spacing=0.05,
             row_heights=row_heights,
         )
-        
-        # Добавляем свечной график на первую панель
-        fig.add_trace(go.Candlestick(
-            x=price_data.index,
-            open=price_data['open'],
-            high=price_data['high'],
-            low=price_data['low'],
-            close=price_data['close'],
-            name='Price',
-            increasing_line_color='#00ff88',
-            decreasing_line_color='#ff4444'
-        ), row=1, col=1)
-        
-        # Добавляем зоны
-        for i, zone in enumerate(zones):
-            if 'start_time' in zone and 'end_time' in zone:
-                zone_type = zone.get('type', 'bull')
-                color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
-                
-                # Определяем границы зоны по цене
-                if 'start_price' in zone and 'end_price' in zone:
-                    y0 = min(zone['start_price'], zone['end_price'])
-                    y1 = max(zone['start_price'], zone['end_price'])
-                else:
-                    # Если нет ценовых границ, используем весь диапазон
+
+        # --- РЕЖИМ TIMESERIES ---
+        if time_axis_mode == 'timeseries':
+            # Находим разрывы для маски
+            gap_mask = find_all_gaps(price_data.index)
+            
+            # Добавляем свечной график
+            fig.add_trace(go.Candlestick(
+                x=price_data.index,
+                open=price_data['open'],
+                high=price_data['high'],
+                low=price_data['low'],
+                close=price_data['close'],
+                name='Price',
+                increasing_line_color='#00ff88',
+                decreasing_line_color='#ff4444'
+            ), row=1, col=1)
+
+            # Добавляем зоны
+            for i, zone in enumerate(zones):
+                if 'start_time' in zone and 'end_time' in zone:
+                    zone_type = zone.get('type', 'bull')
+                    color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
                     y0 = price_data['low'].min()
                     y1 = price_data['high'].max()
-                
-                # Добавляем прямоугольник зоны на панель с ценой
-                fig.add_shape(
-                    type="rect",
-                    x0=zone['start_time'],
-                    y0=y0,
-                    x1=zone['end_time'],
-                    y1=y1,
-                    fillcolor=color_config['fill'],
-                    line=dict(color=color_config['line'], width=1),
-                    layer="below",
-                    row=1,
-                    col=1,
-                )
-                
-                # Добавляем подпись зоны
-                if self.default_config['show_zone_labels']:
-                    fig.add_annotation(
-                        x=zone['start_time'],
-                        y=y1,
-                        text=f"{zone_type.title()} Zone {i+1}",
-                        showarrow=False,
-                        font=dict(size=10),
-                        bgcolor="white",
-                        opacity=0.8,
-                        row=1,
-                        col=1,
+                    fig.add_vrect(
+                        x0=zone['start_time'],
+                        x1=zone['end_time'],
+                        fillcolor=color_config['fill'],
+                        line=dict(color=color_config['line'], width=1),
+                        layer="below",
+                        row=1, col=1
                     )
-        
-        # Добавляем индикаторы на отдельную панель (если нужно)
-        if show_indicators and indicator_columns:
-            # Определяем типы отображения для каждого индикатора
-            chart_types = indicator_chart_types or {}
-            
-            # Умолчания: если в имени колонки есть 'hist' - столбики, иначе - линия
-            default_chart_type = lambda col: 'bar' if 'hist' in col.lower() else 'line'
-            
-            palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
-            for i, column in enumerate(indicator_columns):
-                color = palette[i % len(palette)]
-                
-                # Определяем тип графика для этого индикатора
-                chart_type = chart_types.get(column, default_chart_type(column))
-                
-                if chart_type == 'bar':
-                    # Гистограмма (столбики)
-                    fig.add_trace(
-                        go.Bar(
+                    if self.default_config['show_zone_labels']:
+                        fig.add_annotation(
+                            x=zone['start_time'],
+                            y=y1,
+                            text=f"{zone_type.title()} Zone {i+1}",
+                            showarrow=False,
+                            font=dict(size=10),
+                            bgcolor="white",
+                            opacity=0.8,
+                            row=1, col=1
+                        )
+
+            # Добавляем индикаторы на вторую панель (если есть)
+            if show_indicators and indicator_columns:
+                chart_types = indicator_chart_types or {}
+                default_chart_type = lambda col: 'bar' if 'hist' in col.lower() else 'line'
+                palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
+                for i, column in enumerate(indicator_columns):
+                    color = palette[i % len(palette)]
+                    chart_type = chart_types.get(column, default_chart_type(column))
+                    if chart_type == 'bar':
+                        fig.add_trace(go.Bar(
                             x=price_data.index,
                             y=price_data[column],
                             name=column,
                             marker_color=color,
-                            opacity=0.7,
-                        ),
-                        row=2,
-                        col=1,
-                    )
-                else:
-                    # Линия (по умолчанию)
-                    fig.add_trace(
-                        go.Scatter(
+                            opacity=0.7
+                        ), row=2, col=1)
+                    else:
+                        fig.add_trace(go.Scatter(
                             x=price_data.index,
                             y=price_data[column],
                             mode='lines',
                             name=column,
-                            line=dict(color=color, width=1.6),
-                        ),
+                            line=dict(color=color, width=1.6)
+                        ), row=2, col=1)
+                if len(indicator_columns) == 1:
+                    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5, row=2, col=1)
+                fig.update_yaxes(title_text="Indicator", row=2, col=1)
+
+            # Применяем маску разрывов к обеим панелям
+            # Для Plotly rangebreaks: каждый разрыв должен быть отдельным dict
+            # Формат: [dict(bounds=[start, end]), dict(bounds=[start2, end2]), ...]
+            if gap_mask:
+                # Преобразуем список списков в список словарей для Plotly
+                rangebreaks = [dict(bounds=gap) for gap in gap_mask]
+                fig.update_xaxes(
+                    type='date',
+                    rangebreaks=rangebreaks,
+                    row=1,
+                    col=1
+                )
+                if show_indicators and indicator_columns:
+                    fig.update_xaxes(
+                        type='date',
+                        rangebreaks=rangebreaks,
                         row=2,
-                        col=1,
+                        col=1
+                    )
+            else:
+                # Если нет разрывов, просто указываем тип оси
+                fig.update_xaxes(type='date', row=1, col=1)
+                if show_indicators and indicator_columns:
+                    fig.update_xaxes(type='date', row=2, col=1)
+
+            # Настройка layout для режима timeseries
+            fig.update_layout(
+                title=title,
+                width=self.default_config['width'],
+                height=self.default_config['height'],
+                xaxis_rangeslider_visible=False,
+                template='plotly_white'
+            )
+            
+            # Добавляем метаинформацию о данных (symbol, timeframe, source)
+            chart_info = kwargs.get('chart_info', {})
+            if chart_info:
+                info_parts = []
+                if 'symbol' in chart_info:
+                    info_parts.append(f"<b>{chart_info['symbol']}</b>")
+                if 'timeframe' in chart_info:
+                    info_parts.append(chart_info['timeframe'])
+                if 'source' in chart_info:
+                    info_parts.append(f"<i>{chart_info['source']}</i>")
+                if info_parts:
+                    info_text = " | ".join(info_parts)
+                    fig.add_annotation(
+                        text=info_text,
+                        xref="paper",
+                        yref="paper",
+                        x=1.0,
+                        y=1.02,
+                        xanchor='right',
+                        yanchor='bottom',
+                        showarrow=False,
+                        font=dict(size=11, color='#666'),
+                        bgcolor='rgba(255,255,255,0.8)',
+                        borderpad=4
                     )
             
-            # Добавляем нулевую линию для осцилляторов (если есть хотя бы один индикатор)
+            return fig
+
+        # --- РЕЖИМ DENSE ---
+        else:
+            x_positions = list(range(len(price_data)))
+            x_dates = price_data.index
+            date_to_position = {date: pos for pos, date in enumerate(x_dates)}
+
+            fig.add_trace(go.Candlestick(
+                x=x_positions,
+                open=price_data['open'],
+                high=price_data['high'],
+                low=price_data['low'],
+                close=price_data['close'],
+                name='Price',
+                increasing_line_color='#00ff88',
+                decreasing_line_color='#ff4444'
+            ), row=1, col=1)
+
+            for i, zone in enumerate(zones):
+                if 'start_time' in zone and 'end_time' in zone:
+                    zone_type = zone.get('type', 'bull')
+                    color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+                    start_time = zone['start_time']
+                    end_time = zone['end_time']
+                    x0_pos, x1_pos = None, None
+                    if start_time in date_to_position:
+                        x0_pos = date_to_position[start_time]
+                    else:
+                        try:
+                            x0_pos = x_dates.get_indexer([start_time], method='nearest')[0]
+                            if x0_pos < 0: x0_pos = 0
+                        except Exception: x0_pos = 0
+                    if end_time in date_to_position:
+                        x1_pos = date_to_position[end_time]
+                    else:
+                        try:
+                            x1_pos = x_dates.get_indexer([end_time], method='nearest')[0]
+                            if x1_pos < 0 or x1_pos >= len(x_positions): x1_pos = len(x_positions) - 1
+                        except Exception: x1_pos = len(x_positions) - 1
+                    y0 = price_data['low'].min()
+                    y1 = price_data['high'].max()
+                    fig.add_shape(type="rect", x0=x0_pos, y0=y0, x1=x1_pos, y1=y1, fillcolor=color_config['fill'], line=dict(color=color_config['line'], width=1), layer="below", xref="x", row=1, col=1)
+                    if self.default_config['show_zone_labels']:
+                        fig.add_annotation(x=x0_pos, y=y1, text=f"{zone_type.title()} Zone {i+1}", showarrow=False, font=dict(size=10), bgcolor="white", opacity=0.8, xref="x", row=1, col=1)
+
+            num_ticks_requested = kwargs.get('xaxis_num_ticks', xaxis_num_ticks)
+            if len(x_dates) > 0 and len(x_positions) > 0:
+                time_range = (x_dates[-1] - x_dates[0]).total_seconds()
+                data_points = len(x_positions)
+                if time_range < 3600 * 24: ideal_ticks = max(8, min(20, data_points // 30))
+                elif time_range < 3600 * 24 * 7: ideal_ticks = max(8, min(20, data_points // 6))
+                elif time_range < 3600 * 24 * 30: ideal_ticks = max(8, min(20, data_points // 2))
+                else: ideal_ticks = max(8, min(20, data_points // 10))
+                num_ticks = max(8, min(num_ticks_requested, ideal_ticks, data_points))
+            else:
+                num_ticks = max(8, min(num_ticks_requested, len(x_positions)))
+            tick_step = max(1, len(x_positions) // num_ticks) if num_ticks > 0 else 1
+            tick_positions = x_positions[::tick_step]
+            show_date, show_time, show_year_separately = True, True, False
+            if len(x_dates) > 0:
+                time_range = (x_dates[-1] - x_dates[0]).total_seconds()
+                if time_range < 3600 * 24: date_format, time_format, show_date = '%H:%M', '%H:%M', False
+                elif time_range < 3600 * 24 * 7: date_format, time_format = '%d.%m', '%H:%M'
+                elif time_range < 3600 * 24 * 30:
+                    date_format = '%d.%m'
+                    unique_times = set(dt.strftime('%H:%M') for dt in x_dates if hasattr(dt, 'strftime'))
+                    if len(unique_times) == 1: time_format, show_time = '%d.%m', False
+                    else: time_format = '%H:%M'
+                else: date_format, time_format, show_time, show_year_separately = '%d.%m', '%d.%m', False, True
+            else: date_format, time_format = '%d.%m', '%H:%M'
+            tick_labels, prev_year = [], None
+            for i in range(0, len(x_positions), tick_step):
+                if i < len(x_dates):
+                    date_obj, current_year = x_dates[i], x_dates[i].year
+                    show_year = show_year_separately and (prev_year is None or current_year != prev_year)
+                    date_str, time_str = date_obj.strftime(date_format), date_obj.strftime(time_format)
+                    if show_year: label = f"{date_str}<br><b>{current_year}</b>"
+                    elif show_date and show_time and date_str != time_str: label = f"{date_str}<br>{time_str}"
+                    elif show_date: label = date_str
+                    else: label = time_str
+                    tick_labels.append(label)
+                    prev_year = current_year
+                else: tick_labels.append('')
+            fig.update_xaxes(tickmode='array', tickvals=tick_positions, ticktext=tick_labels, tickangle=0, showgrid=True, gridwidth=1, gridcolor='rgba(128, 128, 128, 0.2)', row=1, col=1)
+            if show_indicators and indicator_columns: fig.update_xaxes(tickmode='array', tickvals=tick_positions, ticktext=tick_labels, tickangle=0, showgrid=True, gridwidth=1, gridcolor='rgba(128, 128, 128, 0.2)', row=2, col=1)
+
+        if show_indicators and indicator_columns:
+            chart_types = indicator_chart_types or {}
+            default_chart_type = lambda col: 'bar' if 'hist' in col.lower() else 'line'
+            palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
+            for i, column in enumerate(indicator_columns):
+                color = palette[i % len(palette)]
+                chart_type = chart_types.get(column, default_chart_type(column))
+                x_axis = price_data.index if time_axis_mode == 'timeseries' else x_positions
+                if chart_type == 'bar':
+                    fig.add_trace(go.Bar(x=x_axis, y=price_data[column], name=column, marker_color=color, opacity=0.7), row=2, col=1)
+                else:
+                    fig.add_trace(go.Scatter(x=x_axis, y=price_data[column], mode='lines', name=column, line=dict(color=color, width=1.6)), row=2, col=1)
             if len(indicator_columns) == 1:
-                # Если только один индикатор, добавляем горизонтальную линию на y=0
-                fig.add_hline(
-                    y=0,
-                    line_dash="dash",
-                    line_color="gray",
-                    opacity=0.5,
-                    row=2,
-                    col=1,
-                )
-            
-            # Устанавливаем заголовок оси для панели индикаторов
+                fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5, row=2, col=1)
             fig.update_yaxes(title_text="Indicator", row=2, col=1)
-        
-        fig.update_layout(
-            title=title,
-            width=self.default_config['width'],
-            height=self.default_config['height'],
-            xaxis_rangeslider_visible=False,
-            template='plotly_white'
-        )
-        
-        # Добавляем метаинформацию о данных (symbol, timeframe, source)
+
+        fig.update_layout(title=title, width=self.default_config['width'], height=self.default_config['height'], xaxis_rangeslider_visible=False, template='plotly_white')
         chart_info = kwargs.get('chart_info', {})
         if chart_info:
             info_parts = []
-            if 'symbol' in chart_info:
-                info_parts.append(f"<b>{chart_info['symbol']}</b>")
-            if 'timeframe' in chart_info:
-                info_parts.append(chart_info['timeframe'])
-            if 'source' in chart_info:
-                info_parts.append(f"<i>{chart_info['source']}</i>")
-            
+            if 'symbol' in chart_info: info_parts.append(f"<b>{chart_info['symbol']}</b>")
+            if 'timeframe' in chart_info: info_parts.append(chart_info['timeframe'])
+            if 'source' in chart_info: info_parts.append(f"<i>{chart_info['source']}</i>")
             if info_parts:
                 info_text = " | ".join(info_parts)
-                fig.add_annotation(
-                    text=info_text,
-                    xref="paper",
-                    yref="paper",
-                    x=1.0,
-                    y=1.02,
-                    xanchor='right',
-                    yanchor='bottom',
-                    showarrow=False,
-                    font=dict(size=11, color='#666'),
-                    bgcolor='rgba(255,255,255,0.8)',
-                    borderpad=4
-                )
+                fig.add_annotation(text=info_text, xref="paper", yref="paper", x=1.0, y=1.02, xanchor='right', yanchor='bottom', showarrow=False, font=dict(size=11, color='#666'), bgcolor='rgba(255,255,255,0.8)', borderpad=4)
 
         return fig
 
