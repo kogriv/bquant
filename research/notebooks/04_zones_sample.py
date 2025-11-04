@@ -35,7 +35,7 @@ SAVE_IMAGES = True
 #   - "html": always save Plotly as HTML (no external deps), Matplotlib as PNG
 #   - "png":  try to save Plotly as PNG (requires kaleido); on failure fallback to HTML
 #              Matplotlib remains PNG
-SAVE_IMAGE_FORMAT = "html"  # set to "png" to prefer PNG (Plotly falls back to HTML if unavailable)
+SAVE_IMAGE_FORMAT = "png"  # set to "png" to prefer PNG (Plotly falls back to HTML if unavailable)
 
 # use package save_figure directly
 
@@ -98,22 +98,22 @@ nb.wait()
 # ---------------------------------------------------------------------
 # Step 3.1: Overview Visualization with Indicators
 # ---------------------------------------------------------------------
-nb.step("Overview Visualization with Indicators")
-# Демонстрация нового функционала - отображение индикаторов в отдельной панели
-# Автоматическое определение индикатора из зон (macd_hist) и выбор типа отображения
-with nb.error_handling("Creating overview figure with indicators"):
-    fig_overview_indicators = result.visualize(
-        "overview", 
-        title="Zones Overview with MACD Histogram (auto-detected)",
-        show_indicators=True
-        # Автоматически определяется macd_hist и показывается как bar (гистограмма)
-    )
-    nb.success("Overview figure with indicators created (auto-detected)")
-    if SAVE_IMAGES:
-        saved = save_figure(fig_overview_indicators, "01_overview_with_indicators", prefer=SAVE_IMAGE_FORMAT)
-        if saved:
-            nb.log(f"Saved: {saved}")
-nb.wait()
+# nb.step("Overview Visualization with Indicators")
+# # Демонстрация нового функционала - отображение индикаторов в отдельной панели
+# # Автоматическое определение индикатора из зон (macd_hist) и выбор типа отображения
+# with nb.error_handling("Creating overview figure with indicators"):
+#     fig_overview_indicators = result.visualize(
+#         "overview", 
+#         title="Zones Overview with MACD Histogram (auto-detected)",
+#         show_indicators=True
+#         # Автоматически определяется macd_hist и показывается как bar (гистограмма)
+#     )
+#     nb.success("Overview figure with indicators created (auto-detected)")
+#     if SAVE_IMAGES:
+#         saved = save_figure(fig_overview_indicators, "01_overview_with_indicators", prefer=SAVE_IMAGE_FORMAT)
+#         if saved:
+#             nb.log(f"Saved: {saved}")
+# nb.wait()
 
 # ---------------------------------------------------------------------
 # Step 3.2: Overview Visualization with Explicit Indicator Types
@@ -138,45 +138,45 @@ nb.wait()
 # ---------------------------------------------------------------------
 # Step 4: Overview Visualization for Date Range (Dense vs. Timeseries)
 # ---------------------------------------------------------------------
-nb.step("Overview Visualization (Date Range: 25.06.2025 - 03.07.2025)")
-nb.log(f"Output directory for charts: {OUTPUT_DIR.resolve()}")
+# nb.step("Overview Visualization (Date Range: 25.06.2025 - 03.07.2025)")
+# nb.log(f"Output directory for charts: {OUTPUT_DIR.resolve()}")
 
-with nb.error_handling("Creating overview figure for date range"):
-    # Создаем даты с тем же timezone, что и данные
-    tz = result.data.index.tz
-    start_date = pd.Timestamp('2025-06-25', tz=tz) if tz else pd.Timestamp('2025-06-25')
-    end_date = pd.Timestamp('2025-07-03', tz=tz) if tz else pd.Timestamp('2025-07-03')
+# with nb.error_handling("Creating overview figure for date range"):
+#     # Создаем даты с тем же timezone, что и данные
+#     tz = result.data.index.tz
+#     start_date = pd.Timestamp('2025-06-25', tz=tz) if tz else pd.Timestamp('2025-06-25')
+#     end_date = pd.Timestamp('2025-07-03', tz=tz) if tz else pd.Timestamp('2025-07-03')
     
-    # 1. Создаем график в режиме 'dense' (по умолчанию)
-    title_dense = f"Zones Overview (Dense Mode) - {start_date.strftime('%d.%m.%Y')} to {end_date.strftime('%d.%m.%Y')}"
-    fig_overview_dense = result.visualize(
-        "overview",
-        date_range=(start_date, end_date),
-        title=title_dense,
-        show_indicators=True,
-        time_axis_mode='dense' # Явно указываем для наглядности
-    )
-    nb.success("Created DENSE overview for date range.")
-    if SAVE_IMAGES:
-        saved = save_figure(fig_overview_dense, "01_overview_date_range_dense", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
-        if saved:
-            nb.log(f"Saved dense chart: {saved}")
+#     # 1. Создаем график в режиме 'dense' (по умолчанию)
+#     title_dense = f"Zones Overview (Dense Mode) - {start_date.strftime('%d.%m.%Y')} to {end_date.strftime('%d.%m.%Y')}"
+#     fig_overview_dense = result.visualize(
+#         "overview",
+#         date_range=(start_date, end_date),
+#         title=title_dense,
+#         show_indicators=True,
+#         time_axis_mode='dense' # Явно указываем для наглядности
+#     )
+#     nb.success("Created DENSE overview for date range.")
+#     if SAVE_IMAGES:
+#         saved = save_figure(fig_overview_dense, "01_overview_date_range_dense", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
+#         if saved:
+#             nb.log(f"Saved dense chart: {saved}")
 
-    # 2. Создаем график в режиме 'timeseries'
-    title_timeseries = f"Zones Overview (Timeseries Mode) - {start_date.strftime('%d.%m.%Y')} to {end_date.strftime('%d.%m.%Y')}"
-    fig_overview_timeseries = result.visualize(
-        "overview",
-        date_range=(start_date, end_date),
-        title=title_timeseries,
-        show_indicators=True,
-        time_axis_mode='timeseries' # Используем новый режим
-    )
-    nb.success("Created TIMESERIES overview for date range.")
-    if SAVE_IMAGES:
-        saved = save_figure(fig_overview_timeseries, "01_overview_date_range_timeseries", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
-        if saved:
-            nb.log(f"Saved timeseries chart: {saved}")
-nb.wait()
+#     # 2. Создаем график в режиме 'timeseries'
+#     title_timeseries = f"Zones Overview (Timeseries Mode) - {start_date.strftime('%d.%m.%Y')} to {end_date.strftime('%d.%m.%Y')}"
+#     fig_overview_timeseries = result.visualize(
+#         "overview",
+#         date_range=(start_date, end_date),
+#         title=title_timeseries,
+#         show_indicators=True,
+#         time_axis_mode='timeseries' # Используем новый режим
+#     )
+#     nb.success("Created TIMESERIES overview for date range.")
+#     if SAVE_IMAGES:
+#         saved = save_figure(fig_overview_timeseries, "01_overview_date_range_timeseries", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
+#         if saved:
+#             nb.log(f"Saved timeseries chart: {saved}")
+# nb.wait()
 
 # ---------------------------------------------------------------------
 # Step 4: Detail Visualization (single zone by median duration)
@@ -198,51 +198,103 @@ nb.wait()
 #     z_id = base_zone.zone_id
 #     nb.log(f"Selected Base zone - Zone ID: {z_id}")
 #     fig_detail_1 = result.visualize(
-#         "detail", zone_id=z_id, context_bars=5, title=f"Zone #{z_id} (≈ median duration: {median_dur:.1f} bars)"
+#         "detail", zone_id=z_id,
+#         # show_volume=True,
+#         context_bars=5,
+#         title=f"Zone #{z_id} (≈ median duration: {median_dur:.1f} bars)",
+#         show_indicators=True,
 #     )
 #     nb.success(f"Detail figure for zone #{z_id} created (duration≈{median_dur:.1f} bars)")
 #     if SAVE_IMAGES:
-#         saved = save_figure(fig_detail_1, f"02_detail_{z_id}")
+#         saved = save_figure(fig_detail_1, f"02_detail_{z_id}", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
 #         if saved:
 #             nb.log(f"Saved: {saved}")
 # nb.wait()
 
-# # ---------------------------------------------------------------------
-# # Step 5: Detail Visualization (second zone) and Comparison (minimal pair)
-# # ---------------------------------------------------------------------
-# nb.step("Detail (second zone) and Comparison")
-# # Для сравнения берём ещё одну «соседнюю» зону и строим минимальную пару.
-# with nb.error_handling("Selecting an additional zone for comparison"):
-#     if base_zone:
-#         base_id = base_zone.zone_id
-#         # Найти индекс base_zone в списке и взять следующую зону (или предыдущую, если это последняя)
-#         base_idx = result.zones.index(base_zone)
-#         z2 = result.zones[base_idx + 1].zone_id if base_idx + 1 < len(result.zones) else result.zones[base_idx - 1].zone_id
-        
-#         # Detail for the second zone
-#         fig_detail_2 = result.visualize("detail", zone_id=z2, context_bars=20, title=f"Zone #{z2} (second for demo)")
-#         if SAVE_IMAGES:
-#             save_figure(fig_detail_2, f"02_detail_{z2}")
-        
-#         # Comparison for two zones
+# ---------------------------------------------------------------------
+# Step 5: Detail Visualization (second zone) and Comparison (minimal pair)
+# ---------------------------------------------------------------------
+nb.step("Detail (second zone) and Comparison")
+# Для сравнения берём ещё одну «соседнюю» зону и строим минимальную пару.
+with nb.error_handling("Selecting an additional zone for comparison"):
+    # Получить медиану из статистики
+    median_val = result.statistics['duration_distribution']['overall']['median']
+    nb.log(f"Median duration: {median_val}")
+    
+    # Найти зону с длительностью, ближайшей к медиане
+    candidates = [(z, z.features['duration']) for z in result.zones]
+    base_zone, median_dur = min(candidates, key=lambda t: abs(t[1] - median_val))
+    nb.log(f"Base zone: {base_zone}, median duration: {median_dur}")
 
-#         selected_zones = [z for z in result.zones if z.zone_id in [base_id, z2]]
+    if base_zone:
 
-#         visualizer = ZoneVisualizer(backend='plotly')
-#         fig_cmp = visualizer.plot_zones_comparison(
-#             result.data,  # ← price_data (OHLCV)
-#             selected_zones,  # ← отфильтрованный список зон
-#             max_zones=2,
-#             title="Zones Comparison (2 zones)"
-#         )
-#         nb.success(f"Comparison figure created for zones #{base_id} and #{z2}")
-#         if SAVE_IMAGES:
-#             saved = save_figure(fig_cmp, "03_comparison_pair")
-#             if saved:
-#                 nb.log(f"Saved: {saved}")
-#     else:
-#         nb.warning("Skipping comparison due to missing base_zone")
-# nb.wait()
+        base_id = base_zone.zone_id
+        # Найти индекс base_zone в списке и взять следующую зону (или предыдущую, если это последняя)
+        base_idx = result.zones.index(base_zone)
+        z2 = result.zones[base_idx + 1].zone_id if base_idx + 1 < len(result.zones) else result.zones[base_idx - 1].zone_id
+        
+        # Detail for the second zone
+        fig_detail_2 = result.visualize("detail", zone_id=z2, context_bars=5, title=f"Zone #{z2} (second for demo)")
+        if SAVE_IMAGES:
+            save_figure(fig_detail_2, f"02_detail_{z2}")
+        
+        # Comparison for two zones
+
+        selected_zones = [z for z in result.zones if z.zone_id in [base_id, z2]]
+
+        visualizer = ZoneVisualizer(backend='plotly')
+        fig_cmp = visualizer.plot_zones_comparison(
+            result.data,  # ← price_data (OHLCV)
+            selected_zones,  # ← отфильтрованный список зон
+            max_zones=2,  # Максимальное количество зон для сравнения (по умолчанию 5)
+            title="Zones Comparison (2 zones)",  # Заголовок графика
+            # date_range=None,  # Опционально: фильтрация зон по диапазону дат (start, end)
+            show_indicators=True,  # Показывать индикаторы на отдельной панели (по умолчанию True)
+            show_volume=True,  # Показывать панель volume (по умолчанию True)
+            # indicator_columns=None,  # Опционально: явный список колонок индикаторов для отображения
+            # indicator_chart_types=None,  # Опционально: словарь {колонка: тип} для указания типа отображения
+            #                              # Типы: 'line' (линия) или 'bar' (столбики)
+            #                              # Пример: {'macd_hist': 'bar', 'rsi': 'line'}
+            #                              # Если не указано, автоматически определяется: 'bar' для колонок с 'hist', иначе 'line'
+            comparison_context=5,  # Количество контекстных баров вокруг каждой зоны (по умолчанию 30)
+            #                         # Контекстные бары - это бары до и после зоны для лучшего контекста
+            time_axis_mode='dense',  # Режим формирования меток оси X: 'dense' (по умолчанию) или 'timeseries'
+            #                         # 'dense' - позиционные индексы с метками времени (быстро, без анализа gaps)
+            #                         # 'timeseries' - datetime с rangebreaks (медленно, требует анализа gaps)
+            # volume_panel_height=0.25,  # Высота панели volume (0.0-1.0, по умолчанию 0.25)
+            # indicator_panel_height=0.3,  # Высота панели индикаторов (0.0-1.0, по умолчанию 0.3)
+        )
+        nb.success(f"Comparison figure created for zones #{base_id} and #{z2}")
+        if SAVE_IMAGES:
+            saved = save_figure(fig_cmp, "03_comparison_pair", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
+            if saved:
+                nb.log(f"Saved: {saved}")
+        
+        # Comparison for 5 zones closest to median duration
+        nb.log("Finding 5 zones closest to median duration...")
+        candidates_sorted = sorted(candidates, key=lambda t: abs(t[1] - median_val))
+        median_zones = [z for z, _ in candidates_sorted[:5]]
+        median_zone_ids = [z.zone_id for z in median_zones]
+        nb.log(f"Selected 5 zones closest to median: {median_zone_ids}")
+        
+        fig_cmp_5 = visualizer.plot_zones_comparison(
+            result.data,
+            median_zones,
+            max_zones=5,
+            title="Zones Comparison (5 zones closest to median duration)",
+            show_indicators=True,
+            show_volume=True,
+            comparison_context=5,
+            time_axis_mode='dense',
+        )
+        nb.success(f"Comparison figure created for 5 zones closest to median: {median_zone_ids}")
+        if SAVE_IMAGES:
+            saved = save_figure(fig_cmp_5, "04_comparison_5_median", output_dir=str(OUTPUT_DIR), prefer=SAVE_IMAGE_FORMAT)
+            if saved:
+                nb.log(f"Saved: {saved}")
+    else:
+        nb.warning("Skipping comparison due to missing base_zone")
+nb.wait()
 
 nb.finish(message="Done")
 

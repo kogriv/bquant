@@ -385,11 +385,17 @@ class ZoneVisualizer(ZoneChartBuilder):
                          zone: Union[Dict[str, Any], ZoneInfo, Any],
                          context_bars: int = 20,
                          title: str = "Zone Detail",
+                         show_indicators: bool = True,
+                         show_volume: bool = True,
                          **kwargs) -> Union[go.Figure, plt.Figure]:
         """Детализированный просмотр отдельной зоны."""
 
         if price_data is None or price_data.empty:
             raise ValueError("price_data must be a non-empty DataFrame")
+
+        # Проверяем параметры из kwargs (приоритет выше параметров)
+        show_indicators = kwargs.get('show_indicators', show_indicators)
+        show_volume = kwargs.get('show_volume', show_volume)
 
         zone_dict = self._normalize_zone(zone)
         context = kwargs.get('context_bars', context_bars)
@@ -400,16 +406,22 @@ class ZoneVisualizer(ZoneChartBuilder):
 
         window_df, window_meta = self._get_zone_window(price_data, zone_dict, context, max_bars=max_bars)
 
-        zone_data = zone_dict.get('data')
-        indicator_source: Optional[pd.DataFrame] = None
-        if isinstance(zone_data, pd.DataFrame) and not zone_data.empty:
-            indicator_source = zone_data.reindex(window_df.index)
-        else:
-            indicator_source = window_df
-
-        indicator_columns = self._detect_indicators_from_features(zone_dict, indicator_source)
+        # Для индикаторов всегда используем window_df (полный диапазон с контекстом)
+        indicator_source = window_df
+        
+        indicator_columns = None
+        if show_indicators:
+            # Определяем колонки индикаторов
+            zone_data = zone_dict.get('data')
+            if isinstance(zone_data, pd.DataFrame) and not zone_data.empty:
+                # Используем zone_data для определения колонок, но данные возьмем из window_df
+                indicator_columns = self._detect_indicators_from_features(zone_dict, zone_data)
+            if not indicator_columns:
+                indicator_columns = self._detect_indicators_from_features(zone_dict, window_df)
+        
         indicator_data = pd.DataFrame(index=window_df.index)
-        if indicator_columns:
+        if indicator_columns and show_indicators:
+            # Берем индикаторы из window_df (полный диапазон с контекстом)
             indicator_data = indicator_source[indicator_columns].copy()
             self.logger.debug(
                 "Detected indicators for zone %s: %s",
@@ -431,6 +443,8 @@ class ZoneVisualizer(ZoneChartBuilder):
                 indicator_data,
                 title,
                 window_meta,
+                show_indicators=show_indicators,
+                show_volume=show_volume,
                 **kwargs,
             )
         else:
@@ -448,11 +462,21 @@ class ZoneVisualizer(ZoneChartBuilder):
                               max_zones: int = 5,
                               date_range: Optional[Tuple[datetime, datetime]] = None,
                               title: str = "Zones Comparison",
+                              show_indicators: bool = True,
+                              show_volume: bool = True,
+                              indicator_columns: Optional[List[str]] = None,
+                              indicator_chart_types: Optional[Dict[str, str]] = None,
+                              time_axis_mode: str = 'dense',
                               **kwargs) -> Union[go.Figure, plt.Figure]:
         """Сравнение нескольких зон на ценовом графике."""
 
         if price_data is None or price_data.empty:
             raise ValueError("price_data must be a non-empty DataFrame")
+
+        # Проверяем параметры из kwargs (приоритет выше параметров)
+        show_indicators = kwargs.get('show_indicators', show_indicators)
+        show_volume = kwargs.get('show_volume', show_volume)
+        time_axis_mode = kwargs.get('time_axis_mode', time_axis_mode)
 
         # Нормализуем входные зоны
         if isinstance(zones_data, pd.DataFrame):
@@ -488,18 +512,33 @@ class ZoneVisualizer(ZoneChartBuilder):
         global_left = len(price_data)
         global_right = 0
 
-        for zone in filtered_zones:
-            window_df, window_meta = self._get_zone_window(price_data, zone, context, max_bars=None)
-            zone_data = zone.get('data')
-            if isinstance(zone_data, pd.DataFrame) and not zone_data.empty:
-                indicator_source = zone_data.reindex(window_df.index)
-            else:
-                indicator_source = price_data.reindex(window_df.index)
+        # Сортируем зоны по времени начала для последовательного отображения
+        filtered_zones_sorted = sorted(
+            filtered_zones,
+            key=lambda z: z.get('start_time') or z.get('start_idx', 0)
+        )
 
-            indicator_columns = self._detect_indicators_from_features(zone, indicator_source)
+        for zone in filtered_zones_sorted:
+            window_df, window_meta = self._get_zone_window(price_data, zone, context, max_bars=None)
+            
             indicators_df = pd.DataFrame(index=window_df.index)
-            if indicator_columns:
-                indicators_df = indicator_source[indicator_columns].copy()
+            
+            # Определяем индикаторы только если show_indicators=True
+            if show_indicators:
+                # Для индикаторов всегда используем window_df (полный диапазон с контекстом)
+                indicator_source = window_df
+                
+                # Определяем колонки индикаторов
+                zone_indicator_columns = indicator_columns  # Используем переданные колонки или None
+                if zone_indicator_columns is None:
+                    zone_data = zone.get('data')
+                    if isinstance(zone_data, pd.DataFrame) and not zone_data.empty:
+                        zone_indicator_columns = self._detect_indicators_from_features(zone, zone_data)
+                    if not zone_indicator_columns:
+                        zone_indicator_columns = self._detect_indicators_from_features(zone, window_df)
+                
+                if zone_indicator_columns:
+                    indicators_df = indicator_source[zone_indicator_columns].copy()
 
             zone_windows.append({
                 'zone': zone,
@@ -508,19 +547,63 @@ class ZoneVisualizer(ZoneChartBuilder):
                 'indicators': indicators_df,
             })
 
-            global_left = min(global_left, window_meta['left_idx'])
-            global_right = max(global_right, window_meta['right_idx'])
+        # Формируем «плотную» ось времени: каждая зона размещается в своем блоке
+        if not zone_windows:
+            dense_window = price_data.iloc[0:min(100, len(price_data))].copy()
+            dense_window['__timestamp__'] = dense_window.index
+            dense_window.index = range(len(dense_window))
+            zone_blocks = []
+        else:
+            gap_size = 3  # Отступ между блоками зон
+            current_offset = 0
+            dense_rows: Dict[str, List[Any]] = {
+                'open': [], 'high': [], 'low': [], 'close': [], 'volume': [], '__timestamp__': []
+            }
+            dense_index: List[int] = []
+            zone_blocks = []
 
-        if global_left > global_right:
-            global_left, global_right = 0, len(price_data) - 1
+            for payload in zone_windows:
+                window_df = payload['window']
+                block_positions: List[int] = []
+                block_timestamps: List[pd.Timestamp] = []
 
-        global_window = price_data.iloc[global_left:global_right + 1]
+                for row_ts, row in window_df.iterrows():
+                    dense_index.append(current_offset)
+                    dense_rows['open'].append(row.get('open'))
+                    dense_rows['high'].append(row.get('high'))
+                    dense_rows['low'].append(row.get('low'))
+                    dense_rows['close'].append(row.get('close'))
+                    dense_rows['volume'].append(row.get('volume') if 'volume' in row else None)
+                    dense_rows['__timestamp__'].append(row_ts)
+
+                    block_positions.append(current_offset)
+                    block_timestamps.append(row_ts)
+                    current_offset += 1
+
+                zone_blocks.append({
+                    'payload': payload,
+                    'positions': block_positions,
+                    'timestamps': block_timestamps,
+                })
+
+                current_offset += gap_size  # Отступ перед следующей зоной
+
+            dense_window = pd.DataFrame(dense_rows, index=dense_index)
+
+        if not zone_windows:
+            global_window = dense_window
+        else:
+            global_window = dense_window
 
         if self.backend == 'plotly':
             return self._create_plotly_zones_comparison(
                 global_window,
-                zone_windows,
+                zone_blocks if zone_windows else [],
                 title,
+                show_indicators=show_indicators,
+                show_volume=show_volume,
+                indicator_chart_types=indicator_chart_types,
+                time_axis_mode=time_axis_mode,
                 **kwargs,
             )
         else:
@@ -931,12 +1014,37 @@ class ZoneVisualizer(ZoneChartBuilder):
                                    **kwargs) -> go.Figure:
         """Создание детального графика зоны с Plotly."""
 
-        show_volume = 'volume' in price_window.columns and price_window['volume'].notna().any()
-        rows = 2 if show_volume else 1
+        # Проверяем параметры show_indicators и show_volume
+        show_indicators = kwargs.get('show_indicators', True)
+        show_volume = kwargs.get('show_volume', True) and 'volume' in price_window.columns and price_window['volume'].notna().any()
+        
+        # Проверяем, есть ли индикаторы
+        has_indicators = show_indicators and not indicator_data.empty and len(indicator_data.columns) > 0
+        
+        # Определяем количество панелей
+        rows = 1
+        if has_indicators:
+            rows += 1
+        if show_volume:
+            rows += 1
+        
+        # Высота панелей
         volume_height = kwargs.get('volume_panel_height', self.default_config['volume_panel_height'])
+        indicator_panel_height = kwargs.get('indicator_panel_height', 0.3)
+        
         row_heights = [1.0]
         if rows == 2:
-            row_heights = [1 - volume_height, volume_height]
+            if has_indicators:
+                row_heights = [1 - indicator_panel_height, indicator_panel_height]
+            else:  # только volume
+                row_heights = [1 - volume_height, volume_height]
+        elif rows == 3:
+            # цена, индикаторы, volume
+            row_heights = [
+                1 - indicator_panel_height - volume_height,
+                indicator_panel_height,
+                volume_height
+            ]
 
         fig = make_subplots(
             rows=rows,
@@ -956,21 +1064,46 @@ class ZoneVisualizer(ZoneChartBuilder):
             name='Price',
         ), row=1, col=1)
 
-        # Индикаторы
-        palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
-        for i, column in enumerate(indicator_data.columns):
-            color = palette[i % len(palette)]
-            fig.add_trace(
-                go.Scatter(
-                    x=indicator_data.index,
-                    y=indicator_data[column],
-                    mode='lines',
-                    name=column,
-                    line=dict(color=color, width=1.6),
-                ),
-                row=1,
-                col=1,
-            )
+        # Индикаторы на отдельной панели (если есть)
+        if has_indicators:
+            indicator_row = 2
+            palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
+            indicator_chart_types = kwargs.get('indicator_chart_types', {})
+            default_chart_type = lambda col: 'bar' if 'hist' in col.lower() else 'line'
+            
+            for i, column in enumerate(indicator_data.columns):
+                color = palette[i % len(palette)]
+                chart_type = indicator_chart_types.get(column, default_chart_type(column))
+                
+                if chart_type == 'bar':
+                    fig.add_trace(
+                        go.Bar(
+                            x=indicator_data.index,
+                            y=indicator_data[column],
+                            name=column,
+                            marker_color=color,
+                            opacity=0.7,
+                        ),
+                        row=indicator_row,
+                        col=1,
+                    )
+                else:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=indicator_data.index,
+                            y=indicator_data[column],
+                            mode='lines',
+                            name=column,
+                            line=dict(color=color, width=1.6),
+                        ),
+                        row=indicator_row,
+                        col=1,
+                    )
+            
+            # Добавляем горизонтальную линию на нуле (если один индикатор)
+            if len(indicator_data.columns) == 1:
+                fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5, row=indicator_row, col=1)
+            fig.update_yaxes(title_text="Indicator", row=indicator_row, col=1)
 
         # Заливка зоны
         window_index = price_window.index
@@ -990,6 +1123,7 @@ class ZoneVisualizer(ZoneChartBuilder):
             )
 
         if show_volume:
+            volume_row = 2 if not has_indicators else 3
             fig.add_trace(
                 go.Bar(
                     x=price_window.index,
@@ -997,10 +1131,10 @@ class ZoneVisualizer(ZoneChartBuilder):
                     name='Volume',
                     marker_color='rgba(100, 149, 237, 0.4)',
                 ),
-                row=2,
+                row=volume_row,
                 col=1,
             )
-            fig.update_yaxes(title_text='Volume', row=2, col=1)
+            fig.update_yaxes(title_text='Volume', row=volume_row, col=1)
 
         # Аннотации
         if self.default_config['show_zone_stats']:
@@ -1051,17 +1185,49 @@ class ZoneVisualizer(ZoneChartBuilder):
 
     def _create_plotly_zones_comparison(self,
                                         price_window: pd.DataFrame,
-                                        zone_windows: List[Dict[str, Any]],
+                                        zone_blocks: List[Dict[str, Any]],
                                         title: str,
+                                        show_indicators: bool = True,
+                                        show_volume: bool = True,
+                                        indicator_chart_types: Optional[Dict[str, str]] = None,
+                                        time_axis_mode: str = 'dense',
                                         **kwargs) -> go.Figure:
         """Создание сравнительного графика зон (Plotly)."""
 
-        show_volume = 'volume' in price_window.columns and price_window['volume'].notna().any()
-        rows = 2 if show_volume else 1
+        # Проверяем наличие данных volume и применяем параметр show_volume
+        has_volume_data = 'volume' in price_window.columns and price_window['volume'].notna().any()
+        show_volume = show_volume and has_volume_data
+        
+        # Проверяем, есть ли индикаторы хотя бы в одной зоне
+        has_indicators = show_indicators and any(
+            (not block['payload']['indicators'].empty)
+            for block in zone_blocks
+        )
+        
+        # Определяем количество панелей: цена + (индикаторы?) + (volume?)
+        rows = 1
+        if has_indicators:
+            rows += 1
+        if show_volume:
+            rows += 1
+        
+        # Высота панелей
         volume_height = kwargs.get('volume_panel_height', self.default_config['volume_panel_height'])
+        indicator_panel_height = kwargs.get('indicator_panel_height', 0.3)
+        
         row_heights = [1.0]
         if rows == 2:
-            row_heights = [1 - volume_height, volume_height]
+            if has_indicators:
+                row_heights = [1 - indicator_panel_height, indicator_panel_height]
+            else:  # только volume
+                row_heights = [1 - volume_height, volume_height]
+        elif rows == 3:
+            # цена, индикаторы, volume
+            row_heights = [
+                1 - indicator_panel_height - volume_height,
+                indicator_panel_height,
+                volume_height
+            ]
 
         fig = make_subplots(
             rows=rows,
@@ -1082,42 +1248,134 @@ class ZoneVisualizer(ZoneChartBuilder):
 
         palette = kwargs.get('indicator_palette', self.default_config['indicator_palette'])
 
-        for zone_idx, payload in enumerate(zone_windows):
+        # Формируем подписи для оси X в зависимости от режима
+        tickvals: List[int] = []
+        ticktext: List[str] = []
+        
+        if time_axis_mode == 'dense':
+            # Режим dense: используем позиционные индексы с метками времени
+            timestamp_series = price_window.get('__timestamp__')
+            if timestamp_series is not None and len(price_window.index) > 0:
+                timestamps = list(timestamp_series)
+                positions = list(price_window.index)
+                max_ticks = min(20, max(1, len(positions)))
+                step = max(1, len(positions) // max_ticks)
+                for i in range(0, len(positions), step):
+                    ts = timestamps[i]
+                    label = ts.strftime('%d.%m %H:%M') if hasattr(ts, 'strftime') else str(ts)
+                    tickvals.append(positions[i])
+                    ticktext.append(label)
+                # Добавляем последний тик
+                if positions[-1] not in tickvals:
+                    ts = timestamps[-1]
+                    label = ts.strftime('%d.%m %H:%M') if hasattr(ts, 'strftime') else str(ts)
+                    tickvals.append(positions[-1])
+                    ticktext.append(label)
+        # Для режима 'timeseries' не устанавливаем tickvals/ticktext - Plotly использует автоматические метки
+
+        # Добавляем зоны и собираем информацию о блоках
+        for block_idx, block in enumerate(zone_blocks):
+            payload = block['payload']
             zone = payload['zone']
             zone_type = zone.get('type', 'bull')
             color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
-            meta = payload['meta']
-            idx = price_window.index
-            start_pos = max(0, meta['zone_left'] - meta['left_idx'])
-            end_pos = min(len(idx) - 1, meta['zone_right'] - meta['left_idx'])
-            if start_pos <= end_pos:
-                fig.add_vrect(
-                    x0=idx[start_pos],
-                    x1=idx[end_pos],
-                    fillcolor=color_config['fill'],
-                    line=dict(color=color_config['line'], width=1),
-                    layer="below",
-                    annotation_text=f"Zone {zone.get('zone_id', zone_idx + 1)}",
-                    annotation_position="top left",
-                )
+            positions = block['positions']
+            timestamps = block.get('timestamps') or []
+            if not positions:
+                continue
+            
+            zone_start = zone.get('start_time')
+            zone_end = zone.get('end_time')
 
-            indicators = payload['indicators'].reindex(price_window.index)
-            for j, column in enumerate(indicators.columns):
-                color = palette[(zone_idx + j) % len(palette)]
-                fig.add_trace(
-                    go.Scatter(
-                        x=indicators.index,
-                        y=indicators[column],
-                        mode='lines',
-                        name=f"{zone.get('zone_id', zone_idx + 1)} · {column}",
-                        line=dict(color=color, width=1.4),
-                        opacity=0.85,
-                    ),
-                    row=1,
-                    col=1,
-                )
+            zone_start_pos = positions[0]
+            zone_end_pos = positions[-1]
+            if zone_start is not None and timestamps:
+                for pos, ts in zip(positions, timestamps):
+                    if ts >= zone_start:
+                        zone_start_pos = pos
+                        break
+            if zone_end is not None and timestamps:
+                for pos, ts in zip(reversed(positions), reversed(timestamps)):
+                    if ts <= zone_end:
+                        zone_end_pos = pos
+                        break
+
+            x0 = zone_start_pos - 0.5
+            x1 = zone_end_pos + 0.5
+
+            # Прямоугольник зоны должен занимать всю высоту панели
+            # Не ограничиваем по Y, чтобы прямоугольник был виден
+            fig.add_vrect(
+                x0=x0,
+                x1=x1,
+                fillcolor=color_config['fill'],
+                line=dict(color=color_config['line'], width=1),
+                layer="below",
+                annotation_text=f"Zone {zone.get('zone_id', block_idx + 1)}",
+                annotation_position="top left",
+                row=1, col=1
+            )
+
+        # Добавляем индикаторы на отдельную панель (если есть)
+        if has_indicators:
+            indicator_row = 2
+            chart_types = indicator_chart_types or {}
+            default_chart_type = lambda col: 'bar' if 'hist' in col.lower() else 'line'
+            
+            for block_idx, block in enumerate(zone_blocks):
+                payload = block['payload']
+                indicators = payload['indicators']
+                
+                if indicators.empty or len(indicators.columns) == 0:
+                    continue
+                    
+                positions = block['positions']
+                timestamps = block.get('timestamps') or []
+                zone_window = payload['window']
+                indicators_aligned = indicators.reindex(zone_window.index)
+
+                # Индикаторы отображаются для всего блока (с контекстом), а не только для зоны
+                # Используем все позиции блока
+                indicator_positions = positions
+                indicator_values = indicators_aligned
+                
+                for j, column in enumerate(indicators_aligned.columns):
+                    color = palette[(block_idx + j) % len(palette)]
+                    chart_type = chart_types.get(column, default_chart_type(column))
+                    
+                    if chart_type == 'bar':
+                        fig.add_trace(
+                            go.Bar(
+                                x=indicator_positions,
+                                y=indicator_values[column],
+                                name=f"{payload['zone'].get('zone_id', block_idx + 1)} · {column}",
+                                marker_color=color,
+                                opacity=0.7,
+                            ),
+                            row=indicator_row,
+                            col=1,
+                        )
+                    else:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=indicator_positions,
+                                y=indicator_values[column],
+                                mode='lines',
+                                name=f"{payload['zone'].get('zone_id', block_idx + 1)} · {column}",
+                                line=dict(color=color, width=1.4),
+                                opacity=0.85,
+                            ),
+                            row=indicator_row,
+                            col=1,
+                        )
+            
+            # Добавляем горизонтальную линию на нуле (если один индикатор)
+            if len(zone_blocks) == 1 and len(zone_blocks[0]['payload']['indicators'].columns) == 1:
+                fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5, row=indicator_row, col=1)
+            fig.update_yaxes(title_text="Indicator", row=indicator_row, col=1)
 
         if show_volume:
+            volume_row = 2 if not has_indicators else 3
             fig.add_trace(
                 go.Bar(
                     x=price_window.index,
@@ -1125,10 +1383,10 @@ class ZoneVisualizer(ZoneChartBuilder):
                     name='Volume',
                     marker_color='rgba(120, 120, 220, 0.35)',
                 ),
-                row=2,
+                row=volume_row,
                 col=1,
             )
-            fig.update_yaxes(title_text='Volume', row=2, col=1)
+            fig.update_yaxes(title_text='Volume', row=volume_row, col=1)
 
         fig.update_layout(
             title=title,
@@ -1138,6 +1396,31 @@ class ZoneVisualizer(ZoneChartBuilder):
             template='plotly_white',
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1.0),
         )
+
+        for row in range(1, rows + 1):
+            if time_axis_mode == 'dense':
+                # Режим dense: используем позиционные индексы с кастомными метками
+                fig.update_xaxes(
+                    tickmode='array' if tickvals else 'auto',
+                    tickvals=tickvals if tickvals else None,
+                    ticktext=ticktext if tickvals else None,
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    row=row,
+                    col=1,
+                    type='linear'
+                )
+            else:
+                # Режим timeseries: используем datetime (если понадобится в будущем)
+                fig.update_xaxes(
+                    type='date',
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    row=row,
+                    col=1
+                )
 
         fig.update_xaxes(matches='x')
 
