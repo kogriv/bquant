@@ -1,0 +1,98 @@
+{
+  "eda": {
+    "bull_zones_total": 37,
+    "bull_zones_with_swings": 7,
+    "pct_with_swings": 18.91891891891892,
+    "num_swings_stats": {
+      "min": 0,
+      "max": 2,
+      "avg": 0.21621621621621623
+    },
+    "avg_rally_count": 0.5405405405405406,
+    "avg_drop_count": 0.35135135135135137
+  },
+  "analysis": {
+    "narrow_fixed": {
+      "find_peaks": {
+        "summary": {
+          "zones_total": 37,
+          "zones_with_metrics": 37,
+          "zones_with_swings": 7,
+          "pct_with_swings": 18.91891891891892,
+          "pairs_collected": 7
+        },
+        "p_value": null,
+        "statistic": null,
+        "error": null,
+        "insufficient_data": true
+      },
+      "pivot_points": {
+        "summary": {
+          "zones_total": 37,
+          "zones_with_metrics": 37,
+          "zones_with_swings": 3,
+          "pct_with_swings": 8.108108108108109,
+          "pairs_collected": 3
+        },
+        "p_value": null,
+        "statistic": null,
+        "error": null,
+        "insufficient_data": true
+      },
+      "zigzag": {
+        "summary": {
+          "zones_total": 37,
+          "zones_with_metrics": 37,
+          "zones_with_swings": 23,
+          "pct_with_swings": 62.16216216216216,
+          "pairs_collected": 23
+        },
+        "p_value": 0.0015354156494140625,
+        "statistic": 232.0,
+        "error": null,
+        "insufficient_data": false
+      }
+    },
+    "narrow_auto": {
+      "find_peaks": {
+        "summary": {
+          "zones_total": 37,
+          "zones_with_metrics": 37,
+          "zones_with_swings": 0,
+          "pct_with_swings": 0.0,
+          "pairs_collected": 0
+        },
+        "p_value": null,
+        "statistic": null,
+        "error": null,
+        "insufficient_data": true
+      },
+      "pivot_points": {
+        "summary": {
+          "zones_total": 37,
+          "zones_with_metrics": 37,
+          "zones_with_swings": 0,
+          "pct_with_swings": 0.0,
+          "pairs_collected": 0
+        },
+        "p_value": null,
+        "statistic": null,
+        "error": null,
+        "insufficient_data": true
+      },
+      "zigzag": {
+        "summary": {
+          "zones_total": 37,
+          "zones_with_metrics": 37,
+          "zones_with_swings": 23,
+          "pct_with_swings": 62.16216216216216,
+          "pairs_collected": 23
+        },
+        "p_value": 0.0015354156494140625,
+        "statistic": 232.0,
+        "error": null,
+        "insufficient_data": false
+      }
+    }
+  }
+}

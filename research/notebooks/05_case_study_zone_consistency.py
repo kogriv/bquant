@@ -67,9 +67,11 @@ with nb.error_handling("Exploratory Data Analysis"):
     # Запустим анализ один раз со стратегией по умолчанию, чтобы исследовать генерируемые метрики
     eda_result = (
         analyze_zones(df)
+        .with_cache(enable=False)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('zero_crossing', indicator_col='macd_hist')
         .with_strategies(swing='find_peaks')
+        .with_swing_preset('narrow_zone')
         .analyze(clustering=False)
         .build()
     )
@@ -89,145 +91,268 @@ with nb.error_handling("Exploratory Data Analysis"):
 
     nb.info("2.3. Сводная статистика по метрикам свингов")
     num_swings_list = []
+    rally_counts = []
+    drop_counts = []
     bull_zones_with_swings = 0
     bull_zones_total = 0
+    pct_with_swings = 0.0
     for zone in eda_result.zones:
         if zone.type == 'bull':
             bull_zones_total += 1
             if zone.features and 'metadata' in zone.features and 'swing_metrics' in zone.features['metadata']:
-                num_swings = zone.features['metadata']['swing_metrics'].get('num_swings', 0)
+                swing_metrics = zone.features['metadata']['swing_metrics']
+                num_swings = swing_metrics.get('num_swings', 0)
                 num_swings_list.append(num_swings)
+                rally_counts.append(swing_metrics.get('rally_count', 0))
+                drop_counts.append(swing_metrics.get('drop_count', 0))
                 if num_swings > 0:
                     bull_zones_with_swings += 1
-    
+
     if bull_zones_total > 0:
         zones_with_zero_swings = bull_zones_total - bull_zones_with_swings
         pct_zero_swings = (zones_with_zero_swings / bull_zones_total) * 100
+        pct_with_swings = 100 - pct_zero_swings
         nb.log(f"Всего найдено бычьих зон: {bull_zones_total}")
         nb.log(f"Из них зон с внутренними свингами: {bull_zones_with_swings}")
         nb.log(f"Зон без внутренних свингов (num_swings = 0): {zones_with_zero_swings} ({pct_zero_swings:.1f}%)")
-        
+
         if len(num_swings_list) > 0:
             nb.log(f"Статистика по количеству свингов: Min={min(num_swings_list)}, Max={max(num_swings_list)}, Avg={np.mean(num_swings_list):.2f}")
+            nb.log(
+                "Статистика по количеству ап- и даун-свингов в релевантных зонах: "
+                f"Avg rally_count={np.mean(rally_counts):.2f}, Avg drop_count={np.mean(drop_counts):.2f}"
+            )
     else:
         nb.warning("В данных не найдено бычьих зон.")
 
-    nb.info("2.4. Вывод и принятие решения")
-    nb.log("EDA показал, что значительная часть (~{pct_zero_swings:.1f}%) бычьих зон являются 'простыми' или 'монотонными', то есть не содержат внутренних колебаний, которые можно было бы классифицировать как свинги.")
-    nb.log("Поскольку наша гипотеза касается именно сравнения ВНУТРЕННИХ ап- и даун-свингов, эти 'простые' зоны нерелевантны для основного теста.")
-    nb.success("РЕШЕНИЕ: В основном исследовании мы будем анализировать только те зоны, в которых стратегия анализа нашла как минимум один ап-свинг и один даун-свинг.")
+    nb.info("2.4. Решение для основного анализа")
+    nb.log(
+        "В основной части исследования будут участвовать только зоны с рассчитанными свинг-метриками "
+        "и наличием хотя бы одного ап- и даун-свинга."
+    )
 
 nb.wait()
 
 
 # --- Main Analysis Loop ---
 swing_strategies = ['find_peaks', 'pivot_points', 'zigzag']
-final_results = {}
+analysis_configs = [
+    {
+        'name': 'narrow_fixed',
+        'label': "Узкий пресет (фиксированные пороги)",
+        'description': "Применяем пресет 'narrow_zone' с фиксированными параметрами свинг-стратегий.",
+        'apply': lambda builder: builder.with_swing_preset('narrow_zone'),
+    },
+    {
+        'name': 'narrow_auto',
+        'label': "Узкий пресет + авто-пороги",
+        'description': "Используем пресет 'narrow_zone' и дополнительно включаем auto-thresholds для адаптации к волатильности.",
+        'apply': lambda builder: builder.with_swing_preset('narrow_zone').with_auto_swing_thresholds(True),
+    },
+]
 
-for strategy in swing_strategies:
-    nb.step(f"Шаг 2: Анализ с использованием стратегии '{strategy}'")
+final_results = {config['name']: {} for config in analysis_configs}
+report_data = {
+    'eda': {
+        'bull_zones_total': bull_zones_total,
+        'bull_zones_with_swings': bull_zones_with_swings,
+        'pct_with_swings': pct_with_swings if bull_zones_total else 0.0,
+        'num_swings_stats': {
+            'min': min(num_swings_list) if num_swings_list else None,
+            'max': max(num_swings_list) if num_swings_list else None,
+            'avg': float(np.mean(num_swings_list)) if num_swings_list else None,
+        },
+        'avg_rally_count': float(np.mean(rally_counts)) if rally_counts else None,
+        'avg_drop_count': float(np.mean(drop_counts)) if drop_counts else None,
+    },
+    'analysis': {},
+}
 
-    with nb.error_handling(f"Analysis with {strategy}"):
-        nb.info(f"2.1. Поиск зон и извлечение свингов с помощью '{strategy}'")
+for config in analysis_configs:
+    nb.section_header(f"Конфигурация: {config['label']}")
+    nb.log(config['description'])
 
-        # Run the zone analysis pipeline with the current swing strategy
-        analysis_result = (
-            analyze_zones(df)
-            .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
-            .with_strategies(swing=strategy)
-            .analyze(clustering=False) # Clustering not needed for this analysis
-            .build()
-        )
+    for strategy in swing_strategies:
+        nb.step(f"Шаг 2: Анализ ({config['label']}) стратегией '{strategy}'")
 
-        nb.success(f"Анализ завершен. Найдено {len(analysis_result.zones)} зон.")
+        with nb.error_handling(f"Analysis with {strategy} [{config['name']}]"):
+            nb.info(f"2.1. Поиск зон и извлечение свингов с помощью '{strategy}'")
 
-        nb.info("2.2. Сбор данных для статистического теста")
-        
-        rallies = []
-        drawdowns = []
+            builder = (
+                analyze_zones(df)
+                .with_cache(enable=False)
+                .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+                .detect_zones('zero_crossing', indicator_col='macd_hist')
+                .with_strategies(swing=strategy)
+            )
 
-        # We are interested in bull zones only
-        bull_zones = [zone for zone in analysis_result.zones if zone.type == 'bull']
+            builder = config['apply'](builder)
 
-        for zone in bull_zones:
-            # NEW LOGIC: Use the nested swing_metrics and check for valid swings
-            if (zone.features 
-                and 'metadata' in zone.features 
-                and 'swing_metrics' in zone.features['metadata']):
-                
-                swing_metrics = zone.features['metadata']['swing_metrics']
-                
-                # We need zones that have at least one rally and one drop to make a meaningful comparison
-                if swing_metrics.get('rally_count', 0) > 0 and swing_metrics.get('drop_count', 0) > 0:
-                    # We compare the average percentage change of rallies vs. drops
-                    # We use abs() for drawdowns because the value is negative, but for comparison of magnitude we need a positive number
-                    rallies.append(swing_metrics['avg_rally_pct'])
-                    drawdowns.append(abs(swing_metrics['avg_drop_pct']))
-        
-        nb.log(f"Собрано {len(rallies)} парных наблюдений (ап-свинг/даун-свинг) из бычьих зон.")
+            analysis_result = (
+                builder
+                .analyze(clustering=False)  # Clustering not needed for this analysis
+                .build()
+            )
 
-        nb.info("2.3. Проведение статистического теста")
+            nb.success(f"Анализ завершен. Найдено {len(analysis_result.zones)} зон.")
 
-        if len(rallies) < 10:
-            nb.warning("Недостаточно данных для проведения надежного статистического теста (менее 10 наблюдений).")
-            final_results[strategy] = {'p_value': None, 'statistic': None, 'conclusion': 'Insufficient data'}
-            continue
+            nb.info("2.2. Сбор данных для статистического теста")
 
-        # We use the Wilcoxon signed-rank test because it's suitable for paired, non-normally distributed data.
-        # H1: rallies > drawdowns
-        try:
-            statistic, p_value = wilcoxon(rallies, drawdowns, alternative='greater')
-            
-            nb.log("Используется тест Уилкоксона для парных выборок.")
-            nb.log(f"  - Статистика теста: {statistic:.4f}")
-            nb.log(f"  - P-value: {p_value:.4f}")
+            rallies = []
+            drawdowns = []
 
-            nb.info("2.4. Интерпретация результата")
-            alpha = 0.05
-            if p_value < alpha:
-                conclusion = f"ПОДТВЕРЖДЕНА. P-value < {alpha}, отвергаем нулевую гипотезу. Ап-свинги значимо больше даун-свингов."
-                nb.success(conclusion)
+            bull_zones = [zone for zone in analysis_result.zones if zone.type == 'bull']
+            total_bull = len(bull_zones)
+            zones_with_metrics = 0
+            zones_with_swings = 0
+            num_swings_values = []
+            rally_counts = []
+            drop_counts = []
+
+            for zone in bull_zones:
+                if (
+                    zone.features
+                    and 'metadata' in zone.features
+                    and 'swing_metrics' in zone.features['metadata']
+                ):
+                    zones_with_metrics += 1
+                    swing_metrics = zone.features['metadata']['swing_metrics']
+
+                    num_swings = swing_metrics.get('num_swings', 0)
+                    num_swings_values.append(num_swings)
+                    rally_counts.append(swing_metrics.get('rally_count', 0))
+                    drop_counts.append(swing_metrics.get('drop_count', 0))
+
+                    if num_swings > 0:
+                        zones_with_swings += 1
+
+                    if (
+                        swing_metrics.get('rally_count', 0) > 0
+                        and swing_metrics.get('drop_count', 0) > 0
+                    ):
+                        rallies.append(swing_metrics['avg_rally_pct'])
+                        drawdowns.append(abs(swing_metrics['avg_drop_pct']))
+
+            if total_bull > 0:
+                pct_with_metrics = (zones_with_metrics / total_bull) * 100
+                pct_with_swings = (zones_with_swings / total_bull) * 100
             else:
-                conclusion = f"НЕ ПОДТВЕРЖДЕНА. P-value >= {alpha}, не можем отвергнуть нулевую гипотезу."
-                nb.warning(conclusion)
-            
-            final_results[strategy] = {'p_value': p_value, 'statistic': statistic, 'conclusion': conclusion}
+                pct_with_metrics = 0.0
+                pct_with_swings = 0.0
 
-        except Exception as e:
-            nb.error(f"Ошибка при проведении теста: {e}")
-            final_results[strategy] = {'p_value': None, 'statistic': None, 'conclusion': f'Test Error: {e}'}
+            nb.log(
+                f"Всего бычьих зон: {total_bull}. Из них с рассчитанными свинг-метриками: {zones_with_metrics} "
+                f"({pct_with_metrics:.1f}%). Доля зон с >=1 свингом: {pct_with_swings:.1f}%."
+            )
+
+            if num_swings_values:
+                nb.log(
+                    "Статистика по num_swings: "
+                    f"Min={min(num_swings_values)}, Max={max(num_swings_values)}, Avg={np.mean(num_swings_values):.2f}"
+                )
+                nb.log(
+                    "Средние показатели по релевантным зонам: "
+                    f"avg rally_count={np.mean(rally_counts):.2f}, avg drop_count={np.mean(drop_counts):.2f}"
+                )
+
+            nb.log(
+                f"Собрано {len(rallies)} парных наблюдений (ап-свинг/даун-свинг) из бычьих зон."
+            )
+
+            nb.info("2.3. Проведение статистического теста")
+
+            run_summary = {
+                'zones_total': total_bull,
+                'zones_with_metrics': zones_with_metrics,
+                'zones_with_swings': zones_with_swings,
+                'pct_with_swings': pct_with_swings,
+                'pairs_collected': len(rallies),
+            }
+
+            insufficient_data = len(rallies) < 10
+            if insufficient_data:
+                nb.warning("Недостаточно данных для проведения статистического теста (менее 10 наблюдений).")
+                final_results[config['name']][strategy] = {
+                    'p_value': None,
+                    'statistic': None,
+                    'summary': run_summary,
+                    'insufficient_data': True,
+                }
+            else:
+                try:
+                    statistic, p_value = wilcoxon(rallies, drawdowns, alternative='greater')
+
+                    nb.log("Используется тест Уилкоксона для парных выборок.")
+                    nb.log(f"  - Статистика теста: {statistic:.4f}")
+                    nb.log(f"  - P-value: {p_value:.4f}")
+
+                    final_results[config['name']][strategy] = {
+                        'p_value': p_value,
+                        'statistic': statistic,
+                        'summary': run_summary,
+                    }
+
+                except Exception as e:
+                    nb.error(f"Ошибка при проведении теста: {e}")
+                    final_results[config['name']][strategy] = {
+                        'p_value': None,
+                        'statistic': None,
+                        'error': str(e),
+                        'summary': run_summary,
+                    }
+
+            result_record = final_results[config['name']][strategy]
+            report_data['analysis'].setdefault(config['name'], {})[strategy] = {
+                'summary': run_summary,
+                'p_value': result_record.get('p_value'),
+                'statistic': result_record.get('statistic'),
+                'error': result_record.get('error'),
+                'insufficient_data': result_record.get('insufficient_data', False),
+            }
+
+            if insufficient_data:
+                nb.wait()
+                continue
 
     nb.wait()
 
 
-nb.step("Шаг 3: Итоговые выводы")
+nb.step("Шаг 3: Сводные данные")
 
-nb.section_header("Сравнение результатов по всем свинг-стратегиям")
+nb.section_header("Результаты по конфигурациям и стратегиям")
 
-for strategy, result in final_results.items():
-    nb.log(f"Стратегия: '{strategy}'")
-    if result['p_value'] is not None:
-        nb.log(f"  - P-value: {result['p_value']:.4f}")
-        nb.log(f"  - Вывод: {result['conclusion']}")
-    else:
-        nb.log(f"  - Вывод: {result['conclusion']}")
+for config in analysis_configs:
+    nb.log(f"Конфигурация: {config['label']}")
+    for strategy in swing_strategies:
+        result = final_results[config['name']].get(strategy)
+        if not result:
+            nb.log(f"  - Стратегия '{strategy}': данных нет")
+            continue
+
+        summary = result['summary']
+        nb.log(
+            f"  - Стратегия '{strategy}': zones_with_swings={summary['zones_with_swings']}/"
+            f"{summary['zones_total']} ({summary['pct_with_swings']:.1f}%), pairs={summary['pairs_collected']}"
+        )
+        if result['p_value'] is not None:
+            nb.log(f"    statistic={result['statistic']:.4f}, p_value={result['p_value']:.4f}")
+        if result.get('error'):
+            nb.log(f"    error={result['error']}")
     nb.log("")
 
-nb.section_header("Общий вывод исследования")
+nb.info("Сохранение агрегированных данных")
 
-# Determine overall consensus
-confirmed_strategies = [s for s, r in final_results.items() if r['p_value'] is not None and r['p_value'] < 0.05]
+from pathlib import Path
+import json
 
-if len(confirmed_strategies) == len(swing_strategies):
-    nb.success("Все три свинг-стратегии подтвердили основную гипотезу.")
-    nb.log("Вывод: Гипотеза о 'состоятельности' бычьих зон MACD на данном наборе данных является надежной. Внутренние восходящие движения действительно структурно преобладают над нисходящими.")
-elif len(confirmed_strategies) > 0:
-    nb.warning(f"Гипотеза была подтверждена только для следующих стратегий: {', '.join(confirmed_strategies)}.")
-    nb.log("Вывод: 'Состоятельность' бычьих зон подтверждается, но результат чувствителен к выбору алгоритма анализа свингов. Стратегии, подтвердившие гипотезу, могут быть более предпочтительными для разработки торговых систем.")
-else:
-    nb.error("Ни одна из свинг-стратегий не смогла статистически подтвердить гипотезу.")
-    nb.log("Вывод: На данном наборе данных мы не нашли статистически значимых доказательств 'состоятельности' бычьих зон MACD с точки зрения доминирования внутренних ап-свингов.")
+output_path = Path("outputs/reports")
+output_path.mkdir(parents=True, exist_ok=True)
+report_file = output_path / "macd_zone_consistency_results.json"
+
+with report_file.open("w", encoding="utf-8") as f:
+    json.dump(report_data, f, ensure_ascii=False, indent=2)
+
+nb.success(f"Агрегированные данные сохранены в {report_file}")
 
 nb.info("Исследование завершено.")
 nb.finish()
