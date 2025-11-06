@@ -352,3 +352,11 @@ class FindPeaksSwingStrategy:
             ]
         }
 
+    def config_hash(self) -> Dict[str, Any]:
+        """Return configuration parameters for cache key generation."""
+        return {
+            'prominence': self.prominence,
+            'distance': self.distance,
+            'min_amplitude_pct': self.min_amplitude_pct
+        }
+
