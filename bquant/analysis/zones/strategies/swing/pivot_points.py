@@ -385,3 +385,11 @@ class PivotPointsSwingStrategy:
             ]
         }
 
+    def config_hash(self) -> Dict[str, Any]:
+        """Return configuration parameters for cache key generation."""
+        return {
+            'left_bars': self.left_bars,
+            'right_bars': self.right_bars,
+            'min_amplitude_pct': self.min_amplitude_pct
+        }
+
