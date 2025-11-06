@@ -96,6 +96,14 @@ class _AdaptiveSwingStrategy:
             metadata["last_thresholds"] = dict(self._last_thresholds)
         return metadata
 
+    def config_hash(self) -> Dict[str, Any]:
+        """Configuration snapshot for adaptive threshold wrapper."""
+        return {
+            "base_strategy": self.base_strategy_name,
+            "base_params": dict(self._base_params),
+            "base_deviation": self._base_deviation,
+        }
+
 
 @dataclass
 class IndicatorConfig:
@@ -331,7 +339,8 @@ class ZoneAnalysisPipeline:
             'perform_clustering': self.config.perform_clustering,
             'n_clusters': self.config.n_clusters,
             'run_regression': self.config.run_regression,
-            'run_validation': self.config.run_validation
+            'run_validation': self.config.run_validation,
+            'swing': self._serialize_swing_configuration(),
         }
         
         # ✅ v2.1: Check for non-serializable objects (e.g., lambda functions in conditions)
@@ -348,7 +357,7 @@ class ZoneAnalysisPipeline:
             else:
                 raise  # Re-raise other TypeError
         
-        config_hash = hashlib.md5(config_str.encode()).hexdigest()
+        config_hash = hashlib.sha256(config_str.encode()).hexdigest()
         
         # Собираем ключ
         key = f"zone_analysis_{data_hash}_{config_hash}"
@@ -435,6 +444,38 @@ class ZoneAnalysisPipeline:
             features.swing_strategy = self.swing_strategies[
                 self._active_swing_strategy
             ]
+
+    def _serialize_swing_configuration(self) -> Dict[str, Any]:
+        """Return JSON-serializable snapshot of swing-related settings."""
+
+        strategies = {}
+        for name, strategy in sorted(self.swing_strategies.items()):
+            if hasattr(strategy, "config_hash"):
+                strategies[name] = strategy.config_hash()
+            else:
+                strategies[name] = {"repr": repr(strategy)}
+
+        preset_params = {
+            name: dict(params)
+            for name, params in sorted(self._swing_preset_params.items())
+        }
+
+        config: Dict[str, Any] = {
+            "preset": self._swing_preset,
+            "active_strategy": self._active_swing_strategy,
+            "strategy_auto_thresholds": self.strategy_auto_thresholds,
+            "auto_threshold_base_deviation": self._auto_threshold_base_deviation,
+            "strategies": strategies,
+            "preset_params": preset_params,
+        }
+
+        if self.strategy_auto_thresholds:
+            config["adaptive_wrappers"] = {
+                name: wrapper.config_hash()
+                for name, wrapper in sorted(self._adaptive_swing_wrappers.items())
+            }
+
+        return config
 
     def _apply_swing_preset(self, name: str, *, update_active: bool) -> None:
         if name not in SWING_PRESETS:

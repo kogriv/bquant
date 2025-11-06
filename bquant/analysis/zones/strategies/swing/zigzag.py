@@ -335,3 +335,10 @@ class ZigZagSwingStrategy:
             ]
         }
 
+    def config_hash(self) -> Dict[str, Any]:
+        """Return configuration parameters for cache key generation."""
+        return {
+            'legs': self.legs,
+            'deviation': self.deviation
+        }
+
