@@ -12,7 +12,7 @@ Zone Analysis Pipeline
 """
 
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, Any, Literal, List
+from typing import Any, Dict, List, Literal, Optional
 import pandas as pd
 import hashlib
 import json
@@ -21,12 +21,26 @@ from bquant.indicators import IndicatorFactory
 from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
 from bquant.core.cache import get_cache_manager
+from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
 from .models import ZoneInfo, ZoneAnalysisResult
+from .strategies.registry import StrategyRegistry
+from .strategies.swing import (
+    FindPeaksSwingStrategy,
+    PivotPointsSwingStrategy,
+    ZigZagSwingStrategy,
+)
 
 logger = get_logger(__name__)
+
+
+_SWING_CLASS_TO_NAME = {
+    ZigZagSwingStrategy: "zigzag",
+    FindPeaksSwingStrategy: "find_peaks",
+    PivotPointsSwingStrategy: "pivot_points",
+}
 
 
 @dataclass
@@ -117,11 +131,15 @@ class ZoneAnalysisPipeline:
         self.cache_ttl = cache_ttl
         self.cache_manager = get_cache_manager() if enable_cache else None
         self.logger = get_logger(__name__)
-    
+        self.swing_strategies: Dict[str, Any] = {}
+        self._active_swing_strategy: Optional[str] = self._detect_current_swing_strategy()
+        self._swing_preset: str = DEFAULT_SWING_PRESET
+        self._apply_swing_preset(DEFAULT_SWING_PRESET, update_active=False)
+
     def run(self, df: pd.DataFrame) -> ZoneAnalysisResult:
         """
         Выполнить полный pipeline анализа с кэшированием.
-        
+
         Если enable_cache=True, результат будет сохранен в кэш
         (память + диск) для повторного использования.
         
@@ -231,7 +249,7 @@ class ZoneAnalysisPipeline:
             run_regression=self.config.run_regression,
             run_validation=self.config.run_validation
         )
-    
+
     def _generate_cache_key(self, df: pd.DataFrame) -> str:
         """
         Генерация ключа кэша на основе конфигурации и данных.
@@ -273,13 +291,20 @@ class ZoneAnalysisPipeline:
         
         # Собираем ключ
         key = f"zone_analysis_{data_hash}_{config_hash}"
-        
+
         return key
-    
+
+    def with_swing_preset(self, name: str) -> "ZoneAnalysisPipeline":
+        """Reconfigure swing strategies using a named preset."""
+
+        self._apply_swing_preset(name, update_active=True)
+        self._swing_preset = name
+        return self
+
     def invalidate_cache(self, df: pd.DataFrame) -> None:
         """
         Инвалидировать кэш для конкретных данных.
-        
+
         Args:
             df: DataFrame для которого нужно инвалидировать кэш
         """
@@ -287,6 +312,49 @@ class ZoneAnalysisPipeline:
             cache_key = self._generate_cache_key(df)
             self.cache_manager.invalidate(cache_key)
             self.logger.info(f"Cache invalidated for key: {cache_key[:8]}...")
+
+    def _strategy_name_from_instance(self, strategy: Any) -> Optional[str]:
+        for cls, name in _SWING_CLASS_TO_NAME.items():
+            if isinstance(strategy, cls):
+                return name
+        return None
+
+    def _detect_current_swing_strategy(self) -> Optional[str]:
+        features = getattr(self.analyzer, "features", None)
+        if features is None:
+            return None
+        strategy = getattr(features, "swing_strategy", None)
+        return self._strategy_name_from_instance(strategy)
+
+    def _apply_swing_preset(self, name: str, *, update_active: bool) -> None:
+        if name not in SWING_PRESETS:
+            raise KeyError(f"Unknown swing preset: {name}")
+
+        preset = SWING_PRESETS[name]
+        preset_values = {
+            "zigzag": dict(preset.zigzag),
+            "find_peaks": dict(preset.find_peaks),
+            "pivot_points": dict(preset.pivot_points),
+        }
+
+        strategies: Dict[str, Any] = {}
+        for strategy_name, params in preset_values.items():
+            strategies[strategy_name] = StrategyRegistry.get_swing_strategy(
+                strategy_name, **params
+            )
+
+        self.swing_strategies = strategies
+
+        if update_active or self._active_swing_strategy is None:
+            self._active_swing_strategy = self._detect_current_swing_strategy()
+
+        features = getattr(self.analyzer, "features", None)
+        if (
+            features is not None
+            and self._active_swing_strategy
+            and self._active_swing_strategy in self.swing_strategies
+        ):
+            features.swing_strategy = self.swing_strategies[self._active_swing_strategy]
 
 
 class ZoneAnalysisBuilder:
@@ -328,6 +396,7 @@ class ZoneAnalysisBuilder:
         self._divergence_strategy: Optional[str] = None
         self._volatility_strategy: Optional[str] = None
         self._volume_strategy: Optional[str] = None
+        self._swing_preset: Optional[str] = None
         self.logger = get_logger(__name__)
     
     def with_indicator(self, 
@@ -492,8 +561,14 @@ class ZoneAnalysisBuilder:
         self._volatility_strategy = volatility
         self._volume_strategy = volume
         return self
-    
-    def with_cache(self, 
+
+    def with_swing_preset(self, name: str) -> 'ZoneAnalysisBuilder':
+        """Specify swing strategy preset to apply before execution."""
+
+        self._swing_preset = name
+        return self
+
+    def with_cache(self,
                    enable: bool = True,
                    ttl: int = 3600) -> 'ZoneAnalysisBuilder':
         """
@@ -580,6 +655,8 @@ class ZoneAnalysisBuilder:
             enable_cache=self._enable_cache,
             cache_ttl=self._cache_ttl
         )
+        if self._swing_preset is not None:
+            pipeline.with_swing_preset(self._swing_preset)
         return pipeline.run(self.data)
 
 
