@@ -2,624 +2,241 @@
 
 ## 📚 Обзор
 
-Модуль `bquant.visualization.zones` предоставляет комплексные инструменты для визуализации торговых зон, обнаруженных с помощью [Universal Zone Analysis Pipeline](../analysis/zones.md). Поддерживает два backend'а визуализации — Plotly (интерактивный) и Matplotlib (статический) — с автоматическим fallback при недоступности библиотек.
+Модуль `bquant.visualization.zones` предоставляет комплексные инструменты для визуализации торговых зон, обнаруженных с помощью [Universal Zone Analysis Pipeline](../analysis/zones.md). Поддерживает два backend'а визуализации — **Plotly** (интерактивный) и **Matplotlib** (статический) — с автоматическим fallback при недоступности библиотек.
 
 **Ключевые возможности:**
-- 🎯 **Встроенная визуализация** - прямой вызов из `ZoneAnalysisResult.visualize()`
-- 📊 **4 режима визуализации** - overview, detail, comparison, statistics
-- 🔄 **Автоопределение индикаторов** - из метаданных зон
-- 🎨 **Plotly/Matplotlib backends** - с автоматическим переключением
-- 📈 **Контекстные бары** - настраиваемое окно вокруг зон
-- 📅 **Фильтрация по датам** - выбор зон для сравнения
-- 💾 **Экспорт HTML/PNG** - сохранение графиков
+- 🎯 **Два основных подхода**: Встроенный вызов `result.visualize()` и прямое использование класса `ZoneVisualizer`.
+- 📊 **4 режима визуализации**: `overview`, `detail`, `comparison`, `statistics`.
+- 🕒 **Продвинутое управление осью времени**: Режимы `dense` (без разрывов) и `timeseries` (реальное время).
+- ⚙️ **Гибкая настройка индикаторов**: Автоматическое определение, явное указание и настройка типов графиков (`line`/`bar`).
+- 💾 **Удобный экспорт**: Встроенная функция `save_figure` с умными настройками по умолчанию для сохранения в PNG/HTML.
+- 🎨 **Полная кастомизация**: Управление контекстом, количеством тиков, отображением гэпов и панелями.
 
 ---
 
-## 🏗️ Класс ZoneVisualizer
+## 🚀 Рекомендуемый рабочий процесс
 
-### Инициализация
+Для большинства задач рекомендуется следующий двухэтапный процесс:
 
-```python
-from bquant.visualization import ZoneVisualizer
+1.  **Анализ**: Используйте [Universal Zone Analysis Pipeline](../analysis/zones.md) для обнаружения и анализа зон.
+    ```python
+    from bquant.analysis.zones import analyze_zones
+    from bquant.data.samples import get_sample_data
 
-visualizer = ZoneVisualizer(backend='plotly', config=None)
-```
+    # Запускаем пайплайн
+    result = (
+        analyze_zones(get_sample_data('tv_xauusd_1h'))
+        .with_indicator('custom', 'macd')
+        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .analyze()
+        .build()
+    )
+    ```
 
-**Параметры:**
-- `backend` (str, optional): Backend визуализации — `'plotly'` (default) или `'matplotlib'`
-  - При недоступности выбранного backend автоматически переключается на доступный
-  - Если оба недоступны, выбрасывает `AnalysisError`
-- `config` (dict, optional): Кастомная конфигурация визуализации
-  - `width` (int): Ширина графика в пикселях (default: 1400)
-  - `height` (int): Высота графика в пикселях (default: 800)
-  - `opacity` (float): Прозрачность зон (0.0-1.0, default: 0.3)
-  - `show_zone_labels` (bool): Показывать метки зон (default: True)
-  - `show_zone_stats` (bool): Показывать статистику зон (default: True)
-  - `volume_panel_height` (float): Высота панели volume (0.0-1.0, default: 0.2)
-  - `indicator_palette` (list): Цветовая палитра для индикаторов
+2.  **Визуализация**: Используйте метод `result.visualize()` для создания графиков. Это самый простой и мощный способ.
+    ```python
+    # Общий обзор всех зон
+    fig_overview = result.visualize('overview', title="MACD Zones Overview")
 
-**Цветовая схема зон:**
-- **Bull zones**: `rgba(0, 255, 136, 0.3)` / `#00ff88`
-- **Bear zones**: `rgba(255, 68, 68, 0.3)` / `#ff4444`
-- **Support zones**: `rgba(0, 136, 255, 0.3)` / `#0088ff`
-- **Resistance zones**: `rgba(255, 136, 0, 0.3)` / `#ff8800`
+    # Детальный обзор одной зоны
+    fig_detail = result.visualize('detail', zone_id=3, context_bars=15)
 
----
+    # Сравнение нескольких зон
+    fig_comparison = result.visualize('comparison', max_zones=4)
 
-## 📊 Методы визуализации
-
-### 1. plot_zones_on_price_chart()
-
-Отображает все зоны поверх графика цены — базовый режим "overview".
-
-```python
-fig = visualizer.plot_zones_on_price_chart(
-    price_data,
-    zones_data,
-    title="Price Chart with Zones",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `price_data` (pd.DataFrame): OHLCV данные (columns: open, high, low, close, volume)
-- `zones_data` (List[Dict] | pd.DataFrame | List[ZoneInfo]): Список зон
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
-**Пример:**
-```python
-from bquant.visualization import ZoneVisualizer
-from bquant.data.samples import get_sample_data
-from bquant.analysis.zones import analyze_zones
-
-data = get_sample_data('tv_xauusd_1h')
-result = analyze_zones(data).with_indicator('macd').detect_zones('zero_crossing').build()
-
-visualizer = ZoneVisualizer(backend='plotly')
-fig = visualizer.plot_zones_on_price_chart(data, result.zones, title='MACD Zones Overview')
-fig.show()
-```
+    # Показать график
+    fig_overview.show()
+    ```
 
 ---
 
-### 2. plot_zone_detail()
+## 🎯 Встроенная визуализация из `ZoneAnalysisResult`
 
-Детальная визуализация **одной зоны** с контекстом (цена + индикаторы + volume).
+Метод `result.visualize(mode, **kwargs)` — это основной и наиболее удобный интерфейс для визуализации.
 
-```python
-fig = visualizer.plot_zone_detail(
-    price_data,
-    zone,
-    context_bars=20,
-    max_bars=None,
-    show_indicators=True,
-    indicator_columns=None,
-    show_volume=True,
-    title="Zone Detail",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `price_data` (pd.DataFrame): OHLCV данные
-- `zone` (Dict | ZoneInfo): Зона для детального просмотра
-- `context_bars` (int, default=20): Количество баров до/после зоны для контекста
-- `max_bars` (int, optional): Максимальное количество баров (truncate если больше)
-- `show_indicators` (bool, default=True): Показывать индикаторы на графике
-- `indicator_columns` (List[str], optional): Список индикаторных колонок для отображения
-  - Если `None`, автоматически определяются из `zone.indicator_context` и `zone.features`
-- `show_volume` (bool, default=True): Показывать панель volume (если доступен)
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Автоопределение индикаторов:**
-Метод ищет индикаторы в следующих местах (в порядке приоритета):
-1. `zone.indicator_context['detection_indicator']`
-2. `zone.indicator_context['signal_line']`
-3. `zone.indicator_context['indicator_columns']`
-4. `zone.features['primary_indicator']`
-5. `zone.features['secondary_indicator']`
-6. `zone.features['indicators']`
-7. Автоматически первые 2 non-price числовых колонки из `price_data`
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
-**Пример:**
-```python
-# Отобразить зону с ID=5 с широким контекстом
-zone = next((z for z in result.zones if z.zone_id == 5), None)
-fig = visualizer.plot_zone_detail(
-    data, zone,
-    context_bars=30,
-    show_indicators=True,
-    title=f'Detail: Zone #{zone.zone_id}'
-)
-fig.show()
-
-# Явно указать индикаторы для отображения
-fig = visualizer.plot_zone_detail(
-    data, zone,
-    context_bars=15,
-    indicator_columns=['macd_hist', 'macd_signal'],
-    title='Zone Detail with Custom Indicators'
-)
-fig.show()
-```
-
----
-
-### 3. plot_zones_comparison()
-
-Сравнение **нескольких зон** на едином графике цены.
-
-```python
-fig = visualizer.plot_zones_comparison(
-    price_data,
-    zones_data,
-    max_zones=5,
-    date_range=None,
-    title="Zones Comparison",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `price_data` (pd.DataFrame): OHLCV данные
-- `zones_data` (List[Dict] | pd.DataFrame | List[ZoneInfo]): Список зон для сравнения
-- `max_zones` (int, default=5): Максимальное количество зон для отображения
-  - При превышении выводится WARNING и берутся первые N зон
-- `date_range` (Tuple[datetime, datetime], optional): Диапазон дат для фильтрации зон
-  - Формат: `(start_date, end_date)`
-  - Зоны вне диапазона отфильтровываются
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
-**Пример:**
-```python
-# Сравнить первые 4 зоны
-fig = visualizer.plot_zones_comparison(
-    data, result.zones,
-    max_zones=4,
-    title='Top 4 Zones Comparison'
-)
-fig.show()
-
-# Сравнить зоны в диапазоне дат
-from datetime import datetime
-fig = visualizer.plot_zones_comparison(
-    data, result.zones,
-    date_range=(datetime(2024, 1, 1), datetime(2024, 3, 1)),
-    max_zones=5,
-    title='Q1 2024 Zones'
-)
-fig.show()
-```
-
----
-
-### 4. plot_macd_zones()
-
-Специализированная визуализация MACD с зонами (2 панели: MACD линии + гистограмма).
-
-```python
-fig = visualizer.plot_macd_zones(
-    macd_data,
-    zones_data,
-    title="MACD with Zones",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `macd_data` (pd.DataFrame): DataFrame с колонками `macd`, `macd_signal`, `macd_hist`
-- `zones_data` (List[Dict] | pd.DataFrame): Зоны с `start_time`/`end_time`
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
----
-
-### 5. plot_zones_analysis()
-
-Статистический анализ зон: распределение типов, длительности, доходности, временная линия.
-
-```python
-fig = visualizer.plot_zones_analysis(
-    zones_data,
-    analysis_data=None,
-    title="Zones Analysis",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `zones_data` (List[Dict] | pd.DataFrame): Зоны для анализа
-- `analysis_data` (Dict[str, Any], optional): Дополнительные данные анализа
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Подграфики:**
-1. **Pie chart** - распределение по типам зон (bull/bear)
-2. **Histogram** - распределение длительности
-3. **Histogram** - распределение доходности (`price_return`)
-4. **Scatter plot** - временная линия зон (start_time vs duration)
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
----
-
-### 6. plot_zones_distribution()
-
-Распределение характеристик зон (общее + по типам).
-
-```python
-fig = visualizer.plot_zones_distribution(
-    zones_data,
-    feature='duration',
-    title="Zones Distribution",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `zones_data` (List[Dict] | pd.DataFrame): Зоны для анализа
-- `feature` (str, default='duration'): Характеристика для распределения
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
----
-
-### 7. plot_zones_correlation()
-
-Матрица корреляций характеристик зон (heatmap).
-
-```python
-fig = visualizer.plot_zones_correlation(
-    zones_data,
-    title="Zones Characteristics Correlation",
-    **kwargs
-)
-```
-
-**Параметры:**
-- `zones_data` (List[Dict] | pd.DataFrame): Зоны для анализа корреляций
-- `title` (str): Заголовок графика
-- `**kwargs`: Дополнительные параметры backend'а
-
-**Возвращает:** `plotly.graph_objects.Figure` или `matplotlib.pyplot.Figure`
-
----
-
-## 🎯 Встроенная визуализация из ZoneAnalysisResult
-
-Самый удобный способ визуализации — прямой вызов из результата анализа:
-
-```python
-from bquant.analysis.zones import analyze_zones
-
-result = analyze_zones(data).with_indicator('macd').detect_zones('zero_crossing').build()
-
-# 4 режима визуализации через единый интерфейс
-fig = result.visualize('overview', title='Zones Overview')
-fig = result.visualize('detail', zone_id=5, context_bars=25)
-fig = result.visualize('comparison', max_zones=4, date_range=(start, end))
-fig = result.visualize('statistics', title='Zone Statistics')
-```
-
-### Режимы визуализации
-
-#### 1. overview
+### Режим `overview`
 
 Общий обзор всех зон на графике цены.
 
 ```python
 fig = result.visualize(
     'overview',
-    backend='plotly',  # или 'matplotlib'
-    title='Zones Overview',
-    **kwargs
+    title="Zones Overview with Timeseries Axis",
+    show_indicators=True,
+    time_axis_mode='timeseries'  # Отображение с учетом реального времени (включая выходные)
 )
 ```
 
-**Внутри вызывает:** `ZoneVisualizer.plot_zones_on_price_chart()`
+**Ключевые параметры `overview`:**
+- `show_indicators` (bool, default=`False`): Отобразить панель с индикаторами.
+- `indicator_chart_types` (dict, optional): Явно задать тип графика для индикатора. Пример: `{'macd_hist': 'bar'}`.
+- `time_axis_mode` (str, default=`'dense'`): Режим оси времени.
+  - `'dense'`: Убирает разрывы (выходные), отображая только торговые дни. Быстро и компактно.
+  - `'timeseries'`: Сохраняет временную шкалу, показывая разрывы. Идеально для анализа пропорций.
+- `xaxis_num_ticks` (int, default=16): Желаемое количество меток на оси X (только для `dense` режима).
+- `show_gap_lines` (bool, default=`False`): Показывать вертикальные линии в местах временных разрывов.
 
 ---
 
-#### 2. detail
+### Режим `detail`
 
-Детальный просмотр одной зоны с контекстом.
+Детальный просмотр одной зоны с окружающим контекстом.
 
 ```python
+# Найти зону для анализа
+median_zone = min(result.zones, key=lambda z: abs(z.duration - 30))
+
 fig = result.visualize(
     'detail',
-    zone_id=5,          # ID зоны (обязательно)
-    context_bars=20,    # контекст до/после зоны
+    zone_id=median_zone.zone_id,
+    context_bars=20,
     show_indicators=True,
-    backend='plotly',
-    title='Zone Detail',
-    **kwargs
+    show_volume=True,
+    time_axis_mode='dense',
+    xaxis_num_ticks=20,
+    title=f"Detail for Zone #{median_zone.zone_id}"
 )
 ```
 
-**Параметры:**
-- `zone_id` (int, **required**): ID зоны для детального просмотра
-- `context_bars` (int, default=20): Контекстные бары
-- `show_indicators` (bool, default=True): Показывать индикаторы
-- `show_volume` (bool, default=True): Показывать volume
-- `**kwargs`: Прокидываются в `plot_zone_detail()`
-
-**Внутри вызывает:** `ZoneVisualizer.plot_zone_detail()`
-
-**Пример:**
-```python
-# Найти зону с максимальной длительностью
-longest_zone = max(result.zones, key=lambda z: z.duration)
-fig = result.visualize('detail', zone_id=longest_zone.zone_id, context_bars=30)
-fig.show()
-```
+**Ключевые параметры `detail`:**
+- `zone_id` (int, **required**): ID зоны для детального просмотра.
+- `context_bars` (int, default=20): Количество баров до и после зоны для контекста.
+- `show_indicators` (bool, default=`True`): Показать панель индикаторов.
+- `show_volume` (bool, default=`True`): Показать панель объема.
+- `time_axis_mode` (str, default=`'dense'`): Режим оси времени (`dense` или `timeseries`).
+- `xaxis_num_ticks` (int, default=16): Количество меток на оси X (для `dense` режима).
 
 ---
 
-#### 3. comparison
+### Режим `comparison`
 
-Сравнение нескольких зон на едином графике.
+Сравнение нескольких зон, каждая в своем "слоте" для удобного сопоставления.
 
 ```python
 fig = result.visualize(
     'comparison',
-    max_zones=5,
-    date_range=(datetime(2024, 1, 1), datetime(2024, 3, 1)),
-    backend='plotly',
-    title='Zones Comparison',
-    **kwargs
+    max_zones=4,
+    comparison_context=10, # Меньше контекста для сравнения
+    show_indicators=True,
+    time_axis_mode='dense',
+    title="Comparison of 4 Zones"
 )
 ```
 
-**Параметры:**
-- `max_zones` (int, default=5): Максимальное количество зон
-- `date_range` (Tuple[datetime, datetime], optional): Диапазон дат для фильтрации
-- `**kwargs`: Прокидываются в `plot_zones_comparison()`
-
-**Внутри вызывает:** `ZoneVisualizer.plot_zones_comparison()`
+**Ключевые параметры `comparison`:**
+- `max_zones` (int, default=5): Максимальное количество зон для отображения.
+- `date_range` (Tuple[datetime, datetime], optional): Диапазон дат для фильтрации зон.
+- `comparison_context` (int, default=30): Количество баров до и после *каждой* зоны в режиме сравнения.
+- `time_axis_mode` (str, default=`'dense'`): Режим оси времени.
 
 ---
 
-#### 4. statistics
+### Режим `statistics`
 
-Статистический анализ всех зон.
+Статистический анализ всех зон (распределения, типы и т.д.).
 
 ```python
-fig = result.visualize(
-    'statistics',
-    backend='plotly',
-    title='Zone Statistics',
-    **kwargs
-)
+fig = result.visualize('statistics', title='Zone Statistics')
 ```
-
 **Внутри вызывает:** `ZoneVisualizer.plot_zones_analysis()`
 
 ---
 
-## 🔧 Convenience функции
+## 💾 Экспорт графиков: `save_figure`
 
-Модуль экспортирует удобные функции для быстрого доступа без создания `ZoneVisualizer`:
-
-### plot_zone_detail()
-
-```python
-from bquant.visualization import plot_zone_detail
-
-fig = plot_zone_detail(
-    price_data, zone,
-    context_bars=20,
-    backend='plotly',
-    title='Zone Detail',
-    **kwargs
-)
-```
-
-Эквивалентно:
-```python
-visualizer = ZoneVisualizer(backend='plotly')
-fig = visualizer.plot_zone_detail(price_data, zone, context_bars=20, title='Zone Detail', **kwargs)
-```
-
----
-
-### plot_zones_comparison()
-
-```python
-from bquant.visualization import plot_zones_comparison
-
-fig = plot_zones_comparison(
-    price_data, zones,
-    max_zones=5,
-    date_range=None,
-    backend='plotly',
-    title='Zones Comparison',
-    **kwargs
-)
-```
-
-Эквивалентно:
-```python
-visualizer = ZoneVisualizer(backend='plotly')
-fig = visualizer.plot_zones_comparison(price_data, zones, max_zones=5, title='Zones Comparison', **kwargs)
-```
-
----
-
-### plot_zones_on_chart()
-
-```python
-from bquant.visualization import plot_zones_on_chart
-
-fig = plot_zones_on_chart(price_data, zones, backend='plotly', title='Price with Zones')
-```
-
-Быстрая визуализация зон на графике цены.
-
----
-
-## 🎨 Backend Configuration
-
-### Выбор backend'а
-
-**3 способа указать backend:**
-
-#### 1. При создании ZoneVisualizer
-```python
-visualizer = ZoneVisualizer(backend='matplotlib')
-fig = visualizer.plot_zone_detail(data, zone)
-```
-
-#### 2. Через result.visualize()
-```python
-fig = result.visualize('overview', backend='matplotlib')
-```
-
-#### 3. Через convenience функции
-```python
-fig = plot_zone_detail(data, zone, backend='matplotlib')
-```
-
-### Автоматический fallback
-
-Если выбранный backend недоступен, происходит автоматическое переключение:
-
-```python
-# Plotly недоступен → переключается на Matplotlib
-visualizer = ZoneVisualizer(backend='plotly')
-# WARNING: Plotly not available, switching to matplotlib
-
-# Оба недоступны → AnalysisError
-# AnalysisError: No visualization libraries available
-```
-
-### Определение доступности
-
-```python
-from bquant.visualization import get_available_libraries
-
-libs = get_available_libraries()
-print(libs)
-# {'plotly': True, 'matplotlib': True, 'data': True}
-```
-
----
-
-## 📏 Размер фигуры в Jupyter (Plotly)
-
-В Jupyter/Notebook Plotly по умолчанию рендерит фигуры «резиново» (full width). Чтобы задать фиксированный размер:
-
-```python
-fig = result.visualize('detail', zone_id=5, context_bars=5, backend='plotly')
-fig = fig.update_layout(width=800, height=400, autosize=False)
-fig.show(config={'responsive': False})
-```
-
-Альтернатива — вывод через фиксированный HTML‑контейнер:
-
-```python
-from IPython.display import HTML
-HTML(f"<div style='width:800px'>" + fig.to_html(full_html=False, include_plotlyjs='cdn', config={'responsive': False}) + "</div>")
-```
-
-Для Matplotlib используйте:
-
-```python
-fig = result.visualize('detail', zone_id=5, backend='matplotlib')
-fig.set_size_inches(12, 6)
-```
-
----
-
-## 💾 Экспорт графиков
-
-### HTML (Plotly)
-
-Plotly по умолчанию экспортирует в HTML:
-
-```python
-fig = result.visualize('overview', backend='plotly')
-fig.write_html('zone_overview.html')
-```
-
-### PNG (Plotly с kaleido)
-
-Для экспорта Plotly в PNG требуется библиотека `kaleido`:
-
-```bash
-pip install kaleido
-```
-
-```python
-fig = result.visualize('overview', backend='plotly')
-try:
-    fig.write_image('zone_overview.png', width=1400, height=800)
-except Exception as e:
-    print(f"PNG export failed (kaleido not available?): {e}")
-    fig.write_html('zone_overview.html')  # fallback to HTML
-```
-
-### PNG (Matplotlib)
-
-Matplotlib экспортирует в PNG нативно:
-
-```python
-fig = result.visualize('overview', backend='matplotlib')
-fig.savefig('zone_overview.png', dpi=150, bbox_inches='tight')
-```
-
-### Универсальная функция сохранения (пакет)
-
-Рекомендуется использовать встроенную утилиту:
+Вместо `fig.write_html()` или `fig.write_image()`, рекомендуется использовать универсальную функцию `save_figure` из `bquant.visualization.export`.
 
 ```python
 from bquant.visualization.export import save_figure
 
-fig = result.visualize('overview', backend='plotly')
-# Достаточно имени — всё остальное по умолчанию:
-# - Папка: ./outputs/vis/<имя_скрипта>/
-# - Формат: PNG для Plotly (если нет kaleido → HTML fallback), PNG для Matplotlib
-# - Размеры: 1400x900 (Plotly), dpi=150 (Matplotlib)
-save_figure(fig, '01_overview')
+# Создаем график
+fig = result.visualize('overview', time_axis_mode='timeseries')
 
-# При необходимости можно переопределить
-save_figure(
+# Просто сохраняем
+# Автоматически создаст папку и выберет формат
+saved_path = save_figure(fig, "01_overview_timeseries")
+print(f"Chart saved to: {saved_path}")
+
+# Сохранение с кастомными параметрами
+saved_path_png = save_figure(
     fig,
-    '01_overview',
-    output_dir='exports/visualization/',
-    prefer='html',  # или 'png'
-    width=1200,
-    height=700,
-    dpi=200,
+    "01_overview_custom",
+    output_dir="C:/Users/Ivan/Documents/pro/bquant/output/my_charts",
+    prefer='png',  # Предпочесть PNG, если возможно
+    width=1600,
+    height=900
 )
 ```
+
+**Преимущества `save_figure`:**
+- **Умные пути**: Автоматически сохраняет в `output/vis/<имя_скрипта>/<имя_файла>`.
+- **Надежный экспорт**: Пытается сохранить в `PNG` (если установлен `kaleido`), при ошибке автоматически переключается на `HTML`.
+- **Простота**: Требует только фигуру и имя файла.
+
+---
+
+## 🏗️ Прямое использование `ZoneVisualizer`
+
+Для полного контроля над процессом можно использовать класс `ZoneVisualizer` напрямую.
+
+```python
+from bquant.visualization import ZoneVisualizer
+
+# 1. Инициализация
+visualizer = ZoneVisualizer(backend='plotly')
+
+# 2. Вызов методов с полными параметрами
+fig_detail = visualizer.plot_zone_detail(
+    price_data=result.data,
+    zone=median_zone,
+    context_bars=15,
+    show_indicators=True,
+    indicator_chart_types={'macd_hist': 'bar'}, # Явно задаем гистограмму
+    time_axis_mode='dense',
+    title="Detail from ZoneVisualizer"
+)
+fig_detail.show()
+```
+
+### Основные методы `ZoneVisualizer`
+
+- `plot_zones_on_price_chart()`: Основа для режима `overview`.
+- `plot_zone_detail()`: Основа для режима `detail`.
+- `plot_zones_comparison()`: Основа для режима `comparison`.
+
+Все эти методы принимают те же параметры, что и `result.visualize()`, но требуют явной передачи `price_data` и данных о зонах.
+
+---
+
+## 🔧 Convenience-функции
+
+Для быстрых построений без создания `ZoneVisualizer` или `ZoneAnalysisResult`.
+
+```python
+from bquant.visualization import plot_zone_detail, plot_zones_comparison
+
+# Детальный график
+fig_detail = plot_zone_detail(result.data, median_zone, context_bars=10)
+
+# График сравнения
+fig_cmp = plot_zones_comparison(result.data, result.zones[:3], max_zones=3)
+```
+Эти функции являются обертками над методами `ZoneVisualizer`.
 
 ---
 
 ## 📖 Полный пример использования
 
+Этот пример демонстрирует современный подход к визуализации, включая анализ, создание разных типов графиков и их сохранение.
+
 ```python
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_zones
-from bquant.visualization import ZoneVisualizer, plot_zone_detail, plot_zones_comparison
+from bquant.visualization.export import save_figure
 from datetime import datetime
 
-# 1. Загрузка данных
+# 1. Загрузка данных и анализ
 data = get_sample_data('tv_xauusd_1h')
-
-# 2. Universal Pipeline анализ
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
@@ -627,114 +244,70 @@ result = (
     .analyze(clustering=True)
     .build()
 )
+print(f"Обнаружено {len(result.zones)} зон.")
 
-print(f"Detected {len(result.zones)} zones")
-
-# 3. Встроенная визуализация (самый простой способ)
-fig_overview = result.visualize('overview', title='MACD Zones Overview')
-fig_overview.show()
-
-# Найти зону с медианной длительностью
-median_duration = result.statistics['duration_distribution']['overall']['median']
-median_zone = min(result.zones, key=lambda z: abs(z.duration - median_duration))
-
-fig_detail = result.visualize('detail', zone_id=median_zone.zone_id, context_bars=25)
-fig_detail.show()
-
-fig_comparison = result.visualize('comparison', max_zones=4, title='Top 4 Zones')
-fig_comparison.show()
-
-fig_stats = result.visualize('statistics', title='Zone Statistics')
-fig_stats.show()
-
-# 4. Прямое использование ZoneVisualizer
-visualizer = ZoneVisualizer(backend='plotly')
-
-# Детальная визуализация с кастомными параметрами
-fig = visualizer.plot_zone_detail(
-    data, median_zone,
-    context_bars=30,
+# 2. Создание и сохранение графика "overview" в режиме timeseries
+print("Создание overview-графика в режиме timeseries...")
+fig_overview = result.visualize(
+    'overview',
+    title="Обзор зон MACD (режим Timeseries)",
     show_indicators=True,
-    indicator_columns=['macd_hist', 'macd_signal'],
-    show_volume=True,
-    title=f'Zone #{median_zone.zone_id} Detail (Custom)'
+    time_axis_mode='timeseries' # Сохраняем пропорции времени
 )
-fig.show()
+save_figure(fig_overview, "01_overview_timeseries_mode")
 
-# Сравнение зон за Q1
-fig = visualizer.plot_zones_comparison(
-    data, result.zones,
-    date_range=(datetime(2024, 1, 1), datetime(2024, 4, 1)),
-    max_zones=5,
-    title='Q1 2024 Zones Comparison'
+# 3. Детальный анализ одной зоны
+# Находим зону с длительностью, близкой к медианной
+median_duration = result.statistics['duration_distribution']['overall']['median']
+median_zone = min(result.zones, key=lambda z: abs(z.features['duration'] - median_duration))
+
+print(f"Создание детального графика для зоны #{median_zone.zone_id}...")
+fig_detail = result.visualize(
+    'detail',
+    zone_id=median_zone.zone_id,
+    context_bars=25,
+    show_indicators=True,
+    indicator_chart_types={'macd_hist': 'bar'}, # Явное указание типа графика
+    time_axis_mode='dense', # Компактный вид
+    xaxis_num_ticks=20,
+    title=f"Детализация зоны #{median_zone.zone_id}"
 )
-fig.show()
+save_figure(fig_detail, f"02_detail_zone_{median_zone.zone_id}")
 
-# 5. Convenience функции
-fig = plot_zone_detail(data, median_zone, context_bars=20, backend='plotly')
-fig.show()
+# 4. Сравнение первых 4 зон
+print("Создание графика для сравнения 4 зон...")
+fig_comparison = result.visualize(
+    'comparison',
+    max_zones=4,
+    comparison_context=5, # Небольшой контекст для сравнения
+    show_indicators=True,
+    title="Сравнение первых 4 зон"
+)
+save_figure(fig_comparison, "03_comparison_4_zones")
 
-fig = plot_zones_comparison(data, result.zones, max_zones=3, backend='matplotlib')
-fig.show()
-
-# 6. Экспорт
-fig_overview.write_html('exports/zone_overview.html')
-try:
-    fig_detail.write_image('exports/zone_detail.png', width=1400, height=800)
-except:
-    fig_detail.write_html('exports/zone_detail.html')
+print("Все графики успешно созданы и сохранены в папку 'output/vis/'.")
 ```
 
 ---
 
 ## 🔗 Связанные разделы
 
-### API Documentation
-- **[Zone Analysis](../analysis/zones.md)** - Universal Zone Analysis Pipeline и ZoneAnalysisResult
-- **[Visualization Overview](README.md)** - Обзор модулей визуализации
-- **[Statistical Plots](statistical.md)** - Статистические графики
-- **[Chart Themes](themes.md)** - Темы и стилизация графиков
-
-### User Guides
-- **[Zone Analysis Guide](../../user_guide/zone_analysis.md)** - Пользовательское руководство по анализу зон
-- **[Quick Start](../../user_guide/quick_start.md)** - Быстрый старт с BQuant
-
-### Tutorials
-- **[MACD Basic Pipeline](../../tutorials/macd_basic_pipeline.md)** - Пошаговый туториал с примерами визуализации
-- **[Combined Rules Detection](../../tutorials/combined_rules_detection.md)** - Комбинированные правила детекции
-
-### Examples
-- **[examples/09_zones_visualization_demo.py](../../../examples/09_zones_visualization_demo.py)** - Полнофункциональный пример всех режимов визуализации
-- **[research/notebooks/04_zones_visualization_demo.py](../../../research/notebooks/04_zones_visualization_demo.py)** - Research ноутбук с полным покрытием интерфейсов
-
----
-
-## ⚙️ Технические детали
-
-### Требования
-- **Python**: 3.8+
-- **Обязательные**: `pandas`, `numpy`
-- **Plotly backend**: `plotly>=5.0.0`
-- **Matplotlib backend**: `matplotlib>=3.5.0`, `seaborn>=0.11.0`
-- **PNG export (Plotly)**: `kaleido` (опционально)
-
-### Производительность
-- **Plotly**: Интерактивные графики (zoom, pan, hover), HTML ~500KB-2MB
-- **Matplotlib**: Статичные графики, PNG ~100-500KB, быстрый рендеринг
-
-### Ограничения
-- **max_zones**: Рекомендуется ≤ 10 для сравнения (больше перегружает график)
-- **context_bars**: Большие значения (>50) могут замедлить отрисовку
-- **Plotly PNG**: Требует `kaleido`, иначе fallback на HTML
+- **[Zone Analysis](../analysis/zones.md)**: Документация по `ZoneAnalysisResult`.
+- **[research/notebooks/04_zones_sample.py](../../../research/notebooks/04_zones_sample.py)**: Актуальный скрипт с полным покрытием всех интерфейсов.
 
 ---
 
 ## 📝 Changelog
 
-- **v0.0.0** (2025-10-28): Реализация Stage 4 (Visualization)
-  - Добавлены методы `plot_zone_detail()`, `plot_zones_comparison()`
-  - Встроенная визуализация из `ZoneAnalysisResult.visualize()`
-  - Поддержка Plotly и Matplotlib backends
-  - Автоопределение индикаторов из метаданных зон
-  - Convenience функции для быстрого доступа
+- **v0.0.1** (2025-11-05):
+  - ✨ **Добавлен `time_axis_mode`**: Параметр для выбора между `dense` и `timeseries` режимами оси времени.
+  - ✨ **Добавлен `xaxis_num_ticks`**: Параметр для контроля количества меток на оси X в `dense` режиме.
+  - ✨ **Добавлен `indicator_chart_types`**: Позволяет явно задавать тип графика для индикаторов (`bar`/`line`).
+  - ✨ **Добавлен `comparison_context`**: Специальный параметр контекста для режима `comparison`.
+  - 📚 **Документация**: Полностью переработана для отражения новых возможностей и лучших практик.
+
+- **v0.0.0** (2025-10-28):
+  - 🎉 **Начальная реализация**: Добавлены `plot_zone_detail()`, `plot_zones_comparison()`.
+  - 🎉 **Встроенная визуализация**: `ZoneAnalysisResult.visualize()`.
+  - 🎉 **Поддержка Backends**: Plotly и Matplotlib.
 

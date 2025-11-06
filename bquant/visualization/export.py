@@ -62,7 +62,10 @@ def save_figure(
         if prefer.lower() == "png" and hasattr(fig, "write_image"):
             try:
                 path = out / f"{filename}.png"
-                fig.write_image(str(path), width=width, height=height)
+                # Use figure's own width/height from layout if available, otherwise use provided defaults
+                fig_width = fig.layout.width if fig.layout.width else width
+                fig_height = fig.layout.height if fig.layout.height else height
+                fig.write_image(str(path), width=fig_width, height=fig_height)
                 return str(path.resolve())
             except Exception:
                 path = out / f"{filename}.html"

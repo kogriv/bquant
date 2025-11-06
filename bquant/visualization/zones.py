@@ -1077,6 +1077,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                 close=price_window['close'],
                 name='Price',
             ), row=1, col=1)
+            
+            # Устанавливаем rangemode='normal' для оси Y цен, чтобы избежать "сплющивания"
+            fig.update_yaxes(rangemode='normal', title_text="Price", row=1, col=1)
 
             # Индикаторы на отдельной панели (если есть)
             if has_indicators:
@@ -1179,6 +1182,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                 close=price_window['close'],
                 name='Price',
             ), row=1, col=1)
+            
+            # Устанавливаем rangemode='normal' для оси Y цен, чтобы избежать "сплющивания"
+            fig.update_yaxes(rangemode='normal', title_text="Price", row=1, col=1)
 
             # Индикаторы на отдельной панели (если есть)
             if has_indicators:
@@ -1370,8 +1376,7 @@ class ZoneVisualizer(ZoneChartBuilder):
                 showarrow=False,
                 font=dict(size=12, color='black'),
                 bgcolor='rgba(255,255,255,0.8)',
-                row=1,
-                col=1
+                # NOTE: Не используем row/col с xref/yref, это может сбросить настройки осей
             )
 
         # Добавляем метаинформацию о данных (symbol, timeframe, source)
@@ -1407,6 +1412,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             xaxis_rangeslider_visible=False,
             template='plotly_white',
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1.0),
+            # NOTE: rangemode='normal' уже установлено через fig.update_yaxes() выше (строки 1082, 1187)
+            # Повторная установка через yaxis=dict() перезаписывает domain, что ломает multi-panel layout
         )
 
         return fig
