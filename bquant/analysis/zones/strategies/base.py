@@ -173,10 +173,10 @@ class SwingMetrics:
 class SwingCalculationStrategy(Protocol):
     """
     Protocol for swing detection algorithms.
-    
+
     Implementations must provide calculate_swings() and get_metadata() methods.
     """
-    
+
     def calculate_swings(self, zone_data: pd.DataFrame) -> SwingMetrics:
         """
         Calculate swing metrics.
@@ -191,6 +191,10 @@ class SwingCalculationStrategy(Protocol):
     
     def get_metadata(self) -> Dict[str, Any]:
         """Strategy metadata for logging and traceability."""
+        ...
+
+    def config_hash(self) -> Dict[str, Any]:
+        """Configuration snapshot used for cache key generation."""
         ...
 
 

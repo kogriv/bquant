@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import statistics
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -44,7 +45,9 @@ from bquant.core.logging_config import setup_logging, get_logger
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_zones
 from bquant.analysis.zones.strategies.swing.zigzag import ZigZagSwingStrategy
+from bquant.analysis.zones.strategies.base import SwingMetrics
 from bquant.indicators import LibraryManager
+from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
 
 logger = get_logger(__name__)
 
@@ -81,9 +84,30 @@ def parse_args() -> argparse.Namespace:
         help="ZigZag deviation threshold for the tuned run (as decimal, e.g. 0.008 = 0.8%)",
     )
     parser.add_argument(
+        "--preset",
+        choices=sorted(SWING_PRESETS.keys()),
+        default=None,
+        help="Apply a named swing preset before extracting pivots",
+    )
+    parser.add_argument(
+        "--auto-thresholds",
+        action="store_true",
+        help="Enable adaptive thresholds while running the zone analysis pipeline",
+    )
+    parser.add_argument(
         "--skip-default",
         action="store_true",
         help="Skip comparison with default ZigZag parameters",
+    )
+    parser.add_argument(
+        "--export",
+        type=Path,
+        help="Write tuned swing metrics and pivot summary to this JSON file",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Return non-zero exit code when pivot validation fails",
     )
     return parser.parse_args()
 
@@ -95,16 +119,27 @@ def load_dataset(name: str) -> pd.DataFrame:
     return df
 
 
-def run_pipeline(df: pd.DataFrame):
-    return (
+def run_pipeline(
+    df: pd.DataFrame,
+    *,
+    preset: Optional[str],
+    use_auto_thresholds: bool,
+):
+    builder = (
         analyze_zones(df)
         .with_cache(enable=False)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
         .detect_zones("zero_crossing", indicator_col="macd_hist")
         .with_strategies(swing="zigzag")
-        .analyze(clustering=False)
-        .build()
     )
+
+    if preset:
+        builder = builder.with_swing_preset(preset)
+
+    if use_auto_thresholds:
+        builder = builder.with_auto_swing_thresholds(True)
+
+    return builder.analyze(clustering=False).build()
 
 
 def choose_zone(result, explicit_zone_id: Optional[int]) -> "ZoneInfo":  # type: ignore[name-defined]
@@ -180,6 +215,71 @@ def log_metrics(title: str, metrics) -> None:
     )
 
 
+def _resolve_preset(args: argparse.Namespace) -> Optional[str]:
+    if args.preset:
+        return args.preset
+    return None
+
+
+def _preset_parameters(preset_name: Optional[str], args: argparse.Namespace) -> tuple[int, float]:
+    if not preset_name:
+        return args.legs, args.deviation
+
+    preset = SWING_PRESETS[preset_name]
+    legs = preset.zigzag.get("legs", args.legs)
+    deviation = preset.zigzag.get("deviation", args.deviation)
+    return legs, deviation
+
+
+def _export_summary(
+    path: Path,
+    *,
+    dataset: str,
+    tuned_preset: Optional[str],
+    pipeline_preset: Optional[str],
+    zone,
+    zone_data: pd.DataFrame,
+    metrics: SwingMetrics,
+    pivot_count: int,
+    auto_thresholds: bool,
+    within_range: bool,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    price_low = float(zone_data["low"].min())
+    price_high = float(zone_data["high"].max())
+
+    payload = {
+        "dataset": dataset,
+        "preset": tuned_preset or "custom",
+        "pipeline_preset": pipeline_preset,
+        "auto_thresholds": auto_thresholds,
+        "zone": {
+            "id": zone.zone_id,
+            "type": zone.type,
+            "duration_bars": zone.duration,
+            "start": getattr(zone, "start_time", None),
+            "end": getattr(zone, "end_time", None),
+            "price_low": price_low,
+            "price_high": price_high,
+            "close_change_pct": (
+                (float(zone_data["close"].iloc[-1]) / float(zone_data["close"].iloc[0]) - 1)
+                * 100
+            ),
+        },
+        "metrics": metrics.to_dict(),
+        "pivots": {
+            "count": pivot_count,
+            "within_range": within_range,
+        },
+    }
+
+    with path.open("w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2, ensure_ascii=False)
+
+    logger.info("Exported swing report to %s", path)
+
+
 def main() -> None:
     args = parse_args()
     setup_logging(profile="research")
@@ -187,7 +287,12 @@ def main() -> None:
     df = load_dataset(args.dataset)
     logger.info("Loaded dataset '%s' with %d rows", args.dataset, len(df))
 
-    analysis_result = run_pipeline(df)
+    preset_name = _resolve_preset(args) or DEFAULT_SWING_PRESET
+    analysis_result = run_pipeline(
+        df,
+        preset=preset_name,
+        use_auto_thresholds=args.auto_thresholds,
+    )
     zone = choose_zone(analysis_result, args.zone_id)
     zone_data = zone.data[["open", "high", "low", "close"]]
 
@@ -206,22 +311,49 @@ def main() -> None:
         default_pivots = extract_pivots(zone_data, legs=10, deviation=0.05)
         logger.info("Default pivot count: %d", len(default_pivots.pivots))
 
-    tuned_strategy = ZigZagSwingStrategy(legs=args.legs, deviation=args.deviation)
+    legs, deviation = _preset_parameters(args.preset, args)
+
+    tuned_strategy = ZigZagSwingStrategy(legs=legs, deviation=deviation)
     tuned_metrics = tuned_strategy.calculate(zone_data)
     log_metrics(
-        f"Tuned ZigZag (legs={args.legs}, deviation={args.deviation:.3f})",
+        f"Tuned ZigZag (legs={legs}, deviation={deviation:.3f})",
         tuned_metrics,
     )
 
-    tuned_pivots = extract_pivots(zone_data, legs=args.legs, deviation=args.deviation)
-    validate_pivots(tuned_pivots.pivots, zone_data)
+    tuned_pivots = extract_pivots(zone_data, legs=legs, deviation=deviation)
+
+    pivots_within_range = True
+    try:
+        validate_pivots(tuned_pivots.pivots, zone_data)
+    except AssertionError as exc:
+        pivots_within_range = False
+        if args.check:
+            raise
+        logger.error("Pivot validation failed: %s", exc)
+
+    if args.check and tuned_pivots.pivots.empty:
+        raise AssertionError("No pivots detected for the specified preset")
 
     if tuned_pivots.pivot_frame.empty:
+        pivots_within_range = False
         logger.warning("No pivot frame to display; try relaxing deviation or legs")
-        return
+    else:
+        logger.info("First/last pivot snapshot:\n%s", tuned_pivots.pivot_frame.head(3))
+        logger.info("...\n%s", tuned_pivots.pivot_frame.tail(3))
 
-    logger.info("First/last pivot snapshot:\n%s", tuned_pivots.pivot_frame.head(3))
-    logger.info("...\n%s", tuned_pivots.pivot_frame.tail(3))
+    if args.export:
+        _export_summary(
+            args.export,
+            dataset=args.dataset,
+            tuned_preset=args.preset,
+            pipeline_preset=preset_name,
+            zone=zone,
+            zone_data=zone_data,
+            metrics=tuned_metrics,
+            pivot_count=len(tuned_pivots.pivots),
+            auto_thresholds=args.auto_thresholds,
+            within_range=pivots_within_range,
+        )
 
 
 if __name__ == "__main__":
