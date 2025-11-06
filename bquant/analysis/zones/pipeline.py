@@ -22,6 +22,7 @@ from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
 from bquant.core.cache import get_cache_manager
 from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
+from .strategies.swing.thresholds import auto_swing_thresholds
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
@@ -41,6 +42,59 @@ _SWING_CLASS_TO_NAME = {
     FindPeaksSwingStrategy: "find_peaks",
     PivotPointsSwingStrategy: "pivot_points",
 }
+
+
+class _AdaptiveSwingStrategy:
+    """Wrapper that re-computes swing thresholds per zone."""
+
+    def __init__(
+        self,
+        strategy_name: str,
+        base_params: Dict[str, Any],
+        *,
+        base_deviation: float,
+    ) -> None:
+        self.base_strategy_name = strategy_name
+        self._base_params = dict(base_params)
+        self._base_deviation = base_deviation
+        self._last_thresholds: Optional[Dict[str, float]] = None
+
+    def calculate(self, zone_data: pd.DataFrame):
+        thresholds = auto_swing_thresholds(
+            zone_data, base_deviation=self._base_deviation
+        )
+        params = dict(self._base_params)
+
+        if self.base_strategy_name == "zigzag":
+            params["deviation"] = thresholds.zigzag_deviation
+        elif self.base_strategy_name == "find_peaks":
+            params["prominence"] = thresholds.peak_prominence
+            params["min_amplitude_pct"] = thresholds.peak_prominence
+        elif self.base_strategy_name == "pivot_points":
+            params["min_amplitude_pct"] = thresholds.pivot_deviation
+
+        strategy = StrategyRegistry.get_swing_strategy(
+            self.base_strategy_name, **params
+        )
+        result = strategy.calculate(zone_data)
+        self._last_thresholds = {
+            "zigzag_deviation": thresholds.zigzag_deviation,
+            "peak_prominence": thresholds.peak_prominence,
+            "pivot_deviation": thresholds.pivot_deviation,
+        }
+        return result
+
+    def get_metadata(self) -> Dict[str, Any]:
+        metadata: Dict[str, Any] = {
+            "name": f"Adaptive{self.base_strategy_name}",
+            "description": "Swing strategy with auto-scaled thresholds",
+            "base_params": dict(self._base_params),
+            "auto_thresholds": True,
+            "base_deviation": self._base_deviation,
+        }
+        if self._last_thresholds:
+            metadata["last_thresholds"] = dict(self._last_thresholds)
+        return metadata
 
 
 @dataclass
@@ -111,11 +165,14 @@ class ZoneAnalysisPipeline:
         result = pipeline.run(df)
     """
     
-    def __init__(self, 
+    def __init__(self,
                  config: ZoneAnalysisConfig,
                  zone_analyzer: Optional[UniversalZoneAnalyzer] = None,
                  enable_cache: bool = True,
-                 cache_ttl: int = 3600):
+                 cache_ttl: int = 3600,
+                 *,
+                 strategy_auto_thresholds: bool = False,
+                 auto_threshold_base_deviation: float = 0.01):
         """
         Инициализация pipeline.
         
@@ -134,6 +191,10 @@ class ZoneAnalysisPipeline:
         self.swing_strategies: Dict[str, Any] = {}
         self._active_swing_strategy: Optional[str] = self._detect_current_swing_strategy()
         self._swing_preset: str = DEFAULT_SWING_PRESET
+        self.strategy_auto_thresholds = strategy_auto_thresholds
+        self._auto_threshold_base_deviation = auto_threshold_base_deviation
+        self._adaptive_swing_wrappers: Dict[str, _AdaptiveSwingStrategy] = {}
+        self._swing_preset_params: Dict[str, Dict[str, Any]] = {}
         self._apply_swing_preset(DEFAULT_SWING_PRESET, update_active=False)
 
     def run(self, df: pd.DataFrame) -> ZoneAnalysisResult:
@@ -301,6 +362,18 @@ class ZoneAnalysisPipeline:
         self._swing_preset = name
         return self
 
+    def with_auto_swing_thresholds(
+        self, enable: bool = True, *, base_deviation: Optional[float] = None
+    ) -> "ZoneAnalysisPipeline":
+        """Toggle adaptive swing threshold calculation."""
+
+        self.strategy_auto_thresholds = enable
+        if base_deviation is not None:
+            self._auto_threshold_base_deviation = base_deviation
+        self._rebuild_adaptive_wrappers()
+        self._update_feature_swing_strategy()
+        return self
+
     def invalidate_cache(self, df: pd.DataFrame) -> None:
         """
         Инвалидировать кэш для конкретных данных.
@@ -317,6 +390,9 @@ class ZoneAnalysisPipeline:
         for cls, name in _SWING_CLASS_TO_NAME.items():
             if isinstance(strategy, cls):
                 return name
+        base_name = getattr(strategy, "base_strategy_name", None)
+        if isinstance(base_name, str):
+            return base_name
         return None
 
     def _detect_current_swing_strategy(self) -> Optional[str]:
@@ -325,6 +401,40 @@ class ZoneAnalysisPipeline:
             return None
         strategy = getattr(features, "swing_strategy", None)
         return self._strategy_name_from_instance(strategy)
+
+    def _rebuild_adaptive_wrappers(self) -> None:
+        if not self.strategy_auto_thresholds:
+            self._adaptive_swing_wrappers = {}
+            return
+
+        wrappers: Dict[str, _AdaptiveSwingStrategy] = {}
+        for strategy_name, params in self._swing_preset_params.items():
+            wrappers[strategy_name] = _AdaptiveSwingStrategy(
+                strategy_name,
+                params,
+                base_deviation=self._auto_threshold_base_deviation,
+            )
+        self._adaptive_swing_wrappers = wrappers
+
+    def _update_feature_swing_strategy(self) -> None:
+        features = getattr(self.analyzer, "features", None)
+        if features is None:
+            return
+
+        if not self._active_swing_strategy:
+            return
+
+        if (
+            self.strategy_auto_thresholds
+            and self._active_swing_strategy in self._adaptive_swing_wrappers
+        ):
+            features.swing_strategy = self._adaptive_swing_wrappers[
+                self._active_swing_strategy
+            ]
+        elif self._active_swing_strategy in self.swing_strategies:
+            features.swing_strategy = self.swing_strategies[
+                self._active_swing_strategy
+            ]
 
     def _apply_swing_preset(self, name: str, *, update_active: bool) -> None:
         if name not in SWING_PRESETS:
@@ -336,6 +446,7 @@ class ZoneAnalysisPipeline:
             "find_peaks": dict(preset.find_peaks),
             "pivot_points": dict(preset.pivot_points),
         }
+        self._swing_preset_params = {key: dict(value) for key, value in preset_values.items()}
 
         strategies: Dict[str, Any] = {}
         for strategy_name, params in preset_values.items():
@@ -344,17 +455,12 @@ class ZoneAnalysisPipeline:
             )
 
         self.swing_strategies = strategies
+        self._rebuild_adaptive_wrappers()
 
         if update_active or self._active_swing_strategy is None:
             self._active_swing_strategy = self._detect_current_swing_strategy()
 
-        features = getattr(self.analyzer, "features", None)
-        if (
-            features is not None
-            and self._active_swing_strategy
-            and self._active_swing_strategy in self.swing_strategies
-        ):
-            features.swing_strategy = self.swing_strategies[self._active_swing_strategy]
+        self._update_feature_swing_strategy()
 
 
 class ZoneAnalysisBuilder:
@@ -397,6 +503,7 @@ class ZoneAnalysisBuilder:
         self._volatility_strategy: Optional[str] = None
         self._volume_strategy: Optional[str] = None
         self._swing_preset: Optional[str] = None
+        self._auto_swing_thresholds = False
         self.logger = get_logger(__name__)
     
     def with_indicator(self, 
@@ -568,6 +675,14 @@ class ZoneAnalysisBuilder:
         self._swing_preset = name
         return self
 
+    def with_auto_swing_thresholds(
+        self, enable: bool = True
+    ) -> 'ZoneAnalysisBuilder':
+        """Enable adaptive thresholds for swing strategies."""
+
+        self._auto_swing_thresholds = enable
+        return self
+
     def with_cache(self,
                    enable: bool = True,
                    ttl: int = 3600) -> 'ZoneAnalysisBuilder':
@@ -653,10 +768,13 @@ class ZoneAnalysisBuilder:
             config,
             zone_analyzer=custom_analyzer,  # ✅ v2.1: Pass custom analyzer
             enable_cache=self._enable_cache,
-            cache_ttl=self._cache_ttl
+            cache_ttl=self._cache_ttl,
+            strategy_auto_thresholds=self._auto_swing_thresholds,
         )
         if self._swing_preset is not None:
             pipeline.with_swing_preset(self._swing_preset)
+        if self._auto_swing_thresholds:
+            pipeline.with_auto_swing_thresholds(True)
         return pipeline.run(self.data)
 
 
