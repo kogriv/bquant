@@ -15,3 +15,5 @@
 [08:43:30] [not_included] [Changed] ZoneFeaturesAnalyzer (bquant/analysis/zones/zone_features.py) обновлён для поддержки swing_context: добавлены ветки global/per_zone, temp_zone и маркировка режима в metadata.
 [08:43:30] [not_included] [Docs] devref/gaps/swing/gloswing.md — чеклисты Фазы 4 заполнены с комментариями о реализации и подготовке к интеграционным тестам.
 [08:43:30] [not_included] [Test] Smoke-скрипт подтвердил ветвление ZoneFeaturesAnalyzer: режимы per_zone/global и обработка исключений фиксируют swing_calculation_mode и fallback. 【9a5c13†L1-L21】
+[09:12:21] [not_included] [Test] Выполнены pytest тесты глобальных свингов (unit/integration/performance) и сравнение coverage, все чекпоинты Фазы 5 зелёные. 【237dfc†L1-L15】【79565f†L1-L3】【695908†L1-L89】
+[09:14:33] [not_included] [Test] Повторно прогнаны pytest unit/integration/performance сценарии Фазы 5 и research-скрипт coverage, подтверждены зелёные статусы чеклистов. 【354ab6†L2-L16】【13e762†L1-L88】
