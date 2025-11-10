@@ -55,6 +55,11 @@ Analysis модули содержат инструменты для стати�
 - **indicator_context** - зоны сами описывают стратегию детекции
 - **115 тестов, 100% pass rate** - доказательство универсальности
 
+**Документация по глобальным свингам:**
+- [Модели](zones/models.md) — `SwingPoint`, `SwingContext`, расширения `ZoneInfo`
+- [Пайплайн](zones/pipeline.md) — `_calculate_global_swings`, `_inject_swing_context`, `with_swing_scope()`
+- [Стратегии](zones/strategies.md) — протокол `SwingCalculationStrategy`, ZigZag/FindPeaks/PivotPoints
+
 ### 🎨 [bquant.analysis.zones.strategies](strategies.md) - Strategy Pattern (New)
 
 > **API Stability:** 🟢 STABLE - won't change

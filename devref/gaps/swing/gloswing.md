@@ -2190,84 +2190,10 @@ See `docs/migration/global_swings_migration.md` for upgrade instructions.
 
 **6.1.3. Short Migration Guide** (ОБЯЗАТЕЛЬНО):
 
-✅ **`docs/migration/global_swings_migration.md`** (СОЗДАТЬ НОВЫЙ) - КРАТКАЯ ВЕРСИЯ
-
-```markdown
-# Migration to Global Swing Calculation
-
-## Why Migrate?
-
-**Problem**: Per-zone swing calculation suffers from boundary artifacts, leading to low zone coverage:
-- find_peaks: 18.9% zones have swing metrics
-- pivot_points: 8.1% zones have swing metrics
-- zigzag: 62.2% zones have swing metrics
-
-**Solution**: Global mode calculates swings once for entire dataset, then slices for each zone:
-- **70-90% zone coverage** (improvement: +20-50 percentage points)
-- **Faster**: 1 calculation instead of N
-- **Consistent**: No boundary artifacts
-
-## Migration Steps
-
-### Step 1: Update pipeline configuration
-
-```python
-# BEFORE (per_zone mode - implicit default)
-result = (
-    analyze_zones(data)
-    .with_strategies(swing='zigzag')
-    .build()
-)
-
-# AFTER (global mode - add one line)
-result = (
-    analyze_zones(data)
-    .with_strategies(swing='zigzag')
-    .with_swing_scope('global')  # ← ADD THIS
-    .build()
-)
-```
-
-### Step 2: Access swing points (if needed)
-
-```python
-# Recommended API
-for zone in result.zones:
-    swings = zone.get_zone_swings()  # Returns List[SwingPoint]
-    print(f"Zone {zone.id}: {len(swings)} swing points")
-```
-
-### Step 3: Clear cache (one-time)
-
-Old cached results are automatically invalidated. If you see "Cache invalidated due to schema upgrade" in logs - this is expected.
-
-## Breaking Changes
-
-**None** - per_zone mode remains the default. Global mode is opt-in via `with_swing_scope('global')`.
-
-## Troubleshooting
-
-**Q**: "I'm getting warnings about cache invalidation"
-**A**: Normal - cache version changed from 1 to 2. Old caches are automatically invalidated.
-
-**Q**: "Global mode is slower than per_zone"
-**A**: Global mode is faster when you have many zones. For <10 zones, per_zone may be faster.
-
-**Q**: "Some zones still have no swings"
-**A**: Even in global mode, zones can have no internal swings (e.g., single-bar zones). This is expected.
-
-## Performance
-
-- **Recommended**: Datasets <1M bars
-- **Benchmark**: Global mode ≤1.5× per_zone time for 100k bars, 100 zones
-- **Memory**: ~264 bytes per swing point
-
-## Next Steps
-
-For detailed examples and API reference, see:
-- User Guide: `docs/user_guide/zone_analysis.md` (Section "Global vs Per-Zone Swing Calculation")
-- API Reference: `docs/api/analysis/zones/models.md` (SwingPoint, SwingContext)
-
+- [x] **`docs/migration/global_swings_migration.md`** — русскоязычное краткое руководство создано и проверено на sample-пайплайне (переход `with_swing_scope('global')`, FAQ по кэшу и производительности). *(12:07, 2025-11-10)*
+  - Раздел «Зачем переходить?» фиксирует метрики 18.9% / 8.1% / 62.2% → 70–90% покрытия.
+  - Раздел «Шаги миграции» включает примеры кода до/после и использование `zone.get_zone_swings()`.
+  - Раздел «Диагностика и советы» описывает предупреждения об инвалидации кэша и сценарии без свингов.
 
 ---
 
@@ -2289,6 +2215,8 @@ For detailed examples and API reference, see:
    - Рекомендации по выбору стратегии для разных сценариев
    - Примеры настройки адаптивных порогов
 
+- [x] *(13:42, 2025-11-10)* Раздел в `zone_analysis.md` дополнен сравнением режимов и примерами переключения; создано новое руководство `swing_strategies.md` с параметрами ZigZag/FindPeaks/PivotPoints.
+
 **6.2.2. API Reference - Обновления**:
 
 3. ✅ **`docs/api/analysis/zones/models.md`** (ОБНОВИТЬ)
@@ -2309,6 +2237,8 @@ For detailed examples and API reference, see:
    - `aggregate_for_zone()` - спецификация
    - Обновление для ZigZagSwingStrategy, FindPeaksSwingStrategy
 
+- [x] *(17:05, 2025-11-10)* Описаны `SwingPoint`/`SwingContext`, пайплайн и стратегии; ссылки добавлены в API-README.
+
 **6.2.3. Research Notebooks - Обновления**:
 
 6. ✅ **`research/notebooks/05_case_study_zone_consistency.py`** (ОБНОВИТЬ)
@@ -2323,12 +2253,17 @@ For detailed examples and API reference, see:
    - Performance benchmarks для каждой стратегии
    - Рекомендации по выбору стратегии
 
+- [x] *(18:24, 2025-11-10)* Обновлён `05_case_study` (сравнение per_zone/global, графики, новые выводы) и добавлен `06_swing_strategy_comparison` с бенчмарками и рекомендациями.
+- [x] *(14:53, 2025-11-10)* Готов сопровождающий отчёт `docs/analytics/zones/swing_strategy_comparison_case_study.md` с анализом JSON/CSV.
+
 **6.2.4. Examples - Обновления**:
 
 8. ✅ **`examples/zone_analysis_global_swings.py`** (СОЗДАТЬ НОВЫЙ)
     - Минимальный пример global режима
     - Визуализация результатов
     - Сравнение с per_zone режимом
+
+   - [x] *(13:29, 2025-11-10)* Создан скрипт `examples/zone_analysis_global_swings.py`: сравнение coverage, предпросмотр глобальных пивотов и бар-чарт визуализации.
 
 ---
 

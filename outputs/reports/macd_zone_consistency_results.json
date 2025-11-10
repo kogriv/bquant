@@ -1,97 +1,273 @@
 {
   "eda": {
-    "bull_zones_total": 37,
-    "bull_zones_with_swings": 7,
-    "pct_with_swings": 18.91891891891892,
-    "num_swings_stats": {
-      "min": 0,
-      "max": 2,
-      "avg": 0.21621621621621623
-    },
+    "zones_total": 37,
+    "zones_with_metrics": 37,
+    "zones_with_swings": 6,
+    "pct_with_metrics": 100.0,
+    "pct_with_swings": 16.216216216216218,
+    "avg_num_swings": 0.1891891891891892,
     "avg_rally_count": 0.5405405405405406,
-    "avg_drop_count": 0.35135135135135137
+    "avg_drop_count": 0.32432432432432434,
+    "avg_rally_pct": 0.917665126999447,
+    "avg_drop_pct": 0.7738070479552167
   },
-  "analysis": {
+  "scope_comparison": [
+    {
+      "config": "Узкие зоны (фиксированные пороги)",
+      "strategy": "find_peaks",
+      "scope": "per_zone",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 6,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 16.216216216216218,
+      "avg_num_swings": 0.1891891891891892,
+      "avg_rally_count": 0.5405405405405406,
+      "avg_drop_count": 0.32432432432432434,
+      "avg_rally_pct": 0.917665126999447,
+      "avg_drop_pct": 0.7738070479552167
+    },
+    {
+      "config": "Узкие зоны (фиксированные пороги)",
+      "strategy": "find_peaks",
+      "scope": "global",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 15,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 40.54054054054054,
+      "avg_num_swings": 0.4864864864864865,
+      "avg_rally_count": 1.1081081081081081,
+      "avg_drop_count": 0.6216216216216216,
+      "avg_rally_pct": 1.0891598942728156,
+      "avg_drop_pct": 0.8419418684098334
+    },
+    {
+      "config": "Узкие зоны (фиксированные пороги)",
+      "strategy": "pivot_points",
+      "scope": "per_zone",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 3,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 8.108108108108109,
+      "avg_num_swings": 0.08108108108108109,
+      "avg_rally_count": 0.40540540540540543,
+      "avg_drop_count": 0.1891891891891892,
+      "avg_rally_pct": 1.708373624723066,
+      "avg_drop_pct": 0.7063044743573851
+    },
+    {
+      "config": "Узкие зоны (фиксированные пороги)",
+      "strategy": "pivot_points",
+      "scope": "global",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 21,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 56.75675675675676,
+      "avg_num_swings": 0.6486486486486487,
+      "avg_rally_count": 1.135135135135135,
+      "avg_drop_count": 0.7837837837837838,
+      "avg_rally_pct": 1.0965450006490736,
+      "avg_drop_pct": 0.9402952352875003
+    },
+    {
+      "config": "Узкие зоны (фиксированные пороги)",
+      "strategy": "zigzag",
+      "scope": "per_zone",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 23,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 62.16216216216216,
+      "avg_num_swings": 1.4864864864864864,
+      "avg_rally_count": 1.5945945945945945,
+      "avg_drop_count": 1.7027027027027026,
+      "avg_rally_pct": 0.5530511290053491,
+      "avg_drop_pct": 0.38285045051684913
+    },
+    {
+      "config": "Узкие зоны (фиксированные пороги)",
+      "strategy": "zigzag",
+      "scope": "global",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 36,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 97.2972972972973,
+      "avg_num_swings": 2.72972972972973,
+      "avg_rally_count": 2.810810810810811,
+      "avg_drop_count": 2.8378378378378377,
+      "avg_rally_pct": 0.7143267954500262,
+      "avg_drop_pct": 0.6061761644816277
+    },
+    {
+      "config": "Узкие зоны + auto-thresholds",
+      "strategy": "find_peaks",
+      "scope": "per_zone",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 0,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 0.0,
+      "avg_num_swings": 0.0,
+      "avg_rally_count": 0.13513513513513514,
+      "avg_drop_count": 0.08108108108108109,
+      "avg_rally_pct": 0.0,
+      "avg_drop_pct": 0.0
+    },
+    {
+      "config": "Узкие зоны + auto-thresholds",
+      "strategy": "find_peaks",
+      "scope": "global",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 0,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 0.0,
+      "avg_num_swings": 0.0,
+      "avg_rally_count": 0.02702702702702703,
+      "avg_drop_count": 0.0,
+      "avg_rally_pct": 0.0,
+      "avg_drop_pct": 0.0
+    },
+    {
+      "config": "Узкие зоны + auto-thresholds",
+      "strategy": "pivot_points",
+      "scope": "per_zone",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 0,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 0.0,
+      "avg_num_swings": 0.0,
+      "avg_rally_count": 0.16216216216216217,
+      "avg_drop_count": 0.02702702702702703,
+      "avg_rally_pct": 0.0,
+      "avg_drop_pct": 0.0
+    },
+    {
+      "config": "Узкие зоны + auto-thresholds",
+      "strategy": "pivot_points",
+      "scope": "global",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 0,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 0.0,
+      "avg_num_swings": 0.0,
+      "avg_rally_count": 0.16216216216216217,
+      "avg_drop_count": 0.02702702702702703,
+      "avg_rally_pct": 0.0,
+      "avg_drop_pct": 0.0
+    },
+    {
+      "config": "Узкие зоны + auto-thresholds",
+      "strategy": "zigzag",
+      "scope": "per_zone",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 23,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 62.16216216216216,
+      "avg_num_swings": 1.4864864864864864,
+      "avg_rally_count": 1.5945945945945945,
+      "avg_drop_count": 1.7027027027027026,
+      "avg_rally_pct": 0.5530511290053491,
+      "avg_drop_pct": 0.38285045051684913
+    },
+    {
+      "config": "Узкие зоны + auto-thresholds",
+      "strategy": "zigzag",
+      "scope": "global",
+      "zones_total": 37,
+      "zones_with_metrics": 37,
+      "zones_with_swings": 36,
+      "pct_with_metrics": 100.0,
+      "pct_with_swings": 97.2972972972973,
+      "avg_num_swings": 2.7027027027027026,
+      "avg_rally_count": 2.7837837837837838,
+      "avg_drop_count": 2.810810810810811,
+      "avg_rally_pct": 0.7193926470444549,
+      "avg_drop_pct": 0.6096342737881882
+    }
+  ],
+  "stat_tests": {
     "narrow_fixed": {
       "find_peaks": {
-        "summary": {
-          "zones_total": 37,
-          "zones_with_metrics": 37,
-          "zones_with_swings": 7,
-          "pct_with_swings": 18.91891891891892,
-          "pairs_collected": 7
+        "per_zone": {
+          "pairs": 6,
+          "statistic": null,
+          "p_value": null
         },
-        "p_value": null,
-        "statistic": null,
-        "error": null,
-        "insufficient_data": true
+        "global": {
+          "pairs": 15,
+          "statistic": 86.0,
+          "p_value": 0.075714111328125
+        }
       },
       "pivot_points": {
-        "summary": {
-          "zones_total": 37,
-          "zones_with_metrics": 37,
-          "zones_with_swings": 3,
-          "pct_with_swings": 8.108108108108109,
-          "pairs_collected": 3
+        "per_zone": {
+          "pairs": 3,
+          "statistic": null,
+          "p_value": null
         },
-        "p_value": null,
-        "statistic": null,
-        "error": null,
-        "insufficient_data": true
+        "global": {
+          "pairs": 21,
+          "statistic": 148.0,
+          "p_value": 0.13610506057739258
+        }
       },
       "zigzag": {
-        "summary": {
-          "zones_total": 37,
-          "zones_with_metrics": 37,
-          "zones_with_swings": 23,
-          "pct_with_swings": 62.16216216216216,
-          "pairs_collected": 23
+        "per_zone": {
+          "pairs": 23,
+          "statistic": 232.0,
+          "p_value": 0.0015354156494140625
         },
-        "p_value": 0.0015354156494140625,
-        "statistic": 232.0,
-        "error": null,
-        "insufficient_data": false
+        "global": {
+          "pairs": 36,
+          "statistic": 484.0,
+          "p_value": 0.008376294790650718
+        }
       }
     },
     "narrow_auto": {
       "find_peaks": {
-        "summary": {
-          "zones_total": 37,
-          "zones_with_metrics": 37,
-          "zones_with_swings": 0,
-          "pct_with_swings": 0.0,
-          "pairs_collected": 0
+        "per_zone": {
+          "pairs": 0,
+          "statistic": null,
+          "p_value": null
         },
-        "p_value": null,
-        "statistic": null,
-        "error": null,
-        "insufficient_data": true
+        "global": {
+          "pairs": 0,
+          "statistic": null,
+          "p_value": null
+        }
       },
       "pivot_points": {
-        "summary": {
-          "zones_total": 37,
-          "zones_with_metrics": 37,
-          "zones_with_swings": 0,
-          "pct_with_swings": 0.0,
-          "pairs_collected": 0
+        "per_zone": {
+          "pairs": 0,
+          "statistic": null,
+          "p_value": null
         },
-        "p_value": null,
-        "statistic": null,
-        "error": null,
-        "insufficient_data": true
+        "global": {
+          "pairs": 0,
+          "statistic": null,
+          "p_value": null
+        }
       },
       "zigzag": {
-        "summary": {
-          "zones_total": 37,
-          "zones_with_metrics": 37,
-          "zones_with_swings": 23,
-          "pct_with_swings": 62.16216216216216,
-          "pairs_collected": 23
+        "per_zone": {
+          "pairs": 23,
+          "statistic": 232.0,
+          "p_value": 0.0015354156494140625
         },
-        "p_value": 0.0015354156494140625,
-        "statistic": 232.0,
-        "error": null,
-        "insufficient_data": false
+        "global": {
+          "pairs": 36,
+          "statistic": 487.0,
+          "p_value": 0.0072959361132234335
+        }
       }
     }
   }

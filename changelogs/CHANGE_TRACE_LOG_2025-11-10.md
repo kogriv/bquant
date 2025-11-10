@@ -18,5 +18,14 @@
 [09:14:33] [not_included] [Test] Повторно прогнаны pytest unit/integration/performance сценарии Фазы 5 и research-скрипт coverage, подтверждены зелёные статусы чеклистов. 【354ab6†L2-L16】【13e762†L1-L88】
 [15:42:18] [not_included] [Changed] Закрыты пробелы Фазы 5: параметризованы unit/edge-тесты по стратегиям и добавлен pytest-сценарий автоматической проверки coverage (`tests/unit/test_swing_global_calculation.py`, `tests/unit/test_swing_edge_cases.py`, `tests/integration/test_pipeline_global_swings.py`), обновлён чеклист в `devref/gaps/swing/gloswing.md`.
 [15:55:03] [not_included] [Docs] Выполнен пункт 6.1.1: docstrings и inline-комментарии новых API приведены к английскому стилю в `bquant/analysis/zones/models.py`, `bquant/analysis/zones/pipeline.py`; статус зафиксирован в `devref/gaps/swing/gloswing.md`.
+[16:18:42] [not_included] [Docs] Реализован пункт 6.1.3: добавлено русскоязычное руководство `docs/migration/global_swings_migration.md` (метрики 18.9/8.1/62.2 → 70–90%, шаги миграции, FAQ) и обновлён `devref/gaps/swing/gloswing.md` отметкой о выполнении.
+[16:39:11] [not_included] [Docs] Выполнен пункт 6.2.1: `docs/user_guide/zone_analysis.md` дополнен разделом Global vs Per-Zone Swing Calculation, создано новое руководство `docs/user_guide/swing_strategies.md`, статус зафиксирован в `devref/gaps/swing/gloswing.md`.
+[17:05:44] [not_included] [Docs] Реализован пункт 6.2.2: добавлены `docs/api/analysis/zones/{models,pipeline,strategies}.md`, обновлены ссылки в API-README и отмечен прогресс в `devref/gaps/swing/gloswing.md`.
+
+[18:24:05] [not_included] [Docs] Обновлён `research/notebooks/05_case_study_zone_consistency.py`: сравнение режимов per_zone/global, графики покрытия и обновлённые выводы в NotebookSimulator.
+[18:24:37] [not_included] [Docs] Создан `research/notebooks/06_swing_strategy_comparison.py` с бенчмарками стратегий, итоговыми таблицами и рекомендациями; прогресс отражён в `devref/gaps/swing/gloswing.md`.
+
+[13:30:12] [not_included] [Docs] Реализован пункт 6.2.4: добавлен пример `examples/zone_analysis_global_swings.py` (coverage сравнение, предпросмотр пивотов, график), прогресс отмечен в gloswing.md.
 
 ==================== COMMIT DIVIDER ====================
+[14:52:58] [not_included] [Docs] Добавлен отчёт `docs/analytics/zones/swing_strategy_comparison_case_study.md` по запуску 06_swing_strategy_comparison.py (--no-trap), зафиксированы метрики покрытия и рекомендации.
