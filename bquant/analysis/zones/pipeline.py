@@ -21,7 +21,7 @@ from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
 from bquant.core.cache import get_cache_manager
 from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
-from .strategies.swing.thresholds import auto_swing_thresholds
+from .strategies.swing.thresholds import _AdaptiveSwingStrategy
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
@@ -42,67 +42,6 @@ _SWING_CLASS_TO_NAME = {
     FindPeaksSwingStrategy: "find_peaks",
     PivotPointsSwingStrategy: "pivot_points",
 }
-
-
-class _AdaptiveSwingStrategy:
-    """Wrapper that re-computes swing thresholds per zone."""
-
-    def __init__(
-        self,
-        strategy_name: str,
-        base_params: Dict[str, Any],
-        *,
-        base_deviation: float,
-    ) -> None:
-        self.base_strategy_name = strategy_name
-        self._base_params = dict(base_params)
-        self._base_deviation = base_deviation
-        self._last_thresholds: Optional[Dict[str, float]] = None
-
-    def calculate(self, zone_data: pd.DataFrame):
-        thresholds = auto_swing_thresholds(
-            zone_data, base_deviation=self._base_deviation
-        )
-        params = dict(self._base_params)
-
-        if self.base_strategy_name == "zigzag":
-            params["deviation"] = thresholds.zigzag_deviation
-        elif self.base_strategy_name == "find_peaks":
-            params["prominence"] = thresholds.peak_prominence
-            params["min_amplitude_pct"] = thresholds.peak_prominence
-        elif self.base_strategy_name == "pivot_points":
-            params["min_amplitude_pct"] = thresholds.pivot_deviation
-
-        strategy = StrategyRegistry.get_swing_strategy(
-            self.base_strategy_name, **params
-        )
-        result = strategy.calculate(zone_data)
-        self._last_thresholds = {
-            "zigzag_deviation": thresholds.zigzag_deviation,
-            "peak_prominence": thresholds.peak_prominence,
-            "pivot_deviation": thresholds.pivot_deviation,
-        }
-        return result
-
-    def get_metadata(self) -> Dict[str, Any]:
-        metadata: Dict[str, Any] = {
-            "name": f"Adaptive{self.base_strategy_name}",
-            "description": "Swing strategy with auto-scaled thresholds",
-            "base_params": dict(self._base_params),
-            "auto_thresholds": True,
-            "base_deviation": self._base_deviation,
-        }
-        if self._last_thresholds:
-            metadata["last_thresholds"] = dict(self._last_thresholds)
-        return metadata
-
-    def config_hash(self) -> Dict[str, Any]:
-        """Configuration snapshot for adaptive threshold wrapper."""
-        return {
-            "base_strategy": self.base_strategy_name,
-            "base_params": dict(self._base_params),
-            "base_deviation": self._base_deviation,
-        }
 
 
 @dataclass

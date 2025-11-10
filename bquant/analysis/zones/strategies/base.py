@@ -1,13 +1,17 @@
-"""
-Base protocols and dataclasses for zone metrics calculation strategies.
+"""Core contracts and dataclasses for zone-analysis strategies.
 
-Defines contracts for all metric calculation strategies using Protocol for type checking.
-Each strategy type has its own protocol and result dataclass with validation.
+This module defines the canonical :class:`SwingMetrics` container and
+``Protocol`` interfaces that every zone-analysis strategy must implement.
+Protocols are expressed explicitly to keep mypy enforcement strong while
+allowing a flexible plug-in architecture for third-party strategies.
 """
 
 from dataclasses import dataclass, field
 from typing import Protocol, Dict, Any, Optional, runtime_checkable
+
 import pandas as pd
+
+from ..models import SwingContext, ZoneInfo
 
 
 @dataclass
@@ -171,31 +175,62 @@ class SwingMetrics:
 
 @runtime_checkable
 class SwingCalculationStrategy(Protocol):
-    """
-    Protocol for swing detection algorithms.
+    """Protocol that every swing-detection strategy must satisfy.
 
-    Implementations must provide calculate_swings() and get_metadata() methods.
+    The protocol explicitly models both the new global workflow and the
+    legacy per-zone calculation path.  Strategies are expected to implement
+    the global APIs while keeping :meth:`calculate` as a backwards-compatible
+    entry point for older integrations and per-zone fallbacks.
     """
 
-    def calculate_swings(self, zone_data: pd.DataFrame) -> SwingMetrics:
-        """
-        Calculate swing metrics.
-        
+    def calculate_global(self, full_data: pd.DataFrame) -> SwingContext:
+        """Compute swing points for the entire prepared dataset.
+
         Args:
-            zone_data: DataFrame with columns: high, low, close
-        
+            full_data: Prepared dataframe containing at least ``high`` and
+                ``low`` columns (plus any auxiliary indicators the strategy
+                requires).
+
         Returns:
-            SwingMetrics with validated data
+            :class:`SwingContext` populated with global swing points and
+            metadata required for subsequent zone-level aggregation.
+
+        Raises:
+            ValueError: If the supplied dataframe does not contain enough
+                information for the strategy to operate.
+            RuntimeError: If the underlying algorithm fails unexpectedly.
         """
-        ...
-    
+
+    def aggregate_for_zone(self, zone: ZoneInfo, context: SwingContext) -> SwingMetrics:
+        """Aggregate global swing data into metrics for a particular zone.
+
+        Args:
+            zone: Zone descriptor containing positional information.
+            context: Global swing context produced by :meth:`calculate_global`.
+
+        Returns:
+            :class:`SwingMetrics` summarising swing behaviour inside the zone.
+        """
+
+    def calculate(self, zone_data: pd.DataFrame) -> SwingMetrics:
+        """Legacy per-zone calculation entry point.
+
+        Implementations should keep this method functional for backwards
+        compatibility.  New code should prefer the global workflow unless a
+        strategy explicitly documents otherwise.
+
+        Args:
+            zone_data: Slice of data restricted to a single zone.
+
+        Returns:
+            :class:`SwingMetrics` calculated using zone-only information.
+        """
+
     def get_metadata(self) -> Dict[str, Any]:
-        """Strategy metadata for logging and traceability."""
-        ...
+        """Return strategy metadata for logging and traceability."""
 
     def config_hash(self) -> Dict[str, Any]:
-        """Configuration snapshot used for cache key generation."""
-        ...
+        """Return configuration snapshot used for cache-key generation."""
 
 
 @dataclass
