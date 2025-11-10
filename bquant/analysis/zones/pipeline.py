@@ -1,14 +1,14 @@
 """
 Zone Analysis Pipeline
 
-Универсальный pipeline для анализа зон с fluent API.
+This module implements the orchestration layer for zone analytics and exposes a
+fluent builder API.
 
-Компоненты:
-- IndicatorConfig: Конфигурация индикатора
-- ZoneAnalysisConfig: Полная конфигурация pipeline
-- ZoneAnalysisPipeline: Выполнение pipeline с кэшированием
-- ZoneAnalysisBuilder: Fluent API для удобного построения
-- analyze_zones(): Convenience функция - entry point
+Components:
+* ``IndicatorConfig`` – indicator calculation settings.
+* ``ZoneAnalysisConfig`` – full pipeline configuration container.
+* ``ZoneAnalysisPipeline`` – executes the workflow (optionally with caching).
+* ``ZoneAnalysisBuilder`` – fluent API entry point used by ``analyze_zones``.
 """
 
 from dataclasses import dataclass, field, asdict
@@ -46,16 +46,7 @@ _SWING_CLASS_TO_NAME = {
 
 @dataclass
 class IndicatorConfig:
-    """
-    Конфигурация индикатора (если нужно рассчитать).
-    
-    None означает что индикатор уже в данных.
-    
-    Attributes:
-        source: Источник индикатора ('preloaded', 'custom', 'pandas_ta', 'talib')
-        name: Название индикатора
-        params: Параметры для расчета индикатора
-    """
+    """Indicator calculation configuration."""
     source: Literal['preloaded', 'custom', 'pandas_ta', 'talib']
     name: str
     params: Dict[str, Any] = field(default_factory=dict)
@@ -63,19 +54,7 @@ class IndicatorConfig:
 
 @dataclass
 class ZoneAnalysisConfig:
-    """
-    Полная конфигурация pipeline анализа зон.
-
-    Attributes:
-        indicator: Конфигурация индикатора (None если уже в данных)
-        zone_detection: Конфигурация детекции зон (обязательно)
-        perform_clustering: Выполнять ли кластеризацию
-        n_clusters: Количество кластеров
-        run_regression: Запустить регрессионный анализ
-        run_validation: Запустить валидацию
-        swing_scope: Режим расчёта свингов (``"per_zone"`` по умолчанию или
-            ``"global"`` для глобального расчёта)
-    """
+    """Complete configuration for the zone-analysis pipeline."""
     # Индикатор (None если уже в данных)
     indicator: Optional[IndicatorConfig] = None
     
@@ -91,6 +70,14 @@ class ZoneAnalysisConfig:
 
     def to_cache_key(self) -> str:
         """Serialize configuration into a stable JSON string for caching."""
+
+        for attr_name, attr_value in self.__dict__.items():
+            if callable(attr_value):
+                raise ValueError(
+                    f"ZoneAnalysisConfig field '{attr_name}' contains a callable. "
+                    "Callables are not supported in cache keys. Convert the value "
+                    "to a serializable representation before building the pipeline."
+                )
 
         payload = {
             "indicator": asdict(self.indicator) if self.indicator else None,
@@ -139,15 +126,7 @@ class ZoneAnalysisPipeline:
                  *,
                  strategy_auto_thresholds: bool = False,
                  auto_threshold_base_deviation: float = 0.01):
-        """
-        Инициализация pipeline.
-        
-        Args:
-            config: Конфигурация pipeline
-            zone_analyzer: Универсальный анализатор (DI)
-            enable_cache: Включить кэширование результатов
-            cache_ttl: Время жизни кэша в секундах (default: 1 час)
-        """
+        """Initialize the pipeline with optional dependency overrides."""
         self.config = config
         self.analyzer = zone_analyzer or UniversalZoneAnalyzer()
         self.enable_cache = enable_cache
@@ -165,30 +144,19 @@ class ZoneAnalysisPipeline:
         self._apply_swing_preset(DEFAULT_SWING_PRESET, update_active=False)
 
     def run(self, df: pd.DataFrame) -> ZoneAnalysisResult:
-        """
-        Выполнить полный pipeline анализа с кэшированием.
-
-        Если enable_cache=True, результат будет сохранен в кэш
-        (память + диск) для повторного использования.
-        
-        Args:
-            df: DataFrame с OHLCV данными
-            
-        Returns:
-            ZoneAnalysisResult с полным анализом
-        """
+        """Execute the end-to-end analysis workflow (with optional caching)."""
         cache_wrapper = self._get_cache_wrapper()
         if cache_wrapper is None:
             return self._run_without_cache(df)
 
-        # Генерируем ключ кэша на основе конфигурации и данных
+        # Generate cache key based on configuration and data hash
         cache_key = self._generate_cache_key(df)
 
-        # Проверяем кэш
+        # Attempt cache lookup
         cached_result = cache_wrapper.load(cache_key)
         if cached_result is not None:
             self.logger.info(f"Zone analysis result loaded from cache (key: {cache_key[:8]}...)")
-            # Обновляем метаданные из df.attrs (могли измениться после кэширования)
+            # Update metadata with fresh dataframe attributes if available
             if hasattr(df, 'attrs'):
                 if 'symbol' in df.attrs:
                     cached_result.metadata['symbol'] = df.attrs['symbol']
@@ -200,33 +168,23 @@ class ZoneAnalysisPipeline:
                     cached_result.metadata['dataset_name'] = df.attrs['dataset_name']
             return cached_result
         
-        # Выполняем анализ
+        # Execute analysis and persist result to cache
         self.logger.info("Cache miss, running zone analysis...")
         result = self._run_without_cache(df)
 
-        # Сохраняем в кэш (TTL по умолчанию, на диск)
+        # Store result (in-memory and disk according to cache policy)
         cache_wrapper.save(cache_key, result, ttl=self.cache_ttl, disk=True)
         self.logger.info(f"Zone analysis result saved to cache (key: {cache_key[:8]}...)")
 
         return result
     
     def _run_without_cache(self, df: pd.DataFrame) -> ZoneAnalysisResult:
-        """
-        Выполнить pipeline без кэширования.
+        """Execute the pipeline without consulting the cache."""
 
-        Обновлённый workflow (Phase 3):
-
-        1. Подготовка данных и расчёт индикаторов.
-        2. Глобальный расчёт свингов (если включён режим ``"global"``).
-        3. Детекция зон на подготовленных данных.
-        4. Инжекция глобального swing контекста в каждую зону.
-        5. Анализ зон через ``UniversalZoneAnalyzer``.
-        """
-
-        # 1. Подготовка данных (расчёт индикатора)
+        # Step 1: prepare dataframe (indicator calculation, enrichment, etc.)
         df_prepared = self._prepare_data(df)
 
-        # 2. Глобальный расчёт свингов (опционально)
+        # Step 2: run global swing calculation (optional)
         global_swing_context: Optional[SwingContext] = None
         if self.config.swing_scope == "global":
             try:
@@ -237,14 +195,14 @@ class ZoneAnalysisPipeline:
                     exc,
                 )
 
-        # 3. Детекция зон
+        # Step 3: detect zones
         zones = self._detect_zones(df_prepared)
 
-        # 4. Инжекция глобального контекста в зоны (если доступен)
+        # Step 4: inject swing context if available
         if global_swing_context is not None and zones:
             self._inject_swing_context(zones, global_swing_context)
 
-        # 5. Анализ зон
+        # Step 5: run feature analysis
         return self._analyze_zones(zones, df_prepared)
 
     def _get_active_swing_strategy(self) -> Optional[Any]:
@@ -291,7 +249,7 @@ class ZoneAnalysisPipeline:
     def _inject_swing_context(
         self, zones: List[ZoneInfo], swing_context: SwingContext
     ) -> None:
-        """Инжектировать глобальный swing контекст во все обнаруженные зоны."""
+        """Attach the global swing context to all detected zones."""
 
         for zone in zones:
             zone.swing_context = swing_context
@@ -302,48 +260,46 @@ class ZoneAnalysisPipeline:
         )
     
     def _prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Расчет индикатора через IndicatorFactory."""
+        """Enrich the dataframe with indicators when requested."""
         if self.config.indicator is None:
-            return df  # Индикатор уже в данных
-        
+            return df  # Indicator already provided
+
         ind = self.config.indicator
         self.logger.info(f"Calculating indicator: {ind.source}.{ind.name}")
-        
-        # Создаем через IndicatorFactory!
+
         indicator = IndicatorFactory.create(
             source=ind.source,
             indicator=ind.name,
-            **ind.params
+            **ind.params,
         )
-        
+
         result: IndicatorResult = indicator.calculate(df)
-        
-        # Объединяем с исходными данными
+
         df_with_indicator = df.copy()
         for col in result.data.columns:
             df_with_indicator[col] = result.data[col]
-        
-        # Добавляем ATR для нормализации (если нужно)
+
         if 'atr' not in df_with_indicator.columns:
             try:
                 from bquant.data.processor import calculate_derived_indicators
+
                 derived = calculate_derived_indicators(df_with_indicator)
                 if 'atr' in derived.columns:
                     df_with_indicator['atr'] = derived['atr']
-            except Exception as e:
-                self.logger.warning(f"Failed to add ATR: {e}")
-        
+            except Exception as exc:
+                self.logger.warning(f"Failed to add ATR: {exc}")
+
         return df_with_indicator
     
     def _detect_zones(self, df: pd.DataFrame) -> List[ZoneInfo]:
-        """Детекция зон через стратегию."""
+        """Run the configured detection strategy and return zones."""
         detector = ZoneDetectionRegistry.get(
             self.config.zone_detection.strategy_name
         )
         return detector.detect_zones(df, self.config.zone_detection)
     
     def _analyze_zones(self, zones: List[ZoneInfo], df: pd.DataFrame) -> ZoneAnalysisResult:
-        """Анализ зон через UniversalZoneAnalyzer."""
+        """Delegate zone feature extraction to :class:`UniversalZoneAnalyzer`."""
         return self.analyzer.analyze_zones(
             zones, df,
             perform_clustering=self.config.perform_clustering,
@@ -364,15 +320,7 @@ class ZoneAnalysisPipeline:
         return self._cache
 
     def _generate_cache_key(self, df: pd.DataFrame) -> str:
-        """
-        Генерация ключа кэша на основе конфигурации и данных.
-        
-        Ключ включает:
-        - Хэш данных (OHLCV)
-        - Конфигурацию индикатора
-        - Конфигурацию детекции зон
-        - Параметры анализа
-        """
+        """Generate a deterministic cache key based on configuration and data."""
         cache_wrapper = self._get_cache_wrapper()
         if cache_wrapper is None:
             raise RuntimeError("Caching is not enabled for this pipeline")
@@ -412,12 +360,7 @@ class ZoneAnalysisPipeline:
         return self
 
     def invalidate_cache(self, df: pd.DataFrame) -> None:
-        """
-        Инвалидировать кэш для конкретных данных.
-
-        Args:
-            df: DataFrame для которого нужно инвалидировать кэш
-        """
+        """Invalidate cached results for the given dataset."""
         cache_wrapper = self._get_cache_wrapper()
         if cache_wrapper is None:
             return
@@ -537,11 +480,8 @@ class ZoneAnalysisPipeline:
 
 class ZoneAnalysisBuilder:
     """
-    Fluent builder для анализа зон.
-    
-    Удобный интерфейс "через точку" для построения pipeline.
-    Внутри создает ZoneAnalysisPipeline.
-    
+    Fluent builder that constructs :class:`ZoneAnalysisPipeline` instances.
+
     Example:
         result = (
             analyze_zones(df)
@@ -553,12 +493,7 @@ class ZoneAnalysisBuilder:
     """
     
     def __init__(self, data: pd.DataFrame):
-        """
-        Инициализация builder с данными.
-        
-        Args:
-            data: DataFrame с OHLCV данными (+ опционально индикаторы)
-        """
+        """Initialize the builder with the source dataframe."""
         self.data = data
         self._indicator_config: Optional[IndicatorConfig] = None
         self._zone_detection_config: Optional[ZoneDetectionConfig] = None
@@ -583,22 +518,7 @@ class ZoneAnalysisBuilder:
                       source: str, 
                       name: str, 
                       **params) -> 'ZoneAnalysisBuilder':
-        """
-        Добавить расчет индикатора в pipeline.
-        
-        Args:
-            source: Источник ('preloaded', 'custom', 'pandas_ta', 'talib')
-            name: Название индикатора
-            **params: Параметры индикатора
-        
-        Returns:
-            self для цепочки вызовов
-        
-        Example:
-            .with_indicator('custom', 'macd', fast=12, slow=26, signal=9)
-            .with_indicator('pandas_ta', 'ao', fast=5, slow=34)
-            .with_indicator('talib', 'rsi', timeperiod=14)
-        """
+        """Schedule indicator calculation as part of the pipeline."""
         self._indicator_config = IndicatorConfig(
             source=source,
             name=name,
@@ -606,29 +526,14 @@ class ZoneAnalysisBuilder:
         )
         return self
     
-    def detect_zones(self, 
-                    strategy: str, 
-                    min_duration: int = 2,
-                    zone_types: List[str] = None,
-                    **rules) -> 'ZoneAnalysisBuilder':
-        """
-        Настроить детекцию зон.
-        
-        Args:
-            strategy: Стратегия ('zero_crossing', 'line_crossing', 'threshold', 'preloaded', 'combined')
-            min_duration: Минимальная длительность зоны
-            zone_types: Типы зон для поиска (None = все для стратегии)
-            **rules: Правила детекции (зависят от стратегии)
-        
-        Returns:
-            self для цепочки вызовов
-        
-        Examples:
-            .detect_zones('zero_crossing', indicator_col='macd_histogram')
-            .detect_zones('threshold', indicator_col='rsi', upper_threshold=70, lower_threshold=30)
-            .detect_zones('line_crossing', line1_col='close', line2_col='sma_20')
-            .detect_zones('preloaded', zones_data='zones.csv')
-        """
+    def detect_zones(
+        self,
+        strategy: str,
+        min_duration: int = 2,
+        zone_types: List[str] = None,
+        **rules,
+    ) -> 'ZoneAnalysisBuilder':
+        """Configure zone detection rules."""
         self._zone_detection_config = ZoneDetectionConfig(
             min_duration=min_duration,
             zone_types=zone_types,
@@ -642,21 +547,7 @@ class ZoneAnalysisBuilder:
                n_clusters: int = 3,
                regression: bool = False,
                validation: bool = False) -> 'ZoneAnalysisBuilder':
-        """
-        Настроить параметры анализа.
-        
-        Args:
-            clustering: Выполнять кластеризацию
-            n_clusters: Количество кластеров
-            regression: Запустить регрессионный анализ
-            validation: Запустить валидацию
-        
-        Returns:
-            self для цепочки вызовов
-        
-        Example:
-            .analyze(clustering=True, n_clusters=4, regression=True)
-        """
+        """Toggle optional analysis stages."""
         self._perform_clustering = clustering
         self._n_clusters = n_clusters
         self._run_regression = regression
@@ -669,72 +560,13 @@ class ZoneAnalysisBuilder:
                        divergence: Optional[str] = None,
                        volatility: Optional[str] = None,
                        volume: Optional[str] = None) -> 'ZoneAnalysisBuilder':
-        """
-        Настроить analytical strategies для zone features extraction.
-        
-        v2.1 FEATURE: Configure strategies for swing analysis, shape analysis,
-        divergence detection, volatility analysis, and volume analysis.
-        
-        Args:
-            swing: Swing detection strategy name
-                   - 'find_peaks': Detect peaks/troughs using scipy.signal.find_peaks
-                   - 'zigzag': ZigZag indicator-based swing detection
-                   - 'pivot_points': Classical pivot points detection
-                   - None: Skip swing analysis (default)
-            shape: Shape analysis strategy name
-                   - 'statistical': Statistical shape metrics (skewness, kurtosis, etc.)
-                   - None or custom strategy instance
-            divergence: Divergence detection strategy name
-                   - 'classic': Classic bullish/bearish divergence detection
-                   - None or custom strategy instance
-            volatility: Volatility analysis strategy name
-                   - None or custom strategy instance
-            volume: Volume analysis strategy name
-                   - 'standard': Standard volume analysis (spikes, correlation, etc.)
-                   - None or custom strategy instance
-        
-        Returns:
-            self для цепочки вызовов
-        
-        Examples:
-            # With swing analysis
-            result = (
-                analyze_zones(df)
-                .detect_zones('zero_crossing', indicator_col='macd_hist')
-                .with_strategies(swing='find_peaks')
-                .analyze(clustering=True)
-                .build()
+        """Configure analytical strategy names for feature extraction."""
+        if isinstance(swing, (list, tuple)):
+            raise ValueError(
+                "Only one swing strategy is supported per analysis run. "
+                "To compare multiple strategies, run separate pipelines "
+                "or refer to multiswing.md."
             )
-            
-            # With multiple strategies
-            result = (
-                analyze_zones(df)
-                .detect_zones('zero_crossing', indicator_col='macd_hist')
-                .with_strategies(
-                    swing='find_peaks',
-                    shape='statistical',
-                    divergence='classic',
-                    volume='standard'
-                )
-                .analyze(clustering=True)
-                .build()
-            )
-            
-            # RSI with swing analysis
-            result = (
-                analyze_zones(df)
-                .with_indicator('pandas_ta', 'rsi', period=14)
-                .detect_zones('threshold', indicator_col='RSI_14', 
-                             upper_threshold=70, lower_threshold=30)
-                .with_strategies(swing='pivot_points')
-                .build()
-            )
-        
-        Note:
-            Strategies are passed to UniversalZoneAnalyzer which creates
-            specialized strategy instances (e.g., FindPeaksSwingStrategy,
-            StatisticalShapeStrategy, etc.) based on the strategy names.
-        """
         self._swing_strategy = swing
         self._shape_strategy = shape
         self._divergence_strategy = divergence

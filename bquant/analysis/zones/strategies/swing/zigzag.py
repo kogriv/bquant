@@ -43,8 +43,18 @@ class ZigZagSwingStrategy:
         self._validate_input(full_data)
 
         if len(full_data) < self.legs * 2:
-            raise ValueError(
-                f"Insufficient data for ZigZag: {len(full_data)} bars < {self.legs * 2}"
+            logger.warning(
+                "ZigZag global: data too short (%d bars, need >= %d). "
+                "Returning empty SwingContext.",
+                len(full_data),
+                self.legs * 2,
+            )
+            return SwingContext(
+                swing_points=[],
+                indices=np.array([], dtype=int),
+                full_data_length=len(full_data),
+                strategy_name='zigzag',
+                strategy_params={'legs': self.legs, 'deviation': self.deviation},
             )
 
         from .....indicators import LibraryManager

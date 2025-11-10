@@ -11,7 +11,11 @@ os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
 os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 from bquant.analysis.zones.models import ZoneInfo, SwingContext, SwingPoint
-from bquant.analysis.zones.strategies.swing import ZigZagSwingStrategy
+from bquant.analysis.zones.strategies.swing import (
+    FindPeaksSwingStrategy,
+    PivotPointsSwingStrategy,
+    ZigZagSwingStrategy,
+)
 from bquant.analysis.zones.strategies.swing.thresholds import (
     _AdaptiveSwingStrategy,
     auto_swing_thresholds,
@@ -123,3 +127,32 @@ def test_adaptive_thresholds_global_mode(monkeypatch):
     )
     metrics = adaptive.aggregate_for_zone(zone, context)
     assert metrics.strategy_name == "zigzag"
+
+
+@pytest.mark.parametrize(
+    ("strategy_cls", "kwargs"),
+    [
+        (ZigZagSwingStrategy, {"legs": 3, "deviation": 0.02}),
+        (FindPeaksSwingStrategy, {"prominence": 0.02, "distance": 5, "min_amplitude_pct": 0.02}),
+        (PivotPointsSwingStrategy, {"left_bars": 2, "right_bars": 2, "min_amplitude_pct": 0.02}),
+    ],
+    ids=["zigzag", "find_peaks", "pivot_points"],
+)
+def test_calculate_global_handles_short_dataset(strategy_cls, kwargs):
+    """All swing strategies should return empty context for datasets that are too short."""
+
+    short_data = pd.DataFrame(
+        {
+            "open": [1.0, 1.1, 1.2],
+            "high": [1.1, 1.2, 1.3],
+            "low": [0.9, 1.0, 1.1],
+            "close": [1.0, 1.1, 1.2],
+        },
+        index=pd.date_range("2024-03-01", periods=3, freq="H"),
+    )
+
+    strategy = strategy_cls(**kwargs)
+    context = strategy.calculate_global(short_data)
+
+    assert isinstance(context, SwingContext)
+    assert len(context.swing_points) == 0

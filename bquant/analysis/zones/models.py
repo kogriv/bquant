@@ -1,15 +1,14 @@
 """
-Zone Analysis Models - универсальные структуры данных для анализа зон.
+Zone Analysis Models - shared data structures for the zone-analysis pipeline.
 
-Этот модуль содержит базовые модели данных, используемые во всей системе анализа зон:
-- ZoneInfo: Информация о зоне (универсальная структура)
-- ZoneAnalysisResult: Результат анализа зон
+The module exposes the core entities used across zone detection and analytics:
+* ``ZoneInfo`` – generic container describing a detected zone.
+* ``ZoneAnalysisResult`` – aggregate result of running the analysis pipeline.
 
-Модуль обеспечивает:
-- Единообразие структур данных
-- Методы сериализации/десериализации (pickle, JSON, parquet)
-- Интеграцию с визуализацией
-- Backward compatibility
+Responsibilities:
+* Provide a consistent schema for downstream consumers and visualization.
+* Support (de-)serialization to pickle/JSON/Parquet formats.
+* Preserve backward compatibility between schema versions.
 """
 
 from dataclasses import dataclass, field
@@ -175,34 +174,25 @@ class SwingContext:
 
 @dataclass
 class ZoneInfo:
-    """
-    Информация о зоне (универсальная структура).
-    
-    Attributes:
-        zone_id: Уникальный идентификатор зоны
-        type: Тип зоны ('bull', 'bear', 'overbought', 'neutral', 'oversold', ...)
-        start_idx: Начальный индекс (integer location)
-        end_idx: Конечный индекс (integer location)
-        start_time: Время начала зоны (index value)
-        end_time: Время окончания зоны (index value)
-        duration: Длительность в барах
-        data: DataFrame с данными зоны (OHLCV + все индикаторы)
-        features: Рассчитанные признаки (заполняется после анализа)
-        indicator_context: Контекст о том, как зона была обнаружена (заполняется detection strategy)
-            Стандартные поля:
-            - detection_strategy: str (имя стратегии)
-            - detection_indicator: str (primary indicator column)
-            - signal_line: Optional[str] (secondary indicator, если есть)
-            - detection_rules: dict (полные rules для справки)
+    """Normalized representation of a detected zone.
 
-    NEW (global swings): поле ``swing_context`` позволяет получать глобальные
-    свинги зоны без повторного расчёта стратегий.
-    
-    NEW (v2.1): Добавлено поле indicator_context для хранения информации о том,
-    какой индикатор использовался для detection.
-    
-    IMPORTANT: indicator_context заполняется DETECTION STRATEGY при создании ZoneInfo,
-    НЕ pipeline/builder!
+    Attributes:
+        zone_id: Unique identifier of the zone within the analysis batch.
+        type: Zone type label (``"bull"``, ``"bear"``, ``"oversold"``, etc.).
+        start_idx: Inclusive positional index (``iloc``) at which the zone begins.
+        end_idx: Inclusive positional index (``iloc``) at which the zone ends.
+        start_time: Timestamp of the first bar belonging to the zone.
+        end_time: Timestamp of the last bar belonging to the zone.
+        duration: Number of bars in the zone.
+        data: Slice of the source dataframe containing OHLCV columns (plus indicators).
+        features: Optional dictionary of computed feature metrics (populated by analyzers).
+        indicator_context: Optional metadata produced by the detection strategy
+            (strategy name, indicator columns, thresholds, etc.).
+        swing_context: Optional :class:`SwingContext` providing access to global swings.
+
+    Notes:
+        * ``indicator_context`` is set by the detection stage; the pipeline does not mutate it.
+        * ``swing_context`` is injected in global swing mode and remains ``None`` for per-zone mode.
     """
     zone_id: int
     type: str
@@ -217,12 +207,12 @@ class ZoneInfo:
     swing_context: Optional[SwingContext] = None
     
     def __post_init__(self):
-        """Инициализация indicator_context как пустой dict если None."""
+        """Ensure ``indicator_context`` is always a dictionary."""
         if self.indicator_context is None:
             self.indicator_context = {}
 
     def get_zone_swings(self) -> List[SwingPoint]:
-        """Return swing points for the zone using the global swing context.
+        """Return swing points for the zone using the attached swing context.
 
         Returns:
             List of :class:`SwingPoint` extracted from the associated
@@ -240,45 +230,15 @@ class ZoneInfo:
         return self.swing_context.get_swings_for_zone(self)
     
     def get_primary_indicator_column(self) -> Optional[str]:
-        """
-        Get primary indicator column from context.
-        
-        Returns:
-            str: Column name, or None if not available
-        
-        Example:
-            zone = ZoneInfo(...)
-            indicator_col = zone.get_primary_indicator_column()
-            if indicator_col:
-                values = zone.data[indicator_col]
-        """
+        """Return the primary indicator column name stored in the detector context."""
         return self.indicator_context.get('detection_indicator')
     
     def get_signal_line_column(self) -> Optional[str]:
-        """
-        Get signal line column from context (if exists).
-        
-        Returns:
-            str: Signal line column name, or None if not available
-        
-        Example:
-            zone = ZoneInfo(...)
-            signal_col = zone.get_signal_line_column()
-            if signal_col:
-                signal_values = zone.data[signal_col]
-        """
+        """Return the secondary indicator (signal line) column name if available."""
         return self.indicator_context.get('signal_line')
     
     def to_analyzer_format(self) -> Dict[str, Any]:
-        """
-        Формат для передачи в анализаторы.
-        
-        Returns:
-            Словарь с данными зоны для анализаторов
-        
-        NOTE: Includes indicator_context for analytical strategies (v2.1)
-        NOTE: Includes start_time/end_time/start_idx/end_idx for visualization (v2.1.1)
-        """
+        """Convert the zone into a dictionary consumed by feature analyzers."""
         return {
             'zone_id': self.zone_id,
             'type': self.type,
@@ -320,35 +280,25 @@ class ZoneAnalysisResult:
     data: Optional[pd.DataFrame] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
     
-    def save(self, 
-             filepath: Union[str, Path],
-             format: str = 'pickle',
-             compress: bool = False,
-             include_data: bool = True) -> None:
-        """
-        Сохранить результат анализа на диск.
-        
+    def save(
+        self,
+        filepath: Union[str, Path],
+        format: str = 'pickle',
+        compress: bool = False,
+        include_data: bool = True,
+    ) -> None:
+        """Persist the analysis result to disk.
+
         Args:
-            filepath: Путь к файлу
-            format: Формат сохранения
-                - 'pickle': Бинарный формат Python (быстро, все данные)
-                - 'json': Текстовый формат (читаемо, без DataFrame)
-                - 'parquet': Columnar формат (компактно, все данные)
-            compress: Сжимать ли данные (для pickle/parquet)
-            include_data: Включать ли исходный DataFrame
-            
-        Example:
-            # Полное сохранение с данными
-            result.save('results/macd_zones.pkl')
-            
-            # Сжатое сохранение
-            result.save('results/macd_zones.pkl.gz', compress=True)
-            
-            # JSON без исходных данных (легкий файл)
-            result.save('results/macd_zones.json', format='json', include_data=False)
-            
-            # Parquet (оптимально для больших данных)
-            result.save('results/macd_zones.parquet', format='parquet')
+            filepath: Destination path for the serialized payload.
+            format: Output format (``"pickle"``, ``"json"``, or ``"parquet"``).
+            compress: Enable gzip compression for pickle/parquet outputs.
+            include_data: Include the full dataframe in the serialized payload.
+
+        Examples:
+            >>> result.save('results/zones.pkl')
+            >>> result.save('results/zones.pkl.gz', compress=True)
+            >>> result.save('results/zones.json', format='json', include_data=False)
         """
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -368,8 +318,8 @@ class ZoneAnalysisResult:
         logger.info(f"Saved ZoneAnalysisResult to {filepath} (format: {format})")
     
     def _save_pickle(self, filepath: Path, compress: bool, include_data: bool) -> None:
-        """Сохранение в pickle."""
-        # Временно удаляем data если не нужен
+        """Serialize the result using Python pickle."""
+        # Temporarily drop the dataframe if it should not be serialized
         data_backup = None
         if not include_data and self.data is not None:
             data_backup = self.data
@@ -383,29 +333,29 @@ class ZoneAnalysisResult:
                 with open(filepath, 'wb') as f:
                     pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         finally:
-            # Восстанавливаем data
+            # Restore dataframe reference after writing
             if data_backup is not None:
                 self.data = data_backup
     
     def _save_json(self, filepath: Path, include_data: bool) -> None:
-        """Сохранение в JSON."""
+        """Serialize the result to JSON."""
         data_dict = self.to_dict(include_data=include_data)
         
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data_dict, f, indent=2, default=str, ensure_ascii=False)
     
     def _save_parquet(self, filepath: Path, compress: bool, include_data: bool) -> None:
-        """Сохранение в Parquet (набор файлов)."""
-        # Создаем директорию для набора файлов
+        """Serialize the result to a directory containing Parquet/JSON artifacts."""
+        # Ensure output directory exists
         output_dir = filepath.with_suffix('.parquet')
         output_dir.mkdir(exist_ok=True)
         
-        # Сохраняем зоны
+        # Persist zones metadata
         zones_data = [self._zone_to_dict(z) for z in self.zones]
         zones_df = pd.DataFrame(zones_data)
         zones_df.to_parquet(output_dir / 'zones.parquet', compression='gzip' if compress else None)
         
-        # Сохраняем метаданные и результаты анализа
+        # Persist aggregate analysis outputs
         metadata = {
             'statistics': self.statistics,
             'hypothesis_tests': self.hypothesis_tests,
@@ -419,7 +369,7 @@ class ZoneAnalysisResult:
         with open(output_dir / 'metadata.json', 'w') as f:
             json.dump(metadata, f, indent=2, default=str)
         
-        # Сохраняем исходные данные
+        # Persist raw dataframe if requested
         if include_data and self.data is not None:
             self.data.to_parquet(output_dir / 'data.parquet', compression='gzip' if compress else None)
     
@@ -427,30 +377,7 @@ class ZoneAnalysisResult:
     def load(cls, 
              filepath: Union[str, Path],
              format: str = 'pickle') -> 'ZoneAnalysisResult':
-        """
-        Загрузить результат анализа из файла.
-        
-        Args:
-            filepath: Путь к файлу
-            format: Формат файла
-            
-        Returns:
-            ZoneAnalysisResult
-            
-        Example:
-            # Загрузка pickle
-            result = ZoneAnalysisResult.load('results/macd_zones.pkl')
-            
-            # Загрузка сжатого pickle
-            result = ZoneAnalysisResult.load('results/macd_zones.pkl.gz')
-            
-            # Загрузка JSON
-            result = ZoneAnalysisResult.load('results/macd_zones.json', format='json')
-            
-            # Продолжение работы
-            fig = result.visualize('overview')
-            print(f"Loaded {len(result.zones)} zones")
-        """
+        """Load a serialized analysis result from disk."""
         filepath = Path(filepath)
         
         if format == 'pickle':
@@ -467,8 +394,8 @@ class ZoneAnalysisResult:
     
     @classmethod
     def _load_pickle(cls, filepath: Path) -> 'ZoneAnalysisResult':
-        """Загрузка из pickle."""
-        # Автоопределение сжатия
+        """Internal helper that deserializes a pickle artifact."""
+        # Auto-detect gzip compression
         if filepath.suffix == '.gz' or filepath.name.endswith('.pkl.gz'):
             with gzip.open(filepath, 'rb') as f:
                 return pickle.load(f)
@@ -478,7 +405,7 @@ class ZoneAnalysisResult:
     
     @classmethod
     def _load_json(cls, filepath: Path) -> 'ZoneAnalysisResult':
-        """Загрузка из JSON."""
+        """Internal helper that deserializes a JSON artifact."""
         with open(filepath, 'r', encoding='utf-8') as f:
             data_dict = json.load(f)
         
@@ -486,7 +413,7 @@ class ZoneAnalysisResult:
     
     @classmethod
     def _load_parquet(cls, filepath: Path) -> 'ZoneAnalysisResult':
-        """Загрузка из Parquet."""
+        """Internal helper that deserializes a Parquet artifact."""
         parquet_dir = filepath.with_suffix('.parquet')
         
         # Загружаем зоны
@@ -514,12 +441,7 @@ class ZoneAnalysisResult:
         )
     
     def to_dict(self, include_data: bool = False) -> Dict[str, Any]:
-        """
-        Конвертация в словарь (для JSON).
-        
-        Args:
-            include_data: Включать ли DataFrame (warning: может быть большим)
-        """
+        """Convert the result into a JSON-serializable dictionary."""
         result = {
             'zones': [self._zone_to_dict(z) for z in self.zones],
             'statistics': self.statistics,
@@ -532,17 +454,17 @@ class ZoneAnalysisResult:
         }
         
         if include_data and self.data is not None:
-            # Конвертируем DataFrame в dict (будет большой!)
+            # This may be large; use with caution
             result['data'] = self.data.to_dict('records')
         
         return result
     
     @classmethod
     def from_dict(cls, data_dict: Dict[str, Any]) -> 'ZoneAnalysisResult':
-        """Создание из словаря."""
+        """Reconstruct an instance from a dictionary representation."""
         zones = [cls._zone_from_dict(z) for z in data_dict['zones']]
         
-        # Восстанавливаем DataFrame если есть
+        # Rebuild dataframe when present
         data = None
         if 'data' in data_dict and data_dict['data']:
             data = pd.DataFrame(data_dict['data'])
@@ -561,7 +483,7 @@ class ZoneAnalysisResult:
     
     @staticmethod
     def _zone_to_dict(zone: ZoneInfo) -> Dict[str, Any]:
-        """Конвертация ZoneInfo в словарь."""
+        """Convert a :class:`ZoneInfo` into a serializable dictionary."""
         return {
             'zone_id': zone.zone_id,
             'type': zone.type,
@@ -577,7 +499,7 @@ class ZoneAnalysisResult:
     
     @staticmethod
     def _zone_from_dict(zone_dict: Dict[str, Any]) -> ZoneInfo:
-        """Создание ZoneInfo из словаря."""
+        """Recreate a :class:`ZoneInfo` from its dictionary representation."""
         return ZoneInfo(
             zone_id=zone_dict['zone_id'],
             type=zone_dict['type'],
@@ -599,33 +521,26 @@ class ZoneAnalysisResult:
                   timeframe: Optional[str] = None,
                   source: Optional[str] = None,
                   **kwargs):
-        """Создать визуализацию по сохранённому результату анализа зон.
-
-        Параметры полностью повторяют интерактивные примеры из
-        :mod:`docs.user_guide.zone_analysis`, поэтому готовые сценарии из
-        руководства можно запускать непосредственно на экземпляре
-        :class:`ZoneAnalysisResult`.
+        """Render interactive visualizations for the analysis result.
 
         Args:
-            mode: Режим визуализации. Поддерживаются режимы ``'overview'``
-                (обзор всех зон на графике цены), ``'detail'`` (детальный
-                просмотр одной зоны), ``'comparison'`` (сравнение нескольких
-                зон) и ``'statistics'`` (анализ агрегированной статистики).
-            zone_id: Идентификатор зоны, обязательный для ``mode='detail'``.
-            date_range: Необязательный диапазон дат для ``mode='comparison'``.
-            **kwargs: Дополнительные параметры визуализации. Специальные ключи
-                ``backend`` и ``visualizer_config`` используются при создании
-                :class:`~bquant.visualization.zones.ZoneVisualizer`, остальные
-                аргументы проксируются в целевой метод визуализатора.
+            mode: Visualization mode. Supported values are ``"overview"`` (price
+                chart with all zones), ``"detail"`` (single-zone view), ``"comparison"``
+                (side-by-side comparison), and ``"statistics"`` (aggregated metrics).
+            zone_id: Zone identifier required for ``mode="detail"``.
+            date_range: Optional datetime tuple used by comparison/overview modes.
+            symbol: Optional symbol override passed to the visualizer metadata.
+            timeframe: Optional timeframe override passed to the visualizer metadata.
+            source: Optional data-source label passed to the visualizer metadata.
+            **kwargs: Additional keyword arguments forwarded to ``ZoneVisualizer``.
 
         Returns:
-            Объект графика (Plotly или Matplotlib в зависимости от выбранного
-            backend визуализатора).
+            Visualization object (Plotly figure or matplotlib figure depending
+            on the active backend).
 
         Raises:
-            ImportError: Если модуль визуализации недоступен или отсутствуют
-                дополнительные зависимости.
-            ValueError: При отсутствии требуемых данных или зон.
+            ImportError: If visualization dependencies are missing.
+            ValueError: If required data is unavailable for the chosen mode.
 
         Examples:
             >>> result.visualize('overview', title='Zones vs Price')
@@ -726,6 +641,8 @@ class ZoneAnalysisResult:
 # Экспорт
 __all__ = [
     'ZoneInfo',
-    'ZoneAnalysisResult'
+    'ZoneAnalysisResult',
+    'SwingPoint',
+    'SwingContext'
 ]
 

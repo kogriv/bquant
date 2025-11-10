@@ -13,6 +13,7 @@ from bquant.analysis.zones.strategies.swing import ZigZagSwingStrategy
 
 from tests.fixtures import create_sample_ohlcv_data
 from tests.fixtures.swing_mocks import use_fake_zigzag_indicator
+from research.notebooks.test_global_swing_coverage import compare_swing_coverage
 from unittest.mock import patch
 
 
@@ -89,3 +90,13 @@ def test_fallback_to_per_zone(monkeypatch):
         metrics = metadata["swing_metrics"]
         assert isinstance(metrics, dict)
         assert metrics.get("strategy_name") == "zigzag"
+
+
+def test_global_mode_improves_swing_coverage():
+    """Global mode should have higher swing coverage than per-zone mode."""
+
+    results = compare_swing_coverage()
+
+    assert results["global"] >= 0.70
+    assert results["global"] > results["per_zone"]
+    assert results["improvement_pct"] >= 20

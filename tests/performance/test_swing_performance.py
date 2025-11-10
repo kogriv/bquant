@@ -107,8 +107,7 @@ def test_benchmark_global_vs_perzone(monkeypatch):
 
         per_zone_start = time.perf_counter()
         for zone in zones:
-            # Per-zone workflow recalculates metrics for each strategy invocation.
-            strategy.calculate(zone.data)
+            # Per-zone workflow recalculates metrics once per zone (matching production).
             strategy.calculate(zone.data)
         per_zone_time = time.perf_counter() - per_zone_start
 

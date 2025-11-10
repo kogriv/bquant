@@ -7,7 +7,6 @@
 [09:33:05] [not_included] [Changed] Адаптивный враппер перенесён в bquant/analysis/zones/strategies/swing/thresholds.py: добавлен `_global_threshold_cache`, поддержаны глобальные пороги; pipeline импорт обновлён.
 [09:33:28] [not_included] [Changed] Документ devref/gaps/swing/gloswing.md (Фаза 2) — отмечены выполненные чекбоксы, зафиксированы результаты тестов и ограничения mypy.
 [09:33:46] [not_included] [Test] Выполнены smoke-тесты: ZigZag.calculate_global (4 точки), aggregate_for_zone (1 свинг), FindPeaks.calculate_global (8 точек), PivotPoints.calculate_global (0 точек на синтетических данных). 【b599f1†L4-L4】【624104†L4-L5】【49e347†L1-L2】【1e7579†L4-L5】
-==================== COMMIT DIVIDER ====================
 [10:15:02] [not_included] [Docs] Обновлён devref/gaps/swing/gloswing.md: отмечен runtime_checkable для протокола и добавлен комментарий к невыполненному прогону mypy.
 [08:28:05] [not_included] [Changed] ZoneAnalysisPipeline (bquant/analysis/zones/pipeline.py) дополнен глобальным расчётом: добавлены `_calculate_global_swings`, `_inject_swing_context`, обновлён `_run_without_cache` и builder.with_swing_scope().
 [08:28:37] [not_included] [Docs] devref/gaps/swing/gloswing.md — чеклисты Фазы 3 помечены с комментариями, зафиксированы результаты тестов и статус validation.
@@ -17,3 +16,7 @@
 [08:43:30] [not_included] [Test] Smoke-скрипт подтвердил ветвление ZoneFeaturesAnalyzer: режимы per_zone/global и обработка исключений фиксируют swing_calculation_mode и fallback. 【9a5c13†L1-L21】
 [09:12:21] [not_included] [Test] Выполнены pytest тесты глобальных свингов (unit/integration/performance) и сравнение coverage, все чекпоинты Фазы 5 зелёные. 【237dfc†L1-L15】【79565f†L1-L3】【695908†L1-L89】
 [09:14:33] [not_included] [Test] Повторно прогнаны pytest unit/integration/performance сценарии Фазы 5 и research-скрипт coverage, подтверждены зелёные статусы чеклистов. 【354ab6†L2-L16】【13e762†L1-L88】
+[15:42:18] [not_included] [Changed] Закрыты пробелы Фазы 5: параметризованы unit/edge-тесты по стратегиям и добавлен pytest-сценарий автоматической проверки coverage (`tests/unit/test_swing_global_calculation.py`, `tests/unit/test_swing_edge_cases.py`, `tests/integration/test_pipeline_global_swings.py`), обновлён чеклист в `devref/gaps/swing/gloswing.md`.
+[15:55:03] [not_included] [Docs] Выполнен пункт 6.1.1: docstrings и inline-комментарии новых API приведены к английскому стилю в `bquant/analysis/zones/models.py`, `bquant/analysis/zones/pipeline.py`; статус зафиксирован в `devref/gaps/swing/gloswing.md`.
+
+==================== COMMIT DIVIDER ====================
