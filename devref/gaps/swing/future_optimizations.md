@@ -524,6 +524,115 @@ def _calculate_global_swings(self, data: pd.DataFrame) -> Optional[SwingContext]
 
 ---
 
+## Оптимизация 5: Incremental Updates для Rolling Window
+
+### Проблема
+
+При потоковой обработке (rolling window) каждый сдвиг окна требует полного пересчёта всех свингов:
+
+```python
+# ❌ Текущая реализация: полный пересчёт на каждом окне
+for t in range(1000, len(data), 100):
+    window = data[t-1000:t]  # 90% данных перекрываются с предыдущим окном
+    context = strategy.calculate_global(window)  # Пересчёт ВСЕХ свингов
+    # Проблема: не переиспользуется результат из предыдущего окна
+```
+
+**Overhead**: Для 1000-баровых окон со сдвигом 100 баров - 10× избыточных вычислений.
+
+### Решение
+
+Инкрементальное обновление SwingContext при добавлении/удалении баров.
+
+```python
+# В bquant/analysis/zones/models.py
+
+@dataclass
+class SwingContext:
+    """
+    FUTURE: Поддержка инкрементальных обновлений
+    """
+    swing_points: List[SwingPoint]
+    indices: np.ndarray
+    _window_start: int = 0  # Начало текущего окна
+    _window_end: int = 0    # Конец текущего окна
+
+    def update_window(self, new_data: pd.DataFrame, shift: int) -> 'SwingContext':
+        """
+        Обновить SwingContext при сдвиге окна.
+
+        Args:
+            new_data: Новые бары (добавленные справа)
+            shift: Количество баров для удаления слева
+
+        Returns:
+            Обновлённый SwingContext
+
+        Logic:
+            1. Удалить инвалидированные свинги слева (index < shift)
+            2. Пересчитать свинги только в "affected zone" (граничная область)
+            3. Добавить новые свинги справа (из new_data)
+        """
+        # Инвалидация старых свингов
+        valid_swings = [sp for sp in self.swing_points if sp.index >= shift]
+
+        # Определить "affected zone" - где могли измениться свинги
+        # (например, последние 100 баров старого окна + новые бары)
+        affected_start = self._window_end - 100
+        affected_end = self._window_end + len(new_data)
+
+        # Частичный пересчёт только affected zone
+        affected_swings = self._recalculate_swings(data[affected_start:affected_end])
+
+        # Merge: старые (до affected) + новые (affected zone)
+        updated_swings = [sp for sp in valid_swings if sp.index < affected_start] + affected_swings
+
+        return SwingContext(
+            swing_points=updated_swings,
+            indices=np.array([sp.index for sp in updated_swings]),
+            _window_start=shift,
+            _window_end=self._window_end + len(new_data)
+        )
+```
+
+### Сложности
+
+**Инвалидация свингов**: При удалении баров слева могут исчезнуть пики/впадины, что изменит классификацию последующих точек.
+
+**Affected zone**: Определить минимальную область для пересчёта сложно (зависит от стратегии и параметров).
+
+**State management**: SwingContext должен помнить window boundaries между вызовами.
+
+### Альтернатива (проще)
+
+Вместо инкрементального обновления использовать **кэш последнего результата**:
+
+```python
+# Кэш последнего SwingContext с TTL
+_last_context_cache = {
+    'window_hash': hash((start, end)),
+    'context': SwingContext(...),
+    'timestamp': time.time()
+}
+
+# При новом запросе проверить overlap с кэшированным окном
+if overlap > 0.8:  # 80% overlap
+    # Использовать кэш + досчитать разницу
+    ...
+```
+
+**Trade-off**: Больше памяти (храним кэш), но проще реализация.
+
+### Когда реализовывать
+
+- Есть real-time / streaming use case
+- Измерен performance bottleneck в rolling window сценариях
+- Оценён cost (сложность) vs benefit (ускорение)
+
+**Рекомендация**: Сначала реализовать simple cache, затем incremental updates если недостаточно.
+
+---
+
 ## Рекомендации по приоритизации
 
 Если появится реальная потребность в оптимизациях:
@@ -531,13 +640,15 @@ def _calculate_global_swings(self, data: pd.DataFrame) -> Optional[SwingContext]
 **Phase 1** (Quick wins):
 1. ✅ Graceful MemoryError fallback (простая реализация, большая выгода)
 2. ✅ Добавить `_estimate_swing_memory()` helper (для warning'ов)
+3. ✅ Simple cache для rolling window (если есть streaming use case)
 
 **Phase 2** (Средняя сложность):
-3. ⚠️ Chunking для >5M bars (если есть такие пользователи)
+4. ⚠️ Chunking для >5M bars (если есть такие пользователи)
+5. ⚠️ Incremental updates для rolling window (если simple cache недостаточно)
 
 **Phase 3** (Сложные оптимизации):
-4. ❌ Lazy Loading (только если disk cache становится критичным)
-5. ❌ Numpy arrays (только если memory profiling показал bottleneck)
+6. ❌ Lazy Loading (только если disk cache становится критичным)
+7. ❌ Numpy arrays (только если memory profiling показал bottleneck)
 
 **Не делать preemptively** - дождаться реальных проблем от пользователей!
 
