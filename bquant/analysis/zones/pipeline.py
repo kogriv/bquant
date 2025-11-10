@@ -25,7 +25,7 @@ from .strategies.swing.thresholds import _AdaptiveSwingStrategy
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
-from .models import ZoneInfo, ZoneAnalysisResult
+from .models import ZoneInfo, ZoneAnalysisResult, SwingContext
 from .cache import ZoneAnalysisCache
 from .strategies.registry import StrategyRegistry
 from .strategies.swing import (
@@ -213,20 +213,93 @@ class ZoneAnalysisPipeline:
     def _run_without_cache(self, df: pd.DataFrame) -> ZoneAnalysisResult:
         """
         Выполнить pipeline без кэширования.
-        
-        Шаги:
-        1. Расчет индикатора (если нужно) - через IndicatorFactory
-        2. Детекция зон - через ZoneDetectionStrategy
-        3. Анализ зон - через UniversalZoneAnalyzer
+
+        Обновлённый workflow (Phase 3):
+
+        1. Подготовка данных и расчёт индикаторов.
+        2. Глобальный расчёт свингов (если включён режим ``"global"``).
+        3. Детекция зон на подготовленных данных.
+        4. Инжекция глобального swing контекста в каждую зону.
+        5. Анализ зон через ``UniversalZoneAnalyzer``.
         """
-        # 1. Подготовка данных (расчет индикатора)
+
+        # 1. Подготовка данных (расчёт индикатора)
         df_prepared = self._prepare_data(df)
-        
-        # 2. Детекция зон
+
+        # 2. Глобальный расчёт свингов (опционально)
+        global_swing_context: Optional[SwingContext] = None
+        if self.config.swing_scope == "global":
+            try:
+                global_swing_context = self._calculate_global_swings(df_prepared)
+            except Exception as exc:  # noqa: BLE001 - стратегические исключения логируются
+                self.logger.warning(
+                    "Global swing calculation failed, falling back to per_zone mode: %s",
+                    exc,
+                )
+
+        # 3. Детекция зон
         zones = self._detect_zones(df_prepared)
-        
-        # 3. Анализ зон
+
+        # 4. Инжекция глобального контекста в зоны (если доступен)
+        if global_swing_context is not None and zones:
+            self._inject_swing_context(zones, global_swing_context)
+
+        # 5. Анализ зон
         return self._analyze_zones(zones, df_prepared)
+
+    def _get_active_swing_strategy(self) -> Optional[Any]:
+        """Возвратить активную стратегию свингов, используемую анализатором зон."""
+
+        features = getattr(self.analyzer, "features", None)
+        if features is None:
+            return None
+        return getattr(features, "swing_strategy", None)
+
+    def _calculate_global_swings(self, data: pd.DataFrame) -> SwingContext:
+        """Рассчитать глобальные свинги на подготовленном наборе данных."""
+
+        strategy = self._get_active_swing_strategy()
+        if strategy is None:
+            raise ValueError(
+                "Swing strategy is not configured; cannot calculate global swings",
+            )
+
+        if not hasattr(strategy, "calculate_global"):
+            raise ValueError(
+                f"Swing strategy {strategy!r} does not support global calculation",
+            )
+
+        self.logger.info(
+            "Calculating global swings with strategy: %s",
+            strategy.__class__.__name__,
+        )
+
+        context = strategy.calculate_global(data)
+        if not isinstance(context, SwingContext):
+            raise TypeError(
+                "Swing strategy returned unexpected context type: "
+                f"{type(context).__name__}",
+            )
+
+        self.logger.info(
+            "Global swings calculated: %d swing points detected",
+            len(context.swing_points),
+        )
+
+        return context
+
+    def _inject_swing_context(
+        self, zones: List[ZoneInfo], swing_context: SwingContext
+    ) -> None:
+        """Инжектировать глобальный swing контекст во все обнаруженные зоны."""
+
+        for zone in zones:
+            zone.swing_context = swing_context
+
+        self.logger.debug(
+            "Injected swing_context into %d zones",
+            len(zones),
+        )
     
     def _prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Расчет индикатора через IndicatorFactory."""
@@ -503,6 +576,7 @@ class ZoneAnalysisBuilder:
         self._volume_strategy: Optional[str] = None
         self._swing_preset: Optional[str] = None
         self._auto_swing_thresholds = False
+        self._swing_scope: Literal["per_zone", "global"] = "per_zone"
         self.logger = get_logger(__name__)
     
     def with_indicator(self, 
@@ -682,6 +756,28 @@ class ZoneAnalysisBuilder:
         self._auto_swing_thresholds = enable
         return self
 
+    def with_swing_scope(
+        self, scope: Literal["per_zone", "global"]
+    ) -> 'ZoneAnalysisBuilder':
+        """Configure swing calculation scope (``"per_zone"`` or ``"global"``).
+
+        Example:
+            >>> (analyze_zones(df)
+            ...     .detect_zones('preloaded', zones_data=zones_df)
+            ...     .with_strategies(swing='zigzag')
+            ...     .with_swing_scope('global')
+            ...     .build())
+        """
+
+        if scope not in ("per_zone", "global"):
+            raise ValueError(
+                "Invalid swing_scope: {0}. Must be 'per_zone' or 'global'".format(scope)
+            )
+
+        self._swing_scope = scope
+        self.logger.info("Swing calculation mode set to: %s", scope)
+        return self
+
     def with_cache(self,
                    enable: bool = True,
                    ttl: int = 3600) -> 'ZoneAnalysisBuilder':
@@ -739,7 +835,8 @@ class ZoneAnalysisBuilder:
             perform_clustering=self._perform_clustering,
             n_clusters=self._n_clusters,
             run_regression=self._run_regression,
-            run_validation=self._run_validation
+            run_validation=self._run_validation,
+            swing_scope=self._swing_scope,
         )
         
         # ✅ v2.1: Create custom analyzer if strategies are specified

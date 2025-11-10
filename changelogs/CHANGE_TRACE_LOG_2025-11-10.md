@@ -9,3 +9,6 @@
 [09:33:46] [not_included] [Test] Выполнены smoke-тесты: ZigZag.calculate_global (4 точки), aggregate_for_zone (1 свинг), FindPeaks.calculate_global (8 точек), PivotPoints.calculate_global (0 точек на синтетических данных). 【b599f1†L4-L4】【624104†L4-L5】【49e347†L1-L2】【1e7579†L4-L5】
 ==================== COMMIT DIVIDER ====================
 [10:15:02] [not_included] [Docs] Обновлён devref/gaps/swing/gloswing.md: отмечен runtime_checkable для протокола и добавлен комментарий к невыполненному прогону mypy.
+[08:28:05] [not_included] [Changed] ZoneAnalysisPipeline (bquant/analysis/zones/pipeline.py) дополнен глобальным расчётом: добавлены `_calculate_global_swings`, `_inject_swing_context`, обновлён `_run_without_cache` и builder.with_swing_scope().
+[08:28:37] [not_included] [Docs] devref/gaps/swing/gloswing.md — чеклисты Фазы 3 помечены с комментариями, зафиксированы результаты тестов и статус validation.
+[08:29:10] [not_included] [Test] Выполнены smoke-тесты пайплайна: глобальный режим, per_zone режим и fallback без стратегии подтверждают логирование и сохранение контекста. 【726fdf†L1-L96】【b783e6†L1-L40】
