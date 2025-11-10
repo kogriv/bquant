@@ -17,6 +17,7 @@ from ...core.logging_config import get_logger
 from ...core.exceptions import AnalysisError
 from ...core.config import create_swing_strategy, create_divergence_strategy, create_shape_strategy, create_volume_strategy, create_volatility_strategy
 from .. import AnalysisResult, BaseAnalyzer
+from .models import ZoneInfo
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
@@ -376,13 +377,49 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             
             # Calculate swing metrics using strategy (if available)
             if self.swing_strategy is not None:
+                swing_context = zone_info.get('swing_context')
+
+                # Pre-set calculation mode for logging and metadata consistency.
+                if swing_context is not None:
+                    metadata['swing_calculation_mode'] = 'global'
+                else:
+                    metadata['swing_calculation_mode'] = 'per_zone'
+
                 try:
-                    swing_metrics = self.swing_strategy.calculate(data)
-                    metadata['swing_metrics'] = swing_metrics.to_dict()
-                    self.logger.debug(
-                        f"Swing metrics calculated: {swing_metrics.rally_count} rallies, "
-                        f"{swing_metrics.drop_count} drops, ratio={swing_metrics.rally_to_drop_ratio:.2f}"
-                    )
+                    if swing_context is not None:
+                        temp_zone = ZoneInfo(
+                            zone_id=zone_info['zone_id'],
+                            type=zone_info['type'],
+                            start_idx=zone_info['start_idx'],
+                            end_idx=zone_info['end_idx'],
+                            start_time=zone_info['start_time'],
+                            end_time=zone_info['end_time'],
+                            duration=zone_info['duration'],
+                            data=data,
+                            indicator_context=zone_info.get('indicator_context'),
+                            swing_context=swing_context,
+                        )
+
+                        swing_metrics = self.swing_strategy.aggregate_for_zone(
+                            temp_zone,
+                            swing_context,
+                        )
+                        metadata['swing_metrics'] = swing_metrics.to_dict()
+                        self.logger.debug(
+                            "Swing metrics aggregated from global context: %s rallies, %s drops, ratio=%.2f",
+                            swing_metrics.rally_count,
+                            swing_metrics.drop_count,
+                            swing_metrics.rally_to_drop_ratio,
+                        )
+                    else:
+                        swing_metrics = self.swing_strategy.calculate(data)
+                        metadata['swing_metrics'] = swing_metrics.to_dict()
+                        self.logger.debug(
+                            "Swing metrics calculated in per_zone mode: %s rallies, %s drops, ratio=%.2f",
+                            swing_metrics.rally_count,
+                            swing_metrics.drop_count,
+                            swing_metrics.rally_to_drop_ratio,
+                        )
                 except Exception as e:
                     self.logger.warning(f"Failed to calculate swing metrics: {e}")
                     metadata['swing_metrics'] = None
