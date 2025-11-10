@@ -12,3 +12,6 @@
 [08:28:05] [not_included] [Changed] ZoneAnalysisPipeline (bquant/analysis/zones/pipeline.py) дополнен глобальным расчётом: добавлены `_calculate_global_swings`, `_inject_swing_context`, обновлён `_run_without_cache` и builder.with_swing_scope().
 [08:28:37] [not_included] [Docs] devref/gaps/swing/gloswing.md — чеклисты Фазы 3 помечены с комментариями, зафиксированы результаты тестов и статус validation.
 [08:29:10] [not_included] [Test] Выполнены smoke-тесты пайплайна: глобальный режим, per_zone режим и fallback без стратегии подтверждают логирование и сохранение контекста. 【726fdf†L1-L96】【b783e6†L1-L40】
+[08:43:30] [not_included] [Changed] ZoneFeaturesAnalyzer (bquant/analysis/zones/zone_features.py) обновлён для поддержки swing_context: добавлены ветки global/per_zone, temp_zone и маркировка режима в metadata.
+[08:43:30] [not_included] [Docs] devref/gaps/swing/gloswing.md — чеклисты Фазы 4 заполнены с комментариями о реализации и подготовке к интеграционным тестам.
+[08:43:30] [not_included] [Test] Smoke-скрипт подтвердил ветвление ZoneFeaturesAnalyzer: режимы per_zone/global и обработка исключений фиксируют swing_calculation_mode и fallback. 【9a5c13†L1-L21】
