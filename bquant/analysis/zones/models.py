@@ -17,6 +17,9 @@ from typing import Optional, Dict, Any, List, Union, Tuple
 from datetime import datetime
 from pathlib import Path
 from importlib import import_module
+from bisect import bisect_left, bisect_right
+
+import numpy as np
 import pandas as pd
 import pickle
 import gzip
@@ -25,6 +28,149 @@ import json
 from ...core.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class SwingPoint:
+    """Represents a single swing point (peak or trough) detected globally.
+
+    Attributes:
+        point_id: Unique identifier within the swing sequence.
+        timestamp: Timestamp of the swing point (index value from the dataset).
+        index: Integer position of the point in the full dataset.
+        price: Price at the swing point.
+        swing_type: Type of swing, ``"peak"`` or ``"trough"``.
+        amplitude_to_next: Percentage change to the next swing point (if available).
+        duration_to_next: Number of bars to the next swing point (if available).
+        strategy_name: Name of the strategy that detected the swing.
+        strategy_params: Parameters of the strategy for traceability.
+
+    Example:
+        >>> from datetime import datetime
+        >>> point = SwingPoint(
+        ...     point_id=1,
+        ...     timestamp=datetime(2024, 1, 1),
+        ...     index=10,
+        ...     price=1825.5,
+        ...     swing_type="peak",
+        ...     strategy_name="zigzag",
+        ... )
+        >>> point.swing_type
+        'peak'
+    """
+
+    point_id: int
+    timestamp: datetime
+    index: int
+    price: float
+    swing_type: str
+    amplitude_to_next: Optional[float] = None
+    duration_to_next: Optional[int] = None
+    strategy_name: str = ""
+    strategy_params: Dict[str, Any] = None
+
+    def __post_init__(self) -> None:
+        if self.strategy_params is None:
+            self.strategy_params = {}
+
+
+@dataclass
+class SwingContext:
+    """Global context for swing points calculated on the full dataset.
+
+    The context stores swing points detected by a strategy once and allows
+    efficient slicing for individual zones without recomputing the strategy.
+
+    Attributes:
+        swing_points: Chronologically ordered list of :class:`SwingPoint` objects.
+        indices: Sorted NumPy array of integer positions for fast slicing.
+        full_data_length: Number of rows in the original dataset.
+        strategy_name: Name of the strategy that produced the swings.
+        strategy_params: Parameters of the strategy for traceability.
+
+    Example:
+        >>> context = SwingContext(
+        ...     swing_points=[
+        ...         SwingPoint(0, datetime(2024, 1, 1), 5, 1800.0, 'peak'),
+        ...         SwingPoint(1, datetime(2024, 1, 2), 15, 1750.0, 'trough'),
+        ...     ],
+        ...     indices=np.array([5, 15]),
+        ...     full_data_length=100,
+        ...     strategy_name='zigzag',
+        ...     strategy_params={'deviation': 0.05},
+        ... )
+        >>> [point.index for point in context.slice(0, 20)]
+        [5, 15]
+    """
+
+    swing_points: List[SwingPoint]
+    indices: np.ndarray
+    full_data_length: int
+    strategy_name: str
+    strategy_params: Dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.indices, np.ndarray):
+            self.indices = np.asarray(self.indices, dtype=int)
+        if self.indices.ndim != 1:
+            raise ValueError("SwingContext.indices must be a one-dimensional array")
+        if len(self.indices) != len(self.swing_points):
+            raise ValueError(
+                "SwingContext.indices must have the same length as swing_points"
+            )
+
+    def slice(self, start_idx: int, end_idx: int) -> List[SwingPoint]:
+        """Return swing points for the given zone range with neighbor padding.
+
+        Args:
+            start_idx: Inclusive start index of the zone.
+            end_idx: Inclusive end index of the zone.
+
+        Returns:
+            List of swing points that fall inside the zone boundaries including
+            one neighboring swing point on each side (when available) to keep
+            swing amplitudes intact.
+        """
+
+        if not self.swing_points:
+            return []
+
+        left = bisect_left(self.indices, start_idx)
+        right = bisect_right(self.indices, end_idx)
+
+        left_with_neighbor = max(0, left - 1)
+        right_with_neighbor = min(len(self.swing_points), right + 1)
+
+        return self.swing_points[left_with_neighbor:right_with_neighbor]
+
+    def get_swings_for_zone(self, zone: "ZoneInfo") -> List[SwingPoint]:
+        """Convenience helper to slice swings for the provided zone."""
+
+        return self.slice(zone.start_idx, zone.end_idx)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the context for caching or persistence layers."""
+
+        return {
+            "swing_points": [
+                {
+                    "point_id": sp.point_id,
+                    "timestamp": sp.timestamp.isoformat(),
+                    "index": sp.index,
+                    "price": sp.price,
+                    "swing_type": sp.swing_type,
+                    "amplitude_to_next": sp.amplitude_to_next,
+                    "duration_to_next": sp.duration_to_next,
+                    "strategy_name": sp.strategy_name,
+                    "strategy_params": sp.strategy_params,
+                }
+                for sp in self.swing_points
+            ],
+            "indices": self.indices.tolist(),
+            "full_data_length": self.full_data_length,
+            "strategy_name": self.strategy_name,
+            "strategy_params": self.strategy_params,
+        }
 
 
 @dataclass
@@ -48,6 +194,9 @@ class ZoneInfo:
             - detection_indicator: str (primary indicator column)
             - signal_line: Optional[str] (secondary indicator, если есть)
             - detection_rules: dict (полные rules для справки)
+
+    NEW (global swings): поле ``swing_context`` позволяет получать глобальные
+    свинги зоны без повторного расчёта стратегий.
     
     NEW (v2.1): Добавлено поле indicator_context для хранения информации о том,
     какой индикатор использовался для detection.
@@ -65,11 +214,30 @@ class ZoneInfo:
     data: pd.DataFrame
     features: Optional[Dict[str, Any]] = None
     indicator_context: Optional[Dict[str, Any]] = None
+    swing_context: Optional[SwingContext] = None
     
     def __post_init__(self):
         """Инициализация indicator_context как пустой dict если None."""
         if self.indicator_context is None:
             self.indicator_context = {}
+
+    def get_zone_swings(self) -> List[SwingPoint]:
+        """Return swing points for the zone using the global swing context.
+
+        Returns:
+            List of :class:`SwingPoint` extracted from the associated
+            :class:`SwingContext`. Returns an empty list if no context is
+            attached.
+
+        Example:
+            >>> swings = zone.get_zone_swings()
+            >>> len(swings)
+            4
+        """
+
+        if self.swing_context is None:
+            return []
+        return self.swing_context.get_swings_for_zone(self)
     
     def get_primary_indicator_column(self) -> Optional[str]:
         """
@@ -121,6 +289,7 @@ class ZoneInfo:
             'duration': self.duration,
             'data': self.data,
             'indicator_context': self.indicator_context,  # Pass to analyzers
+            'swing_context': self.swing_context,
             **(self.features or {})
         }
 

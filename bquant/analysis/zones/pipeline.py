@@ -14,7 +14,6 @@ Zone Analysis Pipeline
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Literal, Optional
 import pandas as pd
-import hashlib
 import json
 
 from bquant.indicators import IndicatorFactory
@@ -27,6 +26,7 @@ from .strategies.swing.thresholds import auto_swing_thresholds
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
 from .models import ZoneInfo, ZoneAnalysisResult
+from .cache import ZoneAnalysisCache
 from .strategies.registry import StrategyRegistry
 from .strategies.swing import (
     FindPeaksSwingStrategy,
@@ -126,7 +126,7 @@ class IndicatorConfig:
 class ZoneAnalysisConfig:
     """
     Полная конфигурация pipeline анализа зон.
-    
+
     Attributes:
         indicator: Конфигурация индикатора (None если уже в данных)
         zone_detection: Конфигурация детекции зон (обязательно)
@@ -134,6 +134,8 @@ class ZoneAnalysisConfig:
         n_clusters: Количество кластеров
         run_regression: Запустить регрессионный анализ
         run_validation: Запустить валидацию
+        swing_scope: Режим расчёта свингов (``"per_zone"`` по умолчанию или
+            ``"global"`` для глобального расчёта)
     """
     # Индикатор (None если уже в данных)
     indicator: Optional[IndicatorConfig] = None
@@ -146,6 +148,23 @@ class ZoneAnalysisConfig:
     n_clusters: int = 3
     run_regression: bool = False
     run_validation: bool = False
+    swing_scope: Literal["per_zone", "global"] = "per_zone"
+
+    def to_cache_key(self) -> str:
+        """Serialize configuration into a stable JSON string for caching."""
+
+        payload = {
+            "indicator": asdict(self.indicator) if self.indicator else None,
+            "zone_detection": asdict(self.zone_detection)
+            if self.zone_detection
+            else None,
+            "perform_clustering": self.perform_clustering,
+            "n_clusters": self.n_clusters,
+            "run_regression": self.run_regression,
+            "run_validation": self.run_validation,
+            "swing_scope": self.swing_scope,
+        }
+        return json.dumps(payload, sort_keys=True, default=str)
 
 
 class ZoneAnalysisPipeline:
@@ -195,6 +214,7 @@ class ZoneAnalysisPipeline:
         self.enable_cache = enable_cache
         self.cache_ttl = cache_ttl
         self.cache_manager = get_cache_manager() if enable_cache else None
+        self._cache = ZoneAnalysisCache(self.cache_manager) if enable_cache else None
         self.logger = get_logger(__name__)
         self.swing_strategies: Dict[str, Any] = {}
         self._active_swing_strategy: Optional[str] = self._detect_current_swing_strategy()
@@ -218,14 +238,15 @@ class ZoneAnalysisPipeline:
         Returns:
             ZoneAnalysisResult с полным анализом
         """
-        if not self.enable_cache:
+        cache_wrapper = self._get_cache_wrapper()
+        if cache_wrapper is None:
             return self._run_without_cache(df)
-        
+
         # Генерируем ключ кэша на основе конфигурации и данных
         cache_key = self._generate_cache_key(df)
-        
+
         # Проверяем кэш
-        cached_result = self.cache_manager.get(cache_key)
+        cached_result = cache_wrapper.load(cache_key)
         if cached_result is not None:
             self.logger.info(f"Zone analysis result loaded from cache (key: {cache_key[:8]}...)")
             # Обновляем метаданные из df.attrs (могли измениться после кэширования)
@@ -243,11 +264,11 @@ class ZoneAnalysisPipeline:
         # Выполняем анализ
         self.logger.info("Cache miss, running zone analysis...")
         result = self._run_without_cache(df)
-        
+
         # Сохраняем в кэш (TTL по умолчанию, на диск)
-        self.cache_manager.put(cache_key, result, ttl=self.cache_ttl, disk=True)
+        cache_wrapper.save(cache_key, result, ttl=self.cache_ttl, disk=True)
         self.logger.info(f"Zone analysis result saved to cache (key: {cache_key[:8]}...)")
-        
+
         return result
     
     def _run_without_cache(self, df: pd.DataFrame) -> ZoneAnalysisResult:
@@ -319,6 +340,17 @@ class ZoneAnalysisPipeline:
             run_validation=self.config.run_validation
         )
 
+    def _get_cache_wrapper(self) -> Optional[ZoneAnalysisCache]:
+        """Return active cache wrapper or None if caching is disabled."""
+
+        if not self.enable_cache or self.cache_manager is None:
+            return None
+
+        if self._cache is None or self._cache.cache_manager is not self.cache_manager:
+            self._cache = ZoneAnalysisCache(self.cache_manager)
+
+        return self._cache
+
     def _generate_cache_key(self, df: pd.DataFrame) -> str:
         """
         Генерация ключа кэша на основе конфигурации и данных.
@@ -329,40 +361,24 @@ class ZoneAnalysisPipeline:
         - Конфигурацию детекции зон
         - Параметры анализа
         """
-        # Хэш данных
-        data_hash = pd.util.hash_pandas_object(df[['open', 'high', 'low', 'close']]).sum()
-        
-        # Сериализуем конфигурацию
-        config_dict = {
-            'indicator': asdict(self.config.indicator) if self.config.indicator else None,
-            'zone_detection': asdict(self.config.zone_detection),
-            'perform_clustering': self.config.perform_clustering,
-            'n_clusters': self.config.n_clusters,
-            'run_regression': self.config.run_regression,
-            'run_validation': self.config.run_validation,
-            'swing': self._serialize_swing_configuration(),
-        }
-        
-        # ✅ v2.1: Check for non-serializable objects (e.g., lambda functions in conditions)
-        try:
-            config_str = json.dumps(config_dict, sort_keys=True)
-        except TypeError as e:
-            # Provide helpful error message for non-serializable configs
-            if 'lambda' in str(e) or 'function' in str(e).lower():
-                raise TypeError(
-                    "Cannot cache config with lambda functions or callable objects. "
-                    "Please disable caching for this pipeline using .with_cache(enable=False). "
-                    f"Original error: {e}"
-                ) from e
-            else:
-                raise  # Re-raise other TypeError
-        
-        config_hash = hashlib.sha256(config_str.encode()).hexdigest()
-        
-        # Собираем ключ
-        key = f"zone_analysis_{data_hash}_{config_hash}"
+        cache_wrapper = self._get_cache_wrapper()
+        if cache_wrapper is None:
+            raise RuntimeError("Caching is not enabled for this pipeline")
 
-        return key
+        data_hash = ZoneAnalysisCache.compute_data_hash(df)
+        config_signature = self.config.to_cache_key()
+        swing_signature = ZoneAnalysisCache.swing_signature(
+            {
+                "swing": self._serialize_swing_configuration(),
+                "swing_scope": self.config.swing_scope,
+            }
+        )
+
+        return cache_wrapper.generate_cache_key(
+            data_hash,
+            config_signature,
+            swing_signature,
+        )
 
     def with_swing_preset(self, name: str) -> "ZoneAnalysisPipeline":
         """Reconfigure swing strategies using a named preset."""
@@ -390,10 +406,13 @@ class ZoneAnalysisPipeline:
         Args:
             df: DataFrame для которого нужно инвалидировать кэш
         """
-        if self.cache_manager:
-            cache_key = self._generate_cache_key(df)
-            self.cache_manager.invalidate(cache_key)
-            self.logger.info(f"Cache invalidated for key: {cache_key[:8]}...")
+        cache_wrapper = self._get_cache_wrapper()
+        if cache_wrapper is None:
+            return
+
+        cache_key = self._generate_cache_key(df)
+        cache_wrapper.invalidate(cache_key)
+        self.logger.info(f"Cache invalidated for key: {cache_key[:8]}...")
 
     def _strategy_name_from_instance(self, strategy: Any) -> Optional[str]:
         for cls, name in _SWING_CLASS_TO_NAME.items():
