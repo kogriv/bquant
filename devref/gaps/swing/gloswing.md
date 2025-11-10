@@ -1113,12 +1113,13 @@ class _AdaptiveSwingStrategy:
 
      **Спецификация**: См. раздел 9.4 (строки 2090-2209) - миграция существующих кэшей
 
-     **Checklist**:
+     **Checklist** (двусторонняя схема WRITE + READ):
      - [ ] Добавить константу `CACHE_VERSION = 2` в ZoneAnalysisCache
      - [ ] Обновить `_generate_cache_key()` - включить `f"version={self.CACHE_VERSION}"` в key_parts
-     - [ ] Обновить `load()` - проверять `cached_version = cached_data.get('cache_version', 1)`
+     - [ ] **WRITE PATH**: Обновить `save()` - записывать `'cache_version': self.CACHE_VERSION` в payload
+     - [ ] **READ PATH**: Обновить `load()` - проверять `cached_version = cached_data.get('cache_version', 1)`
      - [ ] Добавить инвалидацию: `if cached_version < self.CACHE_VERSION: return None`
-     - [ ] Логировать INFO при инвалидации кэша
+     - [ ] Логировать INFO при инвалидации кэша, DEBUG при сохранении
 
 ---
 
@@ -1686,42 +1687,199 @@ def compare_swing_coverage():
 
 ---
 
+### Фаза 5.2: Comprehensive Testing (Post-MVP, optional) - НЕ БЛОКИРУЕТ РЕЛИЗ
+
+**ВАЖНО**: Эти тесты **повышают confidence** и качество продукта, но **НЕ блокируют релиз**. Могут быть реализованы после выкатки MVP.
+
+**5.2.1. Дополнительные Edge Case тесты**:
+
+**test_overlapping_zones()** - Перекрывающиеся зоны используют один SwingContext
+```python
+def test_overlapping_zones():
+    """
+    Цель: Проверить что перекрывающиеся зоны используют один SwingContext
+
+    Given: Две зоны [20:60] и [40:80]
+    When: calculate_global() вызван один раз
+    Then: zone1.swing_context is zone2.swing_context (один объект)
+    """
+    global_context = strategy.calculate_global(data)
+    zone1_swings = global_context.slice(20, 60)
+    zone2_swings = global_context.slice(40, 80)
+    # Проверить что общая часть [40:60] идентична
+    assert zone1_swings[-n:] == zone2_swings[:n]
+```
+
+**test_zone_with_all_peaks_or_all_troughs()** - Избежать division by zero
+```python
+def test_zone_with_all_peaks_or_all_troughs():
+    """
+    Цель: Проверить расчёт метрик для зоны с только пиками (или только впадинами)
+
+    Given: Зона [30:50] содержит только peaks [32, 38, 45]
+    When: aggregate_for_zone() расчитывает метрики
+    Then: SwingMetrics.avg_amplitude может быть NaN или 0 (но не исключение)
+    """
+    # Создать SwingContext с только peaks
+    peaks_only = [SwingPoint(32, 100.5, 'peak'), SwingPoint(38, 101.0, 'peak')]
+    context = SwingContext(swing_points=peaks_only, indices=[32, 38])
+
+    metrics = context.aggregate_for_zone(30, 50)
+    assert metrics.num_swings == 0  # Нет полных swings (нужны peaks + troughs)
+    assert not math.isnan(metrics.num_swings)  # Должно быть число, не NaN
+```
+
+**test_zone_exactly_matching_swing_boundaries()** - Граница точно на пивоте
+```python
+def test_zone_exactly_matching_swing_boundaries():
+    """
+    Цель: Проверить включение соседних пивотов при точном совпадении границ
+
+    Given: Пивоты [10, 30, 50, 70, 90]
+          Зона [30:70] (точно на пивотах)
+    When: slice(30, 70)
+    Then: Возвращает [10, 30, 50, 70, 90] (включая соседние)
+    """
+    context = SwingContext(
+        swing_points=[SwingPoint(i, 100.0, 'peak') for i in [10, 30, 50, 70, 90]],
+        indices=[10, 30, 50, 70, 90]
+    )
+    result = context.slice(30, 70)
+    assert [sp.index for sp in result] == [10, 30, 50, 70, 90]
+```
+
+**test_empty_swing_context()** - SwingContext с пустым списком
+```python
+def test_empty_swing_context():
+    """
+    Цель: Проверить обработку пустого SwingContext
+
+    Given: SwingContext(swing_points=[], indices=[])
+    When: slice(20, 40) или aggregate_for_zone(20, 40)
+    Then: Возвращает пустой результат (не исключение)
+    """
+    empty_context = SwingContext(swing_points=[], indices=[])
+    result = empty_context.slice(20, 40)
+    assert result == []
+
+    metrics = empty_context.aggregate_for_zone(20, 40)
+    assert metrics.num_swings == 0
+    assert metrics.avg_amplitude == 0.0
+```
+
+**5.2.2. Дополнительные Performance тесты**:
+
+**test_memory_consumption_estimate()** - Оценка потребления памяти
+```python
+def test_memory_consumption_estimate():
+    """
+    Цель: Проверить что фактическое потребление памяти близко к оценке (264 bytes/point)
+
+    When: Создать 1000 SwingPoint объектов
+    Then: sys.getsizeof(SwingContext) ≈ 264KB ± 50% tolerance
+    """
+    swing_points = [
+        SwingPoint(i, 100.0 + i * 0.1, 'peak' if i % 2 == 0 else 'trough')
+        for i in range(1000)
+    ]
+    context = SwingContext(swing_points=swing_points, indices=list(range(1000)))
+
+    actual_bytes = sys.getsizeof(context)
+    expected_bytes = 264 * 1000  # 264 bytes per point
+    tolerance = 0.5  # 50% tolerance
+
+    assert actual_bytes < expected_bytes * (1 + tolerance)
+    assert actual_bytes > expected_bytes * (1 - tolerance)
+```
+
+**benchmark_global_vs_perzone()** - Сравнительный benchmark производительности
+```python
+def benchmark_global_vs_perzone():
+    """
+    Цель: Измерить разницу во времени выполнения для разных размеров датасета
+
+    Датасеты: 10k, 50k, 100k bars
+    Режимы: global vs per_zone
+    Критерий: global ≤ 1.5× время per_zone
+    """
+    for dataset_size in [10_000, 50_000, 100_000]:
+        data = generate_synthetic_data(dataset_size)
+        zones = detect_zones(data)
+
+        # Benchmark global mode
+        start = time.perf_counter()
+        global_context = strategy.calculate_global(data)
+        for zone in zones:
+            zone_swings = global_context.slice(zone.start_idx, zone.end_idx)
+        global_time = time.perf_counter() - start
+
+        # Benchmark per_zone mode
+        start = time.perf_counter()
+        for zone in zones:
+            zone_data = data.iloc[zone.start_idx:zone.end_idx+1]
+            zone_context = strategy.calculate(zone_data)
+        perzone_time = time.perf_counter() - start
+
+        ratio = global_time / perzone_time
+        print(f"{dataset_size} bars: global {global_time:.3f}s, per_zone {perzone_time:.3f}s, ratio {ratio:.2f}×")
+        assert ratio <= 1.5, f"Global mode too slow: {ratio:.2f}× per_zone"
+```
+
+**5.2.3. Дополнительный Comparative тест**:
+
+**compare_swing_coverage()** - Сравнение покрытия в реальном сценарии (уже описан выше, строки 1670-1685)
+
+---
+
 **✅ Post-completion checklist Фазы 5**:
 
-**Immediate (создать и запустить тесты)**:
+### 🚨 ФАЗА 5.1: MVP TESTING (БЛОКИРУЕТ РЕЛИЗ)
 
-**A. Unit-тесты** (tests/unit/test_swing_global_calculation.py):
-- [ ] **ТЕСТ СОЗДАН**: test_zigzag_global_vs_isolated() - создать искусственные данные с явными свингами, запустить в обоих режимах, проверить что global находит больше
-- [ ] **ТЕСТ СОЗДАН**: test_swing_context_slice_with_neighbors() - создать SwingContext с 5 точками [10, 30, 50, 70, 90], вызвать slice(40, 60), проверить результат [30, 50, 70]
-- [ ] **ТЕСТ СОЗДАН**: test_adaptive_thresholds_global_mode() - создать адаптивную стратегию, вызвать calculate_global(), проверить что _global_threshold_cache НЕ None
+**A. MVP Unit-тесты** (tests/unit/test_swing_global_calculation.py):
+- [ ] **ТЕСТ СОЗДАН**: test_zigzag_global_vs_isolated() - искусственные данные, global находит больше свингов
+- [ ] **ТЕСТ СОЗДАН**: test_swing_context_slice_with_neighbors() - SwingContext.slice() включает соседние точки
+- [ ] **ТЕСТ СОЗДАН**: test_adaptive_thresholds_global_mode() - адаптивная стратегия, _global_threshold_cache заполнен
 
-**B. Edge Case тесты** (tests/unit/test_swing_edge_cases.py) - КРИТИЧЕСКИ ВАЖНО:
-- [ ] **ТЕСТ СОЗДАН**: test_single_bar_zone() - зона [50:50], проверить что возвращает соседние пивоты и metrics.num_swings == 0
-- [ ] **ТЕСТ СОЗДАН**: test_zone_without_internal_swings() - зона [20:40] между пивотами [10, 50], проверить 2 точки и 1 свинг
-- [ ] **ТЕСТ СОЗДАН**: test_zone_at_dataset_boundaries() - зоны [0:10] и [90:99], проверить отсутствие IndexError
-- [ ] **ТЕСТ СОЗДАН**: test_overlapping_zones() - зоны [20:60] и [40:80], проверить что swing_context одинаковый объект
-- [ ] **ТЕСТ СОЗДАН**: test_zone_with_all_peaks_or_all_troughs() - только peaks в зоне, проверить отсутствие division by zero
-- [ ] **ТЕСТ СОЗДАН**: test_zone_exactly_matching_swing_boundaries() - границы [30:70] точно на пивотах, проверить включение соседних
-- [ ] **ТЕСТ СОЗДАН**: test_empty_swing_context() - SwingContext с пустым списком, проверить empty metrics
+**B. MVP Edge Case тесты** (tests/unit/test_swing_edge_cases.py) - КРИТИЧЕСКИ ВАЖНО:
+- [ ] **ТЕСТ СОЗДАН**: test_single_bar_zone() - зона [50:50], возвращает соседние пивоты, metrics.num_swings == 0
+- [ ] **ТЕСТ СОЗДАН**: test_zone_at_dataset_boundaries() - зоны [0:10] и [90:99], отсутствие IndexError
 
-**C. Integration тесты** (tests/integration/test_pipeline_global_swings.py):
-- [ ] **ТЕСТ СОЗДАН**: test_pipeline_global_swing_scope() - полный pipeline с .with_swing_scope('global'), проверить все зоны имеют swing_context
-- [ ] **ТЕСТ СОЗДАН**: test_fallback_to_per_zone() - передать некорректные данные, проверить WARNING в логах и продолжение выполнения
+**C. MVP Integration тесты** (tests/integration/test_pipeline_global_swings.py):
+- [ ] **ТЕСТ СОЗДАН**: test_pipeline_global_swing_scope() - полный pipeline с .with_swing_scope('global'), все зоны имеют swing_context
+- [ ] **ТЕСТ СОЗДАН**: test_fallback_to_per_zone() - некорректные данные, WARNING в логах, продолжение выполнения
 
-**D. Сравнительные тесты** (research/notebooks/test_global_swing_coverage.py):
+**Критерии успеха MVP (БЛОКИРУЕТ РЕЛИЗ)**:
+- [ ] ✅ **Все 3 unit-теста проходят**
+- [ ] ✅ **Оба edge case теста проходят** (БЕЗ IndexError)
+- [ ] ✅ **Оба integration теста проходят** (pipeline работает + fallback работает)
+
+**❌ Если хоть один MVP тест НЕ проходит → РЕЛИЗ БЛОКИРОВАН**
+
+---
+
+### ⭐ ФАЗА 5.2: COMPREHENSIVE TESTING (НЕ БЛОКИРУЕТ РЕЛИЗ)
+
+**D. Дополнительные Edge Case тесты** (tests/unit/test_swing_edge_cases.py):
+- [ ] **ТЕСТ СОЗДАН**: test_zone_without_internal_swings() - зона [20:40] между пивотами [10, 50], 2 точки и 1 свинг
+- [ ] **ТЕСТ СОЗДАН**: test_overlapping_zones() - зоны [20:60] и [40:80], swing_context одинаковый объект
+- [ ] **ТЕСТ СОЗДАН**: test_zone_with_all_peaks_or_all_troughs() - только peaks в зоне, отсутствие division by zero
+- [ ] **ТЕСТ СОЗДАН**: test_zone_exactly_matching_swing_boundaries() - границы [30:70] точно на пивотах, включение соседних
+- [ ] **ТЕСТ СОЗДАН**: test_empty_swing_context() - SwingContext с пустым списком, empty metrics
+
+**E. Сравнительные тесты** (research/notebooks/test_global_swing_coverage.py):
 - [ ] **ТЕСТ СОЗДАН**: compare_swing_coverage() - запустить 05_case_study в обоих режимах, сравнить pct_with_swings
 
-**E. Performance и Memory тесты** (tests/performance/):
+**F. Performance и Memory тесты** (tests/performance/):
 - [ ] **ТЕСТ СОЗДАН**: test_memory_consumption_estimate() - создать 1000 SwingPoint, измерить через sys.getsizeof(), проверить ~264 bytes/point ±50%
 - [ ] **BENCHMARK СОЗДАН**: benchmark_global_vs_perzone() - датасеты 10k, 50k, 100k баров, измерить время выполнения
 
-**Критерии успеха (все тесты запущены и проходят)**:
-- [ ] ✅ Все 3 unit-теста проходят
-- [ ] ✅ Все 7 edge case тестов проходят (БЕЗ IndexError, division by zero, etc.)
-- [ ] ✅ Оба integration теста проходят (pipeline работает + fallback работает)
-- [ ] ✅ Сравнительный тест показывает улучшение: global mode 70-90% coverage vs per_zone 20-60%
-- [ ] ✅ Memory test: фактическое потребление < 400 bytes/point (264 bytes + 50% tolerance)
-- [ ] ✅ Benchmark: global mode НЕ медленнее чем N × per_zone (где N = количество зон)
+**Критерии успеха Comprehensive (ПОВЫШАЕТ CONFIDENCE, но НЕ блокирует релиз)**:
+- [ ] ⭐ Все 5 дополнительных edge case тестов проходят
+- [ ] ⭐ Сравнительный тест показывает улучшение: global mode 70-90% coverage vs per_zone 20-60%
+- [ ] ⭐ Memory test: фактическое потребление < 400 bytes/point (264 bytes + 50% tolerance)
+- [ ] ⭐ Benchmark: global mode НЕ медленнее чем 1.5× per_zone
+
+**✅ Если Comprehensive тесты НЕ проходят → можно выпустить релиз с предупреждением (warning), исправить в следующей версии**
 
 **Future validation (проверка готовности предыдущих фаз)**:
 - [ ] 🔄 **РЕТРОСПЕКТИВА Фазы 1**: Smoke tests из Фазы 1 теперь покрыты формальными unit-тестами
@@ -1735,17 +1893,312 @@ def compare_swing_coverage():
 3. Перезапустить все тесты снова
 4. Только когда ВСЕ тесты зелёные → двигаться в Фазу 6
 
-### Фаза 6: Документация и примеры (Week 4)
-**Приоритет: СРЕДНИЙ**
+### Фаза 6.1: MVP Documentation (Week 4, Day 3) - БЛОКИРУЕТ РЕЛИЗ
+**Приоритет: ВЫСОКИЙ**
+
+**ВАЖНО**: Фаза 6 разделена на **MVP (минимальная документация для релиза)** и **Comprehensive (полная документация)**.
+
+MVP документация **блокирует релиз**, Comprehensive документация **желательна** но может быть создана после релиза.
 
 **📖 Обязательное pre-reading**:
-- **Раздел 11** - "Итоговые преимущества" (строки 2076-2104) - ключевые выгоды для документирования
-- **Раздел 4.2** - "Builder API" (строки 806-867) - примеры для user guide
-- **Раздел 12** - "Резюме" (строки 2106-2118) - ключевые сообщения для migration guide
+- **Раздел 11** - "Итоговые преимущества" - ключевые выгоды для документирования
+- **Раздел 4.2** - "Builder API" - примеры для migration guide
+- **Раздел 12** - "Резюме" - ключевые сообщения для migration guide
 
 ---
 
-**6.1. User Guide - Обновления**:
+**6.1.1. Docstrings в коде** (КРИТИЧЕСКИ ВАЖНО):
+
+✅ **Обновить docstrings во всех новых/изменённых классах и методах**:
+
+```python
+# bquant/analysis/zones/models.py
+@dataclass
+class SwingPoint:
+    """Представление одной swing точки (пик или впадина) в ценовом ряде.
+
+    Attributes:
+        index: Позиция точки в исходном датасете (integer index)
+        value: Цена в этой точке (float)
+        swing_type: Тип точки - 'peak' (максимум) или 'trough' (минимум)
+
+    Example:
+        >>> sp = SwingPoint(index=42, value=1850.5, swing_type='peak')
+        >>> sp.index
+        42
+    """
+    index: int
+    value: float
+    swing_type: Literal['peak', 'trough']
+
+@dataclass
+class SwingContext:
+    """Глобальный контекст swing точек для всего датасета.
+
+    Используется для эффективного хранения и извлечения swing точек
+    для любой зоны без повторного расчёта.
+
+    Attributes:
+        swing_points: Список всех swing точек для датасета
+        indices: Отсортированный список индексов swing_points для быстрого поиска
+
+    Methods:
+        slice(start_idx, end_idx): Извлечь swing точки для зоны [start_idx:end_idx]
+        aggregate_for_zone(start_idx, end_idx): Рассчитать SwingMetrics для зоны
+
+    Example:
+        >>> context = SwingContext(
+        ...     swing_points=[SwingPoint(10, 100.0, 'peak'), SwingPoint(30, 95.0, 'trough')],
+        ...     indices=[10, 30]
+        ... )
+        >>> zone_swings = context.slice(5, 35)  # Включает соседние точки
+        >>> len(zone_swings)
+        2
+    """
+    swing_points: List[SwingPoint]
+    indices: List[int]
+
+    def slice(self, start_idx: int, end_idx: int) -> List[SwingPoint]:
+        """Извлечь swing точки для зоны с включением соседних точек.
+
+        Args:
+            start_idx: Начальный индекс зоны (inclusive)
+            end_idx: Конечный индекс зоны (inclusive)
+
+        Returns:
+            Список SwingPoint внутри зоны ПЛЮС один соседний слева и справа
+
+        Example:
+            >>> context.indices = [10, 30, 50, 70, 90]
+            >>> result = context.slice(40, 60)  # Зона [40:60]
+            >>> [sp.index for sp in result]
+            [30, 50, 70]  # Включает соседние 30 и 70
+        """
+        ...
+
+@dataclass
+class ZoneInfo:
+    """Информация о MACD зоне с результатами анализа.
+
+    Attributes:
+        swing_context: Глобальный SwingContext (NEW in v0.X.Y)
+            Заполняется только в global режиме, None в per_zone режиме
+
+    Methods:
+        get_zone_swings() -> List[SwingPoint]:
+            Рекомендуемый способ получения swing точек для зоны.
+            Автоматически использует swing_context.slice() если доступен.
+    """
+    swing_context: Optional[SwingContext] = None
+
+    def get_zone_swings(self) -> List[SwingPoint]:
+        """Получить swing точки для этой зоны.
+
+        Returns:
+            Список SwingPoint внутри зоны (с соседними точками)
+            Пустой список если swing_context не заполнен
+
+        Example:
+            >>> zone.swing_context = global_context
+            >>> swings = zone.get_zone_swings()
+            >>> len(swings)
+            5  # Зависит от зоны и стратегии
+        """
+        ...
+```
+
+```python
+# bquant/analysis/zones/pipeline.py
+class ZoneAnalysisBuilder:
+    """Builder для настройки ZoneAnalysisPipeline.
+
+    Methods:
+        with_swing_scope(scope: Literal['per_zone', 'global']) -> Self:
+            Настроить режим расчёта swing точек (NEW in v0.X.Y)
+    """
+
+    def with_swing_scope(self, scope: Literal['per_zone', 'global']) -> 'ZoneAnalysisBuilder':
+        """Установить режим расчёта swing точек.
+
+        Args:
+            scope: 'per_zone' (default) - рассчитывать для каждой зоны отдельно
+                   'global' - рассчитать один раз для всего датасета
+
+        Returns:
+            Self для method chaining
+
+        Example:
+            >>> result = (
+            ...     analyze_zones(data)
+            ...     .with_strategies(swing='zigzag')
+            ...     .with_swing_scope('global')  # Рекомендуется для 70-90% coverage
+            ...     .build()
+            ... )
+        """
+        ...
+
+class ZoneAnalysisPipeline:
+    """Пайплайн для анализа MACD зон."""
+
+    def _calculate_global_swings(self, data: pd.DataFrame) -> SwingContext:
+        """Рассчитать swing точки для всего датасета один раз.
+
+        Вызывается только в global режиме. Использует strategy.calculate_global().
+
+        Args:
+            data: Полный датасет с OHLCV колонками
+
+        Returns:
+            SwingContext со всеми swing точками для датасета
+
+        Raises:
+            ValueError: Если swing_strategy не установлена
+        """
+        ...
+```
+
+```python
+# bquant/analysis/zones/strategies/base.py
+class SwingCalculationStrategy(Protocol):
+    """Протокол для стратегий расчёта swing точек.
+
+    Methods:
+        calculate(data): Legacy метод для per_zone режима
+        calculate_global(data): Новый метод для global режима (v0.X.Y)
+        aggregate_for_zone(context, start_idx, end_idx): Агрегация метрик
+    """
+
+    def calculate_global(self, data: pd.DataFrame) -> SwingContext:
+        """Рассчитать swing точки для всего датасета.
+
+        Args:
+            data: DataFrame с колонками ['time', 'open', 'high', 'low', 'close']
+
+        Returns:
+            SwingContext со всеми swing точками
+
+        Example:
+            >>> strategy = ZigZagSwingStrategy(threshold=0.02)
+            >>> context = strategy.calculate_global(data)
+            >>> len(context.swing_points)
+            127  # Зависит от данных и threshold
+        """
+        ...
+```
+
+**6.1.2. CHANGELOG.md** (ОБЯЗАТЕЛЬНО):
+
+✅ **`CHANGELOG.md`** (ОБНОВИТЬ)
+```markdown
+## [X.Y.Z] - YYYY-MM-DD
+
+### Added
+- Global swing calculation mode for zone analysis (`with_swing_scope('global')`)
+- `SwingPoint` and `SwingContext` data models for efficient swing storage
+- `ZoneInfo.swing_context` field for accessing global swing context
+- `ZoneInfo.get_zone_swings()` helper method
+- Cache versioning system (CACHE_VERSION = 2) for schema upgrades
+
+### Changed
+- `SwingCalculationStrategy` protocol extended with `calculate_global()` and `aggregate_for_zone()`
+- Zone coverage with swing metrics improved: 70-90% (global mode) vs 18-62% (per_zone mode)
+
+### Fixed
+- Boundary artifacts in per_zone swing calculation causing low zone coverage
+- Cache collisions between different strategy parameters
+
+### Migration
+See `docs/migration/global_swings_migration.md` for upgrade instructions.
+```
+
+**6.1.3. Short Migration Guide** (ОБЯЗАТЕЛЬНО):
+
+✅ **`docs/migration/global_swings_migration.md`** (СОЗДАТЬ НОВЫЙ) - КРАТКАЯ ВЕРСИЯ
+
+```markdown
+# Migration to Global Swing Calculation
+
+## Why Migrate?
+
+**Problem**: Per-zone swing calculation suffers from boundary artifacts, leading to low zone coverage:
+- find_peaks: 18.9% zones have swing metrics
+- pivot_points: 8.1% zones have swing metrics
+- zigzag: 62.2% zones have swing metrics
+
+**Solution**: Global mode calculates swings once for entire dataset, then slices for each zone:
+- **70-90% zone coverage** (improvement: +20-50 percentage points)
+- **Faster**: 1 calculation instead of N
+- **Consistent**: No boundary artifacts
+
+## Migration Steps
+
+### Step 1: Update pipeline configuration
+
+```python
+# BEFORE (per_zone mode - implicit default)
+result = (
+    analyze_zones(data)
+    .with_strategies(swing='zigzag')
+    .build()
+)
+
+# AFTER (global mode - add one line)
+result = (
+    analyze_zones(data)
+    .with_strategies(swing='zigzag')
+    .with_swing_scope('global')  # ← ADD THIS
+    .build()
+)
+```
+
+### Step 2: Access swing points (if needed)
+
+```python
+# Recommended API
+for zone in result.zones:
+    swings = zone.get_zone_swings()  # Returns List[SwingPoint]
+    print(f"Zone {zone.id}: {len(swings)} swing points")
+```
+
+### Step 3: Clear cache (one-time)
+
+Old cached results are automatically invalidated. If you see "Cache invalidated due to schema upgrade" in logs - this is expected.
+
+## Breaking Changes
+
+**None** - per_zone mode remains the default. Global mode is opt-in via `with_swing_scope('global')`.
+
+## Troubleshooting
+
+**Q**: "I'm getting warnings about cache invalidation"
+**A**: Normal - cache version changed from 1 to 2. Old caches are automatically invalidated.
+
+**Q**: "Global mode is slower than per_zone"
+**A**: Global mode is faster when you have many zones. For <10 zones, per_zone may be faster.
+
+**Q**: "Some zones still have no swings"
+**A**: Even in global mode, zones can have no internal swings (e.g., single-bar zones). This is expected.
+
+## Performance
+
+- **Recommended**: Datasets <1M bars
+- **Benchmark**: Global mode ≤1.5× per_zone time for 100k bars, 100 zones
+- **Memory**: ~264 bytes per swing point
+
+## Next Steps
+
+For detailed examples and API reference, see:
+- User Guide: `docs/user_guide/zone_analysis.md` (Section "Global vs Per-Zone Swing Calculation")
+- API Reference: `docs/api/analysis/zones/models.md` (SwingPoint, SwingContext)
+```
+
+---
+
+### Фаза 6.2: Comprehensive Documentation (Post-MVP, optional) - НЕ БЛОКИРУЕТ РЕЛИЗ
+
+**ВАЖНО**: Эта документация **повышает usability** и помогает пользователям, но **НЕ блокирует релиз**. Может быть создана после выкатки MVP.
+
+**6.2.1. User Guide - Обновления**:
 
 1. ✅ **`docs/user_guide/zone_analysis.md`** (ОБНОВИТЬ)
    - Добавить раздел "Global vs Per-Zone Swing Calculation"
@@ -1758,9 +2211,8 @@ def compare_swing_coverage():
    - Параметры каждой стратегии (ZigZag, FindPeaks, PivotPoints)
    - Рекомендации по выбору стратегии для разных сценариев
    - Примеры настройки адаптивных порогов
-   - Сравнительный анализ стратегий (запуск отдельных пайплайнов)
 
-**6.2. API Reference - Обновления**:
+**6.2.2. API Reference - Обновления**:
 
 3. ✅ **`docs/api/analysis/zones/models.md`** (ОБНОВИТЬ)
    - `SwingPoint` dataclass - полная спецификация полей
@@ -1780,178 +2232,99 @@ def compare_swing_coverage():
    - `aggregate_for_zone()` - спецификация
    - Обновление для ZigZagSwingStrategy, FindPeaksSwingStrategy
 
-**6.3. Migration Guide**:
+**6.2.3. Research Notebooks - Обновления**:
 
-6. ✅ **`docs/migration/global_swings_migration.md`** (СОЗДАТЬ НОВЫЙ)
-   - "Why migrate?" - проблемы per_zone режима
-   - "Breaking changes" - изменения в API (если есть)
-   - "Step-by-step migration" - пошаговая инструкция
-   - Code before/after примеры
-   - Troubleshooting common issues
-   - Performance considerations
-
-   **Содержание**:
-   ```markdown
-   # Migration to Global Swing Calculation
-
-   ## Overview
-   Starting from version X.Y.Z, BQuant supports global swing calculation mode...
-
-   ## Why Migrate?
-   - ✅ 70-90% zone coverage (vs 20-60% in per_zone)
-   - ✅ Consistent metrics across all zones
-   - ✅ No boundary artifacts
-   - ✅ Faster (1 calculation vs N calculations)
-
-   ## Migration Steps
-
-   ### Step 1: Update pipeline configuration
-   ```python
-   # BEFORE (per_zone mode - implicit default)
-   result = (
-       analyze_zones(data)
-       .with_indicator(...)
-       .detect_zones(...)
-       .with_strategies(swing='zigzag')
-       .build()
-   )
-
-   # AFTER (global mode - explicit)
-   result = (
-       analyze_zones(data)
-       .with_indicator(...)
-       .detect_zones(...)
-       .with_strategies(swing='zigzag')
-       .with_swing_scope('global')  # ← ADD THIS
-       .build()
-   )
-   ```
-
-   ### Step 2: Update zone swing access (if using directly)
-   ```python
-   # BEFORE (no access to swings)
-   # Swings were calculated per-zone, no global context
-
-   # AFTER (use zone method)
-   swings = zone.get_zone_swings()  # Recommended API
-   # or direct access
-   swings = zone.swing_context.get_swings_for_zone(zone)
-   ```
-
-   ### Step 3: Update custom strategies (if any)
-   If you have custom swing strategies, implement new protocol methods...
-   ```
-
-**6.4. Research Notebooks - Обновления**:
-
-7. ✅ **`research/notebooks/05_case_study_zone_consistency.py`** (ОБНОВИТЬ)
+6. ✅ **`research/notebooks/05_case_study_zone_consistency.py`** (ОБНОВИТЬ)
    - Добавить сравнение per_zone vs global режимов
    - Визуализация различий в покрытии зон
    - Статистический анализ улучшений
    - Обновить выводы с новыми результатами
 
-8. ✅ **`research/notebooks/06_swing_strategy_comparison.py`** (СОЗДАТЬ НОВЫЙ)
+7. ✅ **`research/notebooks/06_swing_strategy_comparison.py`** (СОЗДАТЬ НОВЫЙ)
    - Сравнение ZigZag, FindPeaks, PivotPoints на одних данных
    - Запуск отдельных пайплайнов для каждой стратегии
    - Performance benchmarks для каждой стратегии
    - Рекомендации по выбору стратегии
 
-**6.5. Examples - Обновления**:
+**6.2.4. Examples - Обновления**:
 
-9. ✅ **`examples/zone_analysis_global_swings.py`** (СОЗДАТЬ НОВЫЙ)
+8. ✅ **`examples/zone_analysis_global_swings.py`** (СОЗДАТЬ НОВЫЙ)
     - Минимальный пример global режима
     - Визуализация результатов
     - Сравнение с per_zone режимом
-
-**6.6. Docstrings - Обновления**:
-
-10. ✅ Обновить docstrings во всех затронутых модулях:
-    - `bquant/analysis/zones/models.py` - SwingPoint, SwingContext, ZoneInfo
-    - `bquant/analysis/zones/pipeline.py` - Pipeline и Builder
-    - `bquant/analysis/zones/strategies/base.py` - Protocol
-    - `bquant/analysis/zones/strategies/swing/*.py` - Все стратегии
-    - `bquant/analysis/zones/zone_features.py` - Analyzer
-
-**6.7. Changelog**:
-
-11. ✅ **`CHANGELOG.md`** (ОБНОВИТЬ)
-    ```markdown
-    ## [X.Y.Z] - YYYY-MM-DD
-
-    ### Added
-    - Global swing calculation mode for zone analysis
-    - `SwingPoint` and `SwingContext` data models
-    - `ZoneAnalysisBuilder.with_swing_scope()` method
-    - `ZoneInfo.swing_context` field for global swing access
-    - `ZoneInfo.get_zone_swings()` helper method
-    - Comprehensive edge case tests for swing calculations
-
-    ### Changed
-    - Swing calculation now supports "global" mode (in addition to default "per_zone")
-    - Cache key generation includes swing strategy parameters
-    - SwingCalculationStrategy protocol extended with `calculate_global()` and `aggregate_for_zone()`
-
-    ### Fixed
-    - Boundary artifacts in per_zone swing calculation
-    - Low zone coverage with swing metrics (18-62% → 70-90%)
-    - Cache collisions between different strategy parameters
-    ```
 
 ---
 
 **✅ Post-completion checklist Фазы 6**:
 
-**Immediate (создать/обновить документацию)**:
+### 🚨 ФАЗА 6.1: MVP DOCUMENTATION (БЛОКИРУЕТ РЕЛИЗ)
 
-**A. User Guide**:
-- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/user_guide/zone_analysis.md - добавлен раздел "Global vs Per-Zone Swing Calculation" с примерами
-- [ ] **ДОКУМЕНТ СОЗДАН**: docs/user_guide/swing_strategies.md - обзор ZigZag/FindPeaks/PivotPoints с рекомендациями по выбору
-- [ ] **ТЕСТ**: Запустить все примеры кода из user guide, убедиться что они работают без ошибок
-
-**B. API Reference**:
-- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/api/analysis/zones/models.md - задокументированы SwingPoint, SwingContext, ZoneInfo.swing_context
-- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/api/analysis/zones/pipeline.md - задокументированы _calculate_global_swings(), _inject_swing_context(), with_swing_scope()
-- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/api/analysis/zones/strategies.md - обновлён протокол SwingCalculationStrategy (3 метода)
-- [ ] **ТЕСТ**: Проверить все code snippets из API docs - они должны совпадать с реальным кодом
-
-**C. Migration Guide**:
-- [ ] **ДОКУМЕНТ СОЗДАН**: docs/migration/global_swings_migration.md
-- [ ] Секция "Why Migrate?" содержит метрики улучшения: 70-90% coverage vs 20-60% (раздел 11)
-- [ ] Секция "Before/After" содержит working code examples
-- [ ] **ТЕСТ**: Выполнить миграцию на реальном проекте по этому guide, убедиться что все шаги работают
-
-**D. Research Notebooks**:
-- [ ] **СКРИПТ ОБНОВЛЁН**: research/notebooks/05_case_study_zone_consistency.py - добавлено сравнение per_zone vs global
-- [ ] **СКРИПТ СОЗДАН**: research/notebooks/06_swing_strategy_comparison.py - сравнение стратегий на одних данных
-- [ ] **ТЕСТ**: Запустить оба скрипта, проверить что визуализации генерируются корректно
-
-**E. Examples**:
-- [ ] **ПРИМЕР СОЗДАН**: examples/zone_analysis_global_swings.py - минимальный working example
-- [ ] **ТЕСТ**: Запустить пример, проверить что output показывает разницу между режимами
-
-**F. Docstrings в коде**:
+**A. Docstrings в коде** (КРИТИЧЕСКИ ВАЖНО):
 - [ ] **ОБНОВЛЕНЫ**: bquant/analysis/zones/models.py - SwingPoint, SwingContext, ZoneInfo (Google Style)
-- [ ] **ОБНОВЛЕНЫ**: bquant/analysis/zones/pipeline.py - все новые методы
-- [ ] **ОБНОВЛЕНЫ**: bquant/analysis/zones/strategies/*.py - протокол и все стратегии
-- [ ] **ТЕСТ**: Запустить pydoc или sphinx - проверить что docstrings корректно парсятся
+- [ ] **ОБНОВЛЕНЫ**: bquant/analysis/zones/pipeline.py - ZoneAnalysisBuilder.with_swing_scope(), _calculate_global_swings()
+- [ ] **ОБНОВЛЕНЫ**: bquant/analysis/zones/strategies/base.py - SwingCalculationStrategy.calculate_global()
+- [ ] **ТЕСТ**: Запустить `python -m pydoc bquant.analysis.zones.models` - проверить корректный парсинг
 
-**G. Changelog**:
-- [ ] **CHANGELOG.md ОБНОВЛЁН**: Добавлен раздел [X.Y.Z] с датой
-- [ ] Секция "Added": SwingPoint, SwingContext, with_swing_scope(), global mode
-- [ ] Секция "Changed": SwingCalculationStrategy protocol extended
+**B. CHANGELOG.md** (ОБЯЗАТЕЛЬНО):
+- [ ] **CHANGELOG.md ОБНОВЛЁН**: Добавлен раздел [X.Y.Z] с датой релиза
+- [ ] Секция "Added": SwingPoint, SwingContext, with_swing_scope('global'), cache versioning
+- [ ] Секция "Changed": SwingCalculationStrategy protocol extended, 70-90% coverage
 - [ ] Секция "Fixed": Boundary artifacts, low zone coverage (18-62% → 70-90%)
-- [ ] **REVIEW**: Changelog прошёл code review команды
+- [ ] Секция "Migration": Ссылка на docs/migration/global_swings_migration.md
+- [ ] **REVIEW**: Changelog прошёл code review
 
-**Критерии готовности Фазы 6**:
-- [ ] ✅ Все 11 документов из списка (2 user guides, 3 API refs, 1 migration, 2 notebooks, 1 example, 1 changelog, docstrings) готовы
-- [ ] ✅ Все code examples запущены вручную и работают
-- [ ] ✅ Migration guide протестирован на реальной миграции
-- [ ] ✅ Docstrings генерируют корректную API документацию (sphinx/pydoc)
-- [ ] ✅ Changelog содержит ВСЕ breaking changes (если есть)
+**C. Short Migration Guide** (ОБЯЗАТЕЛЬНО):
+- [ ] **ДОКУМЕНТ СОЗДАН**: docs/migration/global_swings_migration.md
+- [ ] Секция "Why Migrate?" с метриками: 18-62% → 70-90% coverage
+- [ ] Секция "Migration Steps" с before/after code examples
+- [ ] Секция "Troubleshooting" с FAQ (cache invalidation, performance, empty swings)
+- [ ] **ТЕСТ**: Выполнить миграцию по guide на sample data, убедиться что работает
+
+**Критерии успеха MVP Documentation (БЛОКИРУЕТ РЕЛИЗ)**:
+- [ ] ✅ **Все docstrings в новых классах присутствуют** и корректно парсятся
+- [ ] ✅ **CHANGELOG.md содержит все изменения** (Added/Changed/Fixed/Migration)
+- [ ] ✅ **Migration guide протестирован** на sample data и работает
+
+**❌ Если хоть один MVP документ отсутствует → РЕЛИЗ БЛОКИРОВАН**
+
+---
+
+### ⭐ ФАЗА 6.2: COMPREHENSIVE DOCUMENTATION (НЕ БЛОКИРУЕТ РЕЛИЗ)
+
+**D. User Guides** (желательно):
+- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/user_guide/zone_analysis.md - раздел "Global vs Per-Zone Swing Calculation"
+- [ ] **ДОКУМЕНТ СОЗДАН**: docs/user_guide/swing_strategies.md - обзор ZigZag/FindPeaks/PivotPoints
+- [ ] **ТЕСТ**: Запустить все примеры кода из user guides
+
+**E. API Reference** (желательно):
+- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/api/analysis/zones/models.md - полная спецификация SwingPoint, SwingContext
+- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/api/analysis/zones/pipeline.md - workflow diagram с global mode
+- [ ] **ДОКУМЕНТ ОБНОВЛЁН**: docs/api/analysis/zones/strategies.md - протокол с 3 методами
+- [ ] **ТЕСТ**: Проверить все code snippets совпадают с реальным кодом
+
+**F. Research Notebooks** (желательно):
+- [ ] **СКРИПТ ОБНОВЛЁН**: research/notebooks/05_case_study_zone_consistency.py - сравнение per_zone vs global
+- [ ] **СКРИПТ СОЗДАН**: research/notebooks/06_swing_strategy_comparison.py - сравнение стратегий
+- [ ] **ТЕСТ**: Запустить оба скрипта, проверить визуализации
+
+**G. Examples** (желательно):
+- [ ] **ПРИМЕР СОЗДАН**: examples/zone_analysis_global_swings.py - минимальный working example
+- [ ] **ТЕСТ**: Запустить пример, проверить output
+
+**Критерии успеха Comprehensive Documentation (ПОВЫШАЕТ USABILITY, но НЕ блокирует релиз)**:
+- [ ] ⭐ Все 2 user guides обновлены/созданы
+- [ ] ⭐ Все 3 API reference docs обновлены
+- [ ] ⭐ Оба research notebooks работают
+- [ ] ⭐ Example запускается и показывает разницу режимов
+
+**✅ Если Comprehensive документация НЕ готова → можно выпустить релиз с пометкой "documentation in progress"**
+
+---
 
 **Future validation (финальная проверка)**:
-- [ ] 🎯 **ВЕСЬ ПРОЕКТ ГОТОВ**: Все Фазы 1-6 завершены, все тесты зелёные, документация актуальна
-- [ ] 🎯 **READY FOR RELEASE**: Code review пройден, changelog утверждён, можно создавать release
+- [ ] 🎯 **MVP ГОТОВ**: Фазы 1-6.1 завершены, все MVP тесты зелёные, MVP документация готова
+- [ ] 🎯 **READY FOR RELEASE**: Code review пройден, changelog утверждён, можно создавать release tag
+- [ ] 📚 **POST-RELEASE**: Фазы 5.2 и 6.2 (Comprehensive) можно завершить после релиза
 
 ---
 
@@ -2141,6 +2514,11 @@ result_new = analyze_zones(data).with_swing_scope('global').build()
 
 Автоматическая инвалидация всех старых кэшей при обновлении.
 
+**Двусторонняя схема (bidirectional flow)**:
+1. **WRITE**: `save()` записывает `cache_version: 2` в payload при сохранении
+2. **READ**: `load()` читает `cache_version` из payload и сравнивает с `CACHE_VERSION`
+3. **KEY**: `_generate_cache_key()` включает версию в ключ (опционально, для namespace isolation)
+
 ```python
 # В bquant/analysis/zones/cache.py
 
@@ -2158,9 +2536,28 @@ class ZoneAnalysisCache:
         ]
         return hashlib.sha256('|'.join(key_parts).encode()).hexdigest()
 
+    def save(self, cache_key: str, result: ZoneAnalysisResult) -> None:
+        """
+        UPDATED: Сохранение результата с версией схемы (WRITE path)
+        """
+        serialized_data = {
+            'cache_version': self.CACHE_VERSION,  # ← НОВОЕ: Явно записываем версию в payload
+            'result': self._serialize(result),
+            'metadata': {
+                'created_at': datetime.now().isoformat(),
+                'schema': 'ZoneAnalysisResult_v2',  # Для debugging
+                'bquant_version': __version__
+            }
+        }
+
+        self._write_to_disk(cache_key, serialized_data)
+        self.logger.debug(
+            f"Saved cache with version {self.CACHE_VERSION}: {cache_key[:12]}..."
+        )
+
     def load(self, cache_key: str) -> Optional[ZoneAnalysisResult]:
         """
-        UPDATED: Проверка версии при загрузке
+        UPDATED: Проверка версии при загрузке (READ path)
         """
         cached_data = self._read_from_disk(cache_key)
 
@@ -2178,8 +2575,30 @@ class ZoneAnalysisCache:
             )
             return None  # Инвалидация старого кэша
 
-        return self._deserialize(cached_data)
+        return self._deserialize(cached_data['result'])
 ```
+
+**Пример сохранённого payload** (для понимания формата):
+
+```json
+{
+  "cache_version": 2,
+  "result": {
+    "zones": [...],
+    "swing_context": {...},
+    ...
+  },
+  "metadata": {
+    "created_at": "2025-11-10T14:32:15.123456",
+    "schema": "ZoneAnalysisResult_v2",
+    "bquant_version": "0.3.0"
+  }
+}
+```
+
+Старые кэши (v1) не имеют поля `cache_version`, поэтому `cached_data.get('cache_version', 1)` вернёт `1`, что меньше `CACHE_VERSION = 2`, и кэш будет инвалидирован.
+
+---
 
 **Преимущества**:
 - ✅ Простая реализация (одно число инкрементировать)
