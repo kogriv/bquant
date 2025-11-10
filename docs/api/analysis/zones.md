@@ -24,6 +24,9 @@
 > **Справочник API:**
 > - [Универсальные Стратегии](strategies.md) - аналитические стратегии для ЛЮБОГО индикатора
 > - [Руководство по Расширению](../developer_guide/zone_detection_strategies.md) - создание пользовательских стратегий
+> - [Модели глобальных свингов](zones/models.md) — `SwingPoint`, `SwingContext`, `ZoneInfo.get_zone_swings()`
+> - [Пайплайн с поддержкой global scope](zones/pipeline.md) — `_calculate_global_swings`, `_inject_swing_context`
+> - [Стратегии свингов v2](zones/strategies.md) — протокол `SwingCalculationStrategy` и ZigZag/FindPeaks/PivotPoints
 
 ## Обзор
 
