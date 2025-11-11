@@ -1,8 +1,8 @@
 # Zone Metrics Visualization Enhancement
 
 **Дата создания**: 2025-11-07
-**Дата обновления**: 2025-11-08 (ревизия 5.0: интеграция с gloswing.md)
-**Статус**: Проектирование
+**Дата обновления**: 2025-11-11 (ревизия 6.0: критическое обновление после реализации gloswing.md)
+**Статус**: Готов к реализации
 **Приоритет**: ВЫСОКИЙ
 
 ## Контекст
@@ -17,31 +17,117 @@
 
 Это ограничивает возможность визуальной проверки результатов анализа и понимания внутренней структуры зон.
 
+---
+
+## Текущее состояние реализации (2025-11-11)
+
+### ✅ Готовые компоненты
+
+**Глобальный расчёт свингов (gloswing.md)** — **ПОЛНОСТЬЮ РЕАЛИЗОВАН**:
+- ✅ `SwingPoint` и `SwingContext` в `bquant/analysis/zones/models.py:33-173`
+- ✅ `ZoneInfo.swing_context` — поле доступно (models.py:207)
+- ✅ `ZoneInfo.get_zone_swings()` — метод работает (models.py:214-230)
+- ✅ Pipeline API `.with_swing_scope('global')` функционирует
+- ✅ Тесты: `tests/integration/test_pipeline_global_swings.py` проходят
+- ✅ Примеры: `examples/zone_analysis_global_swings.py`
+- ✅ Документация: `docs/user_guide/swing_strategies.md`
+
+**Расчёт метрик**:
+- ✅ `swing_metrics` автоматически рассчитываются в `bquant/analysis/zones/zone_features.py:403-425`
+- ✅ `shape_metrics` автоматически рассчитываются в `zone_features.py:428-450`
+- ✅ Метрики сохраняются в `zone.features['metadata']['swing_metrics']` и `zone.features['metadata']['shape_metrics']`
+
+### ❌ Отсутствующие компоненты (предмет данного документа)
+
+**Визуализация**:
+- ❌ Методы `_extract_zone_metrics()`, `_add_zone_metrics_annotation()` в `zones.py`
+- ❌ Метод `_aggregate_zone_metrics()` для агрегации статистики
+- ❌ Метод `_add_swing_overlay()` для отображения свинг-точек
+- ❌ Обновление `_normalize_zone()` для сохранения `swing_context` и `original_zone`
+
+### 🚀 Готовность к разработке
+
+**Все 3 этапа можно начинать НЕМЕДЛЕННО** (все зависимости выполнены)
+
+---
+
 ## Зависимости
 
-**⚠️ КРИТИЧЕСКАЯ ЗАВИСИМОСТЬ**: Данный документ зависит от реализации глобального расчёта свингов, описанного в [gloswing.md](../swing/gloswing.md).
+### ✅ ЗАВИСИМОСТЬ ВЫПОЛНЕНА (2025-11-10)
 
-**Ключевое преимущество**: `SwingContext` из gloswing.md уже содержит все необходимые координаты свинг-точек (`SwingPoint.timestamp`, `SwingPoint.index`, `SwingPoint.price`, `SwingPoint.swing_type`), что устраняет необходимость:
+Глобальный расчёт свингов из [gloswing.md](../swing/gloswing.md) **ПОЛНОСТЬЮ РЕАЛИЗОВАН**.
+
+**Доступные компоненты**:
+```python
+from bquant.analysis.zones.models import SwingPoint, SwingContext, ZoneInfo
+
+# SwingContext содержит все необходимые координаты
+zone.swing_context  # SwingContext | None
+zone.get_zone_swings()  # List[SwingPoint]
+
+# Pipeline API
+result = (
+    analyze_zones(df)
+    .with_swing_scope('global')  # ✅ Работает!
+    .build()
+)
+```
+
+**Ключевое преимущество**: `SwingContext` уже содержит все координаты свинг-точек (`SwingPoint.timestamp`, `SwingPoint.index`, `SwingPoint.price`, `SwingPoint.swing_type`), что устраняет необходимость:
 - ❌ Создания отдельного индикатора `SwingPointsIndicator`
 - ❌ Опционального сохранения координат в `SwingMetrics`
 - ❌ Пересчёта свинг-точек on-demand с кэшированием
 - ❌ Сложной индикаторной инфраструктуры для overlay
 
-**Результат**: Экономия **6-11 часов** на реализации.
+**Результат**: Экономия **6-11 часов** на реализации Этапа 3.
 
-## Структура данных и ограничения
+**Статус**: Все этапы (1, 2, 3) готовы к параллельной реализации.
 
-| Источник | Ключ в `zone` | Фолбэк | Примечание |
-|----------|---------------|--------|------------|
-| Swing metrics | `zone.features['metadata']['swing_metrics']` | `zone.features.get('swing_metrics')` | Возвращает словарь с ключами `avg_rally`, `avg_drop`, `rally_drop_ratio`, `swings_count`, `bull_swings`, `bear_swings` |
-| Shape metrics | `zone.features['metadata']['shape_metrics']` | `zone.features.get('shape_metrics')` | Возвращает статистики распределения индикатора: `skewness`, `kurtosis`, `mean`, `std` |
-| Swing context | `zone.swing_context` | `zone['swing_context']` | `ZoneInfo` содержит контекст только до вызова `_normalize_zone` |
-| Исходная зона | `zone` (объект ZoneInfo) | `zone['original_zone']` | Используется для доступа к методам `ZoneInfo` после нормализации |
+---
 
-- `_normalize_zone` **должен сохранять** `swing_context` в результирующем словаре (`zone_dict['swing_context'] = zone.swing_context`) либо визуализатор должен работать напрямую с `ZoneInfo`. Без этого вызов `zone.get_zone_swings()` невозможен.
-- `_normalize_zone` также сохраняет `original_zone` с ссылкой на исходный `ZoneInfo`, чтобы использовать методы (`get_zone_swings`, `direction`, и т.д.) при работе в словарном представлении.
-- Метрики могут отсутствовать полностью или частично; все функции обязаны использовать `dict.get` и не опираться на прямое обращение к ключам уровня `zone['features']`.
-- Визуализатор поддерживает два бэкенда (`plotly`, `matplotlib`). Каждое изменение требует явного описания поведения в обоих режимах.
+## Структура данных и доступ к метрикам
+
+### Таблица доступа к данным
+
+| Источник | Путь доступа | Тип | Обработка None |
+|----------|-------------|-----|----------------|
+| **Swing metrics** | `zone.features['metadata']['swing_metrics']` | `dict \| None` | Проверять через `.get('swing_metrics')` |
+| **Shape metrics** | `zone.features['metadata']['shape_metrics']` | `dict \| None` | Проверять через `.get('shape_metrics')` |
+| **Swing context** | `zone.swing_context` (ZoneInfo) или `zone.get('swing_context')` (dict) | `SwingContext \| None` | Fallback на global context |
+| **Исходная зона** | `zone` (если dict с `original_zone`) | `ZoneInfo \| None` | Для вызова методов ZoneInfo |
+
+### Структура swing_metrics
+
+```python
+swing_metrics = {
+    'swings_count': int,           # Общее количество свингов
+    'rally_count': int,            # Количество восходящих свингов
+    'drop_count': int,             # Количество нисходящих свингов
+    'avg_rally': float,            # Средняя амплитуда роста (%)
+    'avg_drop': float,             # Средняя амплитуда падения (%)
+    'rally_to_drop_ratio': float,  # Отношение роста к падению
+    'avg_rally_duration': float,   # Средняя длительность роста (bars)
+    'avg_drop_duration': float     # Средняя длительность падения (bars)
+}
+```
+
+### Структура shape_metrics
+
+```python
+shape_metrics = {
+    'hist_skewness': float,   # Асимметрия распределения индикатора
+    'hist_kurtosis': float,   # Эксцесс (островершинность)
+    'hist_mean': float,       # Среднее значение
+    'hist_std': float         # Стандартное отклонение
+}
+```
+
+### Важные ограничения
+
+1. **Метрики в metadata**: Метрики ВСЕГДА находятся в `zone.features['metadata']`, не в корне `zone.features`.
+2. **None значения**: Метрики могут быть `None` при ошибках расчёта или отсутствии данных.
+3. **_normalize_zone**: Текущая реализация **НЕ** сохраняет `swing_context` и `original_zone` (требуется доработка в Этапе 1).
+4. **Два бэкенда**: Визуализатор поддерживает Plotly и Matplotlib — каждое изменение требует реализации в обоих.
 
 ---
 
@@ -52,8 +138,9 @@
 **Приоритет**: ВЫСОКИЙ
 **Затраты**: 4-6 часов
 **Цель**: Добавить текстовое отображение swing/shape метрик на графике detail
+**Зависимости**: Нет (можно начинать сразу)
 
-**Реализация**:
+#### Реализация
 
 ```python
 def plot_zone_detail(
@@ -63,44 +150,53 @@ def plot_zone_detail(
     context_bars: int = 20,
 
     # === НОВЫЕ ПАРАМЕТРЫ ===
-    show_zone_metrics: bool = True,       # Показать текстовый блок с метриками
-    metrics_position: str = 'top-left',   # 'top-left', 'top-right', 'bottom-left'
+    show_zone_metrics: bool = True,  # Показать текстовый блок с метриками
 
     # === СУЩЕСТВУЮЩИЕ ===
     show_indicators: bool = True,
     show_volume: bool = True,
+    show_zone_stats: bool = None,  # Используем default_config если None
     **kwargs
 ) -> go.Figure:
     """
     Детальный просмотр зоны с опциональными метриками.
 
     NEW PARAMS:
-        show_zone_metrics: Отображать swing/shape метрики как текстовую аннотацию
-        metrics_position: Позиция блока метрик на графике
+        show_zone_metrics: Отображать swing/shape метрики как текстовую аннотацию.
+            При True метрики объединяются с show_zone_stats в единый блок.
     """
     # ... existing code ...
 
-    # НОВОЕ: Добавить метрики если доступны
-    if show_zone_metrics:
-        # zone может быть ZoneInfo; сохраняем исходную ссылку
-        zone_payload = zone if isinstance(zone, ZoneInfo) else zone.get('original_zone', zone)
-        metrics = _extract_zone_metrics(zone_payload)
-        if metrics:
-            self._add_zone_metrics_annotation(
-                fig,
-            metrics,
-            position=metrics_position,
-            row=1, col=1  # Price panel
+    # НОВОЕ: Объединённый блок метрик
+    if show_zone_metrics or (show_zone_stats is None and self.default_config['show_zone_stats']):
+        annotation_text = self._build_zone_annotation_text(
+            zone,
+            include_basic_stats=(show_zone_stats or self.default_config['show_zone_stats']),
+            include_metrics=show_zone_metrics
         )
+
+        if annotation_text:
+            # Позиция из default_config (унифицирована для всех режимов)
+            position = self.default_config.get('metrics_annotation_position', 'top-left')
+
+            self._add_annotation(
+                fig,
+                text=annotation_text,
+                position=position,
+                row=1, col=1  # Price panel
+            )
 
     return fig
 ```
 
-**Визуальное представление**:
+#### Визуальное представление
+
+**Режим 1: show_zone_stats=True, show_zone_metrics=True (объединённый блок)**
+
 ```
 ┌─────────────────────────────────────┐
 │ Zone #42 (bull) • 18 bars           │
-│ Strategy: zigzag (legs=3, dev=0.8%) │
+│ Strength: 0.85                      │
 │ ─────────────────                   │
 │ 📊 Swing Metrics:                   │
 │   Swings: 4 (3↑ / 2↓)               │
@@ -114,18 +210,230 @@ def plot_zone_detail(
 └─────────────────────────────────────┘
 ```
 
-**Подзадачи**:
-1. Расширить `_normalize_zone()` так, чтобы он прокидывал `swing_context` и ссылку на исходный `ZoneInfo` (`original_zone`) — 0.5 часа
-2. Реализовать `_extract_zone_metrics()` c учётом структуры данных и фолбэков — 1 час
-3. Реализовать `_add_zone_metrics_annotation()` — 2 часа
-4. Форматирование метрик в читаемый текст, включая локализацию значений и fallback на «данные недоступны» — 1 час
-5. Обработка отсутствующих метрик (graceful degradation): скрывать блок, если нет данных; логировать предупреждения — 0.5 часа
-6. Тестирование и примеры в Plotly и Matplotlib режимах — 1 час
+**Режим 2: show_zone_stats=False, show_zone_metrics=True (только метрики)**
 
-**Обработка существующего блока `show_zone_stats`**:
-- Если `show_zone_stats=True`, а `show_zone_metrics=True`, новые метрики должны объединяться в один блок без дублирования заголовков «Type / Duration / Strength».
-- При `show_zone_metrics=False` поведение `show_zone_stats` должно остаться прежним.
-- Для Matplotlib: использовать `fig.text` с рамкой, положение синхронизировать с Plotly-параметром `metrics_position`.
+```
+┌─────────────────────────────────────┐
+│ 📊 Swing Metrics:                   │
+│   Swings: 4 (3↑ / 2↓)               │
+│   Avg Rally: +1.2% (3.5 bars)       │
+│   Avg Drop: -0.8% (2.1 bars)        │
+│   Rally/Drop Ratio: 1.5x            │
+│ ─────────────────                   │
+│ 📈 Shape Metrics (MACD hist):       │
+│   Skewness: +0.43 (right-tailed)    │
+│   Kurtosis: 2.1 (platykurtic)       │
+└─────────────────────────────────────┘
+```
+
+**Режим 3: Метрики отсутствуют (swing_metrics=None и shape_metrics=None)**
+
+```
+┌─────────────────────────────────────┐
+│ Zone #42 (bull) • 18 bars           │
+│ Strength: 0.85                      │
+│ ─────────────────                   │
+│ 📊 Swing Metrics: Not available     │
+│ 📈 Shape Metrics: Not available     │
+└─────────────────────────────────────┘
+```
+
+#### Подзадачи
+
+1. **Обновить `_normalize_zone()`** так, чтобы он сохранял `swing_context` и `original_zone` — **0.5 часа**
+
+   ```python
+   def _normalize_zone(self, zone: Union[Dict[str, Any], ZoneInfo, Any]) -> Dict[str, Any]:
+       """Приведение зоны к словарю с сохранением метаданных ZoneInfo."""
+
+       if isinstance(zone, dict):
+           return zone  # Уже нормализован
+
+       if isinstance(zone, ZoneInfo):
+           return {
+               'zone_id': zone.zone_id,
+               'type': zone.type,
+               'start_idx': zone.start_idx,
+               'end_idx': zone.end_idx,
+               'start_time': zone.start_time,
+               'end_time': zone.end_time,
+               'duration': zone.duration,
+               'data': zone.data,
+               'features': zone.features,
+               'indicator_context': zone.indicator_context,
+
+               # NEW: Сохранение контекста для Этапа 3
+               'swing_context': zone.swing_context,  # Для get_zone_swings()
+               'original_zone': zone,                 # Для методов ZoneInfo
+           }
+
+       # Fallback для других типов
+       normalized = self._prepare_zone_data([zone])
+       if not normalized:
+           raise ValueError("Unable to normalize zone object")
+       return normalized[0]
+   ```
+
+2. **Реализовать `_extract_zone_metrics()`** c учётом структуры данных — **1 час**
+
+   ```python
+   def _extract_zone_metrics(self, zone: Union[Dict, ZoneInfo]) -> Dict[str, Any]:
+       """
+       Извлечь метрики из зоны для отображения.
+
+       Returns:
+           Dict с ключами:
+           - 'swing_metrics': dict | None
+           - 'shape_metrics': dict | None
+           - 'indicator_name': str (для shape_metrics label)
+       """
+       # Доступ к features
+       if isinstance(zone, ZoneInfo):
+           features = zone.features or {}
+       else:
+           features = zone.get('features', {})
+
+       metadata = features.get('metadata', {})
+
+       # Извлечь метрики
+       swing_metrics = metadata.get('swing_metrics')  # dict | None
+       shape_metrics = metadata.get('shape_metrics')  # dict | None
+
+       # Определить имя индикатора для shape_metrics
+       indicator_context = zone.indicator_context if isinstance(zone, ZoneInfo) else zone.get('indicator_context', {})
+       indicator_name = indicator_context.get('detection_indicator', 'indicator')
+
+       return {
+           'swing_metrics': swing_metrics,
+           'shape_metrics': shape_metrics,
+           'indicator_name': indicator_name
+       }
+   ```
+
+3. **Реализовать `_build_zone_annotation_text()`** — объединение старых и новых метрик — **2 часа**
+
+   ```python
+   def _build_zone_annotation_text(
+       self,
+       zone: Union[Dict, ZoneInfo],
+       include_basic_stats: bool = True,
+       include_metrics: bool = True
+   ) -> str:
+       """
+       Построить объединённый текст аннотации зоны.
+
+       Логика объединения:
+       1. show_zone_stats=True, show_zone_metrics=False → Старое поведение (Type, Duration, Strength)
+       2. show_zone_stats=False, show_zone_metrics=True → Только новые метрики (Swings, Shape)
+       3. Оба True → Объединённый блок с разделителем
+       """
+       parts = []
+
+       # === БАЗОВАЯ ИНФОРМАЦИЯ (старый show_zone_stats) ===
+       if include_basic_stats:
+           zone_dict = zone if isinstance(zone, dict) else self._normalize_zone(zone)
+           zone_id = zone_dict.get('zone_id', '?')
+           zone_type = zone_dict.get('type', 'n/a')
+           duration = zone_dict.get('duration', 'n/a')
+
+           parts.append(f"Zone #{zone_id} ({zone_type}) • {duration} bars")
+
+           # Старые метрики (strength)
+           features = zone_dict.get('features', {})
+           if 'strength' in features:
+               parts.append(f"Strength: {features['strength']:.2f}")
+
+       # === НОВЫЕ МЕТРИКИ ===
+       if include_metrics:
+           metrics = self._extract_zone_metrics(zone)
+
+           # Разделитель (если были базовые статы)
+           if parts:
+               parts.append("─────────────────")
+
+           # Swing Metrics
+           swing_text = self._format_swing_metrics(metrics['swing_metrics'])
+           parts.append(swing_text)
+
+           # Shape Metrics
+           shape_text = self._format_shape_metrics(
+               metrics['shape_metrics'],
+               indicator_name=metrics['indicator_name']
+           )
+           parts.append(shape_text)
+
+       return '<br>'.join(parts) if self.backend == 'plotly' else '\n'.join(parts)
+   ```
+
+4. **Реализовать форматирование метрик** — **1 час**
+
+   ```python
+   def _format_swing_metrics(self, swing_metrics: Optional[Dict]) -> str:
+       """Форматирование swing_metrics в читаемый текст."""
+       if swing_metrics is None:
+           return "📊 Swing Metrics: Not available"
+
+       # Обработка нулевых свингов
+       swings_count = swing_metrics.get('swings_count', 0)
+       if swings_count == 0:
+           return "📊 Swing Metrics: No swings detected"
+
+       rally_count = swing_metrics.get('rally_count', 0)
+       drop_count = swing_metrics.get('drop_count', 0)
+       avg_rally = swing_metrics.get('avg_rally')
+       avg_drop = swing_metrics.get('avg_drop')
+       ratio = swing_metrics.get('rally_to_drop_ratio')
+       avg_rally_dur = swing_metrics.get('avg_rally_duration')
+       avg_drop_dur = swing_metrics.get('avg_drop_duration')
+
+       parts = ["📊 Swing Metrics:"]
+       parts.append(f"  Swings: {swings_count} ({rally_count}↑ / {drop_count}↓)")
+
+       if avg_rally is not None:
+           dur_text = f" ({avg_rally_dur:.1f} bars)" if avg_rally_dur else ""
+           parts.append(f"  Avg Rally: {avg_rally:+.2%}{dur_text}")
+
+       if avg_drop is not None:
+           dur_text = f" ({avg_drop_dur:.1f} bars)" if avg_drop_dur else ""
+           parts.append(f"  Avg Drop: {avg_drop:+.2%}{dur_text}")
+
+       if ratio is not None:
+           parts.append(f"  Rally/Drop Ratio: {ratio:.2f}x")
+
+       return '<br>'.join(parts) if self.backend == 'plotly' else '\n'.join(parts)
+
+   def _format_shape_metrics(self, shape_metrics: Optional[Dict], indicator_name: str = 'indicator') -> str:
+       """Форматирование shape_metrics в читаемый текст."""
+       if shape_metrics is None:
+           return "📈 Shape Metrics: Not available"
+
+       skewness = shape_metrics.get('hist_skewness')
+       kurtosis = shape_metrics.get('hist_kurtosis')
+
+       if skewness is None and kurtosis is None:
+           return "📈 Shape Metrics: Not available"
+
+       parts = [f"📈 Shape Metrics ({indicator_name}):"]
+
+       if skewness is not None:
+           skew_label = "right-tailed" if skewness > 0 else "left-tailed" if skewness < 0 else "symmetric"
+           parts.append(f"  Skewness: {skewness:+.2f} ({skew_label})")
+
+       if kurtosis is not None:
+           kurt_label = "leptokurtic" if kurtosis > 3 else "platykurtic" if kurtosis < 3 else "mesokurtic"
+           parts.append(f"  Kurtosis: {kurtosis:.2f} ({kurt_label})")
+
+       return '<br>'.join(parts) if self.backend == 'plotly' else '\n'.join(parts)
+   ```
+
+5. **Graceful degradation и логирование** — **0.5 часа**
+   - Логировать `logger.debug("No metrics available for zone %s", zone_id)` при отсутствии метрик
+   - Показывать "Not available" вместо сокрытия блока (более информативно для пользователя)
+
+6. **Тестирование и примеры** — **1 час**
+   - Plotly: проверить аннотации, позиционирование
+   - Matplotlib: проверить `fig.text()` с bbox
+   - Примеры: зона с метриками, зона без метрик, объединённый блок
 
 ---
 
@@ -134,15 +442,15 @@ def plot_zone_detail(
 **Приоритет**: СРЕДНИЙ
 **Затраты**: 3-4 часа
 **Цель**: Добавить статистику по всем зонам в overview режиме
+**Зависимости**: Нет (можно начинать параллельно с Этапом 1)
 
-**Реализация**:
+#### Реализация
 
 ```python
 def plot_zones_on_price_chart(
     self,
     ...
     show_aggregate_metrics: bool = False,  # Показать агрегированные метрики
-    metrics_position: str = 'top-right',   # Позиция блока статистики
     ...
 ):
     """
@@ -150,70 +458,113 @@ def plot_zones_on_price_chart(
 
     NEW PARAMS:
         show_aggregate_metrics: Отображать статистику по всем зонам
-        metrics_position: Позиция блока статистики
     """
     # ... existing code ...
 
     # НОВОЕ: Агрегировать и отобразить метрики
-    if show_aggregate_metrics:
+    if show_aggregate_metrics and zones:
         aggregated = self._aggregate_zone_metrics(
             zones,
-            include_bear=True,
             metrics=('avg_rally', 'avg_drop', 'rally_drop_ratio', 'swings_count'),
             aggregation_mode='mean_std',
             skip_none=True
         )
-        self._add_aggregate_metrics_annotation(
-            fig,
-            aggregated,
-            position=metrics_position,
-            row=1, col=1
-        )
+
+        if aggregated:
+            annotation_text = self._format_aggregate_metrics(aggregated)
+            position = self.default_config.get('metrics_annotation_position', 'top-right')
+
+            self._add_annotation(
+                fig,
+                text=annotation_text,
+                position=position,
+                row=1, col=1
+            )
 
     return fig
 ```
 
-**Визуальное представление**:
+#### Визуальное представление
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Overview: 37 bull zones, 35 bear zones          │
 │                                                 │
-│ 📊 Swing Statistics (across all zones):        │
+│ 📊 Bull Zones - Swing Statistics:              │
 │   Avg Rally: +1.18% ± 0.45%                    │
 │   Avg Drop: -0.92% ± 0.38%                     │
 │   Rally/Drop Ratio: 1.28x (median)             │
 │   Zones with swings: 23/37 (62%)               │
 │                                                 │
+│ 📊 Bear Zones - Swing Statistics:              │
+│   Avg Rally: +0.85% ± 0.32%                    │
+│   Avg Drop: -1.05% ± 0.41%                     │
+│   Rally/Drop Ratio: 0.81x (median)             │
+│   Zones with swings: 19/35 (54%)               │
+│                                                 │
 │ 📈 Shape Statistics (MACD histogram):          │
-│   Skewness: +0.35 ± 0.22 (right-tailed)        │
-│   Kurtosis: 2.45 ± 0.65 (platykurtic)          │
+│   Bull Skewness: +0.35 ± 0.22 (right-tailed)   │
+│   Bear Skewness: -0.28 ± 0.19 (left-tailed)    │
+│   Bull Kurtosis: 2.45 ± 0.65 (platykurtic)     │
+│   Bear Kurtosis: 2.38 ± 0.58 (platykurtic)     │
 └─────────────────────────────────────────────────┘
 ```
 
-**Спецификация агрегатора**:
-- Для каждой метрики рассчитываем `mean` и `std` по зонам с непустыми значениями (если `skip_none=True`).
-- Для отношения (`rally_drop_ratio`) дополнительно показываем `median`.
-- Метрика `swings_count` суммируется по зонам и показывается как `sum`.
-- Разделяем данные по направлению зоны: `bull` и `bear` блоки выводятся отдельно, при отсутствии данных отображаем `—`.
-- При смешанных данных (часть зон без метрик) показываем строку `n/a (k из N зон)`.
-- В Matplotlib блок статистики выводится через `AnchoredText` для соответствия стилю графика.
+#### Спецификация агрегатора
 
-**Подзадачи**:
-1. Реализовать `_aggregate_zone_metrics()` с параметрами `metrics`, `aggregation_mode`, `skip_none`, `include_bear` — 1 час
-2. Реализовать `_add_aggregate_metrics_annotation()` с поддержкой Plotly и Matplotlib — 1.5 часа
-3. Покрыть сценарии отсутствующих данных и смешанных направлений (юнит-тест + пример) — 0.5 часа
-4. Тестирование и примеры — 1 час
+```python
+def _aggregate_zone_metrics(
+    self,
+    zones: List[Union[Dict, ZoneInfo]],
+    metrics: Tuple[str, ...] = ('avg_rally', 'avg_drop', 'rally_drop_ratio', 'swings_count'),
+    aggregation_mode: str = 'mean_std',
+    skip_none: bool = True
+) -> Dict[str, Any]:
+    """
+    Агрегировать метрики по всем зонам.
+
+    Args:
+        zones: Список зон
+        metrics: Метрики для агрегации
+        aggregation_mode: 'mean_std' | 'median' | 'sum'
+        skip_none: Пропускать зоны без метрик
+
+    Returns:
+        {
+            'bull': {'avg_rally_mean': float, 'avg_rally_std': float, ...},
+            'bear': {...},
+            'shape': {'bull_skewness_mean': float, ...}
+        }
+    """
+    bull_zones = [z for z in zones if self._get_zone_type(z) == 'bull']
+    bear_zones = [z for z in zones if self._get_zone_type(z) == 'bear']
+
+    result = {
+        'bull': self._aggregate_for_zone_type(bull_zones, metrics, aggregation_mode, skip_none),
+        'bear': self._aggregate_for_zone_type(bear_zones, metrics, aggregation_mode, skip_none),
+        'shape': self._aggregate_shape_metrics([bull_zones, bear_zones], skip_none)
+    }
+
+    return result
+```
+
+#### Подзадачи
+
+1. Реализовать `_aggregate_zone_metrics()` — **1 час**
+2. Реализовать `_format_aggregate_metrics()` — **1.5 часа**
+3. Покрыть сценарии отсутствующих данных (юнит-тест) — **0.5 часа**
+4. Тестирование и примеры — **1 час**
 
 ---
 
-### 🎯 Этап 3: Визуализация свинг-точек (зависит от gloswing.md)
+### 🎯 Этап 3: Визуализация свинг-точек
 
 **Приоритет**: ВЫСОКИЙ
-**Затраты**: 3-4 часа (вместо 9-15 часов!)
+**Затраты**: 3-4 часа
 **Цель**: Отображать свинг-точки из `SwingContext` на графиках
-**Зависимость**: Требует завершения [gloswing.md](../swing/gloswing.md) Фаз 1-4
+**Зависимости**: ✅ Нет (gloswing.md реализован)
 
-**Реализация**:
+#### Реализация
 
 ```python
 def plot_zone_detail(
@@ -224,7 +575,6 @@ def plot_zone_detail(
     # === НОВЫЕ ПАРАМЕТРЫ ===
     show_swings: bool = False,           # Показать свинг-точки
     swing_marker_size: int = 10,         # Размер маркеров
-    swing_colors: Dict[str, str] = None, # {'peak': 'red', 'trough': 'green'}
 
     **kwargs
 ) -> go.Figure:
@@ -234,20 +584,21 @@ def plot_zone_detail(
     NEW PARAMS:
         show_swings: Отображать свинг-точки из zone.swing_context
         swing_marker_size: Размер маркеров свингов
-        swing_colors: Цвета для peaks и troughs
     """
     # ... existing code ...
 
     # НОВОЕ: Добавить свинг-точки если доступны
     if show_swings:
-        swing_source = zone if isinstance(zone, ZoneInfo) else zone.get('swing_context')
-        if swing_source:
+        swing_context = self._resolve_swing_context(zone)
+        if swing_context:
+            zone_swings = swing_context.get_swings_for_zone(
+                zone if isinstance(zone, ZoneInfo) else zone.get('original_zone')
+            )
             self._add_swing_overlay(
                 fig,
-                swing_source.get_zone_swings(zone_id=zone.zone_id if isinstance(zone, ZoneInfo) else zone.get('zone_id')),
+                zone_swings,
                 row=1, col=1,  # Price panel
-                marker_size=swing_marker_size,
-                colors=swing_colors
+                marker_size=swing_marker_size
             )
 
     return fig
@@ -255,71 +606,98 @@ def plot_zone_detail(
 def _add_swing_overlay(
     self,
     fig: go.Figure,
-    swing_points: List[SwingPoint],  # Из gloswing.md
+    swing_points: List[SwingPoint],
     row: int,
     col: int,
-    marker_size: int = 10,
-    colors: Dict[str, str] = None
+    marker_size: int = 10
 ) -> None:
     """
     Добавить свинг-точки как scatter overlay.
 
-    NEW METHOD
-
     Args:
-        fig: Plotly figure
-        swing_points: Список SwingPoint из SwingContext (gloswing.md)
+        fig: Plotly/Matplotlib figure
+        swing_points: Список SwingPoint из SwingContext
         row, col: Позиция subplot
         marker_size: Размер маркеров
-        colors: Цвета {'peak': 'red', 'trough': 'green'}
     """
-    if colors is None:
-        colors = {'peak': 'red', 'trough': 'green'}
+    # Использовать цвета из темы
+    theme = self.theme or self._get_default_theme()
+    peak_color = theme.colors.get('swing_peak', '#d62728')
+    trough_color = theme.colors.get('swing_trough', '#2ca02c')
 
     # Разделить на peaks и troughs
     peaks = [sp for sp in swing_points if sp.swing_type == 'peak']
     troughs = [sp for sp in swing_points if sp.swing_type == 'trough']
 
-    # Добавить peaks
-    if peaks:
-        fig.add_trace(
-            go.Scatter(
-                x=[sp.timestamp for sp in peaks],
-                y=[sp.price for sp in peaks],
-                mode='markers',
-                marker=dict(
-                    symbol='triangle-down',
-                    size=marker_size,
-                    color=colors['peak'],
-                    line=dict(width=1, color='darkred')
+    if self.backend == 'plotly':
+        # Plotly implementation
+        if peaks:
+            fig.add_trace(
+                go.Scatter(
+                    x=[sp.timestamp for sp in peaks],
+                    y=[sp.price for sp in peaks],
+                    mode='markers',
+                    marker=dict(
+                        symbol='triangle-down',
+                        size=marker_size,
+                        color=peak_color,
+                        line=dict(width=1, color='darkred')
+                    ),
+                    name='Swing Peaks',
+                    hovertemplate='<b>Peak</b><br>Price: %{y:.2f}<extra></extra>'
                 ),
-                name='Swing Peaks',
-                hovertemplate='<b>Peak</b><br>Price: %{y:.2f}<extra></extra>'
-            ),
-            row=row, col=col
-        )
+                row=row, col=col
+            )
 
-    # Добавить troughs
-    if troughs:
-        fig.add_trace(
-            go.Scatter(
-                x=[sp.timestamp for sp in troughs],
-                y=[sp.price for sp in troughs],
-                mode='markers',
-                marker=dict(
-                    symbol='triangle-up',
-                    size=marker_size,
-                    color=colors['trough'],
-                    line=dict(width=1, color='darkgreen')
+        if troughs:
+            fig.add_trace(
+                go.Scatter(
+                    x=[sp.timestamp for sp in troughs],
+                    y=[sp.price for sp in troughs],
+                    mode='markers',
+                    marker=dict(
+                        symbol='triangle-up',
+                        size=marker_size,
+                        color=trough_color,
+                        line=dict(width=1, color='darkgreen')
+                    ),
+                    name='Swing Troughs',
+                    hovertemplate='<b>Trough</b><br>Price: %{y:.2f}<extra></extra>'
                 ),
-                name='Swing Troughs',
-                hovertemplate='<b>Trough</b><br>Price: %{y:.2f}<extra></extra>'
-            ),
-            row=row, col=col
-        )
+                row=row, col=col
+            )
+
+    else:  # matplotlib
+        ax = fig.axes[row - 1]  # Matplotlib uses 0-indexed axes
+
+        if peaks:
+            ax.scatter(
+                [sp.timestamp for sp in peaks],
+                [sp.price for sp in peaks],
+                marker='v',
+                s=marker_size * 10,
+                color=peak_color,
+                edgecolors='darkred',
+                linewidths=1,
+                label='Swing Peaks',
+                zorder=5
+            )
+
+        if troughs:
+            ax.scatter(
+                [sp.timestamp for sp in troughs],
+                [sp.price for sp in troughs],
+                marker='^',
+                s=marker_size * 10,
+                color=trough_color,
+                edgecolors='darkgreen',
+                linewidths=1,
+                label='Swing Troughs',
+                zorder=5
+            )
 ```
 
-**Поддержка overview режима**:
+#### Поддержка overview режима
 
 ```python
 def plot_zones_on_price_chart(
@@ -338,8 +716,9 @@ def plot_zones_on_price_chart(
 
     # НОВОЕ: Отобразить глобальные свинги (если доступны)
     if show_swings and zones:
-        swing_context = _resolve_global_swing_context(zones)
+        swing_context = self._resolve_global_swing_context(zones)
         if swing_context:
+            # Фильтровать свинги по видимому диапазону
             visible_swings = [
                 sp for sp in swing_context.swing_points
                 if data.index[0] <= sp.timestamp <= data.index[-1]
@@ -349,20 +728,13 @@ def plot_zones_on_price_chart(
     return fig
 ```
 
-**Подзадачи**:
-1. Обновить `_normalize_zone()` и сериализацию зон так, чтобы `ZoneInfo` или `swing_context` были доступны и после нормализации — 0.5 часа
-2. Реализовать `_add_swing_overlay()` с поддержкой Plotly и Matplotlib (через `scatter` / `ax.scatter`) — 2 часа
-3. Добавить параметры в `plot_zone_detail()` и `plot_zones_on_price_chart()` — 0.5 часа
-4. Реализовать `_resolve_global_swing_context()` (берёт первый ненулевой `swing_context`, проверяет консистентность) — 0.5 часа
-5. Тестирование и примеры, включая отсутствующий контекст — 1 час
+#### Подзадачи
 
-**Почему так мало времени?**
-- ✅ SwingPoint уже содержит все координаты (timestamp, price, swing_type)
-- ✅ `SwingContext.get_zone_swings()` доступен, если сохранить контекст в `zone_dict`
-- ✅ Не нужно создавать индикаторную обёртку
-- ✅ Не нужно пересчитывать или кэшировать координаты
-- ✅ Простой scatter trace в Plotly и `ax.scatter` в Matplotlib
-- ⚠️ Требуется малое изменение `_normalize_zone`, учтено в подзадачах
+1. Реализовать `_resolve_swing_context()` и `_resolve_global_swing_context()` — **0.5 часа**
+2. Реализовать `_add_swing_overlay()` с поддержкой Plotly и Matplotlib — **2 часа**
+3. Добавить параметры в `plot_zone_detail()` и `plot_zones_on_price_chart()` — **0.5 часа**
+4. Интеграция с системой тем (убрать хардкод цветов) — **0.5 часа**
+5. Тестирование и примеры — **1 час**
 
 ---
 
@@ -370,87 +742,156 @@ def plot_zones_on_price_chart(
 
 | Этап | Описание | Затраты | Приоритет | Зависимости |
 |------|----------|---------|-----------|-------------|
-| **1** | Метрики в Detail | 4-6 часов | ВЫСОКИЙ | Нет |
-| **2** | Агрегированные метрики в Overview | 3-4 часа | СРЕДНИЙ | Этап 1 |
-| **3** | Визуализация свинг-точек | 3-4 часа | ВЫСОКИЙ | **gloswing.md Фазы 1-4** |
+| **1** | Метрики в Detail | 4-6 часов | ВЫСОКИЙ | ✅ Нет |
+| **2** | Агрегированные метрики в Overview | 3-4 часа | СРЕДНИЙ | ✅ Нет |
+| **3** | Визуализация свинг-точек | 3-4 часа | ВЫСОКИЙ | ✅ Нет (gloswing.md готов) |
 | **ИТОГО** | | **10-14 часов** | | |
 
-**Сравнение с предыдущей оценкой**:
-- Было: 25-36 часов (с индикаторной инфраструктурой)
-- Стало: 10-14 часов
-- **Экономия: 15-22 часа** благодаря `SwingContext` из gloswing.md
+**Сравнение с первоначальной оценкой**:
+- Было (с созданием инфраструктуры): 25-36 часов
+- Стало (только визуализация): 10-14 часов
+- **Экономия: 15-22 часа** благодаря готовому `SwingContext`
 
 ---
 
 ## Последовательность реализации
 
-### Вариант A: Параллельно с gloswing.md (рекомендуется)
+### ✅ Рекомендуемый подход: Параллельная реализация
 
-1. **Этап 1** (zomet) — 4-6 часов
-   - Можно делать **до** завершения gloswing.md
-   - Метрики уже доступны в текущей архитектуре
+Поскольку **gloswing.md полностью реализован** (2025-11-10), все этапы независимы:
 
-2. **Этап 2** (zomet) — 3-4 часа
-   - Можно делать **до** завершения gloswing.md
-   - Агрегация метрик не зависит от SwingContext
+```
+┌──────────────────────────────────────────┐
+│ Этапы 1, 2, 3 — параллельная реализация │
+│                                          │
+│ Разработчик A: Этап 1 (4-6ч)            │
+│ Разработчик B: Этап 2 (3-4ч)            │
+│ Разработчик C: Этап 3 (3-4ч)            │
+│                                          │
+│ Итого: ~6 часов календарного времени    │
+└──────────────────────────────────────────┘
+```
 
-3. **gloswing.md Фазы 1-4** — 15-20 часов
-   - Реализация глобального расчёта свингов
+**Преимущества**:
+- ✅ Минимальное время до релиза (6 часов вместо 14)
+- ✅ Независимые изменения (минимум конфликтов merge)
+- ✅ Параллельное тестирование
 
-4. **Этап 3** (zomet) — 3-4 часа
-   - Требует готового `SwingContext`
-   - Простое добавление scatter overlay
+### Альтернатива: Последовательная реализация
 
-**Итого**: 25-34 часа для полной функциональности (метрики + свинги)
+Если доступен только один разработчик:
 
-### Вариант B: Последовательно (консервативный)
+1. **Этап 1** (метрики в detail) — 4-6 часов
+2. **Этап 2** (агрегация) — 3-4 часа
+3. **Этап 3** (свинги) — 3-4 часа
 
-1. **gloswing.md Фазы 1-4** — 15-20 часов
-2. **zomet Этапы 1-3** — 10-14 часов
-
-**Итого**: 25-34 часа
+**Итого**: ~10-14 часов календарного времени
 
 ---
 
 ## Изменяемые файлы
 
-**Этап 1**:
-- `bquant/visualization/zones.py` — добавить `_add_zone_metrics_annotation()`
+### Основной модуль визуализации
 
-**Этап 2**:
-- `bquant/visualization/zones.py` — добавить `_aggregate_zone_metrics()`, `_add_aggregate_metrics_annotation()`
+**`bquant/visualization/zones.py`**:
+- Этап 1: `_normalize_zone()`, `_extract_zone_metrics()`, `_build_zone_annotation_text()`, `_format_swing_metrics()`, `_format_shape_metrics()`
+- Этап 2: `_aggregate_zone_metrics()`, `_format_aggregate_metrics()`
+- Этап 3: `_add_swing_overlay()`, `_resolve_swing_context()`, `_resolve_global_swing_context()`
+- Общее: Обновить `plot_zone_detail()` и `plot_zones_on_price_chart()`
 
-**Этап 3** (после gloswing.md):
-- `bquant/visualization/zones.py` — добавить `_add_swing_overlay()`
+### Конфигурация
 
-**Примеры и тесты**:
-- `research/notebooks/04_zones_sample.py` — демонстрация всех функций (Plotly и Matplotlib)
-- `tests/visualization/test_zone_metrics_display.py` — юнит-тесты на отображение блоков
-- `tests/visualization/test_zone_metrics_aggregation.py` — юнит-тест на агрегатор
+**`bquant/visualization/zones.py` (default_config)**:
+```python
+self.default_config = {
+    ...
+    'show_zone_stats': True,
+    'show_zone_metrics': False,  # NEW: По умолчанию выключено (BC)
+    'show_aggregate_metrics': False,  # NEW
+    'show_swings': False,  # NEW
+    'metrics_annotation_position': 'top-left',  # NEW: Унифицированная позиция
+    ...
+}
+```
+
+### Тесты
+
+**Новые файлы**:
+- `tests/visualization/test_zone_metrics_display.py` — тесты отображения метрик
+- `tests/visualization/test_zone_metrics_aggregation.py` — тесты агрегатора
+- `tests/visualization/test_swing_overlay.py` — тесты свинг-точек
+
+**Обновить**:
+- `tests/visualization/test_zones_visualizer.py` — проверить BC
+
+### Примеры
+
+**Новые файлы**:
+- `examples/09_zone_metrics_visualization.py` — демонстрация всех возможностей
+
+**Обновить**:
+- `examples/zone_analysis_global_swings.py` — добавить визуализацию свингов
+
+---
+
+## Обновление документации
+
+После завершения реализации обновить:
+
+### 1. User Guide
+
+**`docs/user_guide/zone_analysis.md`**:
+- Добавить раздел "Visualizing Zone Metrics"
+- Примеры использования `show_zone_metrics`, `show_aggregate_metrics`, `show_swings`
+- Скриншоты графиков с метриками
+
+### 2. API Documentation
+
+**`docs/api/visualization/zones.md`**:
+- Документировать новые параметры `plot_zone_detail()`:
+  - `show_zone_metrics`
+  - `show_swings`
+  - `swing_marker_size`
+- Документировать новые параметры `plot_zones_on_price_chart()`:
+  - `show_aggregate_metrics`
+  - `show_swings`
+- Документировать внутренние методы (для расширения):
+  - `_build_zone_annotation_text()`
+  - `_aggregate_zone_metrics()`
+  - `_add_swing_overlay()`
+
+### 3. Примеры
+
+**`examples/README.md`**:
+- Добавить ссылку на `09_zone_metrics_visualization.py`
+- Описание возможностей визуализации метрик
 
 ---
 
 ## Связанные документы
 
-- **[gloswing.md](../swing/gloswing.md)** — глобальный расчёт свингов (КРИТИЧЕСКАЯ ЗАВИСИМОСТЬ)
-- [Case Study: MACD Zone Consistency](../../../docs/analytics/zones/macd_zone_consistency_case_study.md)
-- [Zone Analysis User Guide](../../../docs/user_guide/zone_analysis.md)
+- **[gloswing.md](../swing/gloswing.md)** ✅ РЕАЛИЗОВАН (2025-11-10) — глобальный расчёт свингов
+- [Case Study: MACD Zone Consistency](../../../docs/analytics/zones/macd_zone_consistency_case_study.md) — исследование, подтверждающее необходимость визуализации
+- [Zone Analysis User Guide](../../../docs/user_guide/zone_analysis.md) — документация для пользователей
+- [Swing Strategies Guide](../../../docs/user_guide/swing_strategies.md) — документация по глобальному режиму
 
 ---
 
 ## Критерии успеха
 
 ### Этап 1 (Метрики в detail)
+
 - ✅ `plot_zone_detail()` принимает `show_zone_metrics=True`
 - ✅ `_normalize_zone()` возвращает `swing_context` и `original_zone`
 - ✅ Метрики отображаются как текстовая аннотация на графике
 - ✅ Поддерживаются swing_metrics и shape_metrics
 - ✅ Backward compatibility: старые вызовы без новых параметров работают
-- ✅ Блок метрик корректно сосуществует с `show_zone_stats`
-- ✅ Реализован режим деградации: при отсутствии метрик блок скрывается и пишется предупреждение
+- ✅ Блок метрик корректно сосуществует с `show_zone_stats` (объединённый режим)
+- ✅ Graceful degradation: при отсутствии метрик показывается "Not available"
 - ✅ Демо-скрипт работает без ошибок (Plotly и Matplotlib)
 
 ### Этап 2 (Агрегированные метрики)
+
 - ✅ `plot_zones_on_price_chart()` принимает `show_aggregate_metrics=True`
 - ✅ `_aggregate_zone_metrics()` поддерживает режимы `mean_std`, `median`, `sum`
 - ✅ Агрегированная статистика корректно вычисляется по всем зонам, отдельно для bull/bear
@@ -459,11 +900,11 @@ def plot_zones_on_price_chart(
 - ✅ Не загромождает график
 
 ### Этап 3 (Свинг-точки)
-- ✅ `_normalize_zone()` или эквивалентная логика сохраняет `swing_context`
+
 - ✅ `_add_swing_overlay()` корректно отображает SwingPoint объекты (Plotly и Matplotlib)
 - ✅ Работает для `detail` и `overview` режимов
-- ✅ Peaks отображаются красными треугольниками вниз
-- ✅ Troughs отображаются зелёными треугольниками вверх
+- ✅ Peaks отображаются треугольниками вниз (цвет из темы)
+- ✅ Troughs отображаются треугольниками вверх (цвет из темы)
 - ✅ Производительность: визуализация зоны с 100 свингами < 100ms
 - ✅ Демо-скрипт работает без ошибок (оба бэкенда)
 
@@ -479,6 +920,7 @@ result = (
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_col='macd_hist')
     .with_strategies(swing='zigzag')
+    .with_swing_scope('global')  # ✅ Доступно!
     .analyze()
     .build()
 )
@@ -487,8 +929,8 @@ result = (
 fig = result.visualize(
     'detail',
     zone_id=5,
-    show_zone_metrics=True,
-    metrics_position='top-left'
+    show_zone_metrics=True,  # Показать swing/shape метрики
+    show_zone_stats=True     # Объединить со старыми статами
 )
 fig.show()
 ```
@@ -499,22 +941,21 @@ fig.show()
 # Визуализация всех зон с агрегированной статистикой
 fig = result.visualize(
     'overview',
-    show_aggregate_metrics=True,
-    metrics_position='top-right'
+    show_aggregate_metrics=True  # Показать статистику по bull/bear зонам
 )
 fig.show()
 ```
 
-### Пример 3: Свинг-точки (требует gloswing.md)
+### Пример 3: Свинг-точки
 
 ```python
-# Глобальный расчёт свингов (gloswing.md)
+# Глобальный расчёт свингов (gloswing.md реализован!)
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', ...)
     .detect_zones('zero_crossing', indicator_col='macd_hist')
     .with_strategies(swing='zigzag')
-    .with_swing_scope('global')  # ← Глобальный расчёт (gloswing.md)
+    .with_swing_scope('global')  # ← Глобальный расчёт
     .analyze()
     .build()
 )
@@ -538,22 +979,46 @@ fig = result.visualize(
 fig.show()
 ```
 
+### Пример 4: Только старые статы (BC)
+
+```python
+# Backward compatibility: старое поведение сохранено
+fig = result.visualize(
+    'detail',
+    zone_id=5,
+    show_zone_stats=True,
+    show_zone_metrics=False  # Только Type/Duration/Strength
+)
+fig.show()
+```
+
 ---
 
 ## Следующие шаги
 
-1. **✅ Утверждение упрощённого плана** (2025-11-08)
-2. **⏳ Реализация Этапа 1**: Метрики в detail (4-6 часов)
-3. **⏳ Реализация Этапа 2**: Агрегированные метрики (3-4 часа)
-4. **⏳ Ожидание gloswing.md**: Фазы 1-4 (15-20 часов)
-5. **⏳ Реализация Этапа 3**: Визуализация свингов (3-4 часа)
-6. **⏳ Тестирование и документация**: Code review + примеры
-7. **⏳ Релиз v1.0**: Полная визуализация метрик и свингов
+### ✅ Завершено
+
+1. ✅ **Утверждение упрощённого плана** (2025-11-08)
+2. ✅ **Реализация gloswing.md** (2025-11-10)
+
+### 🚀 Готово к выполнению
+
+3. **Реализация Этапа 1**: Метрики в detail (4-6 часов) — **МОЖНО НАЧИНАТЬ**
+4. **Реализация Этапа 2**: Агрегированные метрики (3-4 часа) — **МОЖНО НАЧИНАТЬ**
+5. **Реализация Этапа 3**: Визуализация свингов (3-4 часа) — **МОЖНО НАЧИНАТЬ**
+
+### ⏳ После реализации
+
+6. **Тестирование**: Code review + интеграционные тесты
+7. **Документация**: Обновление user guide и API docs
+8. **Релиз v1.0**: Полная визуализация метрик и свингов
 
 ---
 
-**Автор**: Claude Code (ред. gpt-5-codex)
-**Версия документа**: 5.1 (уточнения структуры данных и UX)
-**Дата обновления**: 2025-11-08
+**Автор**: Claude Code (ред. claude-sonnet-4.5)
+**Версия документа**: 6.0 (критическое обновление после реализации gloswing.md)
+**Дата обновления**: 2025-11-11
 
-> ASCII-макеты выше — концепты для Plotly. В Matplotlib разрешается допуска разницы в отступах и шрифтах; важна информационная насыщенность, а не пиксель-перфект.
+> **Важное изменение**: Документ обновлён с учётом завершения gloswing.md (2025-11-10). Все 3 этапа готовы к параллельной реализации без ожидания зависимостей.
+
+> ASCII-макеты выше — концепты для Plotly. В Matplotlib допускается разница в отступах и шрифтах; важна информационная насыщенность, а не пиксель-перфект.
