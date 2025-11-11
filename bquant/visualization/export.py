@@ -62,6 +62,9 @@ def save_figure(
         if prefer.lower() == "png" and hasattr(fig, "write_image"):
             try:
                 path = out / f"{filename}.png"
+                # Удаляем существующий файл для принудительной перезаписи
+                if path.exists():
+                    path.unlink()
                 # Use figure's own width/height from layout if available, otherwise use provided defaults
                 fig_width = fig.layout.width if fig.layout.width else width
                 fig_height = fig.layout.height if fig.layout.height else height
@@ -69,16 +72,25 @@ def save_figure(
                 return str(path.resolve())
             except Exception:
                 path = out / f"{filename}.html"
+                # Удаляем существующий файл для принудительной перезаписи
+                if path.exists():
+                    path.unlink()
                 fig.write_html(str(path))
                 return str(path.resolve())
         else:
             path = out / f"{filename}.html"
+            # Удаляем существующий файл для принудительной перезаписи
+            if path.exists():
+                path.unlink()
             fig.write_html(str(path))
             return str(path.resolve())
 
     # Matplotlib figure
     if hasattr(fig, "savefig"):
         path = out / f"{filename}.png"
+        # Удаляем существующий файл для принудительной перезаписи
+        if path.exists():
+            path.unlink()
         fig.savefig(str(path), dpi=dpi, bbox_inches="tight")
         return str(path.resolve())
 

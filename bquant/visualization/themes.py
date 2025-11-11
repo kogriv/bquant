@@ -296,7 +296,9 @@ class ChartThemes:
                 'bullish': '#27ae60',
                 'bearish': '#e74c3c',
                 'neutral': '#3498db',
-                'volume': '#95a5a6'
+                'volume': '#95a5a6',
+                'swing_peak': '#d62728',
+                'swing_trough': '#2ca02c',
             },
             'layout': {
                 'font_family': 'Segoe UI, Arial, sans-serif',
@@ -328,7 +330,9 @@ class ChartThemes:
                 'bullish': '#2ecc71',
                 'bearish': '#e74c3c',
                 'neutral': '#3498db',
-                'volume': '#95a5a6'
+                'volume': '#95a5a6',
+                'swing_peak': '#ff6b6b',
+                'swing_trough': '#1abc9c',
             },
             'layout': {
                 'font_family': 'Segoe UI, Arial, sans-serif',
@@ -360,7 +364,9 @@ class ChartThemes:
                 'bullish': '#198754',
                 'bearish': '#dc3545',
                 'neutral': '#0d6efd',
-                'volume': '#6c757d'
+                'volume': '#6c757d',
+                'swing_peak': '#c0392b',
+                'swing_trough': '#27ae60',
             },
             'layout': {
                 'font_family': 'Roboto, Helvetica, Arial, sans-serif',
@@ -392,7 +398,9 @@ class ChartThemes:
                 'bullish': '#4caf50',
                 'bearish': '#f44336',
                 'neutral': '#2196f3',
-                'volume': '#9e9e9e'
+                'volume': '#9e9e9e',
+                'swing_peak': '#d32f2f',
+                'swing_trough': '#388e3c',
             },
             'layout': {
                 'font_family': 'Helvetica Neue, Arial, sans-serif',
@@ -424,7 +432,9 @@ class ChartThemes:
                 'bullish': '#2e7d32',
                 'bearish': '#c62828',
                 'neutral': '#1565c0',
-                'volume': '#757575'
+                'volume': '#757575',
+                'swing_peak': '#b71c1c',
+                'swing_trough': '#1b5e20',
             },
             'layout': {
                 'font_family': 'Times New Roman, serif',

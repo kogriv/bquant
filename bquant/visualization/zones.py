@@ -2,14 +2,17 @@
 
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from copy import deepcopy
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+import warnings
 
 import numpy as np
 import pandas as pd
 
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
-from ..analysis.zones.models import ZoneInfo
+from ..analysis.zones.models import ZoneInfo, SwingContext, SwingPoint
+from .themes import ChartThemes
 from .utils import find_all_gaps
 
 # Получаем логгер для модуля
@@ -34,6 +37,47 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     logger.warning("Matplotlib not available - zones visualization will be limited")
+
+
+ALLOWED_DETAIL_KWARGS: Set[str] = {
+    'context_bars',
+    'max_zone_detail_bars',
+    'xaxis_num_ticks',
+    'time_axis_mode',
+    'show_indicators',
+    'show_volume',
+    'show_swings',
+    'swing_marker_size',
+    'max_swings_to_display',
+    'indicator_palette',
+    'indicator_chart_types',
+    'volume_panel_height',
+    'indicator_panel_height',
+    'chart_info',
+    'metrics_annotation_position',
+}
+
+ALLOWED_OVERVIEW_KWARGS: Set[str] = {
+    'xaxis_num_ticks',
+    'time_axis_mode',
+    'show_gap_lines',
+    'show_indicators',
+    'indicator_columns',
+    'indicator_chart_types',
+    'show_zone_labels',
+    'metrics_annotation_position',
+    'show_zone_stats',
+    'show_aggregate_metrics',
+    'aggregate_metrics_mode',
+    'show_volume',
+    'chart_info',
+    'indicator_palette',
+    'volume_panel_height',
+    'indicator_panel_height',
+    'show_swings',
+    'swing_marker_size',
+    'max_swings_to_display',
+}
 
 
 class ZoneChartBuilder:
@@ -96,6 +140,10 @@ class ZoneChartBuilder:
                     normalized.append(zone)
                     continue
 
+                if isinstance(zone, ZoneInfo):
+                    normalized.append(self._normalize_zone(zone))
+                    continue
+
                 if hasattr(zone, "to_analyzer_format"):
                     try:
                         normalized.append(zone.to_analyzer_format())
@@ -118,6 +166,106 @@ class ZoneChartBuilder:
         else:
             raise ValueError("zones_data must be DataFrame or list of dicts")
 
+    def _add_annotation(
+        self,
+        fig: Union["go.Figure", "plt.Figure"],
+        text: str,
+        position: str = 'top-left',
+        row: int = 1,
+        col: int = 1,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Унифицированное добавление текстовой аннотации на график.
+
+        Args:
+            fig: Plotly или Matplotlib figure
+            text: Текст аннотации
+            position: Одна из позиций ('top-left', 'top-right', 'bottom-left', 'bottom-right')
+            row: Строка subplot (Plotly)
+            col: Колонка subplot (Plotly)
+            **kwargs: Дополнительные параметры оформления
+        """
+        if self.backend == 'plotly':
+            if not PLOTLY_AVAILABLE:
+                self.logger.warning("Plotly backend unavailable for annotations")
+                return
+
+            position_map = {
+                'top-left': {'x': 0.02, 'y': 0.95, 'xanchor': 'left', 'yanchor': 'top'},
+                'top-right': {'x': 0.98, 'y': 0.95, 'xanchor': 'right', 'yanchor': 'top'},
+                'bottom-left': {'x': 0.02, 'y': 0.05, 'xanchor': 'left', 'yanchor': 'bottom'},
+                'bottom-right': {'x': 0.98, 'y': 0.05, 'xanchor': 'right', 'yanchor': 'bottom'},
+            }
+            coords = position_map.get(position, position_map['top-left'])
+
+            annotation_kwargs = dict(
+                text=text,
+                xref='paper',
+                yref='paper',
+                x=coords['x'],
+                y=coords['y'],
+                xanchor=coords['xanchor'],
+                yanchor=coords['yanchor'],
+                showarrow=False,
+                font=dict(
+                    size=kwargs.get('font_size', 10),
+                    family=kwargs.get('font_family', 'monospace'),
+                    color=kwargs.get('font_color', '#333333'),
+                ),
+                align=kwargs.get('align', 'left'),
+                bgcolor=kwargs.get('bgcolor', 'rgba(255,255,255,0.85)'),
+                bordercolor=kwargs.get('bordercolor', 'rgba(0,0,0,0.1)'),
+                borderwidth=kwargs.get('borderwidth', 1),
+                borderpad=kwargs.get('borderpad', 4),
+            )
+
+            # ВАЖНО: Не передаём row/col для paper-координат, т.к. Plotly автоматически
+            # переключит xref/yref на x/y для конкретного subplot, что сломает позиционирование
+            # Paper-координаты работают глобально для всей фигуры
+
+            fig.add_annotation(**annotation_kwargs)
+            return
+
+        if not MATPLOTLIB_AVAILABLE:
+            self.logger.warning("Matplotlib backend unavailable for annotations")
+            return
+
+        position_map = {
+            'top-left': (0.02, 0.98, 'left', 'top'),
+            'top-right': (0.98, 0.98, 'right', 'top'),
+            'bottom-left': (0.02, 0.02, 'left', 'bottom'),
+            'bottom-right': (0.98, 0.02, 'right', 'bottom'),
+        }
+        x, y, ha, va = position_map.get(position, position_map['top-left'])
+
+        if not getattr(fig, "axes", None):
+            self.logger.warning("Matplotlib figure has no axes for annotation")
+            return
+
+        axis_index = max(0, min(len(fig.axes) - 1, row - 1))
+        ax = fig.axes[axis_index]
+        matplotlib_text = text.replace('<br>', '\n')
+
+        ax.text(
+            x,
+            y,
+            matplotlib_text,
+            transform=ax.transAxes,
+            fontsize=kwargs.get('font_size', 8),
+            fontfamily=kwargs.get('font_family', 'monospace'),
+            color=kwargs.get('font_color', '#333333'),
+            ha=ha,
+            va=va,
+            bbox=dict(
+                boxstyle='round,pad=0.4',
+                facecolor=kwargs.get('bgcolor', 'wheat'),
+                edgecolor=kwargs.get('bordercolor', 'black'),
+                linewidth=kwargs.get('borderwidth', 1),
+                alpha=kwargs.get('alpha', 0.8),
+            ),
+        )
+
     def _normalize_zone(self, zone: Union[Dict[str, Any], ZoneInfo, Any]) -> Dict[str, Any]:
         """Приведение зоны к словарю с сохранением метаданных ZoneInfo."""
 
@@ -136,6 +284,8 @@ class ZoneChartBuilder:
                 'data': zone.data,
                 'features': zone.features,
                 'indicator_context': zone.indicator_context,
+                'swing_context': zone.swing_context,
+                'original_zone': zone,
             }
 
         normalized = self._prepare_zone_data([zone])
@@ -313,6 +463,24 @@ class ZoneVisualizer(ZoneChartBuilder):
             **kwargs: Дополнительные параметры
         """
         super().__init__(backend)
+
+        self.theme_manager = ChartThemes()
+        requested_theme = kwargs.get('theme') or 'bquant_light'
+        available_themes = self.theme_manager.get_available_themes()
+        theme_name = requested_theme if requested_theme in available_themes else available_themes[0]
+        try:
+            theme_config = deepcopy(self.theme_manager.get_theme(theme_name))
+        except Exception:
+            fallback = available_themes[0]
+            theme_config = deepcopy(self.theme_manager.get_theme(fallback))
+            theme_name = fallback
+
+        colors = theme_config.setdefault('colors', {})
+        colors.setdefault('swing_peak', '#d62728')
+        colors.setdefault('swing_trough', '#2ca02c')
+
+        self.theme_name = theme_name
+        self.theme = theme_config
         
         # Настройки по умолчанию
         self.default_config = {
@@ -320,6 +488,11 @@ class ZoneVisualizer(ZoneChartBuilder):
             'height': kwargs.get('height', 800),
             'show_zone_labels': kwargs.get('show_zone_labels', False),
             'show_zone_stats': kwargs.get('show_zone_stats', True),
+            'show_zone_metrics': kwargs.get('show_zone_metrics', False),
+            'show_aggregate_metrics': kwargs.get('show_aggregate_metrics', False),
+            'aggregate_metrics_mode': kwargs.get('aggregate_metrics_mode', 'compact'),
+            'show_swings': kwargs.get('show_swings', False),
+            'metrics_annotation_position': kwargs.get('metrics_annotation_position', 'top-left'),
             'opacity': kwargs.get('opacity', 0.3),
             'zone_detail_context': kwargs.get('zone_detail_context', 40),
             'max_zone_detail_bars': kwargs.get('max_zone_detail_bars', 500),
@@ -332,6 +505,239 @@ class ZoneVisualizer(ZoneChartBuilder):
             ]),
         }
     
+    def _get_theme_color(self, role: str, default: str = '#000000') -> str:
+        """
+        Получить цвет из активной темы визуализатора.
+
+        Args:
+            role: ключ цвета (например, 'swing_peak')
+            default: значение по умолчанию
+        """
+        colors = {}
+        if isinstance(self.theme, dict):
+            colors = self.theme.get('colors', {}) or {}
+        return colors.get(role, default)
+
+    def _validate_and_get_config(
+        self,
+        param_name: str,
+        explicit_value: Any,
+        kwargs: Dict[str, Any],
+        default: Any,
+        allowed_kwargs: Iterable[str],
+    ) -> Tuple[Any, Dict[str, Any]]:
+        """
+        Разрешение значения конфигурации с валидацией поддерживаемых kwargs.
+
+        Возвращает кортеж: (значение параметра, отфильтрованные kwargs).
+        """
+        allowed_set = set(allowed_kwargs)
+        allowed_set.add(param_name)
+
+        unknown_keys = set(kwargs.keys()) - allowed_set
+        if unknown_keys:
+            message = "Unknown parameters will be ignored: %s" % ', '.join(sorted(unknown_keys))
+            self.logger.warning(message)
+            warnings.warn(message, category=UserWarning, stacklevel=2)
+
+        cleaned_kwargs = {k: v for k, v in kwargs.items() if k in allowed_set and k != param_name}
+
+        if explicit_value is not None:
+            if param_name in kwargs and kwargs[param_name] != explicit_value:
+                self.logger.warning(
+                    "Parameter '%s' specified both explicitly and in kwargs. "
+                    "Using explicit value: %s (kwargs value %s ignored)",
+                    param_name,
+                    explicit_value,
+                    kwargs[param_name],
+                )
+            return explicit_value, cleaned_kwargs
+
+        if param_name in kwargs:
+            return kwargs[param_name], cleaned_kwargs
+
+        if param_name in self.default_config:
+            return self.default_config[param_name], cleaned_kwargs
+
+        return default, cleaned_kwargs
+
+    def _extract_zone_metrics(self, zone: Union[Dict[str, Any], ZoneInfo]) -> Dict[str, Any]:
+        """Извлечь метрики зоны для отображения."""
+        if isinstance(zone, dict):
+            zone_dict = zone
+            indicator_context = zone.get('indicator_context') or {}
+        else:
+            zone_dict = self._normalize_zone(zone)
+            indicator_context = zone.indicator_context or {}
+
+        features = zone_dict.get('features') or {}
+        metadata = features.get('metadata') or {}
+
+        swing_metrics = metadata.get('swing_metrics')
+        shape_metrics = metadata.get('shape_metrics')
+
+        indicator_name = indicator_context.get('detection_indicator') or indicator_context.get('indicator')
+        if not indicator_name:
+            indicator_name = indicator_context.get('primary_indicator') or 'indicator'
+
+        return {
+            'zone': zone_dict,
+            'swing_metrics': swing_metrics,
+            'shape_metrics': shape_metrics,
+            'indicator_name': indicator_name,
+        }
+
+    def _diagnose_missing_swing_metrics(self, zone: Dict[str, Any]) -> str:
+        """Выявить причину отсутствия swing_metrics."""
+        duration = zone.get('duration')
+        if isinstance(duration, (int, float)) and duration < 8:
+            return f"Zone too short ({int(duration)} < 8 bars)"
+
+        swing_context = zone.get('swing_context')
+        if swing_context is None:
+            original = zone.get('original_zone')
+            if isinstance(original, ZoneInfo):
+                swing_context = original.swing_context
+        if swing_context is None:
+            return "No swing context"
+
+        return "Not available"
+
+    def _format_swing_metrics(self, swing_metrics: Optional[Dict[str, Any]], zone: Dict[str, Any]) -> str:
+        """Форматировать swing_metrics в текст."""
+        separator = '<br>' if self.backend == 'plotly' else '\n'
+        zone_id = zone.get('zone_id', '?')
+
+        if not swing_metrics:
+            reason = self._diagnose_missing_swing_metrics(zone)
+            self.logger.info("Zone %s has no swing metrics: %s", zone_id, reason)
+            return f"📊 Swing Metrics: {reason}"
+
+        num_swings = swing_metrics.get('num_swings')
+        if num_swings is None:
+            num_swings = swing_metrics.get('swings_count')
+
+        rally_count = swing_metrics.get('rally_count')
+        drop_count = swing_metrics.get('drop_count')
+        avg_rally = swing_metrics.get('avg_rally') or swing_metrics.get('avg_rally_pct')
+        avg_drop = swing_metrics.get('avg_drop') or swing_metrics.get('avg_drop_pct')
+        ratio = swing_metrics.get('rally_to_drop_ratio')
+        avg_rally_dur = swing_metrics.get('avg_rally_duration') or swing_metrics.get('avg_rally_duration_bars')
+        avg_drop_dur = swing_metrics.get('avg_drop_duration') or swing_metrics.get('avg_drop_duration_bars')
+
+        # Проверяем наличие хотя бы одного показателя (для несбалансированных свингов)
+        if avg_rally is None and avg_drop is None and (num_swings == 0 or num_swings is None):
+            self.logger.debug("Zone %s has no swing data", zone_id)
+            return "📊 Swing Metrics: No swing data"
+
+        parts = ["📊 Swing Metrics:"]
+        if num_swings is not None:
+            swings_text = f"  Swings: {num_swings}"
+            if rally_count is not None or drop_count is not None:
+                swings_text += f" ({rally_count or 0}↑ / {drop_count or 0}↓)"
+            parts.append(swings_text)
+
+        if avg_rally is not None:
+            dur_text = f" ({float(avg_rally_dur):.1f} bars)" if isinstance(avg_rally_dur, (int, float)) else ""
+            # avg_rally_pct уже в процентах, не умножаем на 100
+            parts.append(f"  Avg Rally: {float(avg_rally):+.2f}%{dur_text}")
+
+        if avg_drop is not None:
+            dur_text = f" ({float(avg_drop_dur):.1f} bars)" if isinstance(avg_drop_dur, (int, float)) else ""
+            # avg_drop_pct уже в процентах, не умножаем на 100
+            parts.append(f"  Avg Drop: {float(avg_drop):+.2f}%{dur_text}")
+
+        if ratio is not None:
+            parts.append(f"  Rally/Drop Ratio: {float(ratio):.2f}x")
+
+        return separator.join(parts)
+
+    def _format_shape_metrics(
+        self,
+        shape_metrics: Optional[Dict[str, Any]],
+        indicator_name: str = 'indicator',
+    ) -> str:
+        """Форматировать shape_metrics в текст."""
+        separator = '<br>' if self.backend == 'plotly' else '\n'
+
+        header = f"📈 Shape Metrics ({indicator_name})" if indicator_name else "📈 Shape Metrics"
+
+        if not shape_metrics:
+            return f"{header}: Not available"
+
+        skewness = shape_metrics.get('hist_skewness')
+        kurtosis = shape_metrics.get('hist_kurtosis')
+        mean_value = shape_metrics.get('hist_mean')
+        std_value = shape_metrics.get('hist_std')
+
+        if skewness is None and kurtosis is None and mean_value is None and std_value is None:
+            return f"{header}: Not available"
+
+        parts = [f"{header}:"]
+        if skewness is not None:
+            if abs(skewness) < 1e-6:
+                skew_label = "symmetric"
+            elif skewness > 0:
+                skew_label = "right-tailed"
+            else:
+                skew_label = "left-tailed"
+            parts.append(f"  Skewness: {float(skewness):+.2f} ({skew_label})")
+
+        if kurtosis is not None:
+            if abs(kurtosis - 3) < 0.1:
+                kurt_label = "mesokurtic"
+            elif kurtosis > 3:
+                kurt_label = "leptokurtic"
+            else:
+                kurt_label = "platykurtic"
+            parts.append(f"  Kurtosis: {float(kurtosis):.2f} ({kurt_label})")
+
+        if mean_value is not None:
+            parts.append(f"  Mean: {float(mean_value):+.4f}")
+        if std_value is not None:
+            parts.append(f"  Std: {float(std_value):.4f}")
+
+        return separator.join(parts)
+
+    def _build_zone_annotation_text(
+        self,
+        zone: Union[Dict[str, Any], ZoneInfo],
+        include_basic_stats: bool = True,
+        include_metrics: bool = True,
+    ) -> str:
+        """Построить текст аннотации зоны."""
+        zone_dict = zone if isinstance(zone, dict) else self._normalize_zone(zone)
+        separator = '<br>' if self.backend == 'plotly' else '\n'
+
+        parts: List[str] = []
+
+        if include_basic_stats:
+            zone_id = zone_dict.get('zone_id', '?')
+            zone_type = zone_dict.get('type', 'n/a')
+            duration = zone_dict.get('duration', 'n/a')
+            parts.append(f"Zone #{zone_id} ({zone_type}) • {duration} bars")
+
+            features = zone_dict.get('features') or {}
+            strength = features.get('strength')
+            if isinstance(strength, (int, float)):
+                parts.append(f"Strength: {float(strength):.2f}")
+
+        if include_metrics:
+            metrics = self._extract_zone_metrics(zone_dict)
+            if parts:
+                parts.append('-' * 20)
+
+            swing_text = self._format_swing_metrics(metrics['swing_metrics'], zone_dict)
+            parts.append(swing_text)
+
+            shape_text = self._format_shape_metrics(
+                metrics['shape_metrics'],
+                indicator_name=metrics['indicator_name'],
+            )
+            parts.append(shape_text)
+
+        return separator.join(parts) if parts else ""
+    
     def plot_zones_on_price_chart(self, price_data: pd.DataFrame,
                                  zones_data: Union[List[Dict], pd.DataFrame],
                                  title: str = "Price Chart with Zones",
@@ -341,6 +747,10 @@ class ZoneVisualizer(ZoneChartBuilder):
                                  show_gap_lines: bool = False,
                                  xaxis_num_ticks: int = 16,
                                  time_axis_mode: str = 'dense',
+                         show_aggregate_metrics: bool = False,
+                         aggregate_metrics_mode: str = 'compact',
+                         show_swings: bool = False,
+                         swing_marker_size: int = 8,
                                  **kwargs) -> Union[go.Figure, plt.Figure]:
         """
         Отображение зон на графике цен.
@@ -360,15 +770,59 @@ class ZoneVisualizer(ZoneChartBuilder):
                             на основе диапазона данных для оптимальной читаемости.
             time_axis_mode: Режим оси времени ('dense' или 'timeseries'). 'dense' для плотного графика,
                             'timeseries' для реальной временной шкалы с пропуском выходных.
+            show_aggregate_metrics: Отображать ли агрегированные метрики (MVP вариант).
+            aggregate_metrics_mode: 'compact' или 'full' режим отображения агрегированных метрик.
+            show_swings: Отображать ли глобальные swing-точки (только Plotly в v1.0).
+            swing_marker_size: Размер маркеров свингов (Plotly).
             **kwargs: Дополнительные параметры
         
         Returns:
             Объект графика
         """
+        show_aggregate_metrics, kwargs = self._validate_and_get_config(
+            'show_aggregate_metrics',
+            show_aggregate_metrics,
+            kwargs,
+            default=self.default_config.get('show_aggregate_metrics', False),
+            allowed_kwargs=ALLOWED_OVERVIEW_KWARGS,
+        )
+
+        aggregate_metrics_mode, kwargs = self._validate_and_get_config(
+            'aggregate_metrics_mode',
+            aggregate_metrics_mode,
+            kwargs,
+            default='compact',
+            allowed_kwargs=ALLOWED_OVERVIEW_KWARGS,
+        )
+
+        show_swings, kwargs = self._validate_and_get_config(
+            'show_swings',
+            show_swings,
+            kwargs,
+            default=self.default_config.get('show_swings', False),
+            allowed_kwargs=ALLOWED_OVERVIEW_KWARGS,
+        )
+
+        swing_marker_size, kwargs = self._validate_and_get_config(
+            'swing_marker_size',
+            swing_marker_size,
+            kwargs,
+            default=8,
+            allowed_kwargs=ALLOWED_OVERVIEW_KWARGS,
+        )
+
+        max_swings_to_display, kwargs = self._validate_and_get_config(
+            'max_swings_to_display',
+            kwargs.get('max_swings_to_display'),
+            kwargs,
+            default=None,
+            allowed_kwargs=ALLOWED_OVERVIEW_KWARGS,
+        )
+
         zones = self._prepare_zone_data(zones_data)
         
         if self.backend == 'plotly':
-            return self._create_plotly_zones_on_price(
+            fig = self._create_plotly_zones_on_price(
                 price_data, zones, title, 
                 show_indicators=show_indicators,
                 indicator_columns=indicator_columns,
@@ -379,14 +833,289 @@ class ZoneVisualizer(ZoneChartBuilder):
                 **kwargs
             )
         else:
-            return self._create_matplotlib_zones_on_price(price_data, zones, title, **kwargs)
+            fig = self._create_matplotlib_zones_on_price(price_data, zones, title, **kwargs)
+
+        if show_aggregate_metrics and zones:
+            aggregated = self._aggregate_zone_metrics_mvp(zones)
+            if aggregated:
+                annotation_text = self._format_aggregate_metrics_mvp(
+                    aggregated,
+                    mode=aggregate_metrics_mode,
+                )
+                if annotation_text:
+                    position = kwargs.get(
+                        'metrics_annotation_position',
+                        self.default_config.get('metrics_annotation_position', 'top-left'),
+                    )
+                    self._add_annotation(fig, text=annotation_text, position=position, row=1, col=1)
+
+        if show_swings:
+            swing_context = self._resolve_global_swing_context(zones)
+            if swing_context:
+                visible_swings = [
+                    sp
+                    for sp in swing_context.swing_points
+                    if price_data.index[0] <= sp.timestamp <= price_data.index[-1]
+                ]
+                limit = max_swings_to_display
+                if limit is not None and len(visible_swings) > limit:
+                    visible_swings = visible_swings[:limit]
+                    self.logger.warning(
+                        "Overview swing overlay truncated to %s points due to max_swings_to_display",
+                        limit,
+                    )
+                if len(visible_swings) > 200:
+                    self.logger.warning(
+                        "Overview swing overlay has %s points; rendering may be slow",
+                        len(visible_swings),
+                    )
+                # Используем позиционные индексы в dense режиме
+                use_positional = (time_axis_mode == 'dense')
+                self._add_swing_overlay(
+                    fig,
+                    visible_swings,
+                    row=1,
+                    col=1,
+                    marker_size=int(swing_marker_size),
+                    price_data=price_data,
+                    use_positional_index=use_positional,
+                )
+                
+                # Явно устанавливаем диапазон Y-оси на основе данных price_data, а не автомасштабирование
+                # чтобы свинги не растягивали ось
+                if self.backend == 'plotly' and PLOTLY_AVAILABLE:
+                    y_min = price_data['low'].min()
+                    y_max = price_data['high'].max()
+                    y_margin = (y_max - y_min) * 0.05  # 5% отступ сверху и снизу
+                    fig.update_yaxes(range=[y_min - y_margin, y_max + y_margin], row=1, col=1)
+            else:
+                self.logger.debug("No swing_context found among zones for overview overlay")
+
+        return fig
+
+    def _aggregate_zone_metrics_mvp(
+        self,
+        zones: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Dict[str, Any]]]:
+        """Агрегировать swing-метрики по списку зон (MVP)."""
+        bull_zones = [zone for zone in zones if zone.get('type') == 'bull']
+        bear_zones = [zone for zone in zones if zone.get('type') == 'bear']
+
+        if not bull_zones and not bear_zones:
+            return None
+
+        def _collect(zones_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+            rallies: List[float] = []
+            drops: List[float] = []
+            ratios: List[float] = []
+            avg_rally_durations: List[float] = []
+            avg_drop_durations: List[float] = []
+            all_durations: List[float] = []
+            zones_with_swings = 0
+            metric_samples = {
+                'avg_rally': 0,
+                'avg_drop': 0,
+                'avg_rally_duration': 0,
+                'avg_drop_duration': 0,
+                'avg_duration': 0,
+                'ratio': 0,
+            }
+
+            for zone in zones_list:
+                metrics = self._extract_zone_metrics(zone)
+                swing_metrics = metrics.get('swing_metrics')
+                if not swing_metrics:
+                    continue
+
+                # Проверяем наличие хотя бы одного rally или drop
+                # Не требуем num_swings > 0, т.к. в глобальном режиме
+                # в короткие зоны может попадать мало свинг-точек,
+                # создавая несбалансированные движения (только rally или только drop)
+                avg_rally = swing_metrics.get('avg_rally') or swing_metrics.get('avg_rally_pct')
+                avg_drop = swing_metrics.get('avg_drop') or swing_metrics.get('avg_drop_pct')
+
+                # Пропускаем только если нет вообще никаких данных
+                if avg_rally is None and avg_drop is None:
+                    continue
+
+                zones_with_swings += 1
+
+                if avg_rally is not None:
+                    rallies.append(float(avg_rally))
+                    metric_samples['avg_rally'] += 1
+
+                if avg_drop is not None:
+                    drops.append(float(avg_drop))
+                    metric_samples['avg_drop'] += 1
+
+                ratio = swing_metrics.get('rally_to_drop_ratio')
+                if ratio is not None:
+                    ratios.append(float(ratio))
+                    metric_samples['ratio'] += 1
+
+                rally_dur = swing_metrics.get('avg_rally_duration') or swing_metrics.get('avg_rally_duration_bars')
+                drop_dur = swing_metrics.get('avg_drop_duration') or swing_metrics.get('avg_drop_duration_bars')
+                if rally_dur is not None:
+                    avg_rally_durations.append(float(rally_dur))
+                    all_durations.append(float(rally_dur))
+                    metric_samples['avg_rally_duration'] += 1
+                    metric_samples['avg_duration'] += 1
+                if drop_dur is not None:
+                    avg_drop_durations.append(float(drop_dur))
+                    all_durations.append(float(drop_dur))
+                    metric_samples['avg_drop_duration'] += 1
+                    metric_samples['avg_duration'] += 1
+
+            def _mean_std(values: List[float]) -> Tuple[Optional[float], Optional[float]]:
+                if not values:
+                    return None, None
+                arr = np.asarray(values, dtype=float)
+                return float(arr.mean()), float(arr.std(ddof=0))
+
+            rally_mean, rally_std = _mean_std(rallies)
+            drop_mean, drop_std = _mean_std(drops)
+            ratio_mean, _ = _mean_std(ratios)
+            rally_dur_mean, rally_dur_std = _mean_std(avg_rally_durations)
+            drop_dur_mean, drop_dur_std = _mean_std(avg_drop_durations)
+            avg_duration_mean, avg_duration_std = _mean_std(all_durations)
+
+            return {
+                'count': len(zones_list),
+                'with_swings': zones_with_swings,
+                'avg_rally_mean': rally_mean,
+                'avg_rally_std': rally_std,
+                'avg_drop_mean': drop_mean,
+                'avg_drop_std': drop_std,
+                'ratio_mean': ratio_mean,
+                'avg_rally_duration_mean': rally_dur_mean,
+                'avg_rally_duration_std': rally_dur_std,
+                'avg_drop_duration_mean': drop_dur_mean,
+                'avg_drop_duration_std': drop_dur_std,
+                'avg_duration_mean': avg_duration_mean,
+                'avg_duration_std': avg_duration_std,
+                'avg_rally_samples': metric_samples['avg_rally'],
+                'avg_drop_samples': metric_samples['avg_drop'],
+                'avg_rally_duration_samples': metric_samples['avg_rally_duration'],
+                'avg_drop_duration_samples': metric_samples['avg_drop_duration'],
+                'avg_duration_samples': metric_samples['avg_duration'],
+                'ratio_samples': metric_samples['ratio'],
+            }
+
+        result: Dict[str, Dict[str, Any]] = {}
+        if bull_zones:
+            result['bull'] = _collect(bull_zones)
+        if bear_zones:
+            result['bear'] = _collect(bear_zones)
+
+        return result if result else None
+
+    def _format_aggregate_metrics_mvp(
+        self,
+        aggregated: Dict[str, Dict[str, Any]],
+        mode: str = 'compact',
+    ) -> str:
+        """Сформатировать агрегированные метрики (compact | full)."""
+        separator = '<br>' if self.backend == 'plotly' else '\n'
+        mode = (mode or '').lower()
+        if mode not in {'compact', 'full'}:
+            self.logger.warning("Unknown aggregate_metrics_mode '%s', falling back to 'compact'", mode)
+            mode = 'compact'
+
+        parts: List[str] = []
+        for side in ('bull', 'bear'):
+            if side not in aggregated:
+                continue
+            stats = aggregated[side]
+            label = "📊 Bull Zones" if side == 'bull' else "📊 Bear Zones"
+            count = stats.get('count', 0) or 0
+            with_swings = stats.get('with_swings', 0) or 0
+            coverage_pct = (with_swings / count * 100) if count else 0.0
+            parts.append(f"{label}: {with_swings}/{count} with swings ({coverage_pct:.0f}%)")
+
+            rally_mean = stats.get('avg_rally_mean')
+            rally_std = stats.get('avg_rally_std')
+            drop_mean = stats.get('avg_drop_mean')
+            drop_std = stats.get('avg_drop_std')
+            ratio_mean = stats.get('ratio_mean')
+
+            if mode == 'compact':
+                if rally_mean is not None:
+                    # Значения уже в процентах, не умножаем на 100
+                    parts.append(f"  Avg Rally: {float(rally_mean):+.2f}% ± {float(rally_std or 0):.2f}%")
+                else:
+                    parts.append("  Avg Rally: N/A (no aggregated data)")
+                if drop_mean is not None:
+                    # Значения уже в процентах, не умножаем на 100
+                    parts.append(f"  Avg Drop: {float(drop_mean):+.2f}% ± {float(drop_std or 0):.2f}%")
+                else:
+                    parts.append("  Avg Drop: N/A (no aggregated data)")
+                if ratio_mean is not None:
+                    parts.append(f"  Rally/Drop Ratio: {float(ratio_mean):.2f}x")
+                else:
+                    parts.append("  Rally/Drop Ratio: N/A (no aggregated data)")
+            else:
+                rally_line = "  Avg Rally:"
+                if rally_mean is not None:
+                    # Значения уже в процентах, не умножаем на 100
+                    rally_line += f" {float(rally_mean):+.2f}%"
+                if rally_std is not None:
+                    rally_line += f" ± {float(rally_std):.2f}%"
+                rally_dur_mean = stats.get('avg_rally_duration_mean')
+                rally_dur_std = stats.get('avg_rally_duration_std')
+                if rally_dur_mean is not None:
+                    rally_line += f" ({float(rally_dur_mean):.1f}"
+                    if rally_dur_std is not None:
+                        rally_line += f" ± {float(rally_dur_std):.1f}"
+                    rally_line += " bars)"
+                if rally_mean is None and rally_dur_mean is None:
+                    rally_line += " N/A (no aggregated data)"
+                parts.append(rally_line)
+
+                drop_line = "  Avg Drop:"
+                if drop_mean is not None:
+                    # Значения уже в процентах, не умножаем на 100
+                    drop_line += f" {float(drop_mean):+.2f}%"
+                if drop_std is not None:
+                    drop_line += f" ± {float(drop_std):.2f}%"
+                drop_dur_mean = stats.get('avg_drop_duration_mean')
+                drop_dur_std = stats.get('avg_drop_duration_std')
+                if drop_dur_mean is not None:
+                    drop_line += f" ({float(drop_dur_mean):.1f}"
+                    if drop_dur_std is not None:
+                        drop_line += f" ± {float(drop_dur_std):.1f}"
+                    drop_line += " bars)"
+                if drop_mean is None and drop_dur_mean is None:
+                    drop_line += " N/A (no aggregated data)"
+                parts.append(drop_line)
+
+                if ratio_mean is not None:
+                    parts.append(f"  Rally/Drop Ratio: {float(ratio_mean):.2f}x")
+                else:
+                    parts.append("  Rally/Drop Ratio: N/A (no aggregated data)")
+
+                avg_duration_mean = stats.get('avg_duration_mean')
+                avg_duration_std = stats.get('avg_duration_std')
+                if avg_duration_mean is not None:
+                    duration_line = f"  Avg Swing Duration: {float(avg_duration_mean):.1f}"
+                    if avg_duration_std is not None:
+                        duration_line += f" ± {float(avg_duration_std):.1f}"
+                    duration_line += " bars"
+                else:
+                    duration_line = "  Avg Swing Duration: N/A (no aggregated data)"
+                parts.append(duration_line)
+
+        return separator.join(parts) if parts else ""
 
     def plot_zone_detail(self, price_data: pd.DataFrame,
                          zone: Union[Dict[str, Any], ZoneInfo, Any],
                          context_bars: int = 20,
                          title: str = "Zone Detail",
+                         show_zone_metrics: bool = False,
                          show_indicators: bool = True,
                          show_volume: bool = True,
+                         show_swings: bool = False,
+                         swing_marker_size: int = 10,
+                         show_zone_stats: Optional[bool] = None,
                          time_axis_mode: str = 'dense',
                          xaxis_num_ticks: int = 16,
                          **kwargs) -> Union[go.Figure, plt.Figure]:
@@ -394,6 +1123,54 @@ class ZoneVisualizer(ZoneChartBuilder):
 
         if price_data is None or price_data.empty:
             raise ValueError("price_data must be a non-empty DataFrame")
+
+        show_zone_metrics, kwargs = self._validate_and_get_config(
+            'show_zone_metrics',
+            show_zone_metrics,
+            kwargs,
+            default=self.default_config.get('show_zone_metrics', False),
+            allowed_kwargs=ALLOWED_DETAIL_KWARGS,
+        )
+
+        metrics_position = kwargs.get(
+            'metrics_annotation_position',
+            self.default_config.get('metrics_annotation_position', 'top-left'),
+        )
+        if 'metrics_annotation_position' in kwargs:
+            kwargs = dict(kwargs)
+            kwargs.pop('metrics_annotation_position', None)
+
+        show_zone_stats, kwargs = self._validate_and_get_config(
+            'show_zone_stats',
+            show_zone_stats,
+            kwargs,
+            default=self.default_config.get('show_zone_stats', True),
+            allowed_kwargs=ALLOWED_DETAIL_KWARGS,
+        )
+
+        show_swings, kwargs = self._validate_and_get_config(
+            'show_swings',
+            show_swings,
+            kwargs,
+            default=self.default_config.get('show_swings', False),
+            allowed_kwargs=ALLOWED_DETAIL_KWARGS,
+        )
+
+        swing_marker_size, kwargs = self._validate_and_get_config(
+            'swing_marker_size',
+            swing_marker_size,
+            kwargs,
+            default=10,
+            allowed_kwargs=ALLOWED_DETAIL_KWARGS,
+        )
+
+        max_swings_to_display, kwargs = self._validate_and_get_config(
+            'max_swings_to_display',
+            kwargs.get('max_swings_to_display'),
+            kwargs,
+            default=None,
+            allowed_kwargs=ALLOWED_DETAIL_KWARGS,
+        )
 
         # Проверяем параметры из kwargs (приоритет выше параметров)
         show_indicators = kwargs.get('show_indicators', show_indicators)
@@ -440,7 +1217,7 @@ class ZoneVisualizer(ZoneChartBuilder):
             )
 
         if self.backend == 'plotly':
-            return self._create_plotly_zone_detail(
+            fig = self._create_plotly_zone_detail(
                 window_df,
                 zone_dict,
                 indicator_data,
@@ -453,7 +1230,7 @@ class ZoneVisualizer(ZoneChartBuilder):
                 **kwargs,
             )
         else:
-            return self._create_matplotlib_zone_detail(
+            fig = self._create_matplotlib_zone_detail(
                 window_df,
                 zone_dict,
                 indicator_data,
@@ -461,6 +1238,224 @@ class ZoneVisualizer(ZoneChartBuilder):
                 window_meta,
                 **kwargs,
             )
+
+        if show_zone_stats or show_zone_metrics:
+            annotation_text = self._build_zone_annotation_text(
+                zone_dict,
+                include_basic_stats=bool(show_zone_stats),
+                include_metrics=bool(show_zone_metrics),
+            )
+            if annotation_text:
+                self._add_annotation(fig, text=annotation_text, position=metrics_position, row=1, col=1)
+
+        if show_swings:
+            swing_context = self._resolve_swing_context(zone_dict)
+            if swing_context:
+                zone_swings = self._get_zone_swings_safe(zone_dict, swing_context)
+                limit = max_swings_to_display
+                if limit is not None and len(zone_swings) > limit:
+                    self.logger.warning(
+                        "Plot detail swing overlay truncated to %s points (requested limit).",
+                        limit,
+                    )
+                    zone_swings = zone_swings[:limit]
+                if len(zone_swings) > 200:
+                    self.logger.warning(
+                        "Plot detail swing overlay has %s points; rendering may be slow.",
+                        len(zone_swings),
+                    )
+                # Используем позиционные индексы в dense режиме
+                use_positional = (time_axis_mode == 'dense')
+                self._add_swing_overlay(
+                    fig,
+                    zone_swings,
+                    row=1,
+                    col=1,
+                    marker_size=int(swing_marker_size),
+                    price_data=window_df,
+                    use_positional_index=use_positional,
+                )
+            else:
+                self.logger.debug(
+                    "Zone %s has no swing_context; ensure global swing scope is enabled.",
+                    zone_dict.get('zone_id', '?'),
+                )
+
+        return fig
+
+    def _resolve_global_swing_context(self, zones: List[Dict[str, Any]]) -> Optional["SwingContext"]:
+        """Попытаться найти глобальный swing_context среди зон."""
+        for zone in zones:
+            context = zone.get('swing_context')
+            if context:
+                return context
+            original = zone.get('original_zone')
+            if isinstance(original, ZoneInfo) and original.swing_context:
+                return original.swing_context
+        return None
+
+    def _resolve_swing_context(self, zone: Union[Dict[str, Any], ZoneInfo]) -> Optional["SwingContext"]:
+        """Извлечь SwingContext из зоны."""
+        if isinstance(zone, dict):
+            swing_context = zone.get('swing_context')
+            if swing_context:
+                return swing_context
+            original = zone.get('original_zone')
+            if isinstance(original, ZoneInfo):
+                return original.swing_context
+            return None
+
+        if isinstance(zone, ZoneInfo):
+            return zone.swing_context
+
+        return None
+
+    def _get_zone_swings_safe(
+        self,
+        zone: Union[Dict[str, Any], ZoneInfo],
+        swing_context: "SwingContext",
+    ) -> List["SwingPoint"]:
+        """Безопасно получить свинг-точки для зоны."""
+        try:
+            if isinstance(zone, ZoneInfo):
+                return swing_context.get_swings_for_zone(zone)
+            original_zone = zone.get('original_zone')
+            if isinstance(original_zone, ZoneInfo):
+                return swing_context.get_swings_for_zone(original_zone)
+            temp_zone = ZoneInfo(
+                zone_id=zone.get('zone_id', -1),
+                type=zone.get('type', 'unknown'),
+                start_idx=zone.get('start_idx', 0),
+                end_idx=zone.get('end_idx', 0),
+                start_time=zone.get('start_time'),
+                end_time=zone.get('end_time'),
+                duration=zone.get('duration', 0),
+                data=zone.get('data', pd.DataFrame()),
+                features=zone.get('features'),
+                indicator_context=zone.get('indicator_context'),
+                swing_context=swing_context,
+            )
+            return swing_context.get_swings_for_zone(temp_zone)
+        except Exception as error:
+            self.logger.warning("Failed to resolve swings for zone %s: %s", zone, error)
+            return []
+
+    def _add_swing_overlay(
+        self,
+        fig: Union["go.Figure", "plt.Figure"],
+        swing_points: List["SwingPoint"],
+        row: int = 1,
+        col: int = 1,
+        marker_size: int = 10,
+        price_data: Optional[pd.DataFrame] = None,
+        use_positional_index: bool = False,
+    ) -> None:
+        """
+        Добавить визуализацию свинго-точек.
+        
+        Args:
+            fig: График для добавления overlay
+            swing_points: Список SwingPoint для отображения
+            row: Номер строки subplot (для Plotly)
+            col: Номер колонки subplot (для Plotly)
+            marker_size: Размер маркеров
+            price_data: DataFrame с ценами (нужен для преобразования timestamp в индексы в dense режиме)
+            use_positional_index: Если True, использовать позиционные индексы вместо timestamp (для dense режима)
+        """
+        if not swing_points:
+            return
+
+        peak_color = self._get_theme_color('swing_peak', '#d62728')
+        trough_color = self._get_theme_color('swing_trough', '#2ca02c')
+
+        peaks = [sp for sp in swing_points if sp.swing_type == 'peak']
+        troughs = [sp for sp in swing_points if sp.swing_type == 'trough']
+
+        if self.backend == 'plotly':
+            if not PLOTLY_AVAILABLE:
+                self.logger.warning("Plotly backend unavailable for swing overlay")
+                return
+            
+            # Если используем позиционные индексы, нужно преобразовать timestamp в индексы
+            if use_positional_index and price_data is not None:
+                # Создаём маппинг timestamp -> позиционный индекс (используем range вместо enumerate)
+                timestamp_to_idx = {ts: pos for pos, ts in zip(range(len(price_data)), price_data.index)}
+                
+                def get_x_coord(sp):
+                    """Преобразовать timestamp свинга в позиционный индекс."""
+                    return timestamp_to_idx.get(sp.timestamp, None)
+                
+                # Фильтруем свинги, для которых есть соответствие в price_data
+                peaks_x = [get_x_coord(sp) for sp in peaks]
+                peaks_y = [sp.price for sp in peaks]
+                peaks_timestamps = [sp.timestamp for sp in peaks]
+                # Удаляем None значения (свинги вне диапазона price_data)
+                peaks_data = [(x, y, ts) for x, y, ts in zip(peaks_x, peaks_y, peaks_timestamps) if x is not None]
+                
+                troughs_x = [get_x_coord(sp) for sp in troughs]
+                troughs_y = [sp.price for sp in troughs]
+                troughs_timestamps = [sp.timestamp for sp in troughs]
+                troughs_data = [(x, y, ts) for x, y, ts in zip(troughs_x, troughs_y, troughs_timestamps) if x is not None]
+            else:
+                # Используем timestamp напрямую (для timeseries режима)
+                peaks_data = [(sp.timestamp, sp.price, sp.timestamp) for sp in peaks]
+                troughs_data = [(sp.timestamp, sp.price, sp.timestamp) for sp in troughs]
+            
+            if peaks_data:
+                peaks_x, peaks_y, peaks_timestamps = zip(*peaks_data)
+                fig.add_trace(
+                    go.Scatter(
+                        x=list(peaks_x),
+                        y=list(peaks_y),
+                        mode='markers',
+                        marker=dict(
+                            symbol='triangle-down',
+                            size=marker_size,
+                            color=peak_color,
+                            line=dict(width=1, color='darkred'),
+                        ),
+                        name='Swing Peaks',
+                        customdata=list(peaks_timestamps),
+                        hovertemplate='<b>Peak</b><br>Price: %{y:.2f}<br>Time: %{customdata}<extra></extra>',
+                        showlegend=True,
+                    ),
+                    row=row,
+                    col=col,
+                )
+            if troughs_data:
+                troughs_x, troughs_y, troughs_timestamps = zip(*troughs_data)
+                fig.add_trace(
+                    go.Scatter(
+                        x=list(troughs_x),
+                        y=list(troughs_y),
+                        mode='markers',
+                        marker=dict(
+                            symbol='triangle-up',
+                            size=marker_size,
+                            color=trough_color,
+                            line=dict(width=1, color='darkgreen'),
+                        ),
+                        name='Swing Troughs',
+                        customdata=list(troughs_timestamps),
+                        hovertemplate='<b>Trough</b><br>Price: %{y:.2f}<br>Time: %{customdata}<extra></extra>',
+                        showlegend=True,
+                    ),
+                    row=row,
+                    col=col,
+                )
+            return
+
+        if self.backend == 'matplotlib':
+            if not MATPLOTLIB_AVAILABLE:
+                self.logger.warning("Matplotlib backend unavailable for swing overlay")
+                return
+            self.logger.warning(
+                "Swing overlay for Matplotlib backend will be implemented in v1.1 (Этап 4). "
+                "Current version skips overlay."
+            )
+            return
+
+        self.logger.warning("Swing overlay not supported for backend %s", self.backend)
 
     def plot_zones_comparison(self, price_data: pd.DataFrame,
                               zones_data: Union[List[Dict], pd.DataFrame, List[Any]],
@@ -1337,26 +2332,30 @@ class ZoneVisualizer(ZoneChartBuilder):
                     col=1
                 )
 
-        # Аннотации
-        if self.default_config['show_zone_stats']:
-            stats_parts = [
-                f"Type: {zone.get('type', 'n/a')}",
-                f"Duration: {zone.get('duration', 'n/a')} bars",
-            ]
-            features = zone.get('features') or {}
-            if 'strength' in features:
-                stats_parts.append(f"Strength: {features['strength']:.2f}")
-            fig.add_annotation(
-                text='<br>'.join(stats_parts),
-                xref='paper',
-                yref='paper',
-                x=0.01,
-                y=0.98,
-                showarrow=False,
-                align='left',
-                bgcolor='rgba(255,255,255,0.8)',
-                bordercolor='rgba(0,0,0,0.1)',
-                font=dict(size=11),
+        # Добавляем overlay свингов
+        if kwargs.get('show_swings') or self.default_config.get('show_swings'):
+            swing_context = self._resolve_swing_context(zone)
+            if swing_context:
+                zone_swings = self._get_zone_swings_safe(zone, swing_context)
+                limit = kwargs.get('max_swings_to_display')
+                if limit is not None and len(zone_swings) > limit:
+                    zone_swings = zone_swings[:limit]
+                    self.logger.warning(
+                        "Zone %s has more than %s swing points; truncating display.",
+                        zone.get('zone_id', '?'),
+                        limit,
+                    )
+                if len(zone_swings) > 200:
+                    self.logger.warning(
+                        "Zone %s swing overlay has %s points. Rendering may be slow.",
+                        zone.get('zone_id', '?'),
+                        len(zone_swings),
+                    )
+                self._add_swing_overlay(fig, zone_swings, row=1, col=1, marker_size=kwargs.get('swing_marker_size', 10))
+            else:
+                self.logger.debug(
+                    "Zone %s has no swing_context; ensure .with_swing_scope('global') was used.",
+                    zone.get('zone_id', '?'),
             )
 
         # Аннотация для zone label (используем правильный x в зависимости от режима)
@@ -1970,14 +2969,6 @@ class ZoneVisualizer(ZoneChartBuilder):
         ax_price.set_title(title)
         ax_price.legend(loc='upper left')
         ax_price.grid(True, alpha=0.3)
-
-        if self.default_config['show_zone_stats']:
-            stats_parts = [f"Type: {zone.get('type', 'n/a')}", f"Duration: {zone.get('duration', 'n/a')} bars"]
-            features = zone.get('features') or {}
-            if 'strength' in features:
-                stats_parts.append(f"Strength: {features['strength']:.2f}")
-            ax_price.text(0.01, 0.95, '\n'.join(stats_parts), transform=ax_price.transAxes,
-                          fontsize=10, bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
 
         return fig
 

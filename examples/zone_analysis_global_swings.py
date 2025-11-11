@@ -81,7 +81,7 @@ def run_zone_analysis(data, swing_scope: str):
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
         .detect_zones(
             "zero_crossing",
-            indicator_col="macd_histogram",
+            indicator_col="macd_hist",
             zone_types=["bull", "bear"],
             min_duration=8,
         )

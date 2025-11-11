@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Embedded sample data for testing
 - CLI scripts for analysis automation
 - Complete documentation and examples
+- **Zone Metrics Visualization (v1.0)** - 2025-11-11
+  - Aggregate metrics display with `show_aggregate_metrics` parameter (compact/full modes)
+  - Swing points visualization on charts with `show_swings` parameter
+  - Detail mode zone metrics with `show_zone_metrics` parameter
+  - Date range filtering with automatic metrics recalculation for selected period
+  - Support for unbalanced swings in global swing mode
+  - See [docs/api/visualization/zones.md](docs/api/visualization/zones.md) for details
 
 
 ## [0.0.0] - 2024-08-25
