@@ -832,6 +832,282 @@ self.default_config = {
 **Обновить**:
 - `examples/zone_analysis_global_swings.py` — добавить визуализацию свингов
 
+### Benchmark тест
+
+**Обновить** (критически важно):
+- `research/notebooks/04_zones_sample.py` — добавить тесты новой функциональности
+  - После Этапа 1: добавить шаг "Zone Metrics in Detail Mode"
+  - После Этапа 2: добавить шаг "Aggregate Metrics in Overview Mode"
+  - После Этапа 3: добавить шаг "Swing Points Visualization" + обновить pipeline на `.with_swing_scope('global')`
+  - **Важно**: Сохранить все существующие шаги для backward compatibility тестирования
+
+---
+
+## Тестирование и валидация
+
+### Benchmark тест: `research/notebooks/04_zones_sample.py`
+
+**Назначение**: Комплексный benchmark скрипт для валидации визуализации зон после реализации zomet.md.
+
+**Текущее состояние**: Скрипт содержит полное покрытие существующего API визуализации:
+- Overview режим (с/без индикаторов, dense/timeseries)
+- Detail режим (единичная зона)
+- Comparison режим (2-6 зон)
+- Statistics режим
+- Custom configuration (все параметры ZoneVisualizer)
+- Convenience functions (plot_zone_detail, plot_zones_comparison)
+
+**Требования после реализации zomet.md**:
+
+#### Этап 1: Добавить тесты метрик в detail режиме
+
+```python
+# После Этапа 1 - добавить в 04_zones_sample.py
+nb.step("Zone Metrics in Detail Mode")
+with nb.error_handling("Testing zone metrics display"):
+    target_zone = result.zones[0]
+
+    # Тест 1: Метрики включены (новая функциональность)
+    fig_metrics = result.visualize(
+        'detail',
+        zone_id=target_zone.zone_id,
+        show_zone_metrics=True,  # NEW
+        context_bars=20
+    )
+    nb.success("Zone metrics displayed successfully")
+
+    # Тест 2: Объединенный блок (старые + новые метрики)
+    fig_combined = result.visualize(
+        'detail',
+        zone_id=target_zone.zone_id,
+        show_zone_stats=True,   # Старое
+        show_zone_metrics=True,  # Новое
+    )
+    nb.success("Combined stats+metrics block displayed")
+
+    # Тест 3: Backward compatibility (только старые статы)
+    fig_bc = result.visualize(
+        'detail',
+        zone_id=target_zone.zone_id,
+        show_zone_stats=True,
+        show_zone_metrics=False  # Явно выключено
+    )
+    nb.success("Backward compatibility maintained")
+
+    if SAVE_IMAGES:
+        save_figure(fig_metrics, "test_zone_metrics", output_dir=str(OUTPUT_DIR))
+        save_figure(fig_combined, "test_combined_stats_metrics", output_dir=str(OUTPUT_DIR))
+        save_figure(fig_bc, "test_backward_compat", output_dir=str(OUTPUT_DIR))
+nb.wait()
+```
+
+#### Этап 2: Добавить тесты агрегированных метрик
+
+```python
+# После Этапа 2 - добавить в 04_zones_sample.py
+nb.step("Aggregate Metrics in Overview Mode")
+with nb.error_handling("Testing aggregate metrics"):
+    # Тест 1: Агрегированные метрики в overview
+    fig_agg = result.visualize(
+        'overview',
+        show_aggregate_metrics=True,  # NEW
+        title="Overview with Aggregate Metrics"
+    )
+    nb.success("Aggregate metrics displayed in overview")
+
+    # Тест 2: Проверка расчета метрик
+    # Должны быть видны статистики по bull/bear зонам отдельно
+    bull_count = len([z for z in result.zones if z.type == 'bull'])
+    bear_count = len([z for z in result.zones if z.type == 'bear'])
+    nb.log(f"Bull zones: {bull_count}, Bear zones: {bear_count}")
+    nb.log("Aggregate metrics should show separate stats for each type")
+
+    if SAVE_IMAGES:
+        save_figure(fig_agg, "test_aggregate_metrics", output_dir=str(OUTPUT_DIR))
+nb.wait()
+```
+
+#### Этап 3: Добавить тесты визуализации свингов
+
+```python
+# После Этапа 3 - добавить в 04_zones_sample.py (в начало pipeline)
+nb.step("Zone Analysis with Global Swings")
+with nb.error_handling("Building pipeline with global swing scope"):
+    # ВАЖНО: Использовать global swing scope для Этапа 3
+    result = (
+        analyze_zones(df)
+        .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones("zero_crossing", indicator_col="macd_hist")
+        .with_strategies(swing='zigzag')
+        .with_swing_scope('global')  # NEW: Глобальный расчет свингов
+        .analyze(clustering=True, n_clusters=3)
+        .build()
+    )
+    nb.success(f"Pipeline completed with global swings: zones={len(result.zones)}")
+nb.wait()
+
+# ... позже в скрипте ...
+
+nb.step("Swing Points Visualization")
+with nb.error_handling("Testing swing points overlay"):
+    target_zone = result.zones[0]
+
+    # Тест 1: Свинги в detail режиме
+    fig_swings_detail = result.visualize(
+        'detail',
+        zone_id=target_zone.zone_id,
+        show_swings=True,  # NEW
+        show_zone_metrics=True,
+        swing_marker_size=12,
+        context_bars=30
+    )
+    nb.success("Swing points displayed in detail mode")
+
+    # Тест 2: Свинги в overview режиме
+    fig_swings_overview = result.visualize(
+        'overview',
+        show_swings=True,  # NEW: Глобальные свинги
+        show_aggregate_metrics=True,
+        title="Overview with Global Swing Points"
+    )
+    nb.success("Global swing points displayed in overview mode")
+
+    # Тест 3: Полная интеграция (все новые функции)
+    fig_full = result.visualize(
+        'detail',
+        zone_id=target_zone.zone_id,
+        show_zone_stats=True,
+        show_zone_metrics=True,
+        show_swings=True,
+        swing_marker_size=10,
+    )
+    nb.success("Full integration test: stats + metrics + swings")
+
+    if SAVE_IMAGES:
+        save_figure(fig_swings_detail, "test_swings_detail", output_dir=str(OUTPUT_DIR))
+        save_figure(fig_swings_overview, "test_swings_overview", output_dir=str(OUTPUT_DIR))
+        save_figure(fig_full, "test_full_integration", output_dir=str(OUTPUT_DIR))
+nb.wait()
+```
+
+### Критерии успешного прохождения benchmark теста
+
+#### ✅ Этап 1 (Метрики в detail)
+
+1. **Функциональность**:
+   - ✅ `show_zone_metrics=True` отображает блок метрик
+   - ✅ Swing metrics показываются (если доступны)
+   - ✅ Shape metrics показываются (если доступны)
+   - ✅ При отсутствии метрик показывается "Not available"
+
+2. **Backward Compatibility**:
+   - ✅ `show_zone_metrics=False` не ломает существующие графики
+   - ✅ `show_zone_stats=True` продолжает работать как раньше
+   - ✅ Все существующие тесты в `04_zones_sample.py` проходят без изменений
+
+3. **Визуальная валидация**:
+   - ✅ Блок метрик читаем и не перекрывает график
+   - ✅ Объединенный блок (stats+metrics) корректно форматирован
+   - ✅ Позиционирование работает (top-left по умолчанию)
+
+#### ✅ Этап 2 (Агрегированные метрики)
+
+1. **Функциональность**:
+   - ✅ `show_aggregate_metrics=True` отображает статистику
+   - ✅ Разделение по bull/bear зонам работает
+   - ✅ Расчет mean, std, median корректен
+   - ✅ Обработка отсутствующих метрик (показ "n/N zones")
+
+2. **Визуальная валидация**:
+   - ✅ Агрегированный блок компактен и читаем
+   - ✅ Не загромождает overview график
+   - ✅ Позиционирование (top-right по умолчанию)
+
+#### ✅ Этап 3 (Свинг-точки)
+
+1. **Функциональность**:
+   - ✅ `show_swings=True` отображает свинг-точки
+   - ✅ Peaks показываются треугольниками вниз
+   - ✅ Troughs показываются треугольниками вверх
+   - ✅ Работает в detail и overview режимах
+   - ✅ Цвета берутся из темы (не хардкод)
+
+2. **Производительность**:
+   - ✅ Визуализация зоны с 50+ свингами < 100ms
+   - ✅ Overview с 200+ глобальными свингами < 500ms
+
+3. **Интеграция**:
+   - ✅ Совместная работа: `show_zone_metrics=True` + `show_swings=True`
+   - ✅ Визуализация корректна при отсутствии swing_context
+
+### Регрессионное тестирование
+
+После каждого этапа запустить **весь** скрипт `04_zones_sample.py` и проверить:
+
+1. **Все существующие шаги проходят без ошибок**
+2. **Генерируются корректные изображения** (визуальная проверка)
+3. **Логи NotebookSimulator не содержат WARNING/ERROR**
+4. **Размер PNG/HTML файлов разумен** (< 5MB для PNG, < 10MB для HTML)
+
+### Команда запуска benchmark теста
+
+```bash
+# Из корня проекта
+python research/notebooks/04_zones_sample.py
+
+# Проверка результатов
+ls -lh research/notebooks/outputs/vis/04_zones_sample/
+
+# Ожидаемые файлы после полной реализации:
+# - 01_overview*.png/html
+# - 02_detail_*.png/html
+# - 03_comparison*.png/html
+# - 04_statistics.png/html
+# - 05_*_full_params.png/html
+# - 08_custom_*.png/html
+# - test_zone_metrics.png/html  (NEW - Этап 1)
+# - test_combined_stats_metrics.png/html  (NEW - Этап 1)
+# - test_aggregate_metrics.png/html  (NEW - Этап 2)
+# - test_swings_*.png/html  (NEW - Этап 3)
+# - test_full_integration.png/html  (NEW - Этап 3)
+```
+
+### Чеклист валидации
+
+После реализации всех 3 этапов:
+
+- [ ] **Запустить `04_zones_sample.py`** — скрипт завершается без ошибок
+- [ ] **Проверить логи** — нет WARNING/ERROR (кроме ожидаемых DEBUG о missing метриках)
+- [ ] **Визуальная проверка** — открыть все PNG/HTML, проверить корректность:
+  - [ ] Метрики отображаются в detail режиме
+  - [ ] Агрегированные метрики в overview компактны и читаемы
+  - [ ] Свинг-точки видны, цвета корректны (peaks красные, troughs зеленые)
+  - [ ] Объединенный блок (stats+metrics) не дублирует информацию
+  - [ ] Позиционирование не перекрывает графики
+- [ ] **Backward compatibility** — старые графики без новых параметров выглядят как раньше
+- [ ] **Производительность** — время выполнения скрипта < 30 секунд (с SAVE_IMAGES=True)
+- [ ] **Размер файлов** — PNG < 5MB, HTML < 10MB
+
+### Интеграция в CI/CD
+
+**Рекомендация**: Добавить `04_zones_sample.py` в automated test suite:
+
+```yaml
+# .github/workflows/test.yml (или аналогичный)
+- name: Run visualization benchmark
+  run: |
+    python research/notebooks/04_zones_sample.py
+    # Проверить, что скрипт не упал
+    if [ $? -ne 0 ]; then
+      echo "Benchmark test failed"
+      exit 1
+    fi
+    # Проверить наличие ожидаемых файлов
+    test -f research/notebooks/outputs/vis/04_zones_sample/test_zone_metrics.png
+    test -f research/notebooks/outputs/vis/04_zones_sample/test_aggregate_metrics.png
+    test -f research/notebooks/outputs/vis/04_zones_sample/test_swings_detail.png
+```
+
 ---
 
 ## Обновление документации
@@ -1004,21 +1280,36 @@ fig.show()
 ### 🚀 Готово к выполнению
 
 3. **Реализация Этапа 1**: Метрики в detail (4-6 часов) — **МОЖНО НАЧИНАТЬ**
+   - Реализовать методы в `bquant/visualization/zones.py`
+   - Обновить `research/notebooks/04_zones_sample.py` (добавить тесты метрик)
+   - Запустить benchmark тест и проверить backward compatibility
+
 4. **Реализация Этапа 2**: Агрегированные метрики (3-4 часа) — **МОЖНО НАЧИНАТЬ**
+   - Реализовать агрегацию в `bquant/visualization/zones.py`
+   - Обновить `research/notebooks/04_zones_sample.py` (добавить тесты агрегации)
+   - Запустить benchmark тест
+
 5. **Реализация Этапа 3**: Визуализация свингов (3-4 часа) — **МОЖНО НАЧИНАТЬ**
+   - Реализовать `_add_swing_overlay()` в `bquant/visualization/zones.py`
+   - Обновить `research/notebooks/04_zones_sample.py` (pipeline + тесты свингов)
+   - Запустить benchmark тест на полной интеграции
 
 ### ⏳ После реализации
 
-6. **Тестирование**: Code review + интеграционные тесты
-7. **Документация**: Обновление user guide и API docs
-8. **Релиз v1.0**: Полная визуализация метрик и свингов
+6. **Валидация**: Полный прогон `04_zones_sample.py` + визуальная проверка всех графиков
+7. **Юнит-тесты**: Создать `test_zone_metrics_display.py`, `test_zone_metrics_aggregation.py`, `test_swing_overlay.py`
+8. **Code review**: Проверка архитектуры и backward compatibility
+9. **Документация**: Обновление user guide и API docs
+10. **Релиз v1.0**: Полная визуализация метрик и свингов
 
 ---
 
 **Автор**: Claude Code (ред. claude-sonnet-4.5)
-**Версия документа**: 6.0 (критическое обновление после реализации gloswing.md)
+**Версия документа**: 6.1 (добавлен раздел тестирования и валидации)
 **Дата обновления**: 2025-11-11
 
-> **Важное изменение**: Документ обновлён с учётом завершения gloswing.md (2025-11-10). Все 3 этапа готовы к параллельной реализации без ожидания зависимостей.
+> **Важное изменение (v6.0)**: Документ обновлён с учётом завершения gloswing.md (2025-11-10). Все 3 этапа готовы к параллельной реализации без ожидания зависимостей.
+
+> **Новое в v6.1**: Добавлен раздел "Тестирование и валидация" с использованием `research/notebooks/04_zones_sample.py` как benchmark теста для проверки новой функциональности и backward compatibility.
 
 > ASCII-макеты выше — концепты для Plotly. В Matplotlib допускается разница в отступах и шрифтах; важна информационная насыщенность, а не пиксель-перфект.
