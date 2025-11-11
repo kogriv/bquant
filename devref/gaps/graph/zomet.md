@@ -13,6 +13,7 @@
 1. Видеть сами **свинг-точки** (разворотные точки, экстремумы) на графике
 2. Отображать **свинг-метрики и шейп-метрики** при детальном просмотре зоны
 3. Видеть **агрегированную статистику по метрикам** в режиме overview
+4. Управлять существующим блоком `show_zone_stats` так, чтобы он не конфликтовал с новыми карточками метрик
 
 Это ограничивает возможность визуальной проверки результатов анализа и понимания внутренней структуры зон.
 
@@ -27,6 +28,20 @@
 - ❌ Сложной индикаторной инфраструктуры для overlay
 
 **Результат**: Экономия **6-11 часов** на реализации.
+
+## Структура данных и ограничения
+
+| Источник | Ключ в `zone` | Фолбэк | Примечание |
+|----------|---------------|--------|------------|
+| Swing metrics | `zone.features['metadata']['swing_metrics']` | `zone.features.get('swing_metrics')` | Возвращает словарь с ключами `avg_rally`, `avg_drop`, `rally_drop_ratio`, `swings_count`, `bull_swings`, `bear_swings` |
+| Shape metrics | `zone.features['metadata']['shape_metrics']` | `zone.features.get('shape_metrics')` | Возвращает статистики распределения индикатора: `skewness`, `kurtosis`, `mean`, `std` |
+| Swing context | `zone.swing_context` | `zone['swing_context']` | `ZoneInfo` содержит контекст только до вызова `_normalize_zone` |
+| Исходная зона | `zone` (объект ZoneInfo) | `zone['original_zone']` | Используется для доступа к методам `ZoneInfo` после нормализации |
+
+- `_normalize_zone` **должен сохранять** `swing_context` в результирующем словаре (`zone_dict['swing_context'] = zone.swing_context`) либо визуализатор должен работать напрямую с `ZoneInfo`. Без этого вызов `zone.get_zone_swings()` невозможен.
+- `_normalize_zone` также сохраняет `original_zone` с ссылкой на исходный `ZoneInfo`, чтобы использовать методы (`get_zone_swings`, `direction`, и т.д.) при работе в словарном представлении.
+- Метрики могут отсутствовать полностью или частично; все функции обязаны использовать `dict.get` и не опираться на прямое обращение к ключам уровня `zone['features']`.
+- Визуализатор поддерживает два бэкенда (`plotly`, `matplotlib`). Каждое изменение требует явного описания поведения в обоих режимах.
 
 ---
 
@@ -66,10 +81,14 @@ def plot_zone_detail(
     # ... existing code ...
 
     # НОВОЕ: Добавить метрики если доступны
-    if show_zone_metrics and 'features' in zone:
-        self._add_zone_metrics_annotation(
-            fig,
-            zone,
+    if show_zone_metrics:
+        # zone может быть ZoneInfo; сохраняем исходную ссылку
+        zone_payload = zone if isinstance(zone, ZoneInfo) else zone.get('original_zone', zone)
+        metrics = _extract_zone_metrics(zone_payload)
+        if metrics:
+            self._add_zone_metrics_annotation(
+                fig,
+            metrics,
             position=metrics_position,
             row=1, col=1  # Price panel
         )
@@ -96,10 +115,17 @@ def plot_zone_detail(
 ```
 
 **Подзадачи**:
-1. Реализовать `_add_zone_metrics_annotation()` — 2-3 часа
-2. Форматирование метрик в читаемый текст — 1-2 часа
-3. Обработка отсутствующих метрик (graceful degradation) — 1 час
-4. Тестирование и примеры — 1 час
+1. Расширить `_normalize_zone()` так, чтобы он прокидывал `swing_context` и ссылку на исходный `ZoneInfo` (`original_zone`) — 0.5 часа
+2. Реализовать `_extract_zone_metrics()` c учётом структуры данных и фолбэков — 1 час
+3. Реализовать `_add_zone_metrics_annotation()` — 2 часа
+4. Форматирование метрик в читаемый текст, включая локализацию значений и fallback на «данные недоступны» — 1 час
+5. Обработка отсутствующих метрик (graceful degradation): скрывать блок, если нет данных; логировать предупреждения — 0.5 часа
+6. Тестирование и примеры в Plotly и Matplotlib режимах — 1 час
+
+**Обработка существующего блока `show_zone_stats`**:
+- Если `show_zone_stats=True`, а `show_zone_metrics=True`, новые метрики должны объединяться в один блок без дублирования заголовков «Type / Duration / Strength».
+- При `show_zone_metrics=False` поведение `show_zone_stats` должно остаться прежним.
+- Для Matplotlib: использовать `fig.text` с рамкой, положение синхронизировать с Plotly-параметром `metrics_position`.
 
 ---
 
@@ -130,7 +156,13 @@ def plot_zones_on_price_chart(
 
     # НОВОЕ: Агрегировать и отобразить метрики
     if show_aggregate_metrics:
-        aggregated = self._aggregate_zone_metrics(zones)
+        aggregated = self._aggregate_zone_metrics(
+            zones,
+            include_bear=True,
+            metrics=('avg_rally', 'avg_drop', 'rally_drop_ratio', 'swings_count'),
+            aggregation_mode='mean_std',
+            skip_none=True
+        )
         self._add_aggregate_metrics_annotation(
             fig,
             aggregated,
@@ -158,10 +190,19 @@ def plot_zones_on_price_chart(
 └─────────────────────────────────────────────────┘
 ```
 
+**Спецификация агрегатора**:
+- Для каждой метрики рассчитываем `mean` и `std` по зонам с непустыми значениями (если `skip_none=True`).
+- Для отношения (`rally_drop_ratio`) дополнительно показываем `median`.
+- Метрика `swings_count` суммируется по зонам и показывается как `sum`.
+- Разделяем данные по направлению зоны: `bull` и `bear` блоки выводятся отдельно, при отсутствии данных отображаем `—`.
+- При смешанных данных (часть зон без метрик) показываем строку `n/a (k из N зон)`.
+- В Matplotlib блок статистики выводится через `AnchoredText` для соответствия стилю графика.
+
 **Подзадачи**:
-1. Реализовать `_aggregate_zone_metrics()` — 1-2 часа
-2. Реализовать `_add_aggregate_metrics_annotation()` — 1-2 часа
-3. Тестирование и примеры — 1 час
+1. Реализовать `_aggregate_zone_metrics()` с параметрами `metrics`, `aggregation_mode`, `skip_none`, `include_bear` — 1 час
+2. Реализовать `_add_aggregate_metrics_annotation()` с поддержкой Plotly и Matplotlib — 1.5 часа
+3. Покрыть сценарии отсутствующих данных и смешанных направлений (юнит-тест + пример) — 0.5 часа
+4. Тестирование и примеры — 1 час
 
 ---
 
@@ -198,14 +239,16 @@ def plot_zone_detail(
     # ... existing code ...
 
     # НОВОЕ: Добавить свинг-точки если доступны
-    if show_swings and hasattr(zone, 'swing_context') and zone.swing_context:
-        self._add_swing_overlay(
-            fig,
-            zone.get_zone_swings(),  # Использует SwingContext.get_swings_for_zone()
-            row=1, col=1,  # Price panel
-            marker_size=swing_marker_size,
-            colors=swing_colors
-        )
+    if show_swings:
+        swing_source = zone if isinstance(zone, ZoneInfo) else zone.get('swing_context')
+        if swing_source:
+            self._add_swing_overlay(
+                fig,
+                swing_source.get_zone_swings(zone_id=zone.zone_id if isinstance(zone, ZoneInfo) else zone.get('zone_id')),
+                row=1, col=1,  # Price panel
+                marker_size=swing_marker_size,
+                colors=swing_colors
+            )
 
     return fig
 
@@ -294,30 +337,32 @@ def plot_zones_on_price_chart(
     # ... existing code ...
 
     # НОВОЕ: Отобразить глобальные свинги (если доступны)
-    if show_swings and zones and hasattr(zones[0], 'swing_context'):
-        swing_context = zones[0].swing_context
-        # Все зоны имеют одинаковый swing_context (глобальный)
-        # Отобразить ВСЕ точки или только в видимом диапазоне
-        visible_swings = [
-            sp for sp in swing_context.swing_points
-            if data.index[0] <= sp.timestamp <= data.index[-1]
-        ]
-        self._add_swing_overlay(fig, visible_swings, row=1, col=1)
+    if show_swings and zones:
+        swing_context = _resolve_global_swing_context(zones)
+        if swing_context:
+            visible_swings = [
+                sp for sp in swing_context.swing_points
+                if data.index[0] <= sp.timestamp <= data.index[-1]
+            ]
+            self._add_swing_overlay(fig, visible_swings, row=1, col=1)
 
     return fig
 ```
 
 **Подзадачи**:
-1. Реализовать `_add_swing_overlay()` — 2 часа
-2. Добавить параметры в `plot_zone_detail()` и `plot_zones_on_price_chart()` — 1 час
-3. Тестирование и примеры — 1 час
+1. Обновить `_normalize_zone()` и сериализацию зон так, чтобы `ZoneInfo` или `swing_context` были доступны и после нормализации — 0.5 часа
+2. Реализовать `_add_swing_overlay()` с поддержкой Plotly и Matplotlib (через `scatter` / `ax.scatter`) — 2 часа
+3. Добавить параметры в `plot_zone_detail()` и `plot_zones_on_price_chart()` — 0.5 часа
+4. Реализовать `_resolve_global_swing_context()` (берёт первый ненулевой `swing_context`, проверяет консистентность) — 0.5 часа
+5. Тестирование и примеры, включая отсутствующий контекст — 1 час
 
 **Почему так мало времени?**
 - ✅ SwingPoint уже содержит все координаты (timestamp, price, swing_type)
-- ✅ zone.get_zone_swings() — готовый метод из gloswing.md
+- ✅ `SwingContext.get_zone_swings()` доступен, если сохранить контекст в `zone_dict`
 - ✅ Не нужно создавать индикаторную обёртку
 - ✅ Не нужно пересчитывать или кэшировать координаты
-- ✅ Простой scatter trace в Plotly
+- ✅ Простой scatter trace в Plotly и `ax.scatter` в Matplotlib
+- ⚠️ Требуется малое изменение `_normalize_zone`, учтено в подзадачах
 
 ---
 
@@ -379,8 +424,9 @@ def plot_zones_on_price_chart(
 - `bquant/visualization/zones.py` — добавить `_add_swing_overlay()`
 
 **Примеры и тесты**:
-- `research/notebooks/04_zones_sample.py` — демонстрация всех функций
-- `tests/visualization/test_zone_metrics_display.py` — юнит-тесты
+- `research/notebooks/04_zones_sample.py` — демонстрация всех функций (Plotly и Matplotlib)
+- `tests/visualization/test_zone_metrics_display.py` — юнит-тесты на отображение блоков
+- `tests/visualization/test_zone_metrics_aggregation.py` — юнит-тест на агрегатор
 
 ---
 
@@ -396,24 +442,30 @@ def plot_zones_on_price_chart(
 
 ### Этап 1 (Метрики в detail)
 - ✅ `plot_zone_detail()` принимает `show_zone_metrics=True`
+- ✅ `_normalize_zone()` возвращает `swing_context` и `original_zone`
 - ✅ Метрики отображаются как текстовая аннотация на графике
 - ✅ Поддерживаются swing_metrics и shape_metrics
 - ✅ Backward compatibility: старые вызовы без новых параметров работают
-- ✅ Демо-скрипт работает без ошибок
+- ✅ Блок метрик корректно сосуществует с `show_zone_stats`
+- ✅ Реализован режим деградации: при отсутствии метрик блок скрывается и пишется предупреждение
+- ✅ Демо-скрипт работает без ошибок (Plotly и Matplotlib)
 
 ### Этап 2 (Агрегированные метрики)
 - ✅ `plot_zones_on_price_chart()` принимает `show_aggregate_metrics=True`
-- ✅ Агрегированная статистика корректно вычисляется по всем зонам
-- ✅ Отображается в виде компактного текстового блока
+- ✅ `_aggregate_zone_metrics()` поддерживает режимы `mean_std`, `median`, `sum`
+- ✅ Агрегированная статистика корректно вычисляется по всем зонам, отдельно для bull/bear
+- ✅ Отображается в виде компактного текстового блока (Plotly и Matplotlib)
+- ✅ При смешанных данных отображается `n/a (k/N)` и логируется предупреждение
 - ✅ Не загромождает график
 
 ### Этап 3 (Свинг-точки)
-- ✅ `_add_swing_overlay()` корректно отображает SwingPoint объекты
+- ✅ `_normalize_zone()` или эквивалентная логика сохраняет `swing_context`
+- ✅ `_add_swing_overlay()` корректно отображает SwingPoint объекты (Plotly и Matplotlib)
 - ✅ Работает для `detail` и `overview` режимов
 - ✅ Peaks отображаются красными треугольниками вниз
 - ✅ Troughs отображаются зелёными треугольниками вверх
 - ✅ Производительность: визуализация зоны с 100 свингами < 100ms
-- ✅ Демо-скрипт работает без ошибок
+- ✅ Демо-скрипт работает без ошибок (оба бэкенда)
 
 ---
 
@@ -500,6 +552,8 @@ fig.show()
 
 ---
 
-**Автор**: Claude Code
-**Версия документа**: 5.0 (упрощённая после интеграции с gloswing.md)
+**Автор**: Claude Code (ред. gpt-5-codex)
+**Версия документа**: 5.1 (уточнения структуры данных и UX)
 **Дата обновления**: 2025-11-08
+
+> ASCII-макеты выше — концепты для Plotly. В Matplotlib разрешается допуска разницы в отступах и шрифтах; важна информационная насыщенность, а не пиксель-перфект.
