@@ -3208,11 +3208,221 @@ def analyze_zones_visually(zones_data, **kwargs):
     return visualizer.plot_zones_analysis(zones_data, **kwargs)
 
 
+def plot_zigzag_verification(
+    price_data: pd.DataFrame,
+    legs: int,
+    deviation: float,
+    swing_context: Optional[SwingContext] = None,
+    title: Optional[str] = None,
+    height: int = 800,
+    show_rangeslider: bool = False,
+    **kwargs
+) -> Optional[Any]:
+    """
+    Построить график ZigZag индикатора с swing-точками для визуальной проверки параметров стратегии.
+
+    Создаёт однопанельный график с ценой и маркерами swing-точек:
+    - Свечной график (Candlestick) или линия цены (если нет OHLC данных)
+    - Маркеры swing points: красные треугольники (peaks), зелёные треугольники (troughs)
+
+    Args:
+        price_data: DataFrame с OHLCV данными (должен содержать 'close', 'high', 'low', 'open' для свечей)
+        legs: Количество баров для подтверждения разворота (параметр ZigZag)
+        deviation: Минимальное процентное отклонение (параметр ZigZag, например 0.05 = 5%)
+        swing_context: Опциональный SwingContext для точного определения типов точек
+        title: Заголовок графика (по умолчанию генерируется автоматически)
+        height: Высота графика в пикселях
+        show_rangeslider: Показывать ползунок диапазона (range slider) под графиком для навигации
+        **kwargs: Дополнительные параметры для Plotly figure (например, width)
+    
+    Returns:
+        Plotly Figure объект или None если Plotly недоступен
+    
+    Example:
+        >>> from bquant.visualization import plot_zigzag_verification
+        >>> from bquant.analysis.zones.models import SwingContext
+        >>> 
+        >>> # Простой вариант - только параметры
+        >>> fig = plot_zigzag_verification(df, legs=10, deviation=0.05)
+        >>> 
+        >>> # С swing_context для точных типов точек
+        >>> fig = plot_zigzag_verification(
+        ...     df, 
+        ...     legs=10, 
+        ...     deviation=0.05,
+        ...     swing_context=zone.swing_context
+        ... )
+    """
+    if not PLOTLY_AVAILABLE:
+        logger.warning("Plotly not available - cannot create ZigZag verification plot")
+        return None
+    
+    try:
+        from bquant.indicators import LibraryManager
+        from bquant.core.exceptions import IndicatorCalculationError
+    except ImportError as e:
+        logger.warning(f"Failed to import LibraryManager: {e}")
+        return None
+    
+    try:
+        # Проверяем доступность библиотеки перед созданием индикатора
+        if not LibraryManager.check_library_availability('pandas_ta'):
+            logger.warning("pandas-ta library is not available - cannot create ZigZag plot")
+            return None
+        
+        # Рассчитываем ZigZag индикатор
+        zigzag = LibraryManager.create_indicator(
+            'pandas_ta',
+            'zigzag',
+            legs=legs,
+            deviation=deviation
+        )
+        zigzag_result = zigzag.calculate(price_data)
+        
+        if zigzag_result.data.shape[1] < 2:
+            logger.warning("ZigZag returned insufficient data for visualization")
+            return None
+        
+        swing_values = zigzag_result.data.iloc[:, 1].dropna()  # ZIGZAGv колонка
+        swing_signals = zigzag_result.data.iloc[:, 0]  # ZIGZAGs колонка
+        
+        if len(swing_values) == 0:
+            logger.warning("No swing points detected by ZigZag")
+            return None
+        
+        # Создаём словарь для быстрого поиска типов из swing_context
+        swing_type_map = {}
+        if swing_context and hasattr(swing_context, 'swing_points'):
+            for sp in swing_context.swing_points:
+                if hasattr(sp, 'timestamp') and hasattr(sp, 'swing_type'):
+                    # Преобразуем timestamp в индекс для сравнения
+                    if hasattr(sp.timestamp, 'to_pydatetime'):
+                        ts_key = sp.timestamp
+                    else:
+                        ts_key = sp.timestamp
+                    swing_type_map[ts_key] = sp.swing_type
+        
+        # Определяем peaks и troughs
+        peaks = []
+        troughs = []
+        
+        for idx, price in swing_values.items():
+            # Пытаемся определить тип из swing_context
+            swing_type = swing_type_map.get(idx, None)
+            
+            # Если не нашли в swing_context, определяем по сравнению с предыдущей точкой
+            if swing_type is None:
+                prev_idx_pos = swing_values.index.get_loc(idx)
+                if prev_idx_pos > 0:
+                    prev_price = swing_values.iloc[prev_idx_pos - 1]
+                    swing_type = 'peak' if price > prev_price else 'trough'
+                else:
+                    # Первая точка - определяем по следующей
+                    if len(swing_values) > 1:
+                        next_price = swing_values.iloc[1]
+                        swing_type = 'trough' if next_price > price else 'peak'
+                    else:
+                        swing_type = 'trough'
+            
+            if swing_type == 'peak':
+                peaks.append((idx, price))
+            else:
+                troughs.append((idx, price))
+        
+        # Создаём фигуру с одной панелью
+        fig = go.Figure()
+        
+        # Проверяем наличие необходимых колонок для свечей
+        required_cols = ['open', 'high', 'low', 'close']
+        if not all(col in price_data.columns for col in required_cols):
+            logger.warning("OHLC data not available, falling back to line chart")
+            # Fallback: используем линию если нет OHLC
+            fig.add_trace(
+                go.Scatter(
+                    x=price_data.index,
+                    y=price_data['close'],
+                    mode='lines',
+                    name='Close Price',
+                    line=dict(color='#1f77b4', width=1),
+                )
+            )
+        else:
+            # График: Свечи (Candlestick)
+            fig.add_trace(
+                go.Candlestick(
+                    x=price_data.index,
+                    open=price_data['open'],
+                    high=price_data['high'],
+                    low=price_data['low'],
+                    close=price_data['close'],
+                    name='Price',
+                    increasing_line_color='#26a69a',
+                    decreasing_line_color='#ef5350',
+                )
+            )
+        
+        # Добавляем peaks
+        if peaks:
+            peak_times, peak_prices = zip(*peaks)
+            fig.add_trace(
+                go.Scatter(
+                    x=list(peak_times),
+                    y=list(peak_prices),
+                    mode='markers',
+                    name='Peaks',
+                    marker=dict(symbol='triangle-down', size=10, color='red'),
+                )
+            )
+        
+        # Добавляем troughs
+        if troughs:
+            trough_times, trough_prices = zip(*troughs)
+            fig.add_trace(
+                go.Scatter(
+                    x=list(trough_times),
+                    y=list(trough_prices),
+                    mode='markers',
+                    name='Troughs',
+                    marker=dict(symbol='triangle-up', size=10, color='green'),
+                )
+            )
+        
+        # Генерируем заголовок если не указан
+        if title is None:
+            title = f"ZigZag Swing Strategy Verification (legs={legs}, deviation={deviation*100:.4f}%)"
+        
+        # Обновляем layout
+        layout_kwargs = {
+            'height': height,
+            'title_text': title,
+            'showlegend': True,
+            'hovermode': 'x unified',
+            'xaxis': dict(title='Time'),
+            'yaxis': dict(title='Price'),
+        }
+        layout_kwargs.update(kwargs)
+        fig.update_layout(**layout_kwargs)
+
+        # Управление rangeslider (ползунком диапазона) для навигации по графику
+        fig.update_xaxes(rangeslider_visible=show_rangeslider)
+
+        logger.debug(f"ZigZag verification plot created: {len(swing_values)} swing points")
+        return fig
+        
+    except (ValueError, IndicatorCalculationError) as e:
+        logger.warning(f"Cannot create ZigZag indicator: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Error creating ZigZag verification plot: {e}", exc_info=True)
+        return None
+
+
 # Экспорт
 __all__ = [
     'ZoneChartBuilder',
     'ZoneVisualizer',
     'plot_zones_on_chart',
     'plot_macd_zones_chart',
-    'analyze_zones_visually'
+    'analyze_zones_visually',
+    'plot_zigzag_verification'
 ]

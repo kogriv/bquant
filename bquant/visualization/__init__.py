@@ -95,6 +95,7 @@ if check_visualization_dependencies():
             plot_zones_on_chart,
             plot_macd_zones_chart,
             analyze_zones_visually,
+            plot_zigzag_verification,
         )
         _zones_available = True
         logger.debug("Zones visualization module loaded successfully")
@@ -371,6 +372,7 @@ if _zones_available:
         'plot_zones_on_chart',
         'plot_macd_zones_chart',
         'analyze_zones_visually',
+        'plot_zigzag_verification',
     ])
 
 if _statistical_available:
