@@ -206,13 +206,105 @@ python -m sphinx -b html docs docs/_build/html
 # Открыть docs/_build/html/index.html в браузере
 ```
 
+Если нет доступа к файлу. Возможна проблема с правами доступа или форматом пути.  
+Вариант 1: HTTP сервер (рекомендуется)Ж
+```bash
+cd /data/pro/bquant/docs/_build/html
+python3 -m http.server 8000
+```
+Затем откройте в браузере:  
+http://localhost:8000/api/core/README.html  
+http://localhost:8000/index.html
+
+
 #### 4.3 Автоматическая пересборка при изменениях
 ```bash
 # Установка sphinx-autobuild
 pip install sphinx-autobuild
 
 # Запуск с автоматической пересборкой
-sphinx-autobuild docs docs/_build/html --open-browser
+# sphinx-autobuild docs docs/_build/html --open-browser
+sphinx-autobuild docs docs/_build/html --port 8000
+```
+
+Разница между опциями:
+--port 8000 — указывает порт (по умолчанию 8000)
+Без этой опции sphinx-autobuild использует порт 8000 по умолчанию
+Можно указать другой порт: --port 9000
+--open-browser — автоматически открывает браузер после сборки
+Открывает http://localhost:PORT в браузере
+Работает только если запущено в интерактивном режиме (не в фоне)
+Они не взаимоисключающие — можно использовать вместе:
+```bash
+sphinx-autobuild docs docs/_build/html --port 8000 --open-browser
+```
+Что лучше использовать:
+Для разработки (с автопересборкой):
+```bash
+sphinx-autobuild docs docs/_build/html --port 8000 --open-browser
+```
+Для простого просмотра (без автопересборки):
+```bash
+cd docs/_build/html && python3 -m http.server 8000
+```
+
+Как останавливать серверы:
+```bash
+cat << 'EOF'
+# Остановка sphinx-autobuild:
+pkill -f sphinx-autobuild
+
+# Или найти PID и убить:
+ps aux | grep sphinx-autobuild | grep -v grep
+kill <PID>
+
+# Остановка простого HTTP-сервера Python:
+pkill -f "python.*http.server"
+
+# Или найти PID и убить:
+ps aux | grep "http.server" | grep -v grep
+kill <PID>
+
+# Остановка всех процессов на порту 8000:
+lsof -ti:8000 | xargs kill 2>/dev/null
+# или
+fuser -k 8000/tcp 2>/dev/null
+EOF
+
+ps aux | grep -E "(http.server|sphinx-autobuild)" | grep -v grep | awk '{print "PID:", $2, "| Команда:", $11, $12, $13, $14}'
+# PID: 1094597 | Команда: /data/pro/bquant/venv_bquant/bin/python3 /data/pro/bquant/venv_bquant/bin/sphinx-autobuild docs docs/_build/html
+```
+Способы остановки:
+1. Остановка sphinx-autobuild:
+```bash
+# Самый простой способ:
+pkill -f sphinx-autobuild
+
+# Или по PID (если знаете):
+kill 1094597
+```
+2. Остановка простого HTTP-сервера Python:
+```bash
+# Остановить все процессы http.server:
+pkill -f "python.*http.server"
+
+# Или по порту:
+lsof -ti:8000 | xargs kill
+```
+3. Универсальный способ (остановить все на порту):
+```bash
+# Найти и убить процесс на порту 8000:
+fuser -k 8000/tcp
+
+# Или через lsof:
+lsof -ti:8000 | xargs kill -9
+```
+4. Если запущено в интерактивном режиме:
+Нажмите Ctrl+C в терминале, где запущен сервер
+Рекомендация:
+Для разработки документации используйте:
+```bash
+sphinx-autobuild docs docs/_build/html --port 8000 --open-browser
 ```
 
 ### Шаг 5: Настройка на Read the Docs

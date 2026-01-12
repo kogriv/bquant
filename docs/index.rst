@@ -1,42 +1,73 @@
 BQuant Documentation
 ===================
 
-.. image:: _static/logo.png
-   :alt: BQuant Logo
-   :width: 200px
-   :align: center
-
-**Мощная библиотека для количественного анализа финансовых данных**
-
-.. toctree::
-   :maxdepth: 2
-   :caption: User Guide
-   
-   user_guide/quick_start
-   user_guide/README
+Версия документации по состоянию на 2026-01-12.
 
 .. toctree::
    :maxdepth: 2
    :caption: API Reference
    
-   api/analysis/pipeline
-   api/analysis/strategies
-   api/analysis/statistical
+   api/README
+   api/core/README
+   api/data/README
    api/indicators/README
    api/visualization/README
+   api/analysis/README
+   api/analysis/base
+   api/extension_guide
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorials & Examples
+   :caption: User Guide
+   
+   user_guide/README
+   user_guide/quick_start
+   user_guide/core_concepts
+   user_guide/zone_analysis
+   user_guide/best_practices
+   user_guide/swing_strategies
+   user_guide/swing_analysis_results
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
    
    tutorials/README
-   examples/README
+   tutorials/macd_basic_pipeline
+   tutorials/rsi_strategy_switching
+   tutorials/preloaded_zones_workflow
+   tutorials/combined_rules_detection
 
 .. toctree::
    :maxdepth: 2
    :caption: Developer Guide
    
    developer_guide/README
+   developer_guide/zone_analyzer_deep_dive
+   developer_guide/zone_detection_strategies
+   developer_guide/statistical_analysis_workflow
+   developer_guide/analytical_philosophy
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples
+   
+   examples/README
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Analytics
+   
+   analytics/zones/swing
+   analytics/zones/macd_zone_consistency_case_study
+   analytics/zones/swing_strategy_comparison_case_study
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Migration
+   
+   migration/MIGRATION_v2
+   migration/global_swings_migration
 
 .. raw:: html
 

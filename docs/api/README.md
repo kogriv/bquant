@@ -6,33 +6,33 @@
 
 ## 🗂️ Структура API
 
-### 🏗️ [Core Modules](core/README.md) - Базовые модули
+### 🏗️ Core Modules - Базовые модули
 - **bquant.core.config** - Конфигурация и настройки
 - **bquant.core.exceptions** - Исключения и ошибки
 - **bquant.core.logging_config** - Настройка логирования
 - **bquant.core.performance** - Производительность и профилирование
 - **bquant.core.utils** - Утилиты и вспомогательные функции
 
-### 📊 [Data Modules](data/README.md) - Модули данных
+### 📊 Data Modules - Модули данных
 - **bquant.data.loader** - Загрузка данных из различных источников
 - **bquant.data.processor** - Обработка и очистка данных
 - **bquant.data.validator** - Валидация данных
 - **bquant.data.samples** - Встроенные sample данные
 - **bquant.data.schemas** - Схемы данных и типы
 
-### 📈 [Indicators](indicators/README.md) - Технические индикаторы
+### 📈 Indicators - Технические индикаторы
 - **bquant.indicators.base** - Базовые классы индикаторов
 - **bquant.indicators.macd** - MACD индикатор с анализом зон
 - **bquant.indicators.preloaded** - PRELOADED индикаторы для готовых данных
 - **bquant.indicators.factory** - Фабрика индикаторов
 - **bquant.indicators.library_manager** - Управление внешними библиотеками (pandas-ta, TA-Lib)
 
-### 🔬 [Analysis](analysis/README.md) - Аналитические модули
+### 🔬 Analysis - Аналитические модули
 - **bquant.analysis.statistical** - Статистический анализ
 - **bquant.analysis.zones** - Universal Zone Analysis Pipeline v2.1
 - **bquant.analysis.base** - Базовые классы анализа
 
-### 📊 [Visualization](visualization/README.md) - Модули визуализации
+### 📊 Visualization - Модули визуализации
 - **bquant.visualization.charts** - Финансовые графики
 - **bquant.visualization.zones** - Визуализация зон
 - **bquant.visualization.statistical** - Статистические графики
@@ -62,26 +62,26 @@
 
 ### 📚 Подробная документация
 
-#### 📈 [Indicators API](indicators/README.md) - 164+ индикаторов
+#### 📈 Indicators API - 164+ индикаторов
 - **6 встроенных:** SMA, EMA, RSI, MACD, Bollinger Bands, Custom
 - **158 pandas-ta:** Полная интеграция с pandas-ta библиотекой
 - **PRELOADED:** Готовые индикаторы для sample данных
 - **Factory pattern:** Универсальное создание любых индикаторов
 
-#### 🔬 [Analysis API](analysis/README.md) - Аналитические модули
+#### 🔬 Analysis API - Аналитические модули
 - **Universal Zone Analysis v2.1:** Анализ зон с любыми индикаторами
 - **5 Detection Strategies:** zero_crossing, threshold, line_crossing, preloaded, combined
 - **5 Analysis Strategies:** swing, divergence, shape, volume, volatility
 - **Statistical Analysis:** Гипотезные тесты, регрессия, валидация
 - **Clustering:** Автоматическая группировка зон
 
-#### 📊 [Visualization API](visualization/README.md) - Графики и визуализация
+#### 📊 Visualization API - Графики и визуализация
 - **FinancialCharts:** Candlestick, line, bar графики
 - **ZoneVisualizer:** Визуализация зон с контекстом
 - **StatisticalPlots:** Статистические графики и распределения
 - **Themes:** 5 готовых тем оформления
 
-#### 💾 [Data API](data/README.md) - Работа с данными
+#### 💾 Data API - Работа с данными
 - **Loader:** Загрузка OHLCV данных из файлов
 - **Processor:** Очистка и валидация данных
 - **Samples:** 8 встроенных sample датасетов
@@ -264,4 +264,4 @@ def load_ohlcv_data(file_path, **kwargs):
 
 ---
 
-**Начать изучение:** [Core Modules](core/) 🏗️
+**Начать изучение:** Core Modules 🏗️

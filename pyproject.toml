@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Quantitative research toolkit for financial markets"
 authors = [{name = "kogriv", email = "kogriv@gmail.com"}]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -45,7 +45,29 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [
+    '_build', 
+    'Thumbs.db', 
+    '.DS_Store',
+    # ДИАГНОСТИКА: Исключаем все markdown файлы, кроме api/core/*.md
+    # Явно перечисляем все markdown файлы для исключения (Sphinx не поддерживает отрицательные паттерны)
+    # 'analytics/**',  # Разрешаем analytics/*.md
+    # 'api/analysis/**',  # Разрешаем api/analysis/*.md
+    # 'api/data/**',  # Разрешаем api/data/*.md
+    # 'api/extension_guide.md',  # Разрешаем api/extension_guide.md
+    # 'api/indicators/**',  # Разрешаем api/indicators/*.md
+    # 'api/README.md',  # Разрешаем api/README.md
+    # 'api/visualization/**',  # Разрешаем api/visualization/*.md
+    'BUILD_ISSUES.md',
+    # 'developer_guide/**',  # Разрешаем developer_guide/*.md
+    # 'examples/**',  # Разрешаем examples/*.md
+    # 'migration/**',  # Разрешаем migration/*.md
+    # 'MIGRATION_v2.md',  # Перенесен в migration/
+    'README.md',
+    # 'tutorials/**',  # Разрешаем tutorials/*.md
+    # 'user_guide/**',  # Разрешаем user_guide/*.md
+    # api/core/*.md НЕ исключаем - они должны быть в сборке
+]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -108,7 +130,7 @@ html_theme_options = {
     'sticky_navigation': True,
     'includehidden': True,
     'logo_only': False,
-    'display_version': True,
+    # 'display_version': True,  # Временно отключено - не поддерживается в текущей версии темы
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
     'vcs_pageview_mode': '',

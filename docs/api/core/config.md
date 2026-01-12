@@ -196,7 +196,7 @@ ANALYSIS_CONFIG = {
 }
 ```
 
-Подробную документацию по стратегиям см. в [strategies.md](../analysis/strategies.md).
+Подробную документацию по стратегиям см. в разделе [Analysis Strategies](../analysis/strategies.md).
 
 ---
 

@@ -1,15 +1,15 @@
 # Миграция на Universal Zone Analysis v2
 
-Документ помогает перенести проекты со старого `MACDZoneAnalyzer` на универсальный пайплайн `analyze_zones`. Основой служит сценарий из [Example 7 – Validation Demo](../examples/07_validation_demo.py), где строится проверка качества зон и регрессионный анализ.
+Документ помогает перенести проекты со старого `MACDZoneAnalyzer` на универсальный пайплайн `analyze_zones`. Основой служит сценарий из Example 7 – Validation Demo (см. исходный код), где строится проверка качества зон и регрессионный анализ.
 
 ## Ключевые отличия
 
 | Старый подход (`MACDZoneAnalyzer`) | Новый пайплайн (`analyze_zones`) |
 | --- | --- |
-| Класс-обертка `MACDZoneAnalyzer`, инициализируется с параметрами индикатора и зон. 【F:bquant/indicators/macd.py†L39-L91】 | Функция-конструктор `analyze_zones(df)` возвращает builder с fluent API. 【F:bquant/indicators/macd.py†L9-L17】【F:examples/07_validation_demo.py†L212-L217】 |
-| Метод `analyze_complete(df, ...)` выполняет все шаги и возвращает `ZoneAnalysisResult`. 【F:bquant/indicators/macd.py†L93-L166】 | Последовательность builder-методов (`with_indicator → detect_zones → analyze → build`) формирует тот же `ZoneAnalysisResult`. 【F:examples/07_validation_demo.py†L209-L217】 |
-| Конфигурация захардкожена для MACD, требуется обертка. 【F:bquant/indicators/macd.py†L107-L166】 | Можно подставлять любые индикаторы и стратегии детекции, включая комбинации из примера 7. 【F:examples/07_validation_demo.py†L209-L272】 |
-| Валидация и кастомные шаги приходилось накладывать поверх результата вручную. | Builder предоставляет `.with_strategies(...)`, `.analyze(...)`, а результат совместим с существующим кодом Example 7 без доработок. 【F:examples/07_validation_demo.py†L213-L217】 |
+| Класс-обертка `MACDZoneAnalyzer`, инициализируется с параметрами индикатора и зон.  | Функция-конструктор `analyze_zones(df)` возвращает builder с fluent API.  |
+| Метод `analyze_complete(df, ...)` выполняет все шаги и возвращает `ZoneAnalysisResult`.  | Последовательность builder-методов (`with_indicator → detect_zones → analyze → build`) формирует тот же `ZoneAnalysisResult`.  |
+| Конфигурация захардкожена для MACD, требуется обертка.  | Можно подставлять любые индикаторы и стратегии детекции, включая комбинации из примера 7.  |
+| Валидация и кастомные шаги приходилось накладывать поверх результата вручную. | Builder предоставляет `.with_strategies(...)`, `.analyze(...)`, а результат совместим с существующим кодом Example 7 без доработок.  |
 
 ## Сценарий миграции: Example 7
 
@@ -21,7 +21,7 @@ from bquant.data.samples import get_sample_data
 data = get_sample_data("btc_hourly")
 ```
 
-Эти строки остаются неизменными и совпадают с примером. 【F:examples/07_validation_demo.py†L36-L37】
+Эти строки остаются неизменными и совпадают с примером. 
 
 ### Шаг 2. Старый способ (для сравнения)
 
@@ -37,7 +37,7 @@ legacy_result = analyzer.analyze_complete(
 legacy_zones = list(legacy_result.zones)
 ```
 
-`analyze_complete` внутри делегирует в универсальный пайплайн, но параметры жёстко завязаны на MACD. 【F:bquant/indicators/macd.py†L107-L166】
+`analyze_complete` внутри делегирует в универсальный пайплайн, но параметры жёстко завязаны на MACD. 
 
 ### Шаг 3. Новый пайплайн (рекомендуемый)
 
@@ -55,11 +55,11 @@ modern_result = (
 modern_zones = list(modern_result.zones)
 ```
 
-Фрагмент повторяет функцию `run_pipeline` из Example 7, поэтому дальнейшая обработка (сбор признаков, регрессии, валидации) не требует изменений. 【F:examples/07_validation_demo.py†L209-L272】
+Фрагмент повторяет функцию `run_pipeline` из Example 7, поэтому дальнейшая обработка (сбор признаков, регрессии, валидации) не требует изменений. 
 
 ### Шаг 4. Повторное использование последующих шагов
 
-После миграции блоки Example 7, отвечающие за сбор признаков и метрик (`summarize_zone`, `collect_zone_features`, `run_linear_regression`, `evaluate_*`), работают поверх `modern_zones` без модификаций. 【F:examples/07_validation_demo.py†L58-L205】
+После миграции блоки Example 7, отвечающие за сбор признаков и метрик (`summarize_zone`, `collect_zone_features`, `run_linear_regression`, `evaluate_*`), работают поверх `modern_zones` без модификаций. 
 
 ### Шаг 5. Сравнение результатов
 
@@ -81,4 +81,4 @@ modern_zones = list(modern_result.zones)
 
 - [Zone Analysis Guide](user_guide/zone_analysis.md) — подробное описание архитектуры и конфигурации.
 - [Best Practices анализа зон](user_guide/best_practices.md) — рекомендации по работе с пайплайном и модульными шагами.
-- [Example 7 – Validation Demo](../examples/07_validation_demo.py) — референс реализации продвинутой валидации.
+- **Example 7 – Validation Demo** (см. исходный код) — референс реализации продвинутой валидации.
