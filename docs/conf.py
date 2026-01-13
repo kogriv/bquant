@@ -21,7 +21,7 @@ copyright = '2025, BQuant Team'
 author = 'BQuant Team'
 
 # The full version, including alpha/beta/rc tags
-release = '2.1.0'
+release = '0.0.1'
 
 # -- General configuration ---------------------------------------------------
 

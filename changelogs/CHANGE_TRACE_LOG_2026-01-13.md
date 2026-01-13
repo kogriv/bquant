@@ -1,0 +1,15 @@
+==================== COMMIT DIVIDER ====================
+[17:37:00] [not_included] [Added] Создан скрипт research/notebooks/04_zones_viz.py для визуального сравнения ZigZag точек из визуализатора пакета и plot_zigzag_verification на одном диапазоне данных
+[17:40:00] [not_included] [Added] Добавлен параметр return_data в plot_zigzag_verification для возврата данных ZigZag (swing_values, peaks, troughs, zigzag_data) в bquant/visualization/zones.py
+[17:45:00] [not_included] [Added] Добавлен параметр full_data_for_calculation в plot_zigzag_verification для расчета ZigZag на полном датасете (как в визуализаторе) с последующей фильтрацией точек по диапазону price_data в bquant/visualization/zones.py
+[17:50:00] [not_included] [Changed] Модифицирован plot_zigzag_verification: теперь использует полный датасет для расчета ZigZag (через full_data_for_calculation), обеспечивая согласованность с визуализатором пакета в bquant/visualization/zones.py
+[17:55:00] [not_included] [Added] Добавлен параметр xaxis_num_ticks в plot_zigzag_verification для настройки количества меток на оси X в bquant/visualization/zones.py
+[18:00:00] [not_included] [Changed] Реализовано умное форматирование меток оси X в plot_zigzag_verification: двухэтажные метки с адаптивным выбором формата (дата/время/год) на основе временного диапазона в bquant/visualization/zones.py
+[18:05:00] [not_included] [Technical] Создана функция generate_dense_axis_labels в bquant/visualization/utils.py для генерации умных меток оси X с адаптивным форматированием (вынесена общая логика из визуализатора)
+[18:10:00] [not_included] [Technical] Отрефакторен _create_plotly_zones_on_price: заменена дублирующаяся логика форматирования меток (~40 строк) на вызов generate_dense_axis_labels в bquant/visualization/zones.py
+[18:15:00] [not_included] [Technical] Отрефакторен _create_plotly_zone_detail: заменена дублирующаяся логика форматирования меток (~55 строк) на вызов generate_dense_axis_labels в bquant/visualization/zones.py
+[18:20:00] [not_included] [Technical] Отрефакторен _create_plotly_zones_comparison: заменена упрощенная версия форматирования меток (~20 строк) на вызов generate_dense_axis_labels в bquant/visualization/zones.py
+[18:25:00] [not_included] [Technical] Отрефакторен plot_zigzag_verification: заменена дублирующаяся логика форматирования меток (~80 строк) на вызов generate_dense_axis_labels в bquant/visualization/zones.py
+[18:30:00] [not_included] [Added] Реализован Step 5 в research/notebooks/04_zones_viz.py: извлечение и сравнение ZigZag точек из swing_context и plot_zigzag_verification с full join по timestamp, сравнением цен и сериализацией результатов в JSON
+[18:35:00] [not_included] [Fixed] Исправлена обработка DatetimeIndex в generate_dense_axis_labels: добавлена безопасная проверка входных данных и корректное преобразование pandas объектов в список в bquant/visualization/utils.py
+[18:40:00] [not_included] [Documentation] Обновлена документация plot_zigzag_verification: добавлены описания параметров return_data, full_data_for_calculation, xaxis_num_ticks и примеры использования в bquant/visualization/zones.py
