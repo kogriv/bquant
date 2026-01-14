@@ -50,3 +50,17 @@ registered swing strategies through `ZoneAnalysisPipeline.with_swing_preset`.
 
 Running these two commands after every tweak keeps the KPI history aligned with
 our empirical observations from `devref/gaps/swing/strat_issue.md`.
+
+## Regression log — 2025-11-07
+
+* `poetry run pytest tests/analysis/zones -k "swing"`
+  * ✅ Passed (3 tests, 2 deselected) confirming the preset and adaptive threshold
+    scenarios continue to satisfy the KPI harness.
+* `poetry run python research/notebooks/validate_swing_pivots.py --dataset tv_xauusd_1h --preset default --export outputs/reports/swing_default.json`
+  * ⚠️ Blocked by environment: `ModuleNotFoundError: No module named 'pandas'`.
+    Install `pandas` in the Poetry environment before recording the baseline
+    export.
+* `poetry run python research/notebooks/validate_swing_pivots.py --dataset tv_xauusd_1h --preset narrow_zone --check --export outputs/reports/swing_narrow.json`
+  * ⚠️ Blocked by environment: `ModuleNotFoundError: No module named 'pandas'`.
+    Repeat the tuned preset export after satisfying the dependency so we can
+    archive the swing density delta alongside the baseline.
