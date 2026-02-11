@@ -1,0 +1,2 @@
+При запуске команд в терминале проверять используемую оболочку. Если не проходят команды bash возможно стоит использовать powershell.
+При ошибках выполнения команд powershell, использовать техническое решение с запуском git bash по примерному шаблону: & "C:/Program Files/Git/bin/bash.exe" -c "source venv_bquant_of_win/Scripts/activate && python filename.py"
