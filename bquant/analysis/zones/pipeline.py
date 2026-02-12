@@ -66,7 +66,7 @@ class ZoneAnalysisConfig:
     n_clusters: int = 3
     run_regression: bool = False
     run_validation: bool = False
-    swing_scope: Literal["per_zone", "global"] = "per_zone"
+    swing_scope: Literal["per_zone", "global"] = "global"
 
     def to_cache_key(self) -> str:
         """Serialize configuration into a stable JSON string for caching."""
@@ -511,7 +511,7 @@ class ZoneAnalysisBuilder:
         self._volume_strategy: Optional[str] = None
         self._swing_preset: Optional[str] = None
         self._auto_swing_thresholds = False
-        self._swing_scope: Literal["per_zone", "global"] = "per_zone"
+        self._swing_scope: Literal["per_zone", "global"] = "global"
         self.logger = get_logger(__name__)
     
     def with_indicator(self, 

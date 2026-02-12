@@ -25,7 +25,7 @@ prepare_dataframe() ──▶ _calculate_global_swings()
 
 ## `_calculate_global_swings(data: pd.DataFrame) -> SwingContext`
 
-- Вызывается только при `config.swing_scope == "global"`.
+- Вызывается при `config.swing_scope == "global"` (значение по умолчанию).
 - Получает подготовленный датафрейм (с индикаторами, ATR и т.п.).
 - Находит активную стратегию свингов через `_get_active_swing_strategy()`.
 - Требует, чтобы стратегия реализовала метод `calculate_global()` и вернула `SwingContext`.
@@ -58,9 +58,9 @@ assert all(zone.swing_context is context for zone in zones)
 ## `ZoneAnalysisBuilder.with_swing_scope(scope: Literal["per_zone", "global"])`
 
 - Fluent-метод билдера, который управляет режимом расчёта свингов.
-- Допустимые значения: `"per_zone"` (по умолчанию) и `"global"`.
+- Допустимые значения: `"global"` (по умолчанию) и `"per_zone"`.
 - Хранит выбранное значение в `ZoneAnalysisConfig`, которое затем читает пайплайн.
-- Сохраняет обратную совместимость: если метод не вызвать, поведение остаётся прежним.
+- Если метод не вызвать, используется `global` (по умолчанию).
 
 ### Пример использования билдера
 

@@ -1,7 +1,7 @@
 BQuant Documentation
 ===================
 
-Версия документации по состоянию на 2026-01-12.
+Версия документации по состоянию на 2026-01-12 чт.
 
 .. toctree::
    :maxdepth: 2
@@ -24,6 +24,7 @@ BQuant Documentation
    user_guide/quick_start
    user_guide/core_concepts
    user_guide/zone_analysis
+   user_guide/caching
    user_guide/best_practices
    user_guide/swing_strategies
    user_guide/swing_analysis_results

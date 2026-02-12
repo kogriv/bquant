@@ -61,18 +61,14 @@
 
 ## Global vs Per-Zone Swing Calculation
 
-Глобальный расчёт свингов доступен, начиная с конфигурации `ZoneAnalysisBuilder.with_swing_scope('global')`. В этом режиме пивот
-ы свингов вычисляются один раз на полном датасете, а затем нарезаются под каждую зону с сохранением соседних точек. Это особенно
-полезно для широких трендов, которые пересекают границы зон: глобальный контекст позволяет избежать потери пивотов на стыках и
-делает метрики сопоставимыми между зонами.
+**По умолчанию** используется режим `global`: пивоты свингов вычисляются один раз на полном датасете и нарезаются под каждую зону с сохранением соседних точек. Это особенно полезно для широких трендов, которые пересекают границы зон. Для возврата к локальному расчёту используйте `.with_swing_scope('per_zone')`.
 
-| Критерий | `per_zone` (по умолчанию) | `global` |
+| Критерий | `global` (по умолчанию) | `per_zone` |
 | --- | --- | --- |
-| Контекст расчёта | Каждый свинг считается на локальном срезе `zone.data` | Свинги считаются на всём DataFrame и шарятся между зонами |
-| Полнота метрик | Часто теряются пивоты на границах, coverage 18–62% | Захватываются соседние пивоты, coverage 70–90% |
-| Производительность | Быстрее на коротких сериях, без подготовки контекста | Единовременный расчёт + дешёвая нарезка по зонам |
-| Совместимость с кэшем | Старые результаты совместимы | Требуется очистка кэша (CACHE_VERSION=2) при первой миграции |
-| Рекомендуемые сценарии | Быстрые локальные эксперименты, отладка небольших окон | Production-аналитика, отчёты, исследовательские ноутбуки |
+| Контекст расчёта | Свинги считаются на всём DataFrame и шарятся между зонами | Каждый свинг считается на локальном срезе `zone.data` |
+| Полнота метрик | Захватываются соседние пивоты, coverage 70–90% | Часто теряются пивоты на границах, coverage 18–62% |
+| Производительность | Единовременный расчёт + дешёвая нарезка по зонам | Быстрее на коротких сериях, без подготовки контекста |
+| Рекомендуемые сценарии | Production-аналитика, отчёты, исследовательские ноутбуки | Быстрые локальные эксперименты, отладка небольших окон |
 
 ### Быстрый старт
 
@@ -83,38 +79,46 @@ result = (
     analyze_zones(price_df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_col='macd_hist')
-    .with_swing_scope('global')  # 🔄 переключаем расчёт свингов
-    .with_swing_strategy('zigzag', threshold=0.02)
+    .with_strategies(swing='zigzag')
+    .with_swing_preset('narrow_zone')
+    .with_swing_scope('global')  # по умолчанию, можно опустить
     .analyze()
     .build()
 )
 
 for zone in result.zones:
     swings = zone.get_zone_swings()  # возвращает SwingPoint, включая соседние пивоты
-    print(zone.zone_id, zone.metadata['swing_scope'], len(swings))
+    swing_mode = zone.features.get('metadata', {}).get('swing_calculation_mode')
+    print(zone.zone_id, swing_mode, len(swings))
 ```
 
 **На что обратить внимание:**
 
-- В метаданных зоны появится ключ `swing_scope`, фиксирующий выбранный режим.
+- Стратегия свингов задаётся через `with_strategies(swing='...')`, параметры — через `with_swing_preset('narrow_zone')` или `'wide_zone'`. См. [Глубокое погружение](../developer_guide/zone_analyzer_deep_dive.md) и [Кейс по состоятельности MACD-зон](../analytics/zones/macd_zone_consistency_case_study.md).
+- Режим расчёта сохраняется в `zone.features['metadata']['swing_calculation_mode']` (`'global'` или `'per_zone'`). У `ZoneInfo` нет атрибута `metadata` — он внутри `features`.
 - Метод `get_zone_swings()` автоматически выдаёт актуальный список пивотов вне зависимости от режима.
-- Если стратегий несколько, глобальный расчёт экономит время: каждый алгоритм создаёт один `SwingContext` и шарит его между зо
-нами.
+- В режиме `global` алгоритм создаёт один `SwingContext` и шарит его между зонами — экономия времени при большом количестве зон.
 
 ### Переключение между режимами в одной сессии
 
 ```python
 per_zone_result = (
     analyze_zones(price_df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks')
+    .with_swing_preset('narrow_zone')
     .with_swing_scope('per_zone')
-    .with_swing_strategy('find_peaks', prominence=1.5)
     .build()
 )
 
 global_result = (
     analyze_zones(price_df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='find_peaks')
+    .with_swing_preset('narrow_zone')
     .with_swing_scope('global')
-    .with_swing_strategy('find_peaks', prominence=1.5)
     .build()
 )
 
@@ -144,10 +148,11 @@ zone = global_result.zones[0]
 swings = zone.get_zone_swings()
 
 plt.plot(price_df['close'], label='Close price')
-plt.scatter([p.index for p in swings], [p.price for p in swings],
+# SwingPoint: timestamp, price, swing_type ('peak'/'trough')
+plt.scatter([p.timestamp for p in swings], [p.price for p in swings],
             c=['red' if p.swing_type == 'peak' else 'green' for p in swings],
             label='Global swings')
-plt.axvspan(zone.start_idx, zone.end_idx, alpha=0.2, color='steelblue', label='Zone window')
+plt.axvspan(zone.start_time, zone.end_time, alpha=0.2, color='steelblue', label='Zone window')
 plt.legend()
 plt.title('Сравнение зоны с глобальными свингами')
 plt.show()
@@ -346,23 +351,23 @@ class UniversalZoneAnalyzer:
 class ZoneInfo:
     zone_id: int                    # Уникальный ID
     type: str                       # 'bull', 'bear', 'overbought', 'oversold'
-    start_idx: int                  # Начальный индекс
-    end_idx: int                    # Конечный индекс
+    start_idx: int                  # Начальный индекс (iloc)
+    end_idx: int                    # Конечный индекс (iloc)
     start_time: datetime            # Время начала
     end_time: datetime              # Время окончания
     duration: int                   # Длительность в барах
     data: pd.DataFrame              # Данные зоны (OHLCV + индикаторы)
     features: Dict[str, Any]        # Признаки (заполняется после анализа)
     indicator_context: Dict[str, Any]  # v2.1: Контекст детекции
+    swing_context: Optional[SwingContext]  # При глобальном режиме (по умолчанию)
 
     # indicator_context содержит:
-    # {
-    #     'detection_strategy': 'zero_crossing',
-    #     'detection_indicator': 'macd_hist',
-    #     'signal_line': None,
-    #     'detection_rules': {...}
-    # }
+    # {'detection_strategy': 'zero_crossing', 'detection_indicator': 'macd_hist', ...}
+
+    def get_zone_swings(self) -> List[SwingPoint]:  # Свинги зоны (из swing_context)
 ```
+
+**Важно:** у `ZoneInfo` нет атрибута `metadata`. Метаданные (в т.ч. `swing_calculation_mode`, `swing_metrics`) лежат в `zone.features['metadata']`.
 
 ### ZoneAnalysisResult (результат анализа)
 
@@ -380,9 +385,11 @@ class ZoneAnalysisResult:
     metadata: Dict[str, Any]           # Метаданные
 
     # Методы:
-    def save(filepath, format='pickle')  # Сохранение результата
-    def load(filepath, format='pickle')  # Загрузка результата
-    def visualize(mode='overview')       # Визуализация
+    def save(filepath, format='pickle')   # Сохранение результата
+    def visualize(mode='overview')        # Визуализация
+
+# load — метод класса:
+loaded = ZoneAnalysisResult.load('results/zones.pkl', format='pickle')
 ```
 
 ## 🎯 Стратегии детекции зон
@@ -395,7 +402,7 @@ class ZoneAnalysisResult:
 config = ZoneDetectionConfig(
     min_duration=2,
     zone_types=['bull', 'bear'],
-    rules={'indicator_col': 'macd_histogram'},
+    rules={'indicator_col': 'macd_hist'},  # custom MACD создаёт колонку macd_hist
     strategy_name='zero_crossing'
 )
 ```
@@ -477,38 +484,49 @@ config = ZoneDetectionConfig(
 
 ## 🔬 Извлечение признаков
 
-**ZoneFeaturesAnalyzer** извлекает:
+**ZoneFeaturesAnalyzer** заполняет `zone.features`. Структура — смесь полей верхнего уровня и вложенного `metadata`:
 
 ```python
 zone.features = {
-    # Базовые
+    # Верхний уровень (ZoneFeatures)
+    'zone_id': 'bull_0',
+    'zone_type': 'bull',
     'duration': 15,
-    'mean_price': 2050.5,
-    'price_change': 12.3,
-
-    # Форма (ShapeStrategy)
-    'skewness': -0.5,
-    'kurtosis': 2.3,
-    'trend': 'upward',
-
-    # Swing точки (SwingStrategy)
+    'start_price': 2050.0,
+    'end_price': 2062.3,
+    'price_return': 0.006,
+    'hist_amplitude': 0.012,
     'num_peaks': 3,
     'num_troughs': 2,
-    'avg_swing_amplitude': 5.2,
+    'peak_time_ratio': 0.73,
+    'drawdown_from_peak': -0.002,
+    # ...
 
-    # Дивергенции (DivergenceStrategy)
-    'has_divergence': True,
-    'divergence_type': 'bullish',
-
-    # Объем (VolumeStrategy)
-    'avg_volume': 15000,
-    'volume_trend': 'increasing',
-    'volume_indicator_corr': 0.65,
-
-    # Волатильность (VolatilityStrategy)
-    'volatility': 0.015,
-    'volatility_change': 0.002
+    # Вложенные метрики (по стратегиям)
+    'metadata': {
+        'swing_calculation_mode': 'global',  # или 'per_zone'
+        'swing_metrics': {
+            'rally_count': 4,
+            'drop_count': 3,
+            'avg_rally_pct': 0.5,
+            'avg_drop_pct': -0.3,
+            'num_swings': 7,
+            'rally_to_drop_ratio': 1.2,
+        },
+        'shape_metrics': {'hist_skewness': -0.5, 'hist_kurtosis': 2.3, ...},
+        'divergence_metrics': {'divergence_type': 'none', 'divergence_count': 0, ...},
+        'volatility_metrics': {...},
+        'volume_metrics': {'volume_indicator_corr': 0.65, ...},
+    }
 }
+```
+
+Пример доступа к метрикам свингов (для анализа состоятельности):
+
+```python
+swing_metrics = zone.features.get('metadata', {}).get('swing_metrics', {})
+rally_count = swing_metrics.get('rally_count')
+avg_rally_pct = swing_metrics.get('avg_rally_pct')
 ```
 
 ## 📈 Примеры использования
@@ -539,11 +557,13 @@ result = (
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=5)
     .with_strategies(
-        swing='find_peaks',
+        swing='zigzag',
         shape='statistical',
         divergence='classic',
         volume='standard'
     )
+    .with_swing_preset('narrow_zone')
+    .with_swing_scope('global')
     .analyze(clustering=True, n_clusters=3, regression=True)
     .with_cache(enable=True, ttl=7200)
     .build()
@@ -552,7 +572,7 @@ result = (
 # Результат с полным анализом
 print(f"Зон: {len(result.zones)}")
 print(f"Кластеры: {result.clustering}")
-print(f"Гипотезы: {result.hypothesis_tests}")
+print(f"Гипотезы: {result.hypothesis_tests.results if hasattr(result.hypothesis_tests, 'results') else result.hypothesis_tests}")
 
 # Сохранение
 result.save('results/macd_zones.pkl')
@@ -627,13 +647,15 @@ df['MY_CUSTOM'] = (df['close'].diff(5) / df['close'].rolling(20).std())
 result = (
     analyze_zones(df)
     .detect_zones('zero_crossing', indicator_col='MY_CUSTOM')
-    .with_strategies(swing='find_peaks')  # Работает сразу!
+    .with_strategies(swing='zigzag')  # Работает сразу!
     .build()
 )
 # БЕЗ изменений в коде BQuant!
 ```
 
 ## 💾 Кэширование и персистентность
+
+Подробное описание: **[Справочник по кэшированию](caching.md)** — архитектура, настройка, очистка.
 
 ```python
 # Автоматическое кэширование (2-level: memory + disk)
@@ -666,7 +688,10 @@ loaded = ZoneAnalysisResult.load('results/zones.pkl')
 
 ## 📚 Дополнительные ресурсы
 
+- [Справочник по кэшированию](caching.md) — работа с кэшем (zone analysis и общий)
 - [API Reference: zones module](../api/analysis/zones.md)
+- [Глубокое погружение: Пайплайн анализатора зон](../developer_guide/zone_analyzer_deep_dive.md) — описание `with_swing_preset`, `with_strategies`, структура `zone.features`
+- [Кейс: Состоятельность бычьих зон MACD](../analytics/zones/macd_zone_consistency_case_study.md) — сравнение стратегий свингов (zigzag, find_peaks, pivot_points), режимы `per_zone`/`global`
 - [Examples: 02a_universal_zones.py](../../examples/02a_universal_zones.py)
 - [Developer Guide: Zone Detection Strategies](../developer_guide/zone_detection_strategies.md)
 - [Core Concepts](core_concepts.md)

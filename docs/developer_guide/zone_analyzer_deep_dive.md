@@ -4,6 +4,16 @@
 >
 > Этот документ предназначен для разработчиков и аналитиков, которые хотят понять **внутреннюю логику и механику** универсального пайплайна `analyze_zones`. Если вы ищете справочник по функциям и параметрам, обратитесь к [API документации](../api/analysis/zones.md).
 
+### Импорт
+
+Рекомендуемый импорт (через публичный API модуля):
+
+```python
+from bquant.analysis.zones import analyze_zones
+```
+
+---
+
 ## 1. Главная идея: Универсальность и Контекст
 
 Основная цель пайплайна `analyze_zones` — предоставить **универсальный** инструмент для исследования рыночных "зон". Зона — это не просто отрезок времени, а период, выделенный по определенному правилу, основанному на поведении технического индикатора.
@@ -15,6 +25,11 @@
 ## 2. Пошаговый процесс анализа
 
 Пайплайн представляет собой "конструктор" (builder), где вы по шагам настраиваете каждый аспект анализа.
+
+**Обязательные и опциональные методы:**
+- **Обязательно:** `detect_zones()` — без него `build()` вызовет ошибку.
+- **Опционально:** `with_indicator()`, `with_strategies()`, `with_swing_preset()`, `with_swing_scope()`, `with_cache()`, `with_auto_swing_thresholds()`, `analyze()`.
+- Если `with_strategies()` не вызван, используется `UniversalZoneAnalyzer` с дефолтными стратегиями из конфигурации.
 
 #### Шаг 1: Инициализация (`analyze_zones(df)`)
 
@@ -31,11 +46,14 @@
 
 #### Шаг 3: Детекция зон (`.detect_zones(...)`)
 
--   **Что происходит?** Это ядро процесса. Здесь пайплайн ищет на графике индикатора отрезки, соответствующие заданной **стратегии детекции**. Основные стратегии:
-    -   `'zero_crossing'`: Находит зоны, где индикатор-осциллятор (например, гистограмма MACD) находится выше или ниже нуля.
-    -   `'threshold'`: Находит зоны, где индикатор (например, RSI) выходит за пределы заданных порогов (например, выше 70 или ниже 30).
-    -   `'line_crossing'`: Находит зоны между пересечениями двух линий индикатора (например, основной и сигнальной линий Stochastic).
--   **Результат:** Создается предварительный список зон. Каждая зона — это пока просто объект с временем начала, временем конца и типом (`bull`/`bear`).
+-   **Что происходит?** Это ядро процесса. Здесь пайплайн ищет на графике индикатора отрезки, соответствующие заданной **стратегии детекции**.
+-   **Доступные стратегии:**
+    -   `'zero_crossing'`: Находит зоны, где индикатор-осциллятор (например, гистограмма MACD) находится выше или ниже нуля. Требует `indicator_col` в правилах.
+    -   `'threshold'`: Находит зоны, где индикатор (например, RSI) выходит за пределы заданных порогов (например, выше 70 или ниже 30). Требует `indicator_col`, `upper_threshold`, `lower_threshold`.
+    -   `'line_crossing'`: Находит зоны между пересечениями двух линий индикатора (например, основной и сигнальной линий Stochastic). Требует `line1_col`, `line2_col`.
+    -   `'preloaded'`: Загружает зоны из внешнего DataFrame. Полезно для анализа заранее определённых зон.
+    -   `'combined'`: Объединяет несколько правил детекции в одну стратегию.
+-   **Результат:** Создается предварительный список зон. Каждая зона — это объект с временем начала, временем конца, индексами (`start_idx`, `end_idx`) и типом (`bull`/`bear`).
 
 #### Шаг 4: Глубокий анализ характеристик
 
@@ -48,9 +66,9 @@
 -   **Что происходит?** Вы выбираете и настраиваете "анализаторы", которые будут применяться к каждой зоне.
 -   **Доступные стратегии:**
     -   **Анализ внутренних колебаний (`swing`):**
-        -   `swing='find_peaks'`: (Рекомендуемый) Поиск пиков и впадин на основе `scipy.signal.find_peaks`.
-        -   `swing='pivot_points'`: Классические точки разворота.
-        -   `swing='zigzag'`: Поиск экстремумов с помощью индикатора ZigZag.
+        -   `swing='find_peaks'`: Поиск пиков и впадин на основе `scipy.signal.find_peaks`. Требует подбора порогов или пресета.
+        -   `swing='pivot_points'`: Классические точки разворота. Может давать низкое покрытие зон на коротких таймфреймах.
+        -   `swing='zigzag'`: Поиск экстремумов с помощью индикатора ZigZag. **Рекомендуется для исследовательского анализа и проверки гипотез** — обеспечивает стабильное покрытие ≥60% зон и воспроизводимые статистически значимые результаты. См. [Кейс по состоятельности MACD-зон](../analytics/zones/macd_zone_consistency_case_study.md).
     -   **Анализ формы (`shape`):**
         -   `shape='statistical'`: Расчет статистических моментов (асимметрия, эксцесс) для формы индикатора.
     -   **Анализ дивергенций (`divergence`):**
@@ -64,6 +82,12 @@
 
 Этот метод запускает извлечение всех метрик, настроенных на предыдущем шаге. Кроме того, он может запускать дополнительные высокоуровневые аналитические процессы.
 
+**Параметры:**
+-   `clustering` (bool, по умолчанию `True`): Включить кластеризацию зон.
+-   `n_clusters` (int, по умолчанию `3`): Количество кластеров для KMeans.
+-   `regression` (bool, по умолчанию `False`): Запустить регрессионный анализ (прогноз длительности зоны, доходности).
+-   `validation` (bool, по умолчанию `False`): Запустить валидацию моделей.
+
 -   **Что происходит?**
     1.  Пайплайн проходит по каждой зоне и применяет к ней все стратегии, указанные в `.with_strategies()`. Результаты сохраняются в словарь `zone.features`.
     2.  **Кластеризация:** Если передан аргумент `clustering=True`, запускается алгоритм кластеризации (например, KMeans) для группировки похожих зон. Результаты доступны в `result.clustering`.
@@ -75,13 +99,62 @@
 
 | Стратегия (`.with_strategies(...)`) | Ключевая метрика в `zone.features` | Описание |
 | :--- | :--- | :--- |
-| `swing='find_peaks'` | `num_peaks`, `num_troughs` | Количество пиков и впадин внутри зоны. |
+| `swing='*'` (любая) | `num_peaks`, `num_troughs` | Количество пиков и впадин внутри зоны. |
 | | `peak_time_ratio` | Положение главного пика в зоне (0.0 - начало, 1.0 - конец). |
 | | `drawdown_from_peak` | Максимальная просадка цены от пика внутри зоны. |
+| | `metadata['swing_metrics']` | Словарь: `rally_count`, `drop_count`, `avg_rally_pct`, `avg_drop_pct`, `num_swings`, `rally_to_drop_ratio`. |
 | `divergence='classic'` | `has_classic_divergence` | `True`, если найдена классическая дивергенция. |
 | `volatility='combined'`| `volatility_score` | Составная оценка волатильности в зоне (например, от 0 до 10). |
 | `volume='standard'` | `volume_indicator_corr` | Корреляция между объемом и индикатором в зоне. |
 | `shape='statistical'` | `skewness`, `kurtosis` | Асимметрия и эксцесс распределения значений индикатора. |
+
+**Структура `zone.features` и вложенные метрики:**
+
+Часть метрик хранится на верхнем уровне `zone.features`, а часть — во вложенном словаре `metadata`. Метрики свингов (rally/drop counts, avg_rally_pct, avg_drop_pct) находятся в `metadata['swing_metrics']`:
+
+```python
+# Метрики верхнего уровня (напрямую)
+num_peaks = zone.features.get('num_peaks')
+peak_time_ratio = zone.features.get('peak_time_ratio')
+
+# Метрики свингов (через metadata)
+metadata = zone.features.get('metadata', {})
+swing_metrics = metadata.get('swing_metrics', {})
+rally_count = swing_metrics.get('rally_count')
+drop_count = swing_metrics.get('drop_count')
+avg_rally_pct = swing_metrics.get('avg_rally_pct')
+avg_drop_pct = swing_metrics.get('avg_drop_pct')
+num_swings = swing_metrics.get('num_swings')
+```
+
+Аналогично: `metadata['shape_metrics']`, `metadata['divergence_metrics']`, `metadata['volatility_metrics']`, `metadata['volume_metrics']` — для соответствующих стратегий.
+
+##### 4.4. Опциональная настройка пайплайна
+
+Эти методы вызываются **до** `.build()` в любом порядке и позволяют fine-tune поведение пайплайна:
+
+| Метод | Описание |
+| :--- | :--- |
+| `.with_swing_preset(name)` | Применить именованный пресет параметров для свингов (`'narrow_zone'`, `'wide_zone'` и др.). Фиксирует пороги для `find_peaks`, `pivot_points`, `zigzag`. |
+| `.with_swing_scope(scope)` | Режим расчёта свингов. **По умолчанию** `'global'` — свинги вычисляются один раз по всему датасету и «нарезаются» по зонам. `'per_zone'` — свинги считаются отдельно внутри каждой зоны. `global` часто даёт выше покрытие (см. кейс по состоятельности). |
+| `.with_cache(enable=True, ttl=3600)` | Включить/отключить кэширование результата. `ttl` — время жизни кэша в секундах. Отключайте кэш (`enable=False`) при экспериментировании с разными параметрами. |
+| `.with_auto_swing_thresholds(enable=True)` | Включить адаптивные пороги для `find_peaks` и `pivot_points`. Для `zigzag` не влияет. **Внимание:** при текущих настройках авто-пороги могут обнулять покрытие для `find_peaks`/`pivot_points` — требуется тюнинг. |
+
+Пример исследовательского пайплайна с настройкой свингов:
+
+```python
+result = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='zigzag')
+    .with_swing_preset('narrow_zone')
+    .with_swing_scope('global')
+    .with_cache(enable=False)  # отключить кэш при сравнении стратегий
+    .analyze(clustering=False)
+    .build()
+)
+```
 
 #### Шаг 5: Сборка (`.build()`)
 
@@ -94,21 +167,32 @@
 Вот как выглядит полный цикл анализа в коде, объединяющий все шаги:
 
 ```python
-# Полный пайплайн от данных до результата
+from bquant.analysis.zones import analyze_zones
+
+# Базовый пайплайн от данных до результата
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_col='macd_hist')
-    .with_strategies(swing='find_peaks', shape='statistical', divergence='classic')
+    .with_strategies(swing='zigzag', shape='statistical', divergence='classic')
+    .with_swing_preset('narrow_zone')
+    .with_swing_scope('global')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
 
 # Пример доступа к извлеченным метрикам
-first_zone_features = result.zones[0].features
-print(f"Положение пика в первой зоне: {first_zone_features.get('peak_time_ratio')}")
+zone = result.zones[0]
+print(f"Положение пика: {zone.features.get('peak_time_ratio')}")
+print(f"Длительность: {zone.features.get('duration')}")
 
-# Пример доступа к результатам тестов гипотез
+# Доступ к метрикам свингов (для анализа состоятельности зон)
+swing_metrics = zone.features.get('metadata', {}).get('swing_metrics', {})
+if swing_metrics:
+    print(f"Ап-свингов: {swing_metrics.get('rally_count')}, "
+          f"даун-свингов: {swing_metrics.get('drop_count')}")
+
+# Результаты тестов гипотез
 if result.hypothesis_tests:
     print(result.hypothesis_tests.results)
 ```
@@ -121,8 +205,11 @@ if result.hypothesis_tests:
 
 -   **`result.zones`**: Это список объектов `ZoneInfo`. Каждый объект `ZoneInfo` — это исчерпывающее описание одной зоны:
     -   `zone_id`, `type`, `start_time`, `end_time`: Базовая информация.
-    -   **`features`**: Словарь со всеми численными метриками, извлеченными на Шаге 4 (например, `{'duration': 15, 'price_return': 0.012, 'num_peaks': 3, ...}`). **Это и есть главные данные для анализа.**
+    -   `start_idx`, `end_idx`, `duration`: Позиционные индексы и число баров в зоне.
+    -   `data`: Срез DataFrame с OHLCV и индикаторами для зоны.
+    -   **`features`**: Словарь со всеми численными метриками, извлеченными на Шаге 4 (например, `{'duration': 15, 'price_return': 0.012, 'num_peaks': 3, 'metadata': {...}}`). **Это и есть главные данные для анализа.** См. структуру `zone.features` и `metadata` выше.
     -   **`indicator_context`**: Словарь, описывающий, как зона была найдена (например, `{'detection_indicator': 'macd_hist', 'detection_strategy': 'zero_crossing'}`). Это ключ к универсальности.
+    -   `swing_context` (при глобальном режиме, по умолчанию): Контекст свингов для метода `zone.get_zone_swings()`.
 
 -   **`result.statistics`**: Агрегированная статистика по всем найденным зонам. Например, средняя длительность бычьих зон, медианное изменение цены в медвежьих зонах, распределение зон по часам и т.д.
 
@@ -151,3 +238,4 @@ if result.hypothesis_tests:
 - **[Технический справочник API (analysis.zones)](../api/analysis/zones.md)**: Полный список классов, методов и параметров.
 - **[Документация по визуализации](../api/visualization/zones.md)**: Как визуализировать полученные зоны.
 - **[Руководство пользователя по анализу зон](../user_guide/zone_analysis.md)**: Практические примеры использования.
+- **[Кейс: Состоятельность бычьих зон MACD](../analytics/zones/macd_zone_consistency_case_study.md)**: Сравнение стратегий свингов, режимов `per_zone`/`global` и выводы по гипотезе H1.
