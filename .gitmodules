@@ -1,0 +1,3 @@
+[submodule "bquest"]
+	path = bquest
+	url = git@gitlab.com:kogriv/bquest.git
