@@ -265,6 +265,10 @@ $RECYCLE.BIN/
 *.h5
 *.hdf5
 
+# Claude Code project config must be tracked despite the broad *.json rule above
+# (SessionStart hook for cloud sessions). Keep this exception.
+!.claude/settings.json
+
 # Build and distribution artifacts
 bquant.egg-info/
 bquant-*.egg-info/
