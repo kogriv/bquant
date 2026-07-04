@@ -138,3 +138,4 @@ pip install pandas numpy matplotlib seaborn plotly
 ---
 
 **Следующий шаг:** [Quick Start](quick_start.md) 🚀
+<!-- cloud diff probe (revertable) -->
