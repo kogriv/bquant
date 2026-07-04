@@ -44,6 +44,8 @@ results/
 
 Такая структура облегчает повторное использование и позволяет быстро найти нужный артефакт независимо от выбранного подхода.
 
+Подробное описание структуры объекта результата пайплайна и пошаговое получение каждого из этих артефактов см. в **[Структура результата анализа зон и экспорт в артефакты](zone_analysis_result.md)**.
+
 ## Паттерны переиспользования
 
 ### Detect Once, Analyze Many
@@ -126,6 +128,7 @@ os.symlink(analysis_file, "results/analysis_latest.pkl")
 
 ## Связанные материалы
 
+- [Структура результата и экспорт в артефакты](zone_analysis_result.md) — полная структура `ZoneAnalysisResult` и код для получения файлов 01_…08_, full_analysis, summary.
 - [Zone Analysis Guide](zone_analysis.md) — описание полного пайплайна и архитектуры.
-- [MIGRATION_v2.md](../MIGRATION_v2.md) — пошаговая миграция со старого `MACDZoneAnalyzer` на новый pipeline.
+- [MIGRATION_v2.md](../migration/MIGRATION_v2.md) — пошаговая миграция со старого `MACDZoneAnalyzer` на новый pipeline.
 - [`devref/gaps/zo/zomodul.md`](../../devref/gaps/zo/zomodul.md) — подробные инженерные сценарии модульного использования.
