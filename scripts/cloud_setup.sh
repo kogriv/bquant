@@ -29,8 +29,9 @@ fi
 # Pre-installed system interpreter (default `python` is 3.11 in the sandbox).
 PY312="$(command -v python3.12 || echo /usr/bin/python3.12)"
 
-# Reproducible install: venv on 3.12, dependencies + dev extras straight from
-# uv.lock (dev extra provides pytest / linters).
-uv sync --python "$PY312" --extra dev
+# Reproducible install: venv on 3.12, dependencies + dev/research extras straight
+# from uv.lock (dev extra = pytest/linters; research extra = TS method stack:
+# tslearn/pyts/pycatch22, see research/methodology/method_tool_stack.md).
+uv sync --python "$PY312" --extra dev --extra research
 
 exit 0

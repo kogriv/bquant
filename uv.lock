@@ -243,6 +243,11 @@ notebooks = [
     { name = "kaleido" },
     { name = "plotly" },
 ]
+research = [
+    { name = "pycatch22" },
+    { name = "pyts" },
+    { name = "tslearn" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -270,10 +275,12 @@ requires-dist = [
     { name = "plotly", marker = "extra == 'notebooks'", specifier = "==6.3.0" },
     { name = "psutil", specifier = ">=5.9.0" },
     { name = "pyarrow", specifier = ">=17.0.0" },
+    { name = "pycatch22", marker = "extra == 'research'", specifier = ">=0.4.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "pytest", marker = "extra == 'full'", specifier = ">=6.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "pytest-cov", marker = "extra == 'full'", specifier = ">=2.0" },
+    { name = "pyts", marker = "extra == 'research'", specifier = ">=0.13.0" },
     { name = "scikit-learn", specifier = ">=1.7.1" },
     { name = "scipy", specifier = ">=1.16.1" },
     { name = "seaborn", specifier = ">=0.12.0" },
@@ -282,8 +289,9 @@ requires-dist = [
     { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = ">=0.5.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = ">=2.0.0" },
     { name = "statsmodels", specifier = ">=0.14.5" },
+    { name = "tslearn", marker = "extra == 'research'", specifier = ">=0.9.0" },
 ]
-provides-extras = ["dev", "docs", "notebooks", "full"]
+provides-extras = ["dev", "docs", "notebooks", "full", "research"]
 
 [[package]]
 name = "certifi"
@@ -2053,6 +2061,12 @@ wheels = [
 ]
 
 [[package]]
+name = "pycatch22"
+version = "0.4.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/9c/452f83ae4d0e1f0fc36317b6b15c7a07214a1cc7205e19b35d77253c6cad/pycatch22-0.4.5.tar.gz", hash = "sha256:7ec844c659f22bedc66847ac866ef2bd86ffbbd4d8114b5e97f699f20a6f9f81", size = 50311, upload-time = "2024-05-14T05:02:37.228Z" }
+
+[[package]]
 name = "pycodestyle"
 version = "2.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2155,6 +2169,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/4e/8d/a762be14dae1c3bf280202ba3172020b2b0b4c537f94427435f19c413b72/pytokens-0.3.0.tar.gz", hash = "sha256:2f932b14ed08de5fcf0b391ace2642f858f1394c0857202959000b68ed7a458a", size = 17644, upload-time = "2025-11-05T13:36:35.34Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/84/25/d9db8be44e205a124f6c98bc0324b2bb149b7431c53877fc6d1038dddaf5/pytokens-0.3.0-py3-none-any.whl", hash = "sha256:95b2b5eaf832e469d141a378872480ede3f251a5a5041b8ec6e581d3ac71bbf3", size = 12195, upload-time = "2025-11-05T13:36:33.183Z" },
+]
+
+[[package]]
+name = "pyts"
+version = "0.13.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "joblib" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/97/2e/ecb645d86e0e2d0b5d107b25a7e89e965f7e20befe0dfdcae26eeffe62c8/pyts-0.13.0.tar.gz", hash = "sha256:aca0ecc315f4cc782be363f3b62384a24a02d23a5a7d549b839b2c40a7fbed02", size = 2448631, upload-time = "2023-06-18T12:35:25.648Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/e3/da2042a20782b105631abe273ca5fef4390e7bdb6f5377c596891262437b/pyts-0.13.0-py3-none-any.whl", hash = "sha256:b49608267b686ea693dba31316ef2b22ad73ea29b27144696c347809ecd5ad62", size = 2546897, upload-time = "2023-06-18T12:35:23.496Z" },
 ]
 
 [[package]]
@@ -2883,6 +2913,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621, upload-time = "2024-04-19T11:11:49.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359, upload-time = "2024-04-19T11:11:46.763Z" },
+]
+
+[[package]]
+name = "tslearn"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "joblib" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "statsmodels" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/70/297bf11d18bf3b32d7883353ee96941546d66be97b5ad02ce0b6a5b6c3f6/tslearn-0.9.0.tar.gz", hash = "sha256:eb7d32b6876a5606275ebecbf9e0b22075490a5fc8d1d09e4c13c884b30a45af", size = 19349384, upload-time = "2026-07-02T13:45:17.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/e6/01f9034d2d3f76161f222ee2e7c6311770bf9e84c237c6b95571f8300a73/tslearn-0.9.0-py3-none-any.whl", hash = "sha256:38f5c60d8a7d4dea4f11d021d82244dbe1644bf874b351dbf96d3fff24a01de1", size = 401678, upload-time = "2026-07-02T13:45:13.751Z" },
 ]
 
 [[package]]
