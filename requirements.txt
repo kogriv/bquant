@@ -15,10 +15,7 @@ nbformat>=4.2.0
 chardet>=5.0.0
 pyarrow>=17.0.0
 
-# Research method stack (time-series classification / structure analysis)
-# See research/methodology/method_tool_stack.md. Canonical spec: pyproject.toml
-# [project.optional-dependencies] research (+ uv.lock).
-tslearn>=0.9.0
-pyts>=0.13.0
-pycatch22>=0.4.5
+# Research method stack (tslearn/pyts/pycatch22) НЕ здесь: это опциональный extra.
+# Для рисёрч-ноутбуков (08/09): pip install -e .[research]
+# Приватная лаба bquearch держит их в своём requirements.
 
