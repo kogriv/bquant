@@ -84,11 +84,11 @@ class TestMACDPreset:
             enable_cache=False
         )
         
-        # Via direct builder
+        # Via direct builder (preset default zone_basis='line' -> indicator_col='macd')
         result_direct = (
             analyze_zones(sample_data)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=2)
+            .detect_zones('zero_crossing', indicator_col='macd', min_duration=2)
             .analyze(clustering=False)
             .with_cache(enable=False)
             .build()

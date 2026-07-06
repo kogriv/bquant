@@ -486,7 +486,7 @@ class ZoneAnalysisBuilder:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast=12, slow=26, signal=9)
-            .detect_zones('zero_crossing', indicator_col='macd_histogram')
+            .detect_zones('zero_crossing', indicator_col='macd')
             .analyze(clustering=True, n_clusters=3)
             .build()
         )
@@ -724,7 +724,7 @@ def analyze_zones(df: pd.DataFrame) -> ZoneAnalysisBuilder:
         # Минимальный пример
         result = (
             analyze_zones(df)
-            .detect_zones('zero_crossing', indicator_col='macd_histogram')
+            .detect_zones('zero_crossing', indicator_col='macd')
             .build()
         )
         
@@ -732,7 +732,7 @@ def analyze_zones(df: pd.DataFrame) -> ZoneAnalysisBuilder:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast=12, slow=26, signal=9)
-            .detect_zones('zero_crossing', indicator_col='macd_histogram')
+            .detect_zones('zero_crossing', indicator_col='macd')
             .analyze(clustering=True, n_clusters=3, regression=True)
             .with_cache(enable=True, ttl=7200)
             .build()
