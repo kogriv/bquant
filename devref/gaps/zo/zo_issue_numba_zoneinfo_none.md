@@ -176,6 +176,13 @@ class ZoneInfo:
 
 ## Problem #2: Numba Crash in `ZigZagSwingStrategy`
 
+> ⚠️ **ОБНОВЛЕНО 2026-07-06** (`zo_issue_numba_linux_testsuite_2026-07.md`):
+> два тезиса ниже устарели. (1) Краш **воспроизводится и на Linux** (numba 0.61.2 /
+> llvmlite 0.44.0), exit 134 (Aborted). (2) Graceful degradation через try/except
+> **не спасает** — abort/segfault убивает процесс до Python-обработчика. Актуальные
+> лекарства (сменить дефолтный swing на non-numba, заскипать zigzag-тесты) — в новом
+> доке.
+
 ### 🔍 Root Cause Analysis
 
 **Stacktrace:**
