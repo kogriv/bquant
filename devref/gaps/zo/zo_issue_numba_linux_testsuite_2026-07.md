@@ -1,138 +1,128 @@
-# Issue: Numba abort on Linux breaks the test suite (ZigZag / default swing)
+# Issue: pandas-ta numba ZigZag segfaults on degenerate data
 
-**Дата:** 2026-07-06
-**Тип:** environment / test-suite health
-**Приоритет:** 🟠 Medium-High — нет способа получить полностью зелёный `pytest` в текущем окружении; спотыкается дефолтный swing-путь
-**Статус:** 🟡 Open — диагностировано на фактах, лекарства предложены и частично проверены
+**Дата:** 2026-07-06 (root cause уточнён и доказан)
+**Тип:** external dependency bug / input-guarding
+**Приоритет:** 🟠 Medium — краш дефолтного swing на вырожденных данных; ломает `pytest`
+**Статус:** 🟢 Root cause доказан, лекарство определено (дефолт остаётся zigzag)
 
-**Связь:** обновляет `devref/gaps/zo/zo_issue_numba_zoneinfo_none.md` (2025-10-19),
-Problem #2. Тот док считал краш **Windows-only** («на Linux не воспроизводится») и
-полагался на graceful degradation. Оба тезиса теперь **неверны** — см. ниже.
+**Связь:** обновляет `zo_issue_numba_zoneinfo_none.md` (2025-10-19, Problem #2).
 
 ---
 
 ## 1. Симптом
 
-- Полный `pytest tests/` в обычном режиме **падает с фатальным крашем** на
-  `tests/integration/test_truly_universal_zones.py`:
-  `Fatal Python error: Aborted`, процесс завершается кодом **134** (SIGABRT).
-  Стек — в `numba/core/caching.py` (`_load_overload` / `_index_key`) при JIT-компиляции.
-- До точки краша — **ноль фейлов** (тесты идут зелёными, потом abort).
-- Обход `NUMBA_DISABLE_JIT=1` убирает краш, но ломает регистрацию `zigzag`
-  (`LIBRARY indicator 'zigzag' from 'pandas_ta' not found`) → **8 фейлов** в
-  swing/zigzag-зависимых тестах.
-
-**Итог: чистого зелёного прогона в этом окружении сейчас нет** — либо abort (JIT on),
-либо 8 zigzag-фейлов (JIT off). Оба — про numba/pandas-ta, не про бизнес-логику.
+Полный `pytest tests/` **падает с фатальным крашем** (exit 134 Aborted / 139 SIGSEGV)
+на `tests/integration/test_truly_universal_zones.py`. Крах — в numba-коде
+`pandas_ta/trend/zigzag.py:299` (`nb_rolling_hl`). До этого — ноль фейлов.
 
 ---
 
-## 2. Факты (замерено)
+## 2. Root cause — ДОКАЗАН
 
-| Что | Значение |
-|-----|----------|
-| numba | 0.61.2 |
-| llvmlite | 0.44.0 |
-| pandas-ta | 0.4.67b0 (`__version__` не выставлен) |
-| Платформа | Linux (cloud/CI-окружение сессии) |
-| Краш-тест | `test_truly_universal_zones.py`, exit **134 (Aborted)** |
-| Свежий `NUMBA_CACHE_DIR` | **НЕ лечит** — краш повторяется |
-| Источник numba | только `pandas_ta` zigzag; сами swing-стратегии bquant numba не импортируют |
+**pandas-ta zigzag (`@njit(cache=True)`) делает segfault на вырожденных данных**
+(константные high/low, нулевой диапазон цен). В nopython-режиме numba нет проверки
+границ массива → выход за границу → segfault.
 
-**Ключевая проверка — non-zigzag swing работает штатно (обычный JIT):**
-
-```
-swing=find_peaks    OK  zones=72
-swing=pivot_points  OK  zones=72
+**Минимальный репро (5 строк, ВНЕ pytest, exit 139):**
+```python
+import pandas as pd, pandas_ta as ta
+n = 200
+ta.zigzag(pd.Series([102.0]*n), pd.Series([98.0]*n), pd.Series([100.0]*n))
+# -> Segmentation fault
 ```
 
-Крашится **только** `zigzag`. `find_peaks` (scipy) и `pivot_points` (чистый Python)
-проходят без проблем и дают тот же счёт зон (72).
+**Как это попадает в тест:** `test_fictional_indicator_with_threshold` строит
+плоский DataFrame (`open=100, high=102, low=98, close=100` на всех 200 барах,
+`test_truly_universal_zones.py:93-101`). Дефолтный swing = zigzag (`config.py:162`),
+`swing_scope="global"` → `_calculate_global_swings` гоняет zigzag на этих плоских
+данных → segfault.
 
-**Дефолт указывает в крашащий путь:** `bquant/core/config.py:162` —
-`DEFAULT_SWING_PRESET="default"` использует `'type': 'zigzag'`. То есть штатный
-сценарий по умолчанию идёт ровно в numba-abort.
-
----
-
-## 3. Корневая причина и важная поправка
-
-- Краш — при **JIT-компиляции numba** внутри pandas-ta zigzag (numba 0.61.2 /
-  llvmlite 0.44.0 в этом окружении). Это внешняя связка, не код bquant.
-- **Abort (SIGABRT) НЕ перехватывается** `try/except` — процесс умирает до Python-
-  обработчика. Поэтому «graceful degradation» из старого дока
-  (`zone_features.py` оборачивает swing в try/except) **не защищает**: код падает
-  внутри нативного numba, а не бросает Python-исключение.
-- Старый тезис «на Linux не воспроизводится» устарел — на текущем окружении/версиях
-  воспроизводится стабильно.
+**Подтверждение через изоляцию тестов:**
+- `test_fictional_indicator_full_pipeline` (zigzag, данные с движением) — **проходит**.
+- `test_fictional_indicator_with_threshold` (zigzag, плоские данные) — **segfault**.
 
 ---
 
-## 4. Лекарства (по возрастанию усилий; R1 рекомендуется)
+## 3. Чем это НЕ является (важно для вопроса «доставить numba?»)
 
-### R1. Сменить дефолтную swing-стратегию на non-numba ✅ рекомендуется
-- `find_peaks` или `pivot_points` вместо `zigzag` в `DEFAULT_SWING_PRESET`.
-- Убирает numba из **дефолтного** пути; проверено — обе работают, тот же счёт зон.
-- Дёшево, устойчиво, не трогает внешние зависимости. `zigzag` остаётся доступным
-  явным выбором (для окружений, где numba здорова).
+- ❌ **НЕ отсутствие/битая numba.** numba 0.61.2 установлена и **работает**: `ta.zigzag`
+  на реальных данных и полный pipeline bquant со swing=zigzag отрабатывают штатно
+  (**72 зоны**, exit 0). Доустановка/переустановка numba ничего не изменит.
+- ❌ **НЕ специфика pytest.** Репро воспроизводится в обычном скрипте.
+- ❌ **НЕ версии/threading/cache.** Проверено: `NUMBA_THREADING_LAYER=safe`,
+  `OMP_NUM_THREADS=1`, `workqueue`, свежий `NUMBA_CACHE_DIR`, `-s`, `--assert=plain`,
+  faulthandler off — ничего не меняет. Дело в данных, а не в окружении.
+- ⚠️ **Краш неперехватываем.** Это нативный abort/segfault — `try/except` его не ловит
+  (процесс умирает до Python-обработчика). Поэтому «graceful degradation» из старого
+  дока против этого не работает.
 
-### R2. Изолировать zigzag-тесты, чтобы CI был зелёным
-- Пометить zigzag/numba-зависимые тесты `@pytest.mark.skipif`, пропуская их, когда
-  numba-zigzag недоступна/крашит.
-- **Нюанс:** т.к. это abort, нельзя «попробовать и поймать» — проверку доступности
-  надо делать заранее (проба в subprocess или env-флаг), а не через try/except в
-  самом тесте.
-
-### R3. Зафиксировать версии numba/llvmlite (root-cause, хрупко)
-- Подобрать комбо numba/llvmlite, не дающее abort в этом окружении, и запинить в
-  `pyproject`/`requirements`. Минус — привязка к окружению, может не переноситься.
-
-### R4. Чистый Python ZigZag без numba (durable, опционально)
-- Своя реализация zigzag (pandas/numpy), чтобы стратегия перестала зависеть от
-  numba вовсе. Больше работы; имеет смысл, если zigzag нужен как дефолт.
+**Вывод по вопросу окружения:** numba доставлять не нужно — она рабочая. Проблема —
+незащищённый вход в сторонний numba-код на вырожденных данных.
 
 ---
 
-## 5. Рекомендованный план
+## 4. Лекарства (дефолт остаётся zigzag — по решению владельца)
 
-1. **R1** — переключить дефолтный swing на `find_peaks` (быстро, снимает боль
-   дефолтного пути и большинство swing-фейлов). Обновить пресеты/доки.
-2. **R2** — заскипать оставшиеся именно-zigzag тесты по проверке доступности numba,
-   чтобы `pytest` был детерминированно зелёным. Явно логировать, что пропущено.
-3. Зафиксировать в `revival_plan_2026-07.md`: «зелёный CI» достигается через R1+R2;
-   R3/R4 — по желанию, не на критическом пути.
+### R1. Защитить обёртку ZigZag в bquant от вырожденного входа ✅ рекомендуется
+- Перед вызовом pandas-ta zigzag проверять вход: слишком мало баров, или
+  `high`/`low` практически константны (диапазон ≈ 0) → вернуть **пустой
+  `SwingContext`** вместо захода в numba.
+- Место: `bquant/analysis/zones/strategies/swing/zigzag.py` (метод `calculate_global`).
+- Плюсы: дефолт остаётся zigzag; чинит и тест, и **реальные** плоские сегменты
+  (остановленный/неликвидный рынок, гэпы) — это production-корректность, а не только
+  тест. Не трогает numba/окружение.
 
-**Критерий готовности:** `pytest tests/` завершается без abort и без «случайных»
-фейлов (только осознанные skip у zigzag-тестов при недоступной numba).
+### R2. Поправить данные крашащего теста (дёшево, дополняюще)
+- Тест проверяет универсальность детекции, swing там побочен. Дать данные с движением
+  или `swing=None` для этого теста. При наличии R1 — необязательно (обёртка отдаст
+  пустые свинги, тест пройдёт).
+
+### R3. Апстрим/пин pandas-ta (опционально)
+- Сообщить о segfault на вырожденном входе; при наличии — запинить версию pandas-ta
+  с фиксом. Не на критическом пути.
+
+---
+
+## 5. План
+
+1. **R1** — input-guard в `ZigZagSwingStrategy.calculate_global` (несколько строк).
+   Прогнать полный `pytest` → должен уйти краш; проверить, что зелёный.
+2. **R2** — при необходимости подправить данные теста.
+3. Зафиксировать в `revival_plan_2026-07.md`: дефолт остаётся zigzag; «зелёный CI»
+   достигается input-guard'ом, без борьбы с версиями numba.
+
+**Критерий готовности:** полный `pytest tests/` завершается без abort/segfault;
+`ta.zigzag`-путь на вырожденных данных отдаёт пустые свинги, а не роняет процесс.
 
 ---
 
 ## 6. Влияние на рисёрч (этап 1)
 
-Прямое: **дефолтный** `analyze_zones(...).build()` со swing сейчас идёт в abort на
-этом окружении. Пока R1 не сделан — в рисёрче использовать `find_peaks`/`pivot_points`
-явно (`.with_strategies(swing='find_peaks')`) либо `swing=None`. После R1 дефолт
-станет безопасным.
+Практически **нулевое для реальных данных** — на XAUUSD и любых данных с движением
+zigzag работает (72 зоны). Дефолт можно оставить zigzag. Осторожность нужна только
+при синтетике/вырожденных сегментах — до R1 их обходить (`swing='find_peaks'` или
+`swing=None`).
 
 ---
 
 ## 7. Воспроизводимость
 
-```
-# abort (JIT on):
-python -m pytest tests/integration/test_truly_universal_zones.py -q   # exit 134
+```python
+# КРАШ (exit 139), вне pytest:
+import pandas as pd, pandas_ta as ta
+ta.zigzag(pd.Series([102.0]*200), pd.Series([98.0]*200), pd.Series([100.0]*200))
 
-# 8 фейлов (JIT off):
-NUMBA_DISABLE_JIT=1 python -m pytest tests/ -q
-
-# non-numba swing работает:
-analyze_zones(df).with_indicator('custom','macd')
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
-    .with_strategies(swing='find_peaks').analyze(clustering=False).build()
+# РАБОТАЕТ (72 зоны) на реальных данных:
+from bquant.data.samples import get_sample_data
+from bquant.analysis.zones import analyze_zones
+df = get_sample_data("tv_xauusd_1h")
+analyze_zones(df).with_indicator('custom','macd') \
+  .detect_zones('zero_crossing', indicator_col='macd_hist') \
+  .with_strategies(swing='zigzag').analyze(clustering=False).build()
 ```
 
 ---
 
-*Итог: краш — во внешней numba/pandas-ta (zigzag), не в bquant. Дешёвое лекарство —
-увести дефолтный swing на non-numba стратегию (R1) и заскипать zigzag-тесты (R2);
-это возвращает зелёный прогон без борьбы с версиями numba.*
+*Итог: краш — latent-баг pandas-ta numba zigzag на вырожденных данных, а не проблема
+установки numba. Дефолт остаётся zigzag; лечится input-guard'ом в обёртке (R1),
+который заодно защищает реальные плоские сегменты рынка.*

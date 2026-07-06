@@ -177,11 +177,12 @@ class ZoneInfo:
 ## Problem #2: Numba Crash in `ZigZagSwingStrategy`
 
 > ⚠️ **ОБНОВЛЕНО 2026-07-06** (`zo_issue_numba_linux_testsuite_2026-07.md`):
-> два тезиса ниже устарели. (1) Краш **воспроизводится и на Linux** (numba 0.61.2 /
-> llvmlite 0.44.0), exit 134 (Aborted). (2) Graceful degradation через try/except
-> **не спасает** — abort/segfault убивает процесс до Python-обработчика. Актуальные
-> лекарства (сменить дефолтный swing на non-numba, заскипать zigzag-тесты) — в новом
-> доке.
+> root cause уточнён и доказан. Краш — не «Windows-only» и не про версию numba:
+> **pandas-ta numba zigzag делает segfault на вырожденных данных** (константные
+> high/low). Воспроизводится в 5 строк вне pytest (exit 139). numba установлена и
+> работает на реальных данных (72 зоны). Graceful degradation через try/except
+> **не спасает** (нативный segfault). Лекарство — input-guard в обёртке ZigZag;
+> дефолтный swing остаётся zigzag. Детали — в новом доке.
 
 ### 🔍 Root Cause Analysis
 
