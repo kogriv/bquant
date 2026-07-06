@@ -16,7 +16,6 @@ import sys
 import os
 import argparse
 import json
-import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -154,6 +153,15 @@ class BatchAnalysisScript:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 if config_path.suffix.lower() in ['.yaml', '.yml']:
+                    # Lazy import: PyYAML is only needed for YAML config files,
+                    # so the script (and JSON configs) works without it installed.
+                    try:
+                        import yaml
+                    except ImportError:
+                        raise ImportError(
+                            "PyYAML is required to read YAML config files. "
+                            "Install it with 'pip install pyyaml' or use a JSON config."
+                        )
                     config = yaml.safe_load(f)
                 else:
                     config = json.load(f)

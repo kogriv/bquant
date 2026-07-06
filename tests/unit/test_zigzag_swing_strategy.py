@@ -223,6 +223,66 @@ class TestZigZagSwingStrategy:
         print(f"Strategy2 (strict): {result2.rally_count} rallies, {result2.drop_count} drops")
 
 
+class TestZigZagDegenerateInput:
+    """
+    Regression tests for the degenerate-input guard.
+
+    pandas-ta's numba ZigZag segfaults (uncatchable native crash) on
+    near-constant high/low. ZigZagSwingStrategy._is_degenerate() must short-circuit
+    such input and return empty results instead of entering the crashing kernel.
+    See devref/gaps/zo/zo_issue_numba_linux_testsuite_2026-07.md.
+    """
+
+    def _flat_frame(self, n=200):
+        dates = pd.date_range('2024-01-01', periods=n, freq='1h')
+        return pd.DataFrame(
+            {
+                'open': [100.0] * n,
+                'high': [102.0] * n,
+                'low': [98.0] * n,
+                'close': [100.0] * n,
+                'volume': [1500.0] * n,
+            },
+            index=dates,
+        )
+
+    def test_is_degenerate_flags_constant_high_low(self):
+        strategy = ZigZagSwingStrategy()
+        assert strategy._is_degenerate(self._flat_frame()) is True
+
+    def test_is_degenerate_ignores_real_data(self):
+        df = get_sample_data('tv_xauusd_1h')
+        strategy = ZigZagSwingStrategy()
+        assert strategy._is_degenerate(df) is False
+
+    def test_calculate_global_on_flat_data_no_crash(self):
+        """Global path must return an empty SwingContext, not segfault."""
+        strategy = ZigZagSwingStrategy()
+        context = strategy.calculate_global(self._flat_frame())
+
+        assert context.swing_points == []
+        assert len(context.indices) == 0
+        assert context.full_data_length == 200
+
+    def test_calculate_on_flat_data_returns_empty_metrics(self):
+        """Per-zone path must degrade gracefully, not segfault."""
+        strategy = ZigZagSwingStrategy()
+        metrics = strategy.calculate(self._flat_frame())
+
+        assert isinstance(metrics, SwingMetrics)
+        assert metrics.rally_count == 0
+        assert metrics.drop_count == 0
+
+    def test_single_spike_flat_data_no_crash(self):
+        """A near-constant series with a single spike also crashes numba; guard it."""
+        df = self._flat_frame()
+        df.iloc[100, df.columns.get_loc('high')] = 110.0
+        strategy = ZigZagSwingStrategy()
+        # Must complete without a native crash.
+        context = strategy.calculate_global(df)
+        assert context.swing_points == []
+
+
 def run_tests():
     """Run all ZigZag swing strategy tests."""
     pytest.main([__file__, '-v'])
