@@ -40,6 +40,7 @@ def analyze_macd_zones(df: pd.DataFrame,
                        min_duration: int = 2,
                        zone_types: Optional[list] = None,
                        smooth_window: Optional[int] = None,
+                       zone_basis: str = 'line',
                        clustering: bool = True,
                        n_clusters: int = 3,
                        regression: bool = False,
@@ -62,6 +63,11 @@ def analyze_macd_zones(df: pd.DataFrame,
         min_duration: Минимальная длительность зоны в барах (default: 2)
         zone_types: Типы зон для анализа (default: ['bull', 'bear'])
         smooth_window: Окно сглаживания для детекции (optional)
+        zone_basis: На чём детектировать зону (default: 'line'):
+            'line' — по знаку линии MACD (MACD>0/<0), длинные стабильные зоны,
+                     как в методологии проекта (indicator_col='macd');
+            'histogram' — по знаку гистограммы (MACD−signal), более короткие
+                     волатильные зоны (indicator_col='macd_hist', legacy).
         clustering: Выполнять кластеризацию (default: True)
         n_clusters: Количество кластеров (default: 3)
         regression: Запустить регрессионный анализ (default: False)
@@ -90,14 +96,21 @@ def analyze_macd_zones(df: pd.DataFrame,
         # Визуализация
         result.visualize('overview')
     """
+    _basis_to_col = {'line': 'macd', 'histogram': 'macd_hist'}
+    if zone_basis not in _basis_to_col:
+        raise ValueError(
+            f"zone_basis must be 'line' or 'histogram', got {zone_basis!r}"
+        )
+    indicator_col = _basis_to_col[zone_basis]
+
     builder = (
         analyze_zones(df)
-        .with_indicator('custom', 'macd', 
-                       fast_period=fast, 
-                       slow_period=slow, 
+        .with_indicator('custom', 'macd',
+                       fast_period=fast,
+                       slow_period=slow,
                        signal_period=signal)
-        .detect_zones('zero_crossing', 
-                     indicator_col='macd_hist',
+        .detect_zones('zero_crossing',
+                     indicator_col=indicator_col,
                      min_duration=min_duration,
                      zone_types=zone_types,
                      smooth_window=smooth_window)

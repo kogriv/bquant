@@ -49,13 +49,14 @@ class ZigZagSwingStrategy:
                 len(full_data),
                 self.legs * 2,
             )
-            return SwingContext(
-                swing_points=[],
-                indices=np.array([], dtype=int),
-                full_data_length=len(full_data),
-                strategy_name='zigzag',
-                strategy_params={'legs': self.legs, 'deviation': self.deviation},
+            return self._empty_context(len(full_data))
+
+        if self._is_degenerate(full_data):
+            logger.warning(
+                "ZigZag global: degenerate input (near-constant high/low). "
+                "Skipping pandas-ta zigzag and returning empty SwingContext."
             )
+            return self._empty_context(len(full_data))
 
         from .....indicators import LibraryManager
 
@@ -71,13 +72,7 @@ class ZigZagSwingStrategy:
             logger.warning(
                 "ZigZag returned insufficient columns, no swings detected"
             )
-            return SwingContext(
-                swing_points=[],
-                indices=np.array([], dtype=int),
-                full_data_length=len(full_data),
-                strategy_name='zigzag',
-                strategy_params={'legs': self.legs, 'deviation': self.deviation},
-            )
+            return self._empty_context(len(full_data))
 
         swing_values = result.data.iloc[:, 1].dropna()
 
@@ -85,13 +80,7 @@ class ZigZagSwingStrategy:
             logger.warning(
                 "ZigZag detected fewer than two swing points in global mode"
             )
-            return SwingContext(
-                swing_points=[],
-                indices=np.array([], dtype=int),
-                full_data_length=len(full_data),
-                strategy_name='zigzag',
-                strategy_params={'legs': self.legs, 'deviation': self.deviation},
-            )
+            return self._empty_context(len(full_data))
 
         swing_points: List[SwingPoint] = []
         indices: List[int] = []
@@ -181,6 +170,13 @@ class ZigZagSwingStrategy:
             ValueError: If zone_data is empty or missing required columns
         """
         self._validate_input(zone_data)
+
+        if self._is_degenerate(zone_data):
+            logger.debug(
+                "ZigZag: degenerate zone input (near-constant high/low), "
+                "returning empty metrics"
+            )
+            return self._empty_metrics()
 
         try:
             # Import LibraryManager dynamically to avoid circular imports
@@ -415,6 +411,31 @@ class ZigZagSwingStrategy:
 
     def _empty_metrics(self) -> SwingMetrics:
         return self._aggregate_metrics([], [])
+
+    def _empty_context(self, full_data_length: int) -> SwingContext:
+        return SwingContext(
+            swing_points=[],
+            indices=np.array([], dtype=int),
+            full_data_length=full_data_length,
+            strategy_name='zigzag',
+            strategy_params={'legs': self.legs, 'deviation': self.deviation},
+        )
+
+    def _is_degenerate(self, data: pd.DataFrame) -> bool:
+        """
+        Detect input that makes pandas-ta's numba ZigZag segfault.
+
+        The nopython ZigZag kernel has no bounds checking and crashes (native
+        SIGSEGV/SIGABRT, uncatchable by try/except) when ``high`` or ``low`` is
+        (near-)constant, i.e. lacks enough distinct levels to form pivots over
+        ``legs``-bar windows. Real OHLC data has hundreds of distinct levels and
+        is never flagged; only degenerate/flat segments are. See
+        devref/gaps/zo/zo_issue_numba_linux_testsuite_2026-07.md.
+        """
+        return (
+            data['high'].nunique() < self.legs
+            or data['low'].nunique() < self.legs
+        )
 
     def _validate_input(self, data: pd.DataFrame) -> None:
         required_cols = {'high', 'low', 'close'}

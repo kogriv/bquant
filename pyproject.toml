@@ -74,6 +74,11 @@ full = [
     "plotly==6.3.0",
     "kaleido==1.0.0",
 ]
+research = [
+    "pycatch22>=0.4.5",
+    "pyts>=0.13.0",
+    "tslearn>=0.9.0",
+]
 
 [project.scripts]
 bquant = "bquant.cli:main"

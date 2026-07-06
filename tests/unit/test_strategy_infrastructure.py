@@ -43,7 +43,28 @@ class MockSwingStrategy:
     
     def __init__(self, threshold: float = 0.02):
         self.threshold = threshold
-    
+
+    # --- SwingCalculationStrategy protocol (global-swing API) --------------- #
+    def calculate_global(self, full_data: pd.DataFrame):
+        from bquant.analysis.zones.models import SwingContext
+        return SwingContext(
+            swing_points=[], indices=np.array([], dtype=int),
+            full_data_length=len(full_data), strategy_name='mock',
+            strategy_params={'threshold': self.threshold},
+        )
+
+    def aggregate_for_zone(self, zone, context) -> SwingMetrics:
+        return self.calculate_swings(getattr(zone, 'data', None))
+
+    def calculate(self, zone_data: pd.DataFrame) -> SwingMetrics:
+        return self.calculate_swings(zone_data)
+
+    def get_metadata(self) -> Dict[str, Any]:
+        return {'name': 'mock', 'params': {'threshold': self.threshold}}
+
+    def config_hash(self) -> Dict[str, Any]:
+        return {'threshold': self.threshold}
+
     def calculate_swings(self, zone_data: pd.DataFrame) -> SwingMetrics:
         return SwingMetrics(
             # Existing (6)
