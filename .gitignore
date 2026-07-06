@@ -317,6 +317,9 @@ docs/build/
 test_outputs/
 test_results/
 
+# Generated batch-analysis summaries (produced by script/integration test runs)
+output/batch/batch_summary_*.txt
+
 # Performance profiling
 *.prof
 *.profile
