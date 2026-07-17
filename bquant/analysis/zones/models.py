@@ -43,6 +43,19 @@ class SwingPoint:
         duration_to_next: Number of bars to the next swing point (if available).
         strategy_name: Name of the strategy that detected the swing.
         strategy_params: Parameters of the strategy for traceability.
+        confirmation_index: Integer position of the bar by which this swing is
+            **causally confirmed** — i.e. the earliest bar at which a downstream,
+            leak-free consumer may treat the pivot (and therefore its
+            ``amplitude_to_next``) as known. Always ``>= index``. ``None`` means the
+            pivot is not yet confirmed within the available data (typically the last,
+            still-forming swing). The confirmation rule is **strategy-specific** (a
+            ZigZag pivot confirms once price retraces the configured deviation; a
+            fractal/pivot-point swing confirms after its fixed look-ahead window; etc.),
+            so each swing strategy populates this field per its own semantics. A strategy
+            that does not compute it leaves ``None``, and consumers must degrade
+            gracefully. This field exists to let forecasting/OOS code build prefixes
+            strictly from swings available at decision time, avoiding look-ahead through
+            ``amplitude_to_next`` (whose endpoint lies in the future of ``index``).
 
     Example:
         >>> from datetime import datetime
@@ -67,6 +80,7 @@ class SwingPoint:
     duration_to_next: Optional[int] = None
     strategy_name: str = ""
     strategy_params: Dict[str, Any] = None
+    confirmation_index: Optional[int] = None
 
     def __post_init__(self) -> None:
         if self.strategy_params is None:
@@ -162,6 +176,7 @@ class SwingContext:
                     "duration_to_next": sp.duration_to_next,
                     "strategy_name": sp.strategy_name,
                     "strategy_params": sp.strategy_params,
+                    "confirmation_index": sp.confirmation_index,
                 }
                 for sp in self.swing_points
             ],
