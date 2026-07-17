@@ -72,6 +72,28 @@ def test_zigzag_global_vs_isolated(monkeypatch, synthetic_data):
     assert global_metrics.num_swings > per_zone_metrics.num_swings
 
 
+def test_zigzag_confirmation_index_causal(monkeypatch, synthetic_data):
+    """confirmation_index is causal: > index, <= next pivot, None only for the last."""
+
+    pivot_indices = [0, 5, 10, 15, 19]
+    pivot_timestamps = [synthetic_data.index[i] for i in pivot_indices]
+    use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
+
+    strategy = ZigZagSwingStrategy(legs=2, deviation=0.01)
+    context = strategy.calculate_global(synthetic_data)
+    swings = context.swing_points
+
+    assert len(swings) == len(pivot_indices)
+    for i, sp in enumerate(swings[:-1]):
+        nxt = swings[i + 1]
+        assert sp.confirmation_index is not None, "non-terminal pivot must be confirmed"
+        # a pivot is never known at or before its own bar, and no later than the
+        # next pivot (which already exceeds the deviation threshold)
+        assert sp.index < sp.confirmation_index <= nxt.index
+    # the last, still-forming swing has no confirmed reversal within the data
+    assert swings[-1].confirmation_index is None
+
+
 def test_swing_context_slice_with_neighbors():
     """SwingContext.slice should include neighbour pivots to keep amplitudes."""
 

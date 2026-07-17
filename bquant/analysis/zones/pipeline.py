@@ -43,6 +43,12 @@ _SWING_CLASS_TO_NAME = {
     PivotPointsSwingStrategy: "pivot_points",
 }
 
+# Bump whenever the schema/semantics of cached analysis output changes (new
+# SwingPoint/ZoneInfo fields, changed swing computation, etc.), so that on-disk
+# caches computed under an older schema are not silently served.
+#   v2 (2026-07): SwingPoint.confirmation_index added (causal availability).
+CACHE_SCHEMA_VERSION = 2
+
 
 @dataclass
 class IndicatorConfig:
@@ -89,6 +95,7 @@ class ZoneAnalysisConfig:
             "run_regression": self.run_regression,
             "run_validation": self.run_validation,
             "swing_scope": self.swing_scope,
+            "schema_version": CACHE_SCHEMA_VERSION,
         }
         return json.dumps(payload, sort_keys=True, default=str)
 

@@ -176,6 +176,7 @@ class SwingContext:
                     "duration_to_next": sp.duration_to_next,
                     "strategy_name": sp.strategy_name,
                     "strategy_params": sp.strategy_params,
+                    "confirmation_index": sp.confirmation_index,
                 }
                 for sp in self.swing_points
             ],
