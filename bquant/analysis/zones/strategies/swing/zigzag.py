@@ -88,6 +88,9 @@ class ZigZagSwingStrategy:
         timestamps = swing_values.index.to_list()
         prices = swing_values.to_list()
 
+        high_arr = full_data['high'].to_numpy(dtype=float)
+        low_arr = full_data['low'].to_numpy(dtype=float)
+
         for point_id, (timestamp, price) in enumerate(zip(timestamps, prices)):
             ts = timestamp.to_pydatetime() if hasattr(timestamp, "to_pydatetime") else timestamp
             position_arr = full_data.index.get_indexer([timestamp])
@@ -107,6 +110,7 @@ class ZigZagSwingStrategy:
 
             amplitude_to_next: Optional[float] = None
             duration_to_next: Optional[int] = None
+            confirmation_index: Optional[int] = None
             if point_id < len(prices) - 1:
                 next_price = prices[point_id + 1]
                 next_timestamp = timestamps[point_id + 1]
@@ -116,6 +120,10 @@ class ZigZagSwingStrategy:
                     if price != 0:
                         amplitude_to_next = (next_price / price - 1) * 100
                     duration_to_next = max(0, next_position - position)
+                    confirmation_index = self._confirmation_index(
+                        position, next_position, float(price), swing_type,
+                        high_arr, low_arr,
+                    )
 
             swing_points.append(
                 SwingPoint(
@@ -128,6 +136,7 @@ class ZigZagSwingStrategy:
                     duration_to_next=duration_to_next,
                     strategy_name='zigzag',
                     strategy_params={'legs': self.legs, 'deviation': self.deviation},
+                    confirmation_index=confirmation_index,
                 )
             )
             indices.append(position)
@@ -408,6 +417,41 @@ class ZigZagSwingStrategy:
         )
 
         return metrics
+
+    def _confirmation_index(
+        self,
+        position: int,
+        next_position: int,
+        price: float,
+        swing_type: str,
+        high_arr: np.ndarray,
+        low_arr: np.ndarray,
+    ) -> int:
+        """Bar by which this ZigZag pivot is causally confirmed.
+
+        A peak is confirmed at the first bar after ``position`` whose low has
+        fallen ``deviation`` below the pivot price; a trough, at the first bar
+        whose high has risen ``deviation`` above it. This is the ZigZag-specific
+        realisation of the generic :attr:`SwingPoint.confirmation_index` contract:
+        it is the point at which a repainting ZigZag "locks in" the previous swing,
+        i.e. when the next leg starts drawing. It is guaranteed to occur no later
+        than ``next_position`` (the next pivot already exceeds the deviation
+        threshold), which is used as a safe upper bound if no earlier crossing is
+        found. ``deviation`` is a fraction (0.05 == 5%), matching the pivot scale.
+        """
+        if next_position <= position:
+            return next_position
+        if swing_type == 'peak':
+            threshold = price * (1.0 - self.deviation)
+            seg = low_arr[position + 1:next_position + 1]
+            hits = np.nonzero(seg <= threshold)[0]
+        else:
+            threshold = price * (1.0 + self.deviation)
+            seg = high_arr[position + 1:next_position + 1]
+            hits = np.nonzero(seg >= threshold)[0]
+        if len(hits):
+            return position + 1 + int(hits[0])
+        return next_position
 
     def _empty_metrics(self) -> SwingMetrics:
         return self._aggregate_metrics([], [])
