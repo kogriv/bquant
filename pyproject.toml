@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bquant"
-version = "0.0.1"
+version = "0.0.2"
 description = "Quantitative research toolkit for financial markets"
 authors = [{name = "kogriv", email = "kogriv@gmail.com"}]
 readme = "README.md"

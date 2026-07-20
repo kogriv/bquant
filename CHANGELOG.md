@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-07-20
+
+### Added
+- **`SwingPoint.confirmation_index`** — маркер причинной доступности свинга: индекс
+  бара, к которому пивот (и его `amplitude_to_next`) причинно подтверждён. Позволяет
+  строить leak-free / look-ahead-free потребителей (устранение утечки J1). Реализован
+  для ZigZag-стратегии; прочие свинг-стратегии оставляют `None` (контракт допускает
+  мягкую деградацию). Сериализуется в `SwingContext.to_dict()`. (PR #107)
+
+### Changed
+- **`CACHE_SCHEMA_VERSION` повышена до 2** — ключ дискового кэша зон-анализа теперь
+  учитывает версию схемы вывода, инвалидируя старые кэши без `confirmation_index`.
+  Инвариант: любое изменение схемы/семантики кэшируемого вывода обязано бампать
+  `CACHE_SCHEMA_VERSION`.
+
+## [0.0.1] - 2026-01-12
+
 ### Added
 - Initial release of BQuant package
 - Complete migration from Quanto project
