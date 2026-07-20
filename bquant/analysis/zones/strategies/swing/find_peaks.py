@@ -53,6 +53,10 @@ class FindPeaksSwingStrategy:
         swing_points: List[SwingPoint] = []
         indices: List[int] = []
 
+        high_arr = full_data['high'].to_numpy(dtype=float)
+        low_arr = full_data['low'].to_numpy(dtype=float)
+        full_len = len(full_data)
+
         for point_id, point in enumerate(extrema):
             timestamp = point['timestamp']
             ts = (
@@ -74,6 +78,16 @@ class FindPeaksSwingStrategy:
                     0, int(next_point['index']) - index_position
                 )
 
+            confirmation_index = self._confirmation_index(
+                index_position,
+                float(price),
+                point['type'],
+                prominence_value,
+                high_arr,
+                low_arr,
+                full_len,
+            )
+
             swing_points.append(
                 SwingPoint(
                     point_id=point_id,
@@ -85,6 +99,7 @@ class FindPeaksSwingStrategy:
                     duration_to_next=duration_to_next,
                     strategy_name='find_peaks',
                     strategy_params=self._build_strategy_params(prominence_value),
+                    confirmation_index=confirmation_index,
                 )
             )
             indices.append(index_position)
@@ -386,6 +401,52 @@ class FindPeaksSwingStrategy:
         )
 
         return metrics
+
+    def _confirmation_index(
+        self,
+        index: int,
+        price: float,
+        swing_type: str,
+        prominence: float,
+        high_arr: np.ndarray,
+        low_arr: np.ndarray,
+        full_len: int,
+    ) -> Optional[int]:
+        """Bar by which this find_peaks extremum is causally confirmed.
+
+        A find_peaks extremum survives the global pass only if it clears BOTH the
+        ``distance`` (minimum separation) and ``prominence`` filters. It becomes
+        causally known at the later of two events:
+
+        * **distance stabilisation** — ``index + distance``: once that many
+          right-hand bars are observed, no nearer higher peak (resp. lower trough)
+          can still displace it via the distance filter (had one existed within
+          ``distance``, the extremum would have been dropped, so its absence is
+          confirmed here);
+        * **prominence retrace** — the first bar after ``index`` at which the right
+          base falls ``prominence`` away from the pivot (peak: ``high <= price -
+          prominence``; trough: ``low >= price + prominence``). scipy's prominence
+          requires *both* bases below ``price - prominence``, so this right-side
+          retrace is a necessary condition and, for a kept extremum, occurs before
+          any higher opposing bar.
+
+        Returns ``max`` of the two (both are necessary), or ``None`` if the pivot
+        cannot yet be confirmed within the available data (retrace not reached, or
+        the distance window extends past the end — a still-forming tail swing).
+        This is the ``find_peaks`` realisation of the generic
+        :attr:`SwingPoint.confirmation_index` contract.
+        """
+        if swing_type == 'peak':
+            seg = high_arr[index + 1:]
+            hits = np.nonzero(seg <= price - prominence)[0]
+        else:
+            seg = low_arr[index + 1:]
+            hits = np.nonzero(seg >= price + prominence)[0]
+        if not len(hits):
+            return None
+        prominence_bar = index + 1 + int(hits[0])
+        conf = max(index + self.distance, prominence_bar)
+        return conf if conf < full_len else None
 
     def _empty_metrics(self) -> SwingMetrics:
         return self._aggregate_metrics(
