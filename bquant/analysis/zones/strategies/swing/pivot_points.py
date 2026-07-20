@@ -92,6 +92,10 @@ class PivotPointsSwingStrategy:
                     0, int(next_point['index']) - index_position
                 )
 
+            confirmation_index = self._confirmation_index(
+                index_position, len(full_data)
+            )
+
             swing_points.append(
                 SwingPoint(
                     point_id=point_id,
@@ -103,6 +107,7 @@ class PivotPointsSwingStrategy:
                     duration_to_next=duration_to_next,
                     strategy_name='pivot_points',
                     strategy_params=self._strategy_params(),
+                    confirmation_index=confirmation_index,
                 )
             )
             indices.append(index_position)
@@ -390,6 +395,24 @@ class PivotPointsSwingStrategy:
         )
 
         return metrics
+
+    def _confirmation_index(
+        self, index: int, full_data_length: int
+    ) -> Optional[int]:
+        """Bar by which this pivot is causally confirmed.
+
+        A classic N-bar pivot is defined by ``right_bars`` bars to its right that
+        are all lower (pivot high) or higher (pivot low). The pattern therefore
+        becomes complete — and the pivot causally known — exactly at
+        ``index + right_bars``: the bar at which the last required right-side bar
+        is observed. This is the ``pivot_points`` realisation of the generic
+        :attr:`SwingPoint.confirmation_index` contract (a fractal swing confirms
+        after its fixed right-hand look-ahead window). Because pivots are only
+        detected for ``index <= len - right_bars - 1``, the confirmation bar always
+        lies inside the data; the guard returns ``None`` only defensively.
+        """
+        conf = index + self.right_bars
+        return conf if conf < full_data_length else None
 
     def _empty_metrics(self) -> SwingMetrics:
         return self._aggregate_metrics([], [])

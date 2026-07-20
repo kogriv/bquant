@@ -94,6 +94,42 @@ def test_zigzag_confirmation_index_causal(monkeypatch, synthetic_data):
     assert swings[-1].confirmation_index is None
 
 
+def test_pivot_points_confirmation_index_fractal(synthetic_data):
+    """pivot_points confirms exactly right_bars after the pivot (fixed window)."""
+
+    strategy = PivotPointsSwingStrategy(left_bars=2, right_bars=2)
+    context = strategy.calculate_global(synthetic_data)
+    swings = context.swing_points
+
+    assert len(swings) >= 2
+    n = context.full_data_length
+    for sp in swings:
+        # the N-bar pattern completes exactly right_bars later; always causal and
+        # inside the data (pivots are only detected for index <= n - right_bars - 1)
+        assert sp.confirmation_index == sp.index + strategy.right_bars
+        assert sp.index < sp.confirmation_index < n
+
+
+def test_find_peaks_confirmation_index_causal(synthetic_data):
+    """find_peaks confirmation is causal and respects the distance window."""
+
+    strategy = FindPeaksSwingStrategy(distance=3)
+    context = strategy.calculate_global(synthetic_data)
+    swings = context.swing_points
+
+    assert len(swings) >= 2
+    n = context.full_data_length
+    for sp in swings:
+        if sp.confirmation_index is None:
+            continue
+        # never known at/before its own bar; never past the data end
+        assert sp.index < sp.confirmation_index < n
+        # distance stabilisation is a lower bound on availability
+        assert sp.confirmation_index >= sp.index + strategy.distance
+    # on real sample data at least one non-tail extremum must confirm
+    assert any(sp.confirmation_index is not None for sp in swings)
+
+
 def test_swing_context_slice_with_neighbors():
     """SwingContext.slice should include neighbour pivots to keep amplitudes."""
 

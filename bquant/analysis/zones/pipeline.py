@@ -47,7 +47,9 @@ _SWING_CLASS_TO_NAME = {
 # SwingPoint/ZoneInfo fields, changed swing computation, etc.), so that on-disk
 # caches computed under an older schema are not silently served.
 #   v2 (2026-07): SwingPoint.confirmation_index added (causal availability).
-CACHE_SCHEMA_VERSION = 2
+#   v3 (2026-07): confirmation_index now populated by find_peaks & pivot_points
+#                 (previously only zigzag; changes cached swing output).
+CACHE_SCHEMA_VERSION = 3
 
 
 @dataclass
