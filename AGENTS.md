@@ -1,6 +1,8 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Single source of truth for agent/developer instructions in this repository. Agent-specific
+entry files (`CLAUDE.md`, `GEMINI.md`, `VIBE.md`) are thin pointers that import this file;
+Cursor and other tools read `AGENTS.md` directly. Edit instructions **here**, not in the pointers.
 
 ## Project Overview
 
