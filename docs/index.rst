@@ -28,7 +28,6 @@ BQuant Documentation
    user_guide/caching
    user_guide/best_practices
    user_guide/swing_strategies
-   user_guide/swing_analysis_results
 
 .. toctree::
    :maxdepth: 2
@@ -61,7 +60,6 @@ BQuant Documentation
    :caption: Analytics
    
    analytics/zones/swing
-   analytics/zones/macd_zone_consistency_case_study
    analytics/zones/swing_strategy_comparison_case_study
 
 .. toctree::

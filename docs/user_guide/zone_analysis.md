@@ -95,7 +95,7 @@ for zone in result.zones:
 
 **На что обратить внимание:**
 
-- Стратегия свингов задаётся через `with_strategies(swing='...')`, параметры — через `with_swing_preset('narrow_zone')` или `'wide_zone'`. См. [Глубокое погружение](../developer_guide/zone_analyzer_deep_dive.md) и [Кейс по состоятельности MACD-зон](../analytics/zones/macd_zone_consistency_case_study.md).
+- Стратегия свингов задаётся через `with_strategies(swing='...')`, параметры — через `with_swing_preset('narrow_zone')` или `'wide_zone'`. См. [Глубокое погружение](../developer_guide/zone_analyzer_deep_dive.md) и [Сравнение свинг-стратегий](../analytics/zones/swing_strategy_comparison_case_study.md).
 - Режим расчёта сохраняется в `zone.features['metadata']['swing_calculation_mode']` (`'global'` или `'per_zone'`). У `ZoneInfo` нет атрибута `metadata` — он внутри `features`.
 - Метод `get_zone_swings()` автоматически выдаёт актуальный список пивотов вне зависимости от режима.
 - В режиме `global` алгоритм создаёт один `SwingContext` и шарит его между зонами — экономия времени при большом количестве зон.
@@ -693,7 +693,7 @@ loaded = ZoneAnalysisResult.load('results/zones.pkl')
 - [Справочник по кэшированию](caching.md) — работа с кэшем (zone analysis и общий)
 - [API Reference: zones module](../api/analysis/zones.md)
 - [Глубокое погружение: Пайплайн анализатора зон](../developer_guide/zone_analyzer_deep_dive.md) — описание `with_swing_preset`, `with_strategies`, структура `zone.features`
-- [Кейс: Состоятельность бычьих зон MACD](../analytics/zones/macd_zone_consistency_case_study.md) — сравнение стратегий свингов (zigzag, find_peaks, pivot_points), режимы `per_zone`/`global`
+- [Сравнение свинг-стратегий](../analytics/zones/swing_strategy_comparison_case_study.md) — покрытие zigzag/find_peaks/pivot_points, режимы `per_zone`/`global`
 - [Examples: 02a_universal_zones.py](../../examples/02a_universal_zones.py)
 - [Developer Guide: Zone Detection Strategies](../developer_guide/zone_detection_strategies.md)
 - [Core Concepts](core_concepts.md)
