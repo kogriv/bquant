@@ -119,10 +119,16 @@ RTD, сайт и AI-render — это три сборки над одним чи
     (#1) + swing_strategy_comparison (#3, влить в usage) + usage-часть #2; **архив** #7
     (`swing_analysis_results`). Handoff рев.2: `bquearch/docs/bquant_docs_relocation_2026-07-22.md`
     (ждём вердикты L1–L4). Детали — §B аудита.
-  - **DOC-3** мисфайлы (`analytics/zones/swing.md` → `user_guide/`; судьба `analytics/`).
+  - **DOC-3** ~~мисфайлы (`swing.md` → `user_guide/`)~~ → **поглощён D1**: свинг-доки —
+    единая проблема корректности (`swing_strategies.md` сломан — зовёт несуществующий
+    `with_swing_strategy`; `swing.md` корректен). Реконсиляция + перенос + судьба `analytics/`
+    делаются вместе в D1. Раздёргивать нельзя. Детали — §D аудита.
   - **DOC-4** дедуп `api/analysis/` (коллизии `pipeline.md`/`strategies.md`, единый источник сниппетов).
   - **DOC-5** мета/скрэтч (`BUILD_ISSUES.md` → архив; `_build/` → Батч A).
 - **D1.** Оценить 37 `zodoctest/` валидаторов против *устоявшегося* API (что живо, что протухло).
+  **+ свинг-реконсиляция (бывш. DOC-3):** свести `swing.md`+`swing_strategies.md` к одному
+  корректному канону, перенести в `user_guide/`, решить судьбу `analytics/`. Это первый живой
+  parity-кейс (сломанный `with_swing_strategy` подтверждён по коду).
 - **D2.** Поднять рабочие в `tests/`, подключить к сьюту (живая проверка «примеры доков = код»).
 
 ### Батч E — гигиена
@@ -156,9 +162,13 @@ RTD, сайт и AI-render — это три сборки над одним чи
   (2) В пакете: `git rm` 4 файлов (layerA×2, s1, macd_consistency), `swing_analysis_results`
   → `devref/archive/docs/`, 2 toctree-записи убраны, 4 ссылки перенаправлены на остающийся
   `swing_strategy_comparison`. Битых ссылок нет. `analytics/zones/` остались `swing.md`
-  (→ DOC-3) + `swing_strategy_comparison` (keep).
-  Следующий шаг: **DOC-3** (`swing.md` → `user_guide/`, судьба `analytics/`) ИЛИ автономный
-  **DOC-4** (дедуп `api/analysis/`).
+  (→ D1) + `swing_strategy_comparison` (keep).
+- 2026-07-22 — **DOC-3 поглощён D1.** Сверка с кодом показала: `swing_strategies.md` сломан
+  (зовёт несуществующий `with_swing_strategy`; `get_zone_swings` — без аргументов), `swing.md`
+  корректен → единая проблема корректности, дробить нельзя, делаем в parity-этапе D1. По
+  решению владельца доку сейчас не правим («каждое в рамках своего этапа»). Детали — §D аудита.
+  Следующий шаг: автономный **DOC-4** (дедуп `api/analysis/`) ИЛИ быстрый **DOC-5**
+  (`BUILD_ISSUES.md` → архив). Оба без лабы и без парити-запутывания.
 
 ---
 
