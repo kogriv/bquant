@@ -52,28 +52,38 @@ docs/
 
 ---
 
-## B. Research/методология в доках пакета (MOVE-TO-LAB кандидаты)
+## B. Research-контент в доках — переклассификация по НАЗНАЧЕНИЮ
 
-Аналитика/альфа уехали в `bquearch` → эти доки в публичном пакете лишние:
+> **Пересмотр 2026-07-22 (ревизия 2).** Первая версия свалила 7 файлов оптом в «MOVE-TO-LAB».
+> Это грубо: лаба = **поиск альфы / прогнозный продукт**, а часть этих доков — про **ядро
+> пакета** (философия, консистентность) или **демонстрация функциональности**. После вычитки
+> каждого — четырёхсторонняя классификация. В лабу реально едут только 4 позиции.
 
-| Файл | В toctree? | Природа |
-|---|---|---|
-| `analytics/zones/macd_zone_consistency_case_study.md` (64) | да | датированный отчёт H0/H1, p-values, «Переоценка 2026-07» |
-| `analytics/zones/swing_strategy_comparison_case_study.md` (31) | да | датированный отчёт coverage/runtime |
-| `analytics/zones/layerA_*`, `s1_swing_anatomy` (×3) | нет (сироты) | lab research (см. A) |
-| `developer_guide/analytical_philosophy.md` (55) | **да** | философия «состоятельности зон» + карта идей исследований — материал лабы |
-| `user_guide/swing_analysis_results.md` (341) | да | датированный (2025-10-28) отчёт по 1 прогону MACD+ZigZag + wishlist; тип не совпадает с соседями |
+| Файл | Стр | Вердикт | Почему |
+|---|---|---|---|
+| `developer_guide/analytical_philosophy.md` | 55 | **ЯДРО — keep** | философия «состоятельности» = идентичность пакета, *зачем* он такой |
+| `analytics/zones/swing_strategy_comparison_case_study.md` | 31 | **ДЕМО — keep/влить** | характеристика функциональности (покрытие/тайминг стратегий), не альфа → в `swing_strategies.md` |
+| `analytics/zones/macd_zone_consistency_case_study.md` | 64 | **стык — расщепить** | alpha-вердикт (H1 хрупок, не реплицирован) → лаба; usage-часть (покрытие ≥60%) → `swing_strategies.md` |
+| `analytics/zones/layerA_zone_structure_case_study.md` | 73 | **ЛАБА** | слой A→B (прогноз), кластеризация, silhouette |
+| `analytics/zones/layerA_ii_representations_case_study.md` | 68 | **ЛАБА** | DTW/catch22/ARI, «фаза больших данных», слой B |
+| `analytics/zones/s1_swing_anatomy_case_study.md` | 127 | **ЛАБА** (+привязка к ядру) | S1/S1b/S3, MFE/MAE, null-модели; подтверждает тезис философии → цитата в #1 |
+| `user_guide/swing_analysis_results.md` | 341 | **АРХИВ** | устарел (2025-10-28, v0.0.1), вопрос закрыт строже в s1; SwingMetrics дублируется в `zone_analysis_result.md`; wishlist → бэклог пакета |
 
-**Не двигать (keep):**
-- `analytics/zones/swing.md` (64) — **мисфайл**: лежит в `analytics/`, но это usage-doc
-  (пресеты + adaptive thresholds), чистый EN, с рабочим кодом. → перенести в `user_guide/`,
-  НЕ в лабу.
-- `developer_guide/statistical_analysis_workflow.md` (69) — пограничный, но оформлен как
-  package how-to со ссылкой на публичный `api/analysis/statistical.md`. Слабый кандидат, keep.
+**В лабу (handoff L1–L4):** `layerA_zone_structure`, `layerA_ii_representations`, `s1_swing_anatomy`
++ alpha-часть `macd_zone_consistency`. Handoff: `bquearch/docs/bquant_docs_relocation_2026-07-22.md` (рев. 2).
 
-**Побочка (C3 в лабе):** case studies + `developer_guide/zone_analyzer_deep_dive.md` +
-`analytics/zones/swing.md` содержат ссылки в приватные `research/methodology/...` и
-`research/notebooks/...` — при переносе research они **повиснут**. Чинить при переносе.
+**Не двигать (keep в пакете):**
+- `analytics/zones/swing.md` (64) — **мисфайл**: usage-doc (пресеты + adaptive thresholds,
+  чистый EN, рабочий код) в каталоге `analytics/`. → в `user_guide/` (DOC-3), НЕ в лабу.
+- `developer_guide/statistical_analysis_workflow.md` (69) — package how-to, keep.
+
+**Побочка:** case studies + `developer_guide/zone_analyzer_deep_dive.md` + `analytics/zones/swing.md`
+ссылаются в приватные `research/methodology/...` и `research/notebooks/...` — при выносе research
+эти ссылки **повиснут** в оставшихся файлах. Чинит пакет (DOC-3/DOC-4).
+
+**Следствие для ноутбуков:** тот же грубый рефлекс «05–09 → в лабу» стоит в Батче C (C3). Эти
+ноутбуки порождают отчёты выше, часть из них — **образцы функциональности**, не альфа. C3 надо
+перепройти этой же линзой (ДЕМО-vs-ЛАБА), не сваливать оптом.
 
 ---
 

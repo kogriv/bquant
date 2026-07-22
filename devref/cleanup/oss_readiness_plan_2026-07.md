@@ -102,8 +102,9 @@ RTD, сайт и AI-render — это три сборки над одним чи
 ### Батч C — сушка `research/`
 - **C1.** Снести артефакты (`*_log.txt`, `outputs/`, ipynb-дубли).
 - **C2.** Снести скретч/устар. (`test_*.py`, `bq.py`, `02_ind_lib.py`, `03_analysis_zones.py`).
-- **C3.** MOVE-TO-LAB (05–09, methodology): док в `bquearch` + сверка наличия → снос из пакета
-  после подтверждения.
+- **C3.** ~~MOVE-TO-LAB (05–09) оптом~~ → **перепройти линзой ДЕМО-vs-ЛАБА** (как DOC-2 §B):
+  часть ноутбуков 05–09 — образцы функциональности пакета, не альфа. Классифицировать
+  поштучно, лабе — только альфа-часть.
 - **C4.** Консолидировать демо `research/notebooks/00–04` ↔ `examples/` (один дом), переписать
   READMEs; при опустошении — упразднить `research/` в пакете.
 
@@ -112,9 +113,12 @@ RTD, сайт и AI-render — это три сборки над одним чи
   Результат: `docs_structure_audit_2026-07-22.md`. Вывод: парити-состав меняется после
   устаканивания структуры → сначала DOC-1..5, потом D1.
   - **DOC-1** навигация (подключить `zone_analysis_result.md` в toctree; placeholder-ссылки).
-  - **DOC-2** research → лаба (**7 файлов**: 5 в `analytics/` + `analytical_philosophy.md`
-    + `swing_analysis_results.md`; сверка в `bquearch` + `git rm` + починка ссылок).
-    Handoff размещён: `bquearch/docs/bquant_docs_relocation_2026-07-22.md` (ждём вердикты).
+  - **DOC-2** research по назначению (переклассифицировано, НЕ 7-оптом):
+    **в лабу** только L1–L4 (`layerA_zone_structure`, `layerA_ii_representations`,
+    `s1_swing_anatomy` + alpha-часть `macd_zone_consistency`); **keep в пакете** философия
+    (#1) + swing_strategy_comparison (#3, влить в usage) + usage-часть #2; **архив** #7
+    (`swing_analysis_results`). Handoff рев.2: `bquearch/docs/bquant_docs_relocation_2026-07-22.md`
+    (ждём вердикты L1–L4). Детали — §B аудита.
   - **DOC-3** мисфайлы (`analytics/zones/swing.md` → `user_guide/`; судьба `analytics/`).
   - **DOC-4** дедуп `api/analysis/` (коллизии `pipeline.md`/`strategies.md`, единый источник сниппетов).
   - **DOC-5** мета/скрэтч (`BUILD_ISSUES.md` → архив; `_build/` → Батч A).
@@ -140,8 +144,12 @@ RTD, сайт и AI-render — это три сборки над одним чи
 - 2026-07-22 — **D0 выполнен** (структурный аудит `docs/`, read-only, ни одна дока не тронута).
   Артефакт: `docs_structure_audit_2026-07-22.md`. Найдено: 4 сироты, 5 research-файлов
   на вынос в лабу, кластер дублей `api/analysis/`, парити-красный флаг в `swing_strategies.md`,
-  34M `_build/` в git. Хвост Батча D пересобран (DOC-1..5 → D1). Следующий шаг: обсудить
-  порядок DOC-1..5 (рекоменд. начать с DOC-1 — риск~0, обратимо).
+  34M `_build/` в git. Хвост Батча D пересобран (DOC-1..5 → D1).
+- 2026-07-22 — **DOC-1 сделан** (навигация: `zone_analysis_result` в toctree + 5 URL-фиксов;
+  коммит `88a2243`). **DOC-2 переклассифицирован** после вычитки всех 7 research-файлов:
+  вместо «7 в лабу» — 4 в лабу (L1–L4), 2 keep, 1 архив (см. §B аудита). Handoff рев.2
+  размещён в лабе, ждём вердикты L1–L4. C3 (ноутбуки) поставлен на ту же переоценку.
+  Следующий шаг: вердикты лабы по L1–L4 ИЛИ автономный DOC-4 (дедуп `api/analysis/`).
 
 ---
 
