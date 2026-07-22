@@ -200,7 +200,7 @@ epub_copyright = copyright
 
 # The unique identifier of the text. This can be a ISBN number
 # or the project homepage.
-epub_identifier = 'https://github.com/your-username/bquant'
+epub_identifier = 'https://github.com/kogriv/bquant'
 
 # A unique identification for the text.
 epub_uid = 'bquant-documentation'

@@ -11,7 +11,7 @@ pip install bquant
 ### Установка из исходного кода
 
 ```bash
-git clone https://github.com/your-username/bquant.git
+git clone https://github.com/kogriv/bquant.git
 cd bquant
 pip install -e .
 ```

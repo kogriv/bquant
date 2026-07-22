@@ -24,6 +24,7 @@ BQuant Documentation
    user_guide/quick_start
    user_guide/core_concepts
    user_guide/zone_analysis
+   user_guide/zone_analysis_result
    user_guide/caching
    user_guide/best_practices
    user_guide/swing_strategies
@@ -142,14 +143,14 @@ Legacy MACD Wrapper (Deprecated)
 Поддержка
 ---------
 
-* `GitHub Issues <https://github.com/your-username/bquant/issues>`_ - Сообщения об ошибках
-* `GitHub Discussions <https://github.com/your-username/bquant/discussions>`_ - Обсуждения
+* `GitHub Issues <https://github.com/kogriv/bquant/issues>`_ - Сообщения об ошибках
+* `GitHub Discussions <https://github.com/kogriv/bquant/discussions>`_ - Обсуждения
 * `PyPI Package <https://pypi.org/project/bquant/>`_ - Установка через pip
 
 Лицензия
 --------
 
-BQuant распространяется под лицензией MIT. См. файл `LICENSE <https://github.com/your-username/bquant/blob/main/LICENSE>`_ для подробностей.
+BQuant распространяется под лицензией MIT. См. файл `LICENSE <https://github.com/kogriv/bquant/blob/main/LICENSE>`_ для подробностей.
 
 Индексы и таблицы
 ==================
