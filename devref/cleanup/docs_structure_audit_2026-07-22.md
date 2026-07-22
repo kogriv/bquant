@@ -24,7 +24,7 @@ docs/
   analytics/zones/(6 файлов) — 1 usage-doc + 5 research
   migration/      (2 файла) — исторические
   examples/       README.md — каталог скриптов (дубль корневого examples/README.md)
-  _build/         34M артефакт сборки В GIT → Батч A
+  _build/         34M артефакт сборки — НЕ в git (уже в .gitignore), только локальный диск
 ```
 
 Язык: **весь источник = RU-проза + EN-код** (mixed, RU-доминантный). Чистого EN нет,
@@ -168,7 +168,9 @@ docs/
 - `docs/README.md` — build-мета (корректно вне toctree, keep как contributor-doc).
 - `docs/BUILD_ISSUES.md` (260) — dev-scratch лог сборки; **внутренне противоречив**
   (статусы «в процессе» при таблице «56 файлов ✅ работает»); самоназван служебным. → архив/убрать из docs.
-- `docs/_build/` — 34M артефакт в git → **Батч A** (gitignore + `git rm --cached`).
+- `docs/_build/` — 34M артефакт сборки. **Проверено 2026-07-22: НЕ в git** (не трекается,
+  уже в `.gitignore` стр. 93/313). Ранее ошибочно значился «в git». Действий для репо не нужно;
+  локально при желании `rm -rf docs/_build` (регенерируется `sphinx-build`).
 
 ## H. Прочее
 - `migration/MIGRATION_v2.md` (84) + `migration/global_swings_migration.md` (80) — исторические,

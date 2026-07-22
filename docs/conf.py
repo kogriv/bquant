@@ -58,7 +58,6 @@ exclude_patterns = [
     # 'api/indicators/**',  # Разрешаем api/indicators/*.md
     # 'api/README.md',  # Разрешаем api/README.md
     # 'api/visualization/**',  # Разрешаем api/visualization/*.md
-    'BUILD_ISSUES.md',
     # 'developer_guide/**',  # Разрешаем developer_guide/*.md
     # 'examples/**',  # Разрешаем examples/*.md
     # 'migration/**',  # Разрешаем migration/*.md
