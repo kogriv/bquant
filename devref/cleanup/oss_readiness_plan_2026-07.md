@@ -192,6 +192,14 @@ RTD, сайт и AI-render — это три сборки над одним чи
   **E1** (CLAUDE/GEMINI/VIBE в один источник) завязан на §7 #3; **E2** (починка G7 —
   3 красных loader-теста) = код-задача; **E4** (актуализация `CLAUDE.md`) = контент.
   Следующий шаг: **§7-решения** — они гейтят остаток (Батч C, E1, examples/research).
+- 2026-07-22 — **C1 сделан** (артефакты `research/`): `git rm` 38 (17 `*_log.txt` +
+  `03_analysis_new_features_final.txt` + 20 файлов `outputs/` png/html); `.gitignore` +
+  `research/**/outputs/`, `research/**/*_log.txt`. Остаток Батча C гейтится решениями:
+  **C2** (скретч `test_*.py`/`bq.py`/ipynb-дубли — нужна пофайловая оценка),
+  **C3** (`05–09` + `methodology/` → лаба; кстати `methodology/` содержит
+  `swing_structure_research_program.md`+`method_tool_stack.md` — файлы, которых НЕ ХВАТАЛО
+  в лабе), **C4** (консолидация `00–04` ↔ `examples/`, гейт §7#2).
+  Следующий шаг: **§7-решения** (см. ниже) — они разблокируют C2/C3/C4, E1.
 
 ---
 
