@@ -364,3 +364,9 @@ analysis_*.xlsx
 *.pstats
 debug_*.log
 .git_commit_message.txt
+
+# Cleanup Batch A (2026-07-22): generated artifacts & IDE/junk (untracked from repo)
+test_bquant_install/
+output/
+outputs/
+.vs/
