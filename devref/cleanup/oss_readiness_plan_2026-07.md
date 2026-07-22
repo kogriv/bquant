@@ -217,6 +217,11 @@ RTD, сайт и AI-render — это три сборки над одним чи
   `validate_swing_pivots.py` (уедет в C2). `research/notebooks/` осталось: `00–04` демо +
   `06` демо + скретч.
   Следующий шаг: **C2** (скретч) → **C4** (`examples/` канон + `00–04`).
+- 2026-07-22 — **C2 сделан** (скретч `research/notebooks/`): `git rm` 14 —
+  5 `test_*.py`, `bq.py`, `swing_strategy_analysis.py`, `validate_swing_pivots.py`,
+  дубли `02_ind_lib.py`(54 стр стаб)/`03_analysis_zones.py`(legacy), 4 legacy `.ipynb`
+  (проект на `.py` NotebookSimulator). `research/notebooks/` 41→27 (только `00–04`+`06` демо + md).
+  Следующий шаг: **C4** (сверить `00–04` ↔ `examples/`, консолидировать; судьба `research/`).
 
 ---
 
