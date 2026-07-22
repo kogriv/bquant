@@ -112,7 +112,9 @@ RTD, сайт и AI-render — это три сборки над одним чи
   Результат: `docs_structure_audit_2026-07-22.md`. Вывод: парити-состав меняется после
   устаканивания структуры → сначала DOC-1..5, потом D1.
   - **DOC-1** навигация (подключить `zone_analysis_result.md` в toctree; placeholder-ссылки).
-  - **DOC-2** research → лаба (5 файлов; сверка в `bquearch` + `git rm` + починка ссылок).
+  - **DOC-2** research → лаба (**7 файлов**: 5 в `analytics/` + `analytical_philosophy.md`
+    + `swing_analysis_results.md`; сверка в `bquearch` + `git rm` + починка ссылок).
+    Handoff размещён: `bquearch/docs/bquant_docs_relocation_2026-07-22.md` (ждём вердикты).
   - **DOC-3** мисфайлы (`analytics/zones/swing.md` → `user_guide/`; судьба `analytics/`).
   - **DOC-4** дедуп `api/analysis/` (коллизии `pipeline.md`/`strategies.md`, единый источник сниппетов).
   - **DOC-5** мета/скрэтч (`BUILD_ISSUES.md` → архив; `_build/` → Батч A).
