@@ -209,6 +209,14 @@ RTD, сайт и AI-render — это три сборки над одним чи
   Дальше по плану (авторизовано «по всем пунктам»): **C3** (лаба: `05–09` demo-vs-lab +
   депозит `methodology/`), **C4** (`examples/` канон + `00–04`), **C2** (скретч), затем
   DOC-4 / D1 / E2 / E4.
+- 2026-07-22 — **C3 сделан** (research → лаба, demo-vs-lab линза): депозит в лабу inbound
+  `notebooks/` (05,07,08,09 — alpha/программа) + `methodology/` (5, включая недостающие лабе
+  `swing_structure_research_program.md`+`method_tool_stack.md`); `git rm` их из пакета.
+  **06_swing_strategy_comparison оставлен** (образец функциональности). Публичные `docs/` чисты;
+  висящие ссылки только во внутренних `devref/`+`changelogs/` (историч., не трогаем) и в
+  `validate_swing_pivots.py` (уедет в C2). `research/notebooks/` осталось: `00–04` демо +
+  `06` демо + скретч.
+  Следующий шаг: **C2** (скретч) → **C4** (`examples/` канон + `00–04`).
 
 ---
 
