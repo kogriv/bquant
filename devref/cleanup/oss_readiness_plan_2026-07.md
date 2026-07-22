@@ -187,7 +187,11 @@ RTD, сайт и AI-render — это три сборки над одним чи
   git). **Оставлены на месте:** 27 keep + `zodoctest` (37, → D1) + `zo/zoval.md`+`zoval_check.md`
   (doc↔test матрица — с zodoctest в D1, суждение поверх реестра). Проверено: 29 keep целы,
   zodoctest не тронут. `devref/` не-archive: 69 файлов (29 keep + 37 zodoctest + 3 cleanup).
-  Следующий шаг: **Батч E** (гигиена) ИЛИ §7-решения / D1.
+- 2026-07-22 — **E3 сделан** (`.gitattributes`: `docs/**`, `devref/**`, `changelogs/**` →
+  `linguist-documentation`; locked-решение §4). Остаток Батча E требует решений/кода:
+  **E1** (CLAUDE/GEMINI/VIBE в один источник) завязан на §7 #3; **E2** (починка G7 —
+  3 красных loader-теста) = код-задача; **E4** (актуализация `CLAUDE.md`) = контент.
+  Следующий шаг: **§7-решения** — они гейтят остаток (Батч C, E1, examples/research).
 
 ---
 

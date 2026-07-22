@@ -2,3 +2,9 @@
 *.sh text eol=lf
 *.py text eol=lf
 *.md text eol=lf
+
+# GitHub Linguist: keep language stats focused on the package code, not docs
+# (locked decision — cosmetic alternative to splitting the repo)
+docs/**        linguist-documentation
+devref/**      linguist-documentation
+changelogs/**  linguist-documentation
