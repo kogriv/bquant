@@ -823,9 +823,9 @@ if zone.features:
 
 ### 🎯 Learning Path
 - **[Examples](../../examples/README.md)** - Готовые примеры использования
-- **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Подробный разбор
-- **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Свинги, дивергенции, регрессия
-- **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
+- **[Deep Dive Tutorial](../../../research/notebooks/03_zones_universal.py)** - Подробный разбор
+- **[Advanced Features](../../../research/notebooks/03_analysis_new_features.py)** - Свинги, дивергенции, регрессия
+- **[Migration Guide](../../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
 
 ### 🏗️ Developer Resources
 - **[Architecture Patterns](../../developer_guide/README.md)** - Паттерны проектирования, точки расширения

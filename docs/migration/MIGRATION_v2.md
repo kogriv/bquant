@@ -79,6 +79,6 @@ modern_zones = list(modern_result.zones)
 
 ## Полезные ссылки
 
-- [Zone Analysis Guide](user_guide/zone_analysis.md) — подробное описание архитектуры и конфигурации.
-- [Best Practices анализа зон](user_guide/best_practices.md) — рекомендации по работе с пайплайном и модульными шагами.
+- [Zone Analysis Guide](../user_guide/zone_analysis.md) — подробное описание архитектуры и конфигурации.
+- [Best Practices анализа зон](../user_guide/best_practices.md) — рекомендации по работе с пайплайном и модульными шагами.
 - **Example 7 – Validation Demo** (см. исходный код) — референс реализации продвинутой валидации.

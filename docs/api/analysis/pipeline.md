@@ -368,9 +368,9 @@ zone_features = result.zones[0].features.get('zone_type')
 
 ### 🎯 Learning Path
 - **[Examples](../../examples/README.md)** - Готовые примеры использования
-- **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis
-- **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
-- **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
+- **[Deep Dive Tutorial](../../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis
+- **[Advanced Features](../../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
+- **[Migration Guide](../../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
 
 ### 🏗️ Developer Resources
 - **[Architecture Patterns](../../developer_guide/README.md)** - Design Patterns, Extension Points

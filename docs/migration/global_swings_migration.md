@@ -76,5 +76,5 @@ rm -rf ~/.cache/bquant/*.pkl
 ## Следующие шаги
 
 - Подробное руководство: `docs/user_guide/zone_analysis.md` (раздел «Global vs Per-Zone Swing Calculation»).
-- API-справка: `docs/api/analysis/zones/models.md` (описание `SwingPoint`, `SwingContext` и `ZoneInfo`).
+- API-справка: `docs/api/analysis/zones/global_swings_models.md` (описание `SwingPoint`, `SwingContext` и `ZoneInfo`).
 - Пример использования: `examples/zone_analysis_global_swings.py` (минимальный сценарий глобального режима).

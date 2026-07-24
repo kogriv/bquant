@@ -1228,10 +1228,10 @@ class CustomIndicator(BaseIndicator):
 
 ## 📚 Дополнительные ресурсы
 
-- **[Core Modules](../core/README.md)** - Базовые модули для расширения
-- **[Indicators](../indicators/README.md)** - Примеры индикаторов
-- **[Analysis](../analysis/README.md)** - Примеры анализаторов
-- **[Visualization](../visualization/README.md)** - Примеры визуализаций
+- **[Core Modules](core/README.md)** - Базовые модули для расширения
+- **[Indicators](indicators/README.md)** - Примеры индикаторов
+- **[Analysis](analysis/README.md)** - Примеры анализаторов
+- **[Visualization](visualization/README.md)** - Примеры визуализаций
 
 ---
 

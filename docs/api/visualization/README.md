@@ -177,9 +177,11 @@ from bquant.visualization import ZoneVisualizer
 # Создание визуализатора зон
 zone_viz = ZoneVisualizer()
 
-# Детальный просмотр зоны с индикаторами
+# Детальный просмотр зоны с индикаторами.
+# Используем result.data — датафрейм с вычисленными индикаторами (macd_hist и т.п.);
+# исходный `data` их не содержит, поэтому show_indicators=True требует именно result.data.
 fig = zone_viz.plot_zone_detail(
-    data,
+    result.data,
     result.zones[0],
     context_bars=15,
     show_indicators=True,
@@ -190,7 +192,7 @@ fig.show()
 # Сравнение зон по датам
 from datetime import datetime
 fig = zone_viz.plot_zones_comparison(
-    data,
+    result.data,
     result.zones,
     date_range=(datetime(2024, 1, 1), datetime(2024, 3, 1)),
     max_zones=min(5, len(result.zones)),
@@ -199,7 +201,7 @@ fig = zone_viz.plot_zones_comparison(
 fig.show()
 
 # Прямое использование ZoneVisualizer
-fig = zone_viz.plot_zones_on_price_chart(data, result.zones)
+fig = zone_viz.plot_zones_on_price_chart(result.data, result.zones)
 fig.show()
 ```
 
@@ -337,16 +339,18 @@ def create_comprehensive_analysis(data, result):
     zone_viz = ZoneVisualizer()
     stat_plots = StatisticalPlots()
     
+    # result.data содержит вычисленные индикаторы (macd_hist и т.п.);
+    # передаём его, а не исходный data, чтобы панели индикаторов строились.
     # 1. Ценовой график с зонами
     price_fig = zone_viz.plot_zones_on_price_chart(
-        data, result.zones,
+        result.data, result.zones,
         title="Price Analysis with Universal Zones",
         theme='dark'
     )
     
     # 2. Детальный анализ зоны
     detail_fig = zone_viz.plot_zone_detail(
-        data, result.zones[0],
+        result.data, result.zones[0],
         context_bars=20,
         title="Zone Detail Analysis",
         theme='dark'
@@ -354,7 +358,7 @@ def create_comprehensive_analysis(data, result):
     
     # 3. Сравнение зон
     comparison_fig = zone_viz.plot_zones_comparison(
-        data, result.zones,
+        result.data, result.zones,
         max_zones=min(5, len(result.zones)),
         title="Zones Comparison",
         theme='blue'
