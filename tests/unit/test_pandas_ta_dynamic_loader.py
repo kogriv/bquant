@@ -15,6 +15,11 @@ from bquant.indicators.library.pandas_ta import PandasTALoader
 def pandas_ta_test_env(monkeypatch):
     """Reset loader state and configure discovery for tests."""
 
+    # Other test modules set BQUANT_SKIP_PANDAS_TA=1 via os.environ.setdefault,
+    # which persists process-wide and makes load_all_libraries() skip pandas_ta
+    # (manager.py _is_library_disabled). Clear it so these tests are order-independent.
+    monkeypatch.delenv("BQUANT_SKIP_PANDAS_TA", raising=False)
+
     monkeypatch.setattr(PandasTALoader, "_indicators_registered", False)
     monkeypatch.setattr(PandasTALoader, "_available_indicators", [])
     monkeypatch.setattr(PandasTALoader, "_function_cache", {})
@@ -73,12 +78,14 @@ def test_load_all_libraries_registers_dynamic_indicators(
 
         return recorder
 
+    # Both registration messages are emitted at DEBUG level (quiet-init, 2e8c4de:
+    # "DEBUG вместо INFO для тихих профилей") — patch .debug, not .info.
     monkeypatch.setattr(
-        "bquant.indicators.library.pandas_ta.logger.info",
+        "bquant.indicators.library.pandas_ta.logger.debug",
         make_recorder(loader_messages),
     )
     monkeypatch.setattr(
-        "bquant.indicators.library.manager.logger.info",
+        "bquant.indicators.library.manager.logger.debug",
         make_recorder(manager_messages),
     )
 
