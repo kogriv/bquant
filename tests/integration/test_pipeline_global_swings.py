@@ -13,7 +13,7 @@ from bquant.analysis.zones.strategies.swing import ZigZagSwingStrategy
 
 from tests.fixtures import create_sample_ohlcv_data
 from tests.fixtures.swing_mocks import use_fake_zigzag_indicator
-from research.notebooks.test_global_swing_coverage import compare_swing_coverage
+from tests.fixtures.swing_coverage import compare_swing_coverage
 from unittest.mock import patch
 
 
