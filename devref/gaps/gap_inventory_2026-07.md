@@ -42,6 +42,12 @@
 | G10a | Per-swing позиция в зоне (`rel_time`/`rel_price`) как переиспользуемый тул | S1 сейчас считает ad-hoc; `SwingMetrics` — только агрегаты на зону |
 | G10b | Форвардная разметка «откат vs конец зоны» | S3 лестницы `swing_structure_research_program.md` |
 
+## codemap (инструмент P1 — граф кода)
+
+| # | Гэп | Статус | Где |
+|---|-----|--------|-----|
+| G13 | **Неполное семантическое покрытие codemap M0+M1:** структура пакета — полная (89/89 модулей), но нет `inherits`/`decorated_by`/call-graph/data-flow; типы полей dataclass не извлекаются; registry/factory wiring невидим; dead-code — только module-level с ложными срабатываниями | 🟠 открыто | `codemap/coverage_gap_analysis_2026-07-24.md` (гэпы CM-01…CM-14) |
+
 ---
 
 ## MACD-зоны: суть правки дефолта (G4)
