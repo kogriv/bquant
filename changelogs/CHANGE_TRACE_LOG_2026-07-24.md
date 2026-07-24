@@ -78,3 +78,15 @@
 [included] [Fixed] стейл-якоря: 3 ссылки на удалённый заголовок «Управление логированием» → #модульная-настройка; убраны литеральные {#logging} из 3 заголовков (рендерились как текст, MyST не регистрировал) → одна входящая ссылка на авто-slug #логирование. Sphinx warnings 57→32 (остаток — намеренные ссылки на директории/repo-файлы + косметика header-level/highlighting). Коммит 11094f7
 [included] [Fixed] ZigZag robustness: calculate_global() зависел от опционального pandas-ta zigzag без обёртки → при отсутствии индикатора бросал (пайплайн ловил фолбэком в per_zone, но с шумным ERROR+traceback). Обёрнут в try/except → чистый WARNING + пустой SwingContext, как в per-zone calculate(). Регресс-тест test_zigzag_global_degrades_when_pandas_ta_zigzag_unavailable
 [not_included] [Technical] Проверено: zigzag+global+skip pandas_ta → 72 зоны, graceful, без краша. Остаточный ERROR из IndicatorFactory.create правдив (создание правда упало), WARNING поясняет обработку; пре-чек ненадёжен в skip-сценарии, не делаем
+
+==================== COMMIT DIVIDER ====================
+
+[Релиз bquant 0.0.3 на боевой PyPI]
+
+[included] [Changed] Бамп версии 0.0.2 → 0.0.3 в pyproject.toml + bquant/__init__.py (версия в 2 местах)
+[included] [Added] CHANGELOG.md секция [0.0.3] - 2026-07-24: Added confirmation_index для find_peaks/pivot_points (было ZigZag-only в 0.0.2); Changed CACHE_SCHEMA_VERSION 2→3; Fixed ZigZag graceful degradation без pandas-ta zigzag
+[included] [Technical] Прогон pytest перед релизом: 1129 passed, 12 skipped, 0 failed
+[included] [Technical] Чистая сборка dist/bquant-0.0.3.{tar.gz,whl} (venv_bquant -m build); twine check PASSED для обоих; confirmation_index присутствует в wheel (find_peaks+pivot_points)
+[included] [Files Modified] Коммит c7c1bc1 + аннотированный тег v0.0.3; пуш main+тег на origin (GitHub) и gitlab
+[included] [Added] Публикация bquant 0.0.3 на боевой PyPI (twine upload); подтверждено: simple-индекс содержит whl+tar.gz, страница версии 200 — https://pypi.org/project/bquant/0.0.3/
+[not_included] [Technical] Напоминание: пингануть лабу (bquearch) о релизе 0.0.3 — causal confirmation_index теперь для всех свинг-стратегий
