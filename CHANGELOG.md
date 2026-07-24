@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-07-24
+
+### Added
+- **`confirmation_index` для стратегий `find_peaks` и `pivot_points`** — маркер причинной
+  доступности свинга теперь заполняется всеми свинг-стратегиями, а не только ZigZag (0.0.2).
+  Для `pivot_points` это точное fractal-подтверждение (`index + right_bars`); для `find_peaks` —
+  causal leak-free (`max(index + distance, бар prominence-ретрейса справа)`). Позволяет строить
+  look-ahead-free потребителей на любой свинг-стратегии. (PR #108)
+
+### Changed
+- **`CACHE_SCHEMA_VERSION` повышена 2 → 3** — `find_peaks`/`pivot_points` теперь заполняют
+  `confirmation_index`, что меняет семантику кэшируемого вывода; старые кэши инвалидируются.
+
+### Fixed
+- **ZigZag: мягкая деградация при отсутствии pandas-ta `zigzag`.** В глобальном режиме
+  (`swing_scope='global'`) стратегия теперь возвращает пустой `SwingContext` с понятным
+  предупреждением вместо исключения, когда опциональный индикатор pandas-ta `zigzag`
+  недоступен — как уже делал per-zone режим. Пайплайн больше не логирует ошибку/traceback
+  на этом пути.
+
 ## [0.0.2] - 2026-07-20
 
 ### Added
