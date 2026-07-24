@@ -22,3 +22,16 @@
 [included] [Fixed] G7 (3 красных теста test_pandas_ta_dynamic_loader.py) — две первопричины: (1) порядок-зависимость: другие модули ставят BQUANT_SKIP_PANDAS_TA=1 через os.environ.setdefault (процесс-глобально) → в полном сьюте load_all_libraries() скипал pandas_ta и возвращал {}; фикстура теперь delenv-ит переменную; (2) дрейф лог-уровня: 2e8c4de намеренно понизил info→debug для quiet-init, а тест патчил logger.info; патчи переведены на logger.debug. Коммит 1200cc3
 [included] [Technical] Полный сьют: 735 passed, 12 skipped, 0 failed (было: 3 failed / вообще не собирался). Впервые зелёный с момента C2. E2 закрыт
 [not_included] [Technical] Изолированный прогон test_pandas_ta_dynamic_loader.py маскировал баг (3/3 pass) — фейл проявляется только в порядке полного сьюта (env-утечка). Урок: при удалении «скретча» в C2 надо было грепнуть tests/ на импорты research.notebooks.*
+
+==================== COMMIT DIVIDER ====================
+
+[DOC-4 — дедуп api/analysis, развязка коллизий, фикс toctree; полный объём по решению владельца «правильно и полноценно»]
+
+[included] [Changed] Переименованы docs/api/analysis/zones/{models,pipeline,strategies}.md → zones/global_swings_*.md (git mv, история сохранена), H1 двух переклеймливающих файлов исправлены (выдавали себя за весь модуль, покрывая лишь global-swing срез). Сняты коллизии basename+неймспейс с верхними pipeline.md/strategies.md
+[included] [Added] index.rst: 7 сирот api/analysis подключены в toctree (pipeline, zones, strategies, statistical + 3 global_swings_*). Orphan-warnings по api/analysis: 7→0
+[included] [Changed] zones.md: дубль списка методов ZoneAnalysisBuilder схлопнут в указатель на канон pipeline.md (модели данных ZoneAnalysisResult/ZoneInfo оставлены — профиль zones.md); починены 2 ссылки ../developer_guide → ../../ (всплыли при вводе в toctree)
+[included] [Added] pipeline.md: добавлен отсутствовавший метод .with_swing_scope() в канонический справочник билдера (есть в коде pipeline.py:600)
+[included] [Changed] strategies.md: 5 устаревших протокол-блоков переписаны по коду (strategies/base.py + конкретные реализации): Swing→calculate_global/aggregate_for_zone/calculate; Shape/Divergence indicator_col обязателен; Volume+indicator_col; убран фиктивный get_name() (0 реализаций)
+[included] [Technical] Верификация Sphinx-сборкой (8.2.3): build succeeded, warnings 79→70, orphans 24→17 (−7 = ровно эти страницы); новых предупреждений не внесено (2 битые ссылки zones.md, всплывшие из-за toctree, тут же починены)
+[not_included] [Technical] Граница DOC-4/D1 удержана: правил только структуру + корректность ВНУТРИ тронутых файлов. Вне скоупа (флаги): сироты api/{core,data,indicators,visualization} (тот же класс, др. каталоги); сами Protocol-défs в base.py расходятся с реализациями (код-сайд парити → D1); отсутствие myst_heading_anchors ломает кросс-док якоря глобально (пре-существующее)
+[not_included] [Files Modified] Коммит c90f5c6 (11 файлов docs/: 3 rename + README/pipeline/zones/strategies/index.rst + 2 H1-правки)

@@ -123,7 +123,8 @@ RTD, сайт и AI-render — это три сборки над одним чи
     единая проблема корректности (`swing_strategies.md` сломан — зовёт несуществующий
     `with_swing_strategy`; `swing.md` корректен). Реконсиляция + перенос + судьба `analytics/`
     делаются вместе в D1. Раздёргивать нельзя. Детали — §D аудита.
-  - **DOC-4** дедуп `api/analysis/` (коллизии `pipeline.md`/`strategies.md`, единый источник сниппетов).
+  - **DOC-4** ✅ дедуп `api/analysis/` (коллизии `pipeline.md`/`strategies.md`, единый источник сниппетов).
+    Выполнено 2026-07-24 в полном объёме (см. §8).
   - **DOC-5** мета/скрэтч (`BUILD_ISSUES.md` → архив; `_build/` → Батч A).
 - **D1.** Оценить 37 `zodoctest/` валидаторов против *устоявшегося* API (что живо, что протухло).
   **+ свинг-реконсиляция (бывш. DOC-3):** свести `swing.md`+`swing_strategies.md` к одному
@@ -272,6 +273,20 @@ RTD, сайт и AI-render — это три сборки над одним чи
   `info`) → патчи на `.debug` (`1200cc3`). **Сьют 735 passed / 0 failed / 12 skipped — впервые
   зелёный с C2.** Урок: удаляя «скретч» в C2, надо было грепнуть `tests/` на `research.notebooks.*`.
   **Остаток: DOC-4, D1, E4.**
+- 2026-07-24 — **DOC-4 сделан в полном объёме** («правильно и полноценно» по решению владельца —
+  структура + корректность внутри тронутых файлов + toctree + билд-верификация).
+  **Структура:** `zones/{models,pipeline,strategies}.md` → `zones/global_swings_*.md` (git mv,
+  H1 двух переклеймливающих исправлены) → сняты коллизии basename+неймспейс; 7 сирот подключены
+  в toctree (orphan по `api/analysis` 7→0); дубль builder-списка в `zones.md` → указатель на канон
+  `pipeline.md`; добавлен `.with_swing_scope()` в `pipeline.md`; починены 2 ссылки `../developer_guide`.
+  **Корректность (по коду, в тронутых файлах):** 5 протокол-блоков `strategies.md` переписаны под
+  `strategies/base.py`+реализации (Swing→`calculate_global`/`aggregate_for_zone`/`calculate`;
+  Shape/Divergence `indicator_col` обязателен; Volume+`indicator_col`; убран фиктивный `get_name`).
+  **Верификация:** Sphinx build ок, warnings 79→70, orphans 24→17, новых нет. Коммит `c90f5c6`.
+  **Флаги вне скоупа:** сироты `api/{core,data,indicators,visualization}` (тот же класс, др. каталоги —
+  кандидат в отдельный навигационный проход); Protocol-défs в `base.py` расходятся с реализациями
+  (код-сайд парити → **D1**); нет `myst_heading_anchors` → кросс-док якоря битые глобально (пре-существующее).
+  **Остаток OSS-плана: D1, E4.**
 
 ---
 
