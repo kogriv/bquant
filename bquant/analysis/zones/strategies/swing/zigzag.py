@@ -60,13 +60,25 @@ class ZigZagSwingStrategy:
 
         from .....indicators import LibraryManager
 
-        zigzag = LibraryManager.create_indicator(
-            'pandas_ta',
-            'zigzag',
-            legs=self.legs,
-            deviation=self.deviation,
-        )
-        result = zigzag.calculate(full_data)
+        # ZigZag relies on the optional pandas-ta 'zigzag' indicator. If pandas-ta
+        # is unavailable (skipped/not installed) or ships no zigzag, degrade to an
+        # empty context with a clean warning instead of crashing the pipeline —
+        # this mirrors the per-zone calculate() fallback below.
+        try:
+            zigzag = LibraryManager.create_indicator(
+                'pandas_ta',
+                'zigzag',
+                legs=self.legs,
+                deviation=self.deviation,
+            )
+            result = zigzag.calculate(full_data)
+        except Exception as exc:
+            logger.warning(
+                "ZigZag global: pandas-ta 'zigzag' unavailable (%s). "
+                "Returning empty SwingContext.",
+                exc,
+            )
+            return self._empty_context(len(full_data))
 
         if result.data.shape[1] < 2:
             logger.warning(

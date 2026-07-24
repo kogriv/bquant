@@ -283,6 +283,39 @@ class TestZigZagDegenerateInput:
         assert context.swing_points == []
 
 
+def test_zigzag_global_degrades_when_pandas_ta_zigzag_unavailable(monkeypatch):
+    """calculate_global must degrade to an empty SwingContext (not raise) when the
+    optional pandas-ta 'zigzag' indicator is unavailable — mirroring the per-zone
+    calculate() fallback so a missing optional dependency never crashes the pipeline."""
+    import bquant.indicators as indicators_pkg
+
+    def _unavailable(*args, **kwargs):
+        raise KeyError("LIBRARY indicator 'zigzag' from 'pandas_ta' not found")
+
+    monkeypatch.setattr(indicators_pkg.LibraryManager, "create_indicator", _unavailable)
+
+    # Valid, non-degenerate data long enough to clear input validation.
+    n = 40
+    idx = pd.date_range("2024-01-01", periods=n, freq="h")
+    base = np.linspace(100, 110, n) + np.sin(np.linspace(0, 6, n))
+    df = pd.DataFrame(
+        {
+            "open": base,
+            "high": base + 1.0,
+            "low": base - 1.0,
+            "close": base,
+            "volume": np.full(n, 1000.0),
+        },
+        index=idx,
+    )
+
+    strategy = ZigZagSwingStrategy(legs=2, deviation=0.01)
+    context = strategy.calculate_global(df)  # must not raise
+
+    assert context is not None
+    assert context.swing_points == []
+
+
 def run_tests():
     """Run all ZigZag swing strategy tests."""
     pytest.main([__file__, '-v'])
