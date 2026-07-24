@@ -836,5 +836,5 @@ if zone.features:
 ### 🔧 Technical Resources
 - **Implementations:** `bquant/analysis/zones/strategies/`
 - **Tests:** `tests/unit/test_*_strategy.py`
-- **Technical docs:** `devref/gaps/swing_detection_approaches.md`
+- **Technical docs:** `devref/archive/gaps/swing_detection_approaches.md`
 

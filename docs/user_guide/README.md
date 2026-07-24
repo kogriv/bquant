@@ -133,7 +133,7 @@ pip install pandas numpy matplotlib seaborn plotly
 - **[Tutorials](../tutorials/README.md)** - Обучающие материалы
 - **[Examples](../examples/README.md)** - Примеры использования
 - **[Developer Guide](../developer_guide/README.md)** - Для разработчиков
-- **[MIGRATION_v2](../MIGRATION_v2.md)** - Переход со старого `MACDZoneAnalyzer`
+- **[MIGRATION_v2](../migration/MIGRATION_v2.md)** - Переход со старого `MACDZoneAnalyzer`
 
 ---
 

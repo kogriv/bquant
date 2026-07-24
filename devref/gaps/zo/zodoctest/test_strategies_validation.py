@@ -367,7 +367,7 @@ def test_cross_references() -> bool:
         Path("examples/02_macd_zone_analysis.py"),
         Path("research/notebooks/03_zones_universal.py"),
         Path("research/notebooks/03_analysis_new_features.py"),
-        Path("devref/gaps/swing_detection_approaches.md"),
+        Path("devref/archive/gaps/swing_detection_approaches.md"),
         Path("tests/integration"),
         Path("tests/unit/test_classic_divergence_strategy.py"),
         Path("tests/unit/test_combined_volatility_strategy.py"),
