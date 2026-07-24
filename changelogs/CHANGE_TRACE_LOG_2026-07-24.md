@@ -113,7 +113,7 @@
 
 [Гэп-док codemap: полнота покрытия кода bquant (M0+M1)]
 
-[not_included] [Added] devref/gaps/codemap/README.md — индекс раздела гэпов codemap
-[not_included] [Added] devref/gaps/codemap/coverage_gap_analysis_2026-07-24.md — исчерпывающий гэп-анализ: структурное vs семантическое покрытие, матрица сущностей/связей, 14 гэпов CM-01…CM-14, case study ZoneAnalysisResult и Universal Pipeline, риски переоценки, DoD полного покрытия; эмпирика graph.json (1709 узлов, 2428 рёбер)
+[not_included] [Added] codemap/gaps/README.md — индекс гэпов подпроекта codemap
+[not_included] [Added] codemap/gaps/coverage_gap_analysis_2026-07-24.md — исчерпывающий гэп-анализ: структурное vs семантическое покрытие, матрица сущностей/связей, 14 гэпов CM-01…CM-14, case study ZoneAnalysisResult и Universal Pipeline, риски переоценки, DoD полного покрытия; эмпирика graph.json (1709 узлов, 2428 рёбер)
 [not_included] [Changed] devref/gaps/gap_inventory_2026-07.md — запись G13 (codemap semantic coverage)
-[not_included] [Changed] codemap/README.md, codemap/BACKLOG.md — ссылки на гэп-док
+[not_included] [Changed] codemap/README.md, codemap/BACKLOG.md — ссылки на codemap/gaps/

@@ -5,13 +5,13 @@
 **Статус:** 🟠 открыто — задокументировано, не исправлено  
 **Объект анализа:** инструмент `codemap/` (версия 0.0.1, вехи M0+M1 реализованы)  
 **Целевой пакет:** `bquant/` (версия 0.0.3)  
-**Метод:** статический прогон `codemap build ../bquant -o graph.json` + анализ артефакта, исходников экстрактора (`codemap/codemap/extract/griffe_extractor.py`), query-слоя (`codemap/codemap/query.py`), отчётов (`codemap/codemap/serve/`) и дизайн-документа (`codemap/DESIGN.md`)
+**Метод:** статический прогон `codemap build ../bquant -o graph.json` + анализ артефакта, исходников экстрактора (`../codemap/extract/griffe_extractor.py`), query-слоя (`../codemap/query.py`), отчётов (`../codemap/serve/`) и дизайн-документа (`../DESIGN.md`)
 
 **Связанные документы:**
-- `codemap/DESIGN.md` — заявленная модель графа и границы v1
-- `codemap/BACKLOG.md` — статус реализации M0/M1/M2/M3
-- `devref/architecture/package_roadmap_2026-07.md` — место codemap в стадии P1
-- `devref/gaps/gap_inventory_2026-07.md` — реестр гэпов (запись G13)
+- `../DESIGN.md` — заявленная модель графа и границы v1
+- `../BACKLOG.md` — статус реализации M0/M1/M2/M3
+- `../../devref/architecture/package_roadmap_2026-07.md` — место codemap в стадии P1
+- `../../devref/gaps/gap_inventory_2026-07.md` — реестр гэпов репозитория (запись G13)
 
 ---
 

@@ -46,7 +46,7 @@
 
 | # | Гэп | Статус | Где |
 |---|-----|--------|-----|
-| G13 | **Неполное семантическое покрытие codemap M0+M1:** структура пакета — полная (89/89 модулей), но нет `inherits`/`decorated_by`/call-graph/data-flow; типы полей dataclass не извлекаются; registry/factory wiring невидим; dead-code — только module-level с ложными срабатываниями | 🟠 открыто | `codemap/coverage_gap_analysis_2026-07-24.md` (гэпы CM-01…CM-14) |
+| G13 | **Неполное семантическое покрытие codemap M0+M1:** структура пакета — полная (89/89 модулей), но нет `inherits`/`decorated_by`/call-graph/data-flow; типы полей dataclass не извлекаются; registry/factory wiring невидим; dead-code — только module-level с ложными срабатываниями | 🟠 открыто | `codemap/gaps/coverage_gap_analysis_2026-07-24.md` (гэпы CM-01…CM-14) |
 
 ---
 
