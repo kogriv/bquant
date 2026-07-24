@@ -320,6 +320,15 @@ RTD, сайт и AI-render — это три сборки над одним чи
   ждёт публикации + пинг лабе); robustness-тикет (ZigZag без pandas_ta zigzag); сироты в toctree
   `api/{core,data,indicators,visualization}`; `myst_heading_anchors`; deprecated legacy int-duration
   (уйдёт с v3.0.0).
+- 2026-07-24 — **Хвосты закрыты (кроме 0.0.3 — отложен владельцем).**
+  **Навигация/якоря:** 17 сирот подключены в toctree (orphans 17→0); `myst_heading_anchors=4`
+  (якорные ссылки резолвятся); 3 стейл-якоря + литеральные `{#logging}` починены. Sphinx warnings
+  57→32 (остаток — намеренные ссылки на директории/repo-файлы + косметика). Коммит `11094f7`.
+  **ZigZag robustness:** `calculate_global()` теперь мягко деградирует (try/except → пустой
+  контекст + чистый WARNING), как per-zone; регресс-тест добавлен. Проверено: zigzag+global+skip →
+  72 зоны без краша. Коммит — следующий.
+  **Осталось (по решению владельца):** релиз 0.0.3 (`confirmation_index` → PyPI + пинг лабе).
+  Прочее (deprecated int-duration, косметические doc-warnings) — низкий приоритет / уйдёт с v3.0.0.
 
 ---
 

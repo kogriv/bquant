@@ -68,3 +68,13 @@
 [included] [Added] AGENTS.md: флагманский паттерн Universal Zone Analysis Pipeline первым в Key Design Patterns (пример сверен и исполняется end-to-end, 72 зоны) + раздел Documentation Parity с указанием на tests/unit/test_docs_parity.py
 [included] [Technical] Все пути в AGENTS.md проверены на существование; pipeline-пример прогнан (Zones: 72, result.data содержит macd_hist). CLAUDE/GEMINI/VIBE.md подхватят через @AGENTS.md-импорт
 [not_included] [Files Modified] Коммит 62b6909. OSS-план завершён: остались только опциональные флаги (0.0.3 релиз; robustness-тикеты; сироты api/*; myst_heading_anchors)
+
+==================== COMMIT DIVIDER ====================
+
+[Хвосты (опциональные флаги вне плана): навигация/якоря доков + ZigZag robustness. 0.0.3 НЕ трогаем (отложен владельцем)]
+
+[included] [Added] index.rst: 17 сирот api/{core,data,indicators,visualization} подключены в toctree (были доступны только через README-хабы). Sphinx orphans 17→0
+[included] [Changed] conf.py: myst_heading_anchors=4 — кросс-док и in-page якорные ссылки file.md#slug резолвятся (часть целей были h4-заголовки без авто-якоря)
+[included] [Fixed] стейл-якоря: 3 ссылки на удалённый заголовок «Управление логированием» → #модульная-настройка; убраны литеральные {#logging} из 3 заголовков (рендерились как текст, MyST не регистрировал) → одна входящая ссылка на авто-slug #логирование. Sphinx warnings 57→32 (остаток — намеренные ссылки на директории/repo-файлы + косметика header-level/highlighting). Коммит 11094f7
+[included] [Fixed] ZigZag robustness: calculate_global() зависел от опционального pandas-ta zigzag без обёртки → при отсутствии индикатора бросал (пайплайн ловил фолбэком в per_zone, но с шумным ERROR+traceback). Обёрнут в try/except → чистый WARNING + пустой SwingContext, как в per-zone calculate(). Регресс-тест test_zigzag_global_degrades_when_pandas_ta_zigzag_unavailable
+[not_included] [Technical] Проверено: zigzag+global+skip pandas_ta → 72 зоны, graceful, без краша. Остаточный ERROR из IndicatorFactory.create правдив (создание правда упало), WARNING поясняет обработку; пре-чек ненадёжен в skip-сценарии, не делаем
