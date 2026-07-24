@@ -27,13 +27,13 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 - **`schemas.py`**: Data structure definitions
 
 ### Indicators (`bquant/indicators/`)
-- **`macd.py`**: Advanced MACD analyzer with zone detection, clustering, and statistical analysis
+- **`base.py`**: Base classes and `IndicatorFactory` for custom and library-backed indicators
 - **`calculators.py`**: Core indicator calculation functions
-- **`base.py`**: Base classes for custom indicators
-- **`library.py`**: Integration with pandas-ta and TA-Lib
+- **`macd.py`**: `MACDZoneAnalyzer` — **deprecated** (removal in v3.0.0); delegates to the Universal Pipeline `analyze_zones()`. Prefer the pipeline for new code.
+- **`library/`**: Integration with pandas-ta and TA-Lib (`manager.py`, `pandas_ta.py`, `talib.py`) — a package, not a single module
 
 ### Analysis (`bquant/analysis/`)
-- **`zones/`**: Zone analysis algorithms (sequence analysis, feature extraction)
+- **`zones/`**: **Universal Zone Analysis Pipeline v2.1** — `analyze_zones()` fluent builder (`pipeline.py`); pluggable zone-detection strategies (`detection/`: zero_crossing, threshold, line_crossing, preloaded, combined); metric strategies (`strategies/`: swing, shape, divergence, volatility, volume); zone models (`models.py`), presets (`presets.py`), feature extraction (`zone_features.py`), sequence analysis (`sequence_analysis.py`)
 - **`statistical/`**: Statistical analysis and hypothesis testing
 - **`technical/`**: Technical analysis modules (mostly stubs for future implementation)
 
@@ -43,6 +43,33 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 - **`themes.py`**: Chart themes and styling
 
 ## Key Design Patterns
+
+### Universal Zone Analysis Pipeline (flagship API)
+The primary way to analyze zones is the `analyze_zones()` fluent builder — indicator-agnostic,
+works with any oscillator. This supersedes the deprecated `MACDZoneAnalyzer`.
+
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+
+result = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .with_strategies(swing='zigzag')       # swing/shape/divergence/volatility/volume
+    .with_swing_preset('default')          # optional: 'default' | 'narrow_zone'
+    .analyze(clustering=True)
+    .build()
+)
+
+print(f"Zones: {len(result.zones)}")
+# result.data is the indicator-augmented frame; pass it (not the raw input) to visualizers.
+```
+
+**📖 Full Documentation:** `docs/api/analysis/pipeline.md` (builder reference),
+`docs/user_guide/swing_strategies.md` (swing config).
 
 ### NotebookSimulator Pattern
 For research scripts, use the NotebookSimulator class to create notebook-style execution with step-by-step execution, automatic CLI argument parsing, and rich logging.
@@ -132,6 +159,12 @@ All examples and tests should use embedded sample data from `bquant.data.samples
 
 ### Performance Tests
 Include performance validation in tests, especially for indicator calculations and data processing.
+
+### Documentation Parity
+`tests/unit/test_docs_parity.py` auto-scans `docs/**/*.md` and asserts that every local file
+link resolves and every `from bquant... import ...` in a doc example resolves to a real module
+and symbol. Keep doc examples runnable: renaming or moving an API/file will make this suite flag
+the stale doc reference, so update the docs in the same change.
 
 ## Common Patterns to Avoid
 
