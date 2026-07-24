@@ -59,3 +59,12 @@
 [included] [Technical] Sphinx build: warnings 69→57 (−12 = починенные ссылки), orphans 17 (др. каталоги, вне D2). Парити-сьют 393 passed
 [not_included] [Technical] D2 разбор: example-скрипты (02_macd — здоров, ложное срабатывание на «Traceback» в логах; 03_zones_universal — EOFError на интерактивном nb.wait в headless = инвокация; readme/strategies_demo — pandas_ta zigzag env). Валидаторы zodoctest оставлены как ручные инструменты (проверяют sphinx-build/исполнение, что портируемый сьют осознанно не покрывает); авторитетная CI-парити = test_docs_parity.py
 [not_included] [Technical] Инженерное решение D2: не портировать хардкод-валидаторы (протухают — см. archival-path drift D1), а авто-сканировать живые доки → покрывает и будущие доки, ноль хардкода
+
+==================== COMMIT DIVIDER ====================
+
+[E4 — актуализация AGENTS.md под реальность; финальный этап OSS-плана]
+
+[included] [Changed] AGENTS.md сверен с кодом и обновлён: indicators/library.py → пакет library/ (manager/pandas_ta/talib); macd.py MACDZoneAnalyzer помечен deprecated (v3.0.0, делегирует в analyze_zones); analysis/zones/ переписан как Universal Pipeline v2.1 (analyze_zones builder, detection/+strategies/+models/presets) вместо «sequence analysis, feature extraction»
+[included] [Added] AGENTS.md: флагманский паттерн Universal Zone Analysis Pipeline первым в Key Design Patterns (пример сверен и исполняется end-to-end, 72 зоны) + раздел Documentation Parity с указанием на tests/unit/test_docs_parity.py
+[included] [Technical] Все пути в AGENTS.md проверены на существование; pipeline-пример прогнан (Zones: 72, result.data содержит macd_hist). CLAUDE/GEMINI/VIBE.md подхватят через @AGENTS.md-импорт
+[not_included] [Files Modified] Коммит 62b6909. OSS-план завершён: остались только опциональные флаги (0.0.3 релиз; robustness-тикеты; сироты api/*; myst_heading_anchors)

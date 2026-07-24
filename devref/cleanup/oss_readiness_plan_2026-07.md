@@ -139,7 +139,7 @@ RTD, сайт и AI-render — это три сборки над одним чи
 - **E1.** Свести `CLAUDE/GEMINI/VIBE.md` к одному источнику.
 - **E2.** ✅ Починить G7 (3 красных теста loader) → полностью зелёный сьют.
 - **E3.** `.gitattributes` linguist для `docs/**`.
-- **E4.** Актуализировать `CLAUDE.md` под реальность.
+- **E4.** ✅ Актуализировать `AGENTS.md` под реальность (сделан 2026-07-24, см. §8).
 - **E5.** ✅ Гигиена веток и PR/issue-трекера (добавлено 2026-07-24).
 
 ## 7. Решения (приняты владельцем 2026-07-22)
@@ -312,6 +312,14 @@ RTD, сайт и AI-render — это три сборки над одним чи
   старое `models.md`). Sphinx warnings 69→57. Валидаторы zodoctest оставлены как ручные инструменты
   (sphinx-build/исполнение), авторитетная CI-парити = `test_docs_parity.py`. Коммит — следующий.
   **Остаток OSS-плана: E4 (актуализация AGENTS.md).**
+- 2026-07-24 — **E4 сделан → OSS-план завершён.** AGENTS.md сверен с кодом: `library.py`→пакет
+  `library/`; `MACDZoneAnalyzer` помечен deprecated (v3.0.0); `zones/` переписан как Universal
+  Pipeline v2.1. Добавлен флагманский паттерн `analyze_zones()` (пример исполняется, 72 зоны) +
+  раздел Documentation Parity → `test_docs_parity.py`. Все пути проверены. Коммит `62b6909`.
+  **ВСЕ этапы OSS-плана закрыты.** Опциональные флаги вне плана: релиз 0.0.3 (`confirmation_index`
+  ждёт публикации + пинг лабе); robustness-тикет (ZigZag без pandas_ta zigzag); сироты в toctree
+  `api/{core,data,indicators,visualization}`; `myst_heading_anchors`; deprecated legacy int-duration
+  (уйдёт с v3.0.0).
 
 ---
 
