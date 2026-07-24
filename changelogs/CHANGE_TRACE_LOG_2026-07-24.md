@@ -35,3 +35,16 @@
 [included] [Technical] Верификация Sphinx-сборкой (8.2.3): build succeeded, warnings 79→70, orphans 24→17 (−7 = ровно эти страницы); новых предупреждений не внесено (2 битые ссылки zones.md, всплывшие из-за toctree, тут же починены)
 [not_included] [Technical] Граница DOC-4/D1 удержана: правил только структуру + корректность ВНУТРИ тронутых файлов. Вне скоупа (флаги): сироты api/{core,data,indicators,visualization} (тот же класс, др. каталоги); сами Protocol-défs в base.py расходятся с реализациями (код-сайд парити → D1); отсутствие myst_heading_anchors ломает кросс-док якоря глобально (пре-существующее)
 [not_included] [Files Modified] Коммит c90f5c6 (11 файлов docs/: 3 rename + README/pipeline/zones/strategies/index.rst + 2 H1-правки)
+
+==================== COMMIT DIVIDER ====================
+
+[D1 — парити: свинг-реконсиляция (часть A) + триаж 37 валидаторов zodoctest (часть B)]
+
+[included] [Changed] D1-A: user_guide/swing_strategies.md переписан в корректный канон (весь API сверен с bquant/analysis/zones/): .with_strategies(swing=...), реальные параметры стратегий (zigzag legs/deviation, find_peaks prominence/distance, pivot_points left/right_bars), .with_swing_preset('default'|'narrow_zone'), .with_auto_swing_thresholds, .with_swing_scope, get_zone_swings() без аргументов, метрики через zone.features['metadata']['swing_metrics']. Сломанный was: with_swing_strategy() (не существует) + выдуманные threshold/backstep/retrace, min_bars/max_bars/sensitivity, get_zone_swings(strategy=), ZoneInfo.metadata
+[included] [Removed] D1-A: analytics/zones/swing.md влит в канон и удалён (+ toctree); analytics/ держит comparison-case-study
+[included] [Changed] D1-A: devref/gaps/swing/README.md — вычищены висящие ссылки на удалённый (C2) validate_swing_pivots.py и на архивный strat_issue.md; указатель на живой smoke-тест. Коммит 8bce9db
+[included] [Technical] D1-B: прогон всех 36 валидаторов zodoctest — 26 зелёных / 10 падений, каждое диагностировано (TRIAGE_2026-07-24.md)
+[included] [Fixed] D1-B: 2 реальных бага доки, пойманных валидаторами: strategies.md ссылалась на devref/gaps/swing_detection_approaches.md (уехал в archive) → путь + стейл-хардкод в test_strategies_validation.py (7/7); user_guide/README.md линковал ../MIGRATION_v2.md → ../migration/MIGRATION_v2.md
+[not_included] [Technical] D1-B ключевой вывод: «поднять все 37» не выдержала — часть валидаторов env-зависимы (sphinx-build/pip), один тестит умирающий legacy-код (int-duration баг в ZoneAnalyzer, удаление в v3.0.0), несколько завязаны на pandas_ta zigzag (нет в окружении). D2 = курируемое подмножество ~20–24, конвертация в pytest
+[not_included] [Technical] D1-B флаг (код, не дока): ZigZag-свинг-стратегия падает без pandas_ta zigzag — реальные примеры не выполняются, тесты сьюта зелены только на моке swing_mocks. Кандидат в robustness-тикет
+[not_included] [Files Modified] Коммиты 8bce9db (D1-A) + 0bd80de (D1-B)
