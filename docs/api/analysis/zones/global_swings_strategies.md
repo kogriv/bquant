@@ -1,4 +1,8 @@
-# bquant.analysis.zones.strategies — Стратегии свингов
+# Глобальные свинги: протокол `SwingCalculationStrategy`
+
+> **Узкий справочник.** Эта страница покрывает контракт свинг-стратегий в режиме
+> **глобального расчёта** (`calculate_global`/`aggregate_for_zone`). Обзор всех метрик-стратегий
+> (swing/shape/divergence/volatility/volume) — в [Strategy Pattern](../strategies.md).
 
 Раздел описывает контракт `SwingCalculationStrategy` и обновлённые реализации ZigZag, FindPeaks и PivotPoints после перехода на глобальный расчёт свингов.
 

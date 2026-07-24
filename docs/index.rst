@@ -14,6 +14,13 @@ BQuant Documentation
    api/visualization/README
    api/analysis/README
    api/analysis/base
+   api/analysis/zones
+   api/analysis/pipeline
+   api/analysis/strategies
+   api/analysis/statistical
+   api/analysis/zones/global_swings_models
+   api/analysis/zones/global_swings_pipeline
+   api/analysis/zones/global_swings_strategies
    api/extension_guide
 
 .. toctree::

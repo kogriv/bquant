@@ -23,10 +23,10 @@
 > 
 > **Справочник API:**
 > - [Универсальные Стратегии](strategies.md) - аналитические стратегии для ЛЮБОГО индикатора
-> - [Руководство по Расширению](../developer_guide/zone_detection_strategies.md) - создание пользовательских стратегий
-> - [Модели глобальных свингов](zones/models.md) — `SwingPoint`, `SwingContext`, `ZoneInfo.get_zone_swings()`
-> - [Пайплайн с поддержкой global scope](zones/pipeline.md) — `_calculate_global_swings`, `_inject_swing_context`
-> - [Стратегии свингов v2](zones/strategies.md) — протокол `SwingCalculationStrategy` и ZigZag/FindPeaks/PivotPoints
+> - [Руководство по Расширению](../../developer_guide/zone_detection_strategies.md) - создание пользовательских стратегий
+> - [Модели глобальных свингов](zones/global_swings_models.md) — `SwingPoint`, `SwingContext`, `ZoneInfo.get_zone_swings()`
+> - [Пайплайн с поддержкой global scope](zones/global_swings_pipeline.md) — `_calculate_global_swings`, `_inject_swing_context`
+> - [Стратегии свингов v2](zones/global_swings_strategies.md) — протокол `SwingCalculationStrategy` и ZigZag/FindPeaks/PivotPoints
 
 ## Обзор
 
@@ -178,7 +178,7 @@ print(first_zone.indicator_context['detection_indicator'])  # → 'FICTIONAL_IND
 **Документация:**
 - **Универсальная Архитектура:** См. выше (🟢 v2.1 - стабильно)
 - **Паттерн Стратегия:** См. [strategies.md](strategies.md) (🟢 стабильный API)
-- **Руководство по Расширению:** См. [developer guide](../developer_guide/zone_detection_strategies.md) (пользовательские стратегии)
+- **Руководство по Расширению:** См. [developer guide](../../developer_guide/zone_detection_strategies.md) (пользовательские стратегии)
 
 ### Использование Аналитических Стратегий (v2.1)
 
@@ -273,14 +273,10 @@ result = (
 #### `analyze_zones(df) -> ZoneAnalysisBuilder`
 Точка входа для Universal Pipeline. Возвращает fluent builder для настройки анализа.
 
-#### `ZoneAnalysisBuilder`
-Fluent interface для настройки анализа:
-- `.with_indicator(source, name, **params)` - настройка индикатора
-- `.detect_zones(strategy, **params)` - настройка детекции зон
-- `.with_strategies(**strategies)` - настройка аналитических стратегий
-- `.analyze(**options)` - настройка анализа
-- `.with_cache(enable=True, ttl=3600)` - настройка кэширования
-- `.build()` - запуск анализа
+> 📖 **Полный справочник по методам билдера** (`.with_indicator()`, `.detect_zones()`,
+> `.with_strategies()`, `.analyze()`, `.with_cache()`, `.with_swing_scope()`, `.build()`) —
+> в канонической странице [Universal Pipeline](pipeline.md). Ниже — только модели данных
+> результата.
 
 #### `ZoneAnalysisResult`
 Результат анализа с полным набором данных:

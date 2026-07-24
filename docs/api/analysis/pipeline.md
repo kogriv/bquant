@@ -135,6 +135,22 @@ result = (
 .with_cache(enable=False)
 ```
 
+#### `.with_swing_scope(scope)`
+Режим расчёта свингов.
+
+**Параметры:**
+- `scope='global'` (по умолчанию) — свинги считаются один раз по всему датасету, затем
+  агрегируются в каждую зону (`calculate_global` + `aggregate_for_zone`).
+- `scope='per_zone'` — свинги считаются локально внутри каждой зоны (совместимость).
+
+**Пример:**
+```python
+.with_strategies(swing='zigzag').with_swing_scope('global')
+```
+
+> 📖 Внутренняя механика (`_calculate_global_swings`, `_inject_swing_context`, фолбэки) —
+> в [Глобальные свинги: пайплайн](zones/global_swings_pipeline.md).
+
 #### `.build()`
 Запуск анализа и получение результата.
 
