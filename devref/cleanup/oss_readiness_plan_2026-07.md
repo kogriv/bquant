@@ -129,6 +129,10 @@ RTD, сайт и AI-render — это три сборки над одним чи
   **+ свинг-реконсиляция (бывш. DOC-3):** свести `swing.md`+`swing_strategies.md` к одному
   корректному канону, перенести в `user_guide/`, решить судьбу `analytics/`. Это первый живой
   parity-кейс (сломанный `with_swing_strategy` подтверждён по коду).
+  **Скоуп расширен 2026-07-24:** висящая ссылка на удалённый (C2) `validate_swing_pivots.py`
+  есть не только в `docs/analytics/zones/swing.md:63`, но и в **живом**
+  `devref/gaps/swing/README.md:30,39` — вычистить оба. В `devref/archive/gaps/swing/*`
+  ссылки не трогаем (исторические документы).
 - **D2.** Поднять рабочие в `tests/`, подключить к сьюту (живая проверка «примеры доков = код»).
 
 ### Батч E — гигиена
@@ -136,6 +140,7 @@ RTD, сайт и AI-render — это три сборки над одним чи
 - **E2.** Починить G7 (3 красных теста loader) → полностью зелёный сьют.
 - **E3.** `.gitattributes` linguist для `docs/**`.
 - **E4.** Актуализировать `CLAUDE.md` под реальность.
+- **E5.** ✅ Гигиена веток и PR/issue-трекера (добавлено 2026-07-24).
 
 ## 7. Решения (приняты владельцем 2026-07-22)
 1. ✅ `zodoctest/` (37) → **в `tests/`** (в рамках D1).
@@ -231,6 +236,29 @@ RTD, сайт и AI-render — это три сборки над одним чи
   закомментированных вызова, активно только используемое), НЕ скретч → KEEP (в память записано).
   **Остаток OSS-плана — авторские/кодовые этапы:** DOC-4 (дедуп `api/analysis/`), D1 (парити +
   свинг-реконсиляция + `zodoctest`→tests), E2 (починка G7), E4 (актуализация `AGENTS.md`).
+- 2026-07-24 — **E5 сделан (новый пункт): гигиена веток и трекера.**
+  *Issues:* 0 (ни одного, ни в каком состоянии).
+  *PR:* было 2 открытых, оба — протухшие codex-хвосты, **закрыты без мержа**:
+  **#48** «Log stage 2.2 analysis README validation» — 0 изменённых файлов (пустой);
+  **#93** «Log swing regression checks in trace log» — документирует запуск
+  `validate_swing_pivots.py`, удалённого в C2 (`01448a0`), причём его же секция Testing
+  фиксирует оба прогона как упавшие (`ModuleNotFoundError: pandas`), а экспорты идут в
+  `outputs/reports/` (загнан в `.gitignore` в C1). Мерж внёс бы мёртвую ссылку.
+  *Ветки:* origin было **105** (99 `codex/*` + 4 `claude/*` — до 30 итераций одной задачи,
+  напр. `review-zoval.md-for-gaps-*`). Удалено **103** (осталась только `main`).
+  97 — прямые ancestor-ы `main`. Оставшиеся 6 проверены поштучно перед удалением:
+  `claude/review-devref-gaps-graph-*` = PR #104 MERGED (squash, потому не ancestor);
+  `claude/add-zomet-testing-*` (`1c108a1`) — дерево **идентично** смёрдженному `a92bcb8`;
+  `claude/analyze-repository-*` (`259876d`) — добавляет `output/batch/*.txt`, т.е. ровно
+  артефакты, вычищенные в Батче A и заигноренные; `codex/review-swing-strategy-plan-2hw92e`
+  (#93 CLOSED), `codex/review-zoval.md-documentation-5tt1me` (#48 CLOSED),
+  `codex/review-zoval.md-documentation-wbauiq` (#56 CLOSED).
+  Плюс gitlab: снесены 2 `claude/swing*` (смёрджены как #107/#108); локально снесена
+  `claude/swing-confirmation-index-findpeaks-pivots` (upstream исчез).
+  **Итог: GitHub и GitLab держат по одной ветке `main`.**
+  Побочно: найдена висящая ссылка в живом `devref/gaps/swing/README.md` → скоуп D1 расширен.
+  *Напоминание:* `confirmation_index` (#108) лежит в `main` **непаблишенным** — ждёт 0.0.3,
+  после релиза пингануть лабу.
 
 ---
 
