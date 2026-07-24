@@ -130,11 +130,10 @@ RTD, сайт и AI-render — это три сборки над одним чи
   канон `user_guide/swing_strategies.md` по коду, `analytics/zones/swing.md` влит+удалён,
   висящие ссылки вычищены; 36 валидаторов прогнаны (26→28 зелёных), 2 реальных бага доки
   починены, вердикт в `TRIAGE_2026-07-24.md`.
-- **D2.** Поднять **курируемое подмножество** (~20–24 зелёных, НЕ все 37 — часть env-зависимы /
-  тестят умирающий legacy / завязаны на pandas_ta zigzag; см. вердикт D1-B) в `tests/`,
-  конвертировав print+`return bool` → pytest-ассерты, подключить к сьюту.
-  Плюс разобрать в D2 падения example-скриптов (universal_zones, macd_zone_analysis,
-  visualization_readme) — env vs стейл-пример.
+- **D2.** ✅ Сделан 2026-07-24 (см. §8). **Инженерное решение:** вместо портирования протухающих
+  хардкод-валидаторов — **авто-сканирующий портируемый сьют** `tests/unit/test_docs_parity.py`
+  (ссылки + импорты доков, 393 проверки). Разобраны падения example-скриптов, починен реальный
+  баг viz-README + 12 битых ссылок + 1 регрессия DOC-4.
 
 ### Батч E — гигиена
 - **E1.** Свести `CLAUDE/GEMINI/VIBE.md` к одному источнику.
@@ -302,6 +301,17 @@ RTD, сайт и AI-render — это три сборки над одним чи
   умирающий legacy (int-duration в `ZoneAnalyzer`, v3.0.0), pandas_ta zigzag. Коммит `0bd80de`.
   **Флаг (код):** ZigZag-стратегия падает без pandas_ta `zigzag` (сьют зелен только на моке).
   **Остаток OSS-плана: D2 (промоушен курируемого подмножества в tests/), E4.**
+- 2026-07-24 — **D2 сделан.** Вместо механического портирования 20+ протухающих print-валидаторов —
+  **авто-сканирующий портируемый парити-сьют** `tests/unit/test_docs_parity.py`: (1) 285 локальных
+  file-ссылок доков резолвятся; (2) 107 `from bquant import` резолвятся в модуль+символ. **393
+  проверки, зелены**, без sphinx-build/pip/pandas_ta. Разбор падений example-скриптов: 02_macd
+  здоров (ложное «Traceback»), 03_zones_universal — EOFError на интерактиве (инвокация), readme/
+  strategies_demo — pandas_ta zigzag env. **Реальный баг доки починен:** viz-README передавал сырой
+  `data` (без `macd_hist`) в `plot_zone_detail(show_indicators=True)` → `result.data`. **+12 битых
+  markdown-ссылок** (неверная глубина) **+1 backtick-регрессия DOC-4** (`global_swings_migration` →
+  старое `models.md`). Sphinx warnings 69→57. Валидаторы zodoctest оставлены как ручные инструменты
+  (sphinx-build/исполнение), авторитетная CI-парити = `test_docs_parity.py`. Коммит — следующий.
+  **Остаток OSS-плана: E4 (актуализация AGENTS.md).**
 
 ---
 

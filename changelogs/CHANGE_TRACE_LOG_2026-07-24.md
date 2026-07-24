@@ -48,3 +48,14 @@
 [not_included] [Technical] D1-B ключевой вывод: «поднять все 37» не выдержала — часть валидаторов env-зависимы (sphinx-build/pip), один тестит умирающий legacy-код (int-duration баг в ZoneAnalyzer, удаление в v3.0.0), несколько завязаны на pandas_ta zigzag (нет в окружении). D2 = курируемое подмножество ~20–24, конвертация в pytest
 [not_included] [Technical] D1-B флаг (код, не дока): ZigZag-свинг-стратегия падает без pandas_ta zigzag — реальные примеры не выполняются, тесты сьюта зелены только на моке swing_mocks. Кандидат в robustness-тикет
 [not_included] [Files Modified] Коммиты 8bce9db (D1-A) + 0bd80de (D1-B)
+
+==================== COMMIT DIVIDER ====================
+
+[D2 — промоушен парити в tests/: авто-сканирующий сьют вместо портирования 20+ протухающих валидаторов]
+
+[included] [Added] tests/unit/test_docs_parity.py — портируемый авто-сканирующий парити-сьют: (1) все локальные file-ссылки в docs/**/*.md резолвятся (285); (2) каждый `from bquant... import ...` из python-блоков доков резолвится в модуль+символ (107). Итого 393 проверки, зелены. Без sphinx-build/pip/pandas_ta (в отличие от zodoctest-валидаторов)
+[included] [Fixed] D2 разбор падений: реальный баг viz-README — plot_zone_detail/plot_zones_comparison/plot_zones_on_price_chart получали сырой data (без macd_hist) → KeyError; починено на result.data (обогащён индикатором, zones.md уже так делал)
+[included] [Fixed] D2 12 битых markdown-ссылок неверной глубины: MIGRATION_v2→user_guide (×2), extension_guide→api-README (×4), strategies/pipeline→research/examples .py (×6). Плюс 1 backtick-регрессия DOC-4: global_swings_migration → zones/models.md → global_swings_models.md
+[included] [Technical] Sphinx build: warnings 69→57 (−12 = починенные ссылки), orphans 17 (др. каталоги, вне D2). Парити-сьют 393 passed
+[not_included] [Technical] D2 разбор: example-скрипты (02_macd — здоров, ложное срабатывание на «Traceback» в логах; 03_zones_universal — EOFError на интерактивном nb.wait в headless = инвокация; readme/strategies_demo — pandas_ta zigzag env). Валидаторы zodoctest оставлены как ручные инструменты (проверяют sphinx-build/исполнение, что портируемый сьют осознанно не покрывает); авторитетная CI-парити = test_docs_parity.py
+[not_included] [Technical] Инженерное решение D2: не портировать хардкод-валидаторы (протухают — см. archival-path drift D1), а авто-сканировать живые доки → покрывает и будущие доки, ноль хардкода
