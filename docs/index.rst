@@ -66,7 +66,6 @@ BQuant Documentation
    :maxdepth: 2
    :caption: Analytics
    
-   analytics/zones/swing
    analytics/zones/swing_strategy_comparison_case_study
 
 .. toctree::

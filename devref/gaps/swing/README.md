@@ -25,28 +25,21 @@ registered swing strategies through `ZoneAnalysisPipeline.with_swing_preset`.
 
 ## Validation workflow
 
-1. Export the baseline metrics using the default preset:
-   ```bash
-   poetry run python research/notebooks/validate_swing_pivots.py \
-       --dataset tv_xauusd_1h \
-       --preset default \
-       --export outputs/reports/swing_default.json
-   ```
-   The command writes a JSON snapshot that contains the zone metadata, swing
-   metrics (via `SwingMetrics.to_dict()`), and pivot statistics for archival.
-2. Re-run the helper with the tuned preset and enforce pivot validation:
-   ```bash
-   poetry run python research/notebooks/validate_swing_pivots.py \
-       --dataset tv_xauusd_1h \
-       --preset narrow_zone \
-       --check \
-       --export outputs/reports/swing_narrow.json
-   ```
-   `--check` escalates any pivot ordering or range violations to a non-zero exit
-   status so CI picks up regressions.
-3. Compare the JSON exports (for example with `jq` or `meld`) and note the swing
-   density delta in the issue log. The tuned preset should report a materially
-   higher pivot count while keeping every point inside the original price band.
+Regression coverage now lives in the test-suite rather than a standalone research
+script (the former `research/notebooks/validate_swing_pivots.py` was removed as
+research scratch during the OSS cleanup):
 
-Running these two commands after every tweak keeps the KPI history aligned with
-our empirical observations from `devref/gaps/swing/strat_issue.md`.
+* Smoke test: `tests/integration/test_pipeline_global_swings.py` exercises the
+  global-swing pipeline across scopes and preset parameters.
+* Helper: `tests/fixtures/swing_coverage.py::compare_swing_coverage` compares
+  per-zone vs global swing coverage on `tv_xauusd_1h`.
+
+Run them after every tweak to keep the KPI history aligned with the guard-rails
+above:
+
+```bash
+pytest tests/integration/test_pipeline_global_swings.py
+```
+
+The original tuning analysis is archived in
+`devref/archive/gaps/swing/strat_issue.md`.
