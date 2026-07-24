@@ -39,6 +39,10 @@ extensions = [
     'myst_parser',
 ]
 
+# Generate implicit anchors for headings up to level 4 so cross-document and
+# in-page `file.md#heading-slug` links resolve (MyST slugifies heading text).
+myst_heading_anchors = 4
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

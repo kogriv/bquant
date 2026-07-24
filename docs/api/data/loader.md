@@ -48,7 +48,7 @@ datasets = load_all_data_files()
 print(list(datasets.keys()))
 ```
 
-## Логирование {#logging}
+## Логирование
 
 Модуль использует контекстное логирование с детальными техническими сообщениями:
 
@@ -71,7 +71,7 @@ logging.getLogger('bquant.data.loader').setLevel(logging.WARNING)
 logging.getLogger('bquant.data').setLevel(logging.WARNING)
 ```
 
-**См. подробности:** [Управление логированием](../core/logging.md#управление-логированием-в-многомодульных-проектах)
+**См. подробности:** [Управление логированием](../core/logging.md#-модульная-настройка)
 
 ## Замечания
 

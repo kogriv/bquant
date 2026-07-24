@@ -9,9 +9,26 @@ BQuant Documentation
    
    api/README
    api/core/README
+   api/core/config
+   api/core/nb
+   api/core/performance
+   api/core/logging
+   api/core/exceptions
+   api/core/utils
    api/data/README
+   api/data/loader
+   api/data/processor
+   api/data/samples
+   api/data/validator
+   api/data/schemas
    api/indicators/README
+   api/indicators/base
+   api/indicators/factory
+   api/indicators/library_manager
+   api/indicators/macd
+   api/indicators/preloaded
    api/visualization/README
+   api/visualization/zones
    api/analysis/README
    api/analysis/base
    api/analysis/zones

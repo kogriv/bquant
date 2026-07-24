@@ -485,7 +485,7 @@ setup_logging(
 
 ## 📚 См. также
 
-- [NotebookSimulator API](nb.md#logging) - интеграция с логированием
+- [NotebookSimulator API](nb.md#логирование) - интеграция с логированием
 - [Data Modules](../data/README.md) - логирование в модулях данных
 - [Developer Guide](../../developer_guide/README.md) - руководство разработчика
 - [Best Practices](../../user_guide/best_practices.md) - лучшие практики работы с BQuant
