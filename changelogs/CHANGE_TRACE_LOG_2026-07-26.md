@@ -50,3 +50,15 @@
 [not_included] [Added] codemap/tests/fixtures/deeppkg/ (синтетика: Engine через локальную переменную) + codemap/tests/test_m5_deep.py — 5 тестов: deep кракает e.run() на локали, fast теряет, self-вызовы, deep⊃fast, детерминизм deep-тира
 [not_included] [Technical] Замер на полном bquant: fast 933 ребра / 18.6% → deep 1292 ребра / 25.7% (+359 рёбер, +7.1пп), сборка deep 49.7с; детерминизм deep держится; 38/38 тестов (6 M0 + 7 M1 + 10 M1.5 + 10 M4 + 5 M5)
 [not_included] [Changed] DESIGN §10.11 решение (движок вызовов: griffe структура + jedi вызовы, два тира), §10.3/§14.2 отсылки; BACKLOG веха M5 ✅ + статус M0+M1+M1.5+M4+M5; gap-док CM-09 → fast/deep, матрица §6.2; G13 + два спайк-дока
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M2 — виды B/A: RAG-экспорт, Obsidian-vault, mermaid-подграфы; CLI-глагол export]
+
+[not_included] [Added] codemap/codemap/serve/rag.py — RAG-чанк на символ (class/function): id/kind/место/сигнатура/докстринг + соседи (calls/called_by/returns/bases/subclasses/registered_as) + поле text для эмбеддинга; JSONL (build_chunks/render_rag). Соседи — ровно то, что чтение исходника ИИ дёшево не даёт
+[not_included] [Added] codemap/codemap/serve/vault.py — Obsidian-vault: заметка на модуль/символ + [[wikilinks]] (внутренние цели по префиксу пакета), теги #class/#function/#deprecated, index.md (build_vault → {path: md})
+[not_included] [Added] codemap/codemap/serve/mermaid.py — скоупленные подграфы: class (classDiagram из inherits), deps (из imports), calls (BFS от root по calls); _san() экранирует точки/скобки, label = короткое имя; --scope по префиксу, --root/--depth для calls
+[not_included] [Changed] codemap/codemap/serve/__init__.py — экспорт render_mermaid/render_rag/build_chunks/build_vault; codemap/cli.py — команда export (rag|vault|mermaid) с -o/--mkind/--scope/--root/--depth, _emit/_write_vault
+[not_included] [Added] codemap/tests/test_m2_views.py — 8 тестов: RAG JSONL+соседи (Engine.run calls/called_by), валидный JSONL на bquant, vault wikilinks+теги, vault линкует базы (CustomIndicator→BaseIndicator), mermaid class/deps-scope/calls-root, calls требует root
+[not_included] [Technical] Прогон на bquant: RAG 989 чанков, vault 1079 заметок, mermaid classDiagram/deps скоупятся; CLI export rag/vault/mermaid отработали end-to-end на фикстуре; 46/46 тестов (6 M0 + 7 M1 + 10 M1.5 + 8 M2 + 10 M4 + 5 M5)
+[not_included] [Changed] BACKLOG веха M2 ✅ (три вида поверх одного графа, питаются M4/M5), статус M0+M1+M1.5+M4+M5+M2; осталось M3 (serve/свежесть). Схема без изменений (виды — только чтение графа)
