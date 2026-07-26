@@ -37,3 +37,16 @@
 [not_included] [Technical] Прогон на bquant: 933 calls-рёбра (332 module / 378 self / 223 imported), self-цель = реальный узел на 90%; 19 продюсеров ZoneAnalysisResult, 221 потребитель DataFrame, 9 мёртвых приватных; 33/33 теста (6 M0 + 7 M1 + 10 M1.5 + 10 M4); детерминизм держится
 [not_included] [Changed] DESIGN §2.2 пример 0.3 (extras.calls/control/params/returns, ребро calls); BACKLOG веха M4 ✅ + парковка тира вывода типов локалей; gap-док баннер M4 + статусы CM-03/09/10/11/12 → 🟡 частично (§10, матрица §6.2); G13 обновлён
 [not_included] [Technical] Граница v1 зафиксирована: парковано (нора точности, не покрытия) — вывод типов локалей (поднял бы вызовы к ~50-60%), sound call-graph, value-level data-flow. Спайк-скрипт в scratchpad, в репо не тащим
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M5 — deep-резолв вызовов на jedi; берём тяжёлый тул, замерено спайком (не заявлено)]
+
+[not_included] [Technical] Пушбек по M4: «19% и почему не тяжёлые пакеты» — правильный. Проверил замером, а не словами. Спайк-2 (jedi 0.20 на zones/, 1805 сайтов): по формам вызова self.* 98.9%, хвост локалей x.foo() 27.0% (было ~0), цепочки 27.8%; ИТОГО внутрь 28.1% vs самописный ~19%. Обе мои прикидки были кривые: 19% занижен (знаменатель с builtins), «50-60%» завышен — реальный потолок ~28-30% (Python-динамика, не лень)
+[not_included] [Added] codemap/gaps/call_resolution_spike_2026-07-26.md — измерительный спайк + решение (тэйк): оба спайка, таблица по формам, тэйк «берём jedi, разделение труда griffe=структура/jedi=вызовы, два тира», граница v1; индекс в gaps/README
+[not_included] [Changed] codemap/codemap/extract/behavior.py — deep-тир: jedi.Project + Script.goto на каждый call-site, резолв в определение bquant, метка resolution=deep; ленивый импорт jedi (fast-путь не тянет); _process_function принимает резолвер (fast ast | deep jedi)
+[not_included] [Changed] codemap/codemap/extract/griffe_extractor.py — extract(deep=False) сквозь; codemap/cli.py — флаг --deep на build/query/report
+[not_included] [Changed] codemap/pyproject.toml — зависимость jedi>=0.19 (опциональный тир, ленивый импорт)
+[not_included] [Added] codemap/tests/fixtures/deeppkg/ (синтетика: Engine через локальную переменную) + codemap/tests/test_m5_deep.py — 5 тестов: deep кракает e.run() на локали, fast теряет, self-вызовы, deep⊃fast, детерминизм deep-тира
+[not_included] [Technical] Замер на полном bquant: fast 933 ребра / 18.6% → deep 1292 ребра / 25.7% (+359 рёбер, +7.1пп), сборка deep 49.7с; детерминизм deep держится; 38/38 тестов (6 M0 + 7 M1 + 10 M1.5 + 10 M4 + 5 M5)
+[not_included] [Changed] DESIGN §10.11 решение (движок вызовов: griffe структура + jedi вызовы, два тира), §10.3/§14.2 отсылки; BACKLOG веха M5 ✅ + статус M0+M1+M1.5+M4+M5; gap-док CM-09 → fast/deep, матрица §6.2; G13 + два спайк-дока

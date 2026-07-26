@@ -46,7 +46,7 @@
 
 | # | Гэп | Статус | Где |
 |---|-----|--------|-----|
-| G13 | **Неполное семантическое покрытие codemap:** M1.5 (схема `0.2`) закрыл структурные «быстрые wins» (CM-01/02/06/07/08); M4 (схема `0.3`) добавил поведенческий слой до явной границы — call-graph best-effort ~19% (CM-09), type-flow producers/consumers (CM-10 на уровне типов), control-скелет (CM-11), symbol dead-code (CM-12), структурные типы (CM-03). Открыты: import module→symbol (CM-05), entry points (CM-13), external-узлы (CM-14). Парковано (нора точности): вывод типов локалей, sound call-graph, value-level data-flow | 🟡 частично | `codemap/gaps/coverage_gap_analysis_2026-07-24.md` (гэпы CM-01…CM-14) |
+| G13 | **Неполное семантическое покрытие codemap:** M1.5 (схема `0.2`) закрыл структурные «быстрые wins» (CM-01/02/06/07/08); M4 (`0.3`) — поведенческий слой (CM-09/10/11/12/03); M5 — deep-резолв вызовов на jedi (CM-09: fast ~19% → deep ~26%, замерено спайком). Открыты: import module→symbol (CM-05), entry points (CM-13), external-узлы (CM-14). Вне v1 (граница, не нора лени): sound call-graph, value-level data-flow, межфункциональный points-to | 🟡 частично | `codemap/gaps/coverage_gap_analysis_2026-07-24.md`, `codemap/gaps/call_resolution_spike_2026-07-26.md` |
 
 ---
 
