@@ -1,0 +1,12 @@
+# Change Trace Log — 2026-07-28
+
+[codemap — обкатка видов M2 на живых вопросах (dogfood) + планирование вехи M6 (repo scope); документация, кода не трогали]
+
+[not_included] [Technical] Обкатка (dogfooding): deep-граф bquant (`build --deep`, 51с, 1292 calls-ребра) → 4 живых вопроса через 3 вида (RAG/vault/mermaid) + прямой обход графа, каждый ответ сверен с ручным чтением/grep. Vault выгружен пользователю в `/data/obsidian_vaults/bquant-codemap` (1079 заметок), открыт в Obsidian — Graph View читается, wikilinks держат
+[not_included] [Technical] Findings (4): F1 🔴 слепота по области — codemap индексирует только пакет `bquant/`, тесты/доки/examples/scripts вне анализа; на Q4 `MACDZoneAnalyzer` граф дал blast radius ≈0 (2 внутримодульных вызова + реэкспорт), а grep — ~20 тест-файлов (backward-compat набор: test_macd_analyzer ×22, test_macd_backward_compatibility ×15, integration ×12…) + ~15 доков; причина слепоты — область, НЕ потолок резолва вызовов (25.7%). F2 🟠 `query` класса не отдаёт входящих ссылок (только bases/subclasses). F3 🟡 RAG класс-чанк не агрегирует call-соседей своих методов (миграционный линк на ребре метода невидим). F4 🟡 classDiagram не видит registry+Protocol проводку (конкретные стратегии цепляются декоратором, Protocol не наследуют)
+[not_included] [Technical] Вердикт Q4: `MACDZoneAnalyzer` безболезненно НЕ выпилить — deprecated с удалением в v3.0.0, за ним намеренный backward-compat тест-набор + миграционные доки; breaking-change релиза v3, не чистка. Само это решение codemap в текущем виде подсказать не мог (F1) — потребовался grep
+[included] [Added] codemap/gaps/observability_dogfood_2026-07-28.md — эмпирика обкатки: метод, что держит, findings F1…F4, вердикт по MACDZoneAnalyzer, ключевой вывод (разрыв — область, не глубина)
+[included] [Changed] codemap/DESIGN.md — §10.12 РЕШЕНО (2026-07-28): область = мульти-рут (ядро+потребители+доки) в пределах одного репо, провенанс `extras.root`, два режима thin/full (сравнимы эмпирически), doc-слой через `references`-рёбра, схема → 0.4; §3 (вход — мульти-рут с M6), §7 (кросс-репо вне v1, мульти-рут внутри репо — берём)
+[included] [Changed] codemap/BACKLOG.md — веха M6 (repo scope/impact) с задачами M6.1–M6.7 и DoD; статус «в работе M6», M3 после; F3/F4 — кандидаты, не блокеры
+[included] [Changed] codemap/gaps/README.md — строка observability_dogfood, дата 2026-07-28, вехи M0–M6
+[not_included] [Technical] Спайк-скрипты обкатки (blast.py и пр.) — в scratchpad, в репо не тащим. Кода тула не меняли — только документация плана. bquest submodule не трогали
