@@ -10,3 +10,17 @@
 [included] [Changed] codemap/BACKLOG.md — веха M6 (repo scope/impact) с задачами M6.1–M6.7 и DoD; статус «в работе M6», M3 после; F3/F4 — кандидаты, не блокеры
 [included] [Changed] codemap/gaps/README.md — строка observability_dogfood, дата 2026-07-28, вехи M0–M6
 [not_included] [Technical] Спайк-скрипты обкатки (blast.py и пр.) — в scratchpad, в репо не тащим. Кода тула не меняли — только документация плана. bquest submodule не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M6 — repo scope / impact: мульти-рут ядро+потребители+доки; схема 0.3 → 0.4; F1 закрыт]
+
+[not_included] [Changed] codemap/model.py — SCHEMA_VERSION 0.4 (провенанс extras.root, doc-узлы, references-рёбра); комментарии kind (+doc) и Edge.type (+calls/references)
+[not_included] [Added] codemap/codemap/extract/roots.py — extract_repo(core, consumers=, docs=, mode=, deep=): ядро на griffe (как есть) + провенанс extras.root=core; потребители (россыпь .py, не пакеты) — ast-скан ссылок в ядро через _CoreIndex (резолв ре-экспортов ядра: `from core import X` → канонический узел); doc-роуты — регэксп-скан *.md (from-import + точные точечные) → doc-узлы + references. Два режима: thin (потребитель=1 module-узел) / full (функции/классы материализуются, ребро из объемлющей функции)
+[not_included] [Changed] codemap/codemap/query.py — провенанс _root_of, обратный индекс _inbound по impact-рёбрам (calls/references/inherits/imports/decorated_by); references_to() (входящие+члены, по роутам), impact() (транзитивный blast radius, distance 1+, by_root матрица), root_of()
+[not_included] [Added] codemap/codemap/serve/impact.py — render_impact(query, symbol): markdown blast radius по роутам и типу ребра, транзит, дисклеймер «lower bound — pair with grep»; экспорт в serve/__init__
+[not_included] [Changed] codemap/codemap/cli.py — build --consumer/--docs (repeatable) + --mode thin|full; report kind impact --symbol; query печатает «used by → root: N» (F2); шапка-докстринг
+[not_included] [Added] codemap/tests/fixtures/reporoot/ (ядро core + потребитель usage + doc, ре-экспорт) + codemap/tests/test_m6_repo_scope.py — 11 тестов: провенанс, consumer→core через ре-экспорт, imports, thin/full гранулярность, doc-references, impact спанит роуты, references_to, render_impact, детерминизм, bquant MACD blast radius ≥10 в tests
+[not_included] [Technical] Обкатка-2 (DoD): report impact MACDZoneAnalyzer на repo-scoped графе → 31 ref: core 2 / docs 7 / examples 1 / scripts 2 / tests 19 (точно совпало с grep-списком backward-compat набора); full → 55 тест-функций. Было (обкатка-1) ≈0/только core → F1 закрыт, F2 закрыт. Сборка thin 2.8с (1872 узла/5049 рёбер), full 3.2с (3210/7139). 57/57 тестов (6 M0 + 7 M1 + 10 M1.5 + 8 M2 + 10 M4 + 5 M5 + 11 M6); детерминизм держится
+[not_included] [Changed] codemap/{BACKLOG,DESIGN}.md — M6 ✅ (§10.12 реализовано, результаты), статус M0+…+M6; gaps/observability_dogfood — §6 обкатка-2 (F1/F2 закрыты); осталось M3
+[not_included] [Technical] Границы M6 (честно): doc-слой не ловит голое имя класса в прозе (7/11 doc-файлов на MACD — lower bound, дисклеймер в отчёте); F3 (class-neighbors в RAG) / F4 (registry-map) открыты. Смоук-скрипты в scratchpad, bquest не трогали
