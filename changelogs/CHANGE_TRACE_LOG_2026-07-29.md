@@ -124,3 +124,11 @@
 [not_included] [Changed] codemap/codemap/cli.py — `codemap serve --source-root`; text-вывод query: file:line на матче, «register with: @<dec>('key')» (F10), reads/writes columns (F11)
 [not_included] [Added] codemap/tests/test_m3_serve.py — +7 тестов (search+kind, file:line в matches, source→код, columns_of обе стороны, canonical короткое имя→implementers, families рецепт); 98/98
 [not_included] [Technical] Проверено на живом графе (serve): search ZoneDetection→5 классов (было пусто); implementers('…detection.ZoneDetectionStrategy' re-export)→5 детекторов (было []); families→ZoneDetectionStrategy с decorator register+key; query extract_zone_features→file zone_features.py:151; source MACD.calculate→код с строки 60; columns_of(extract_zone_features)→reads[atr,close,duration,…]. Все 5 findings закрыты. bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap — реестр осей обкатки: систематизация вместо оппортунизма; docs-only]
+
+[included] [Added] codemap/gaps/dogfood_axes.md — живой реестр осей обкатки. A1–A8 закрыты (findings F1–F13→вехи M6–M13); открыты A9 архитектура / A10 test-mapping / A11 diff-review / A12 onboarding, B1 soundness / B2 робастность; C1–C3 non-functional (отложено/вне v1). Принципы: живой не waterfall, ценность спадает, одна ось за прогон, стоп-критерий. Приоритет открытых: B1→A11→A9→A10→B2→A12
+[included] [Changed] codemap/gaps/README.md — секция «Реестр осей обкатки» на dogfood_axes (входная точка для новой обкатки)
+[not_included] [Technical] Мотивация (запрос): осей много, за раз не обкатать → нужен видимый план и последовательный проход. Честная оговорка в доке: полный список осей заранее невозможен (discovery), реестр живой. bquest не трогали
