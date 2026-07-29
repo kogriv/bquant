@@ -20,3 +20,12 @@
 [included] [Changed] codemap/BACKLOG.md — блок «Кандидаты из глубокой обкатки 2026-07-29» (F8/F4/F3/F7/F6, каждый с категорией и формой фикса; не блокеры)
 [included] [Changed] codemap/gaps/README.md — строка deep_dogfood обновлена итогом (3 новых + 2 подтверждения + опровержение)
 [not_included] [Technical] Кода тула НЕ трогали — только документация findings. Спайк-скрипты и граф в scratchpad, в репо не тащили; bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M8 — F8: провенанс-осознанный dead-code; закрывает шум мульти-рута; serve+query, без схемы]
+
+[not_included] [Changed] codemap/codemap/query.py — orphan_modules(root=) фильтрует по провенанс-роуту (дефолт None = всё, обратно совместимо); новый orphan_modules_by_root() группирует. Docstring: consumer-роуты orphan по природе, root="core" изолирует настоящий dead code
+[not_included] [Changed] codemap/codemap/serve/audit.py — render_dead_code разделяет: «Orphan modules — core» (сигнал, 8) и «Consumer entrypoints (orphan by nature, not dead code)» (свёрнуто по роутам с пояснением, 116); паттерн группировки как в report impact
+[not_included] [Added] codemap/tests/test_m6_repo_scope.py — +2 теста (test_orphan_modules_provenance_aware, test_dead_code_report_separates_consumers); 65/65 (было 63)
+[not_included] [Technical] Замер на bquant repo-scoped: было 124 orphan (94% шум), стало 8 core-кандидатов + 116 свёрнутых entrypoint'ов с дисклеймером. bquest не трогали
