@@ -93,3 +93,11 @@
 [not_included] [Changed] codemap/codemap/cli.py — команда `codemap serve` (--graph/--build/--deep); _cmd_query переписан на build_query_result (убран дубль + _used_by_summary); codemap/codemap/serve/__init__.py экспортирует Session/build_query_result
 [not_included] [Added] codemap/tests/test_m3_serve.py — 8 тестов: ping, stats (kind column виден), column, query, unknown-op→error, bad-args→error (резидент жив), family на dispatchpkg, стдио-roundtrip (пустая/битая строки переживаются)
 [not_included] [Technical] Смоук на bquant-графе: ping→pong, stats схема 0.8/2716 узлов, column macd_hist→calculate, query analyze_zones ок, bogus→чистая ошибка со списком ops. Форма §14.4 (тёплый процесс > холодный бинарь) реализована; MCP-SDK НЕ тянули (преждевременно) — handle транспорт-нейтрален, MCP-адаптер тонок. M3.2 (свежесть) / M3.3 (SQLite) отложены как преждевременные. 91/91; bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap — обкатка рабочего цикла агента через serve (новая ось): план + гипотезы; docs-only]
+
+[included] [Added] codemap/gaps/agent_workflow_dogfood_2026-07-29.md — план обкатки на оси «агент через warm serve» (не «один вопрос», а сцепка шагов). 4 задачи: W1 холодная ориентация, W2 добавить детектор зон, W3 трассировка кривой метрики, W4 «дальше читай исходник». Гипотезы H6a–H6d (F9 discovery/обзор, F10 extension-рецепт, F11 dataflow↔callgraph сцепка, F12 source/snippet op). Новая категория гэпов Workflow. Конфиг: repo-scoped full+deep под serve
+[included] [Changed] codemap/gaps/README.md — строка agent_workflow_dogfood
+[not_included] [Technical] Мотивация: F3–F8 (ось «один вопрос») закрыты; M3.1 дал интерфейс, через который ИИ работает реально — тёплый serve. Настоящий тест теперь workflow/ergonomics. Прогон гоняет codemap serve по-настоящему; спайки в scratchpad, bquest не трогаем
