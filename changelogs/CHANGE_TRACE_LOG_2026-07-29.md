@@ -29,3 +29,16 @@
 [not_included] [Changed] codemap/codemap/serve/audit.py — render_dead_code разделяет: «Orphan modules — core» (сигнал, 8) и «Consumer entrypoints (orphan by nature, not dead code)» (свёрнуто по роутам с пояснением, 116); паттерн группировки как в report impact
 [not_included] [Added] codemap/tests/test_m6_repo_scope.py — +2 теста (test_orphan_modules_provenance_aware, test_dead_code_report_separates_consumers); 65/65 (было 63)
 [not_included] [Technical] Замер на bquant repo-scoped: было 124 orphan (94% шум), стало 8 core-кандидатов + 116 свёрнутых entrypoint'ов с дисклеймером. bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M9 — F4: вид семейства реестр+Protocol; синтез implements-рёбер; схема 0.5 → 0.6]
+
+[not_included] [Changed] codemap/codemap/extract/dispatch.py — add_family_links(graph): Protocol'ы (наследуют typing.Protocol) × семейства (extras.registry) → implements-рёбра impl→Protocol. Матч data-driven: _match_protocol (токен семейства ⊂ имя Protocol; безтокенный регистратор — стем имени реестра, ZoneDetectionRegistry→ZoneDetectionStrategy); хардкода имён нет
+[not_included] [Changed] codemap/codemap/extract/griffe_extractor.py — add_family_links после add_dispatch; codemap/model.py — SCHEMA_VERSION 0.6, Edge.type +implements
+[not_included] [Changed] codemap/codemap/query.py — индекс _implements; implementers()/implements()/family_siblings()
+[not_included] [Changed] codemap/codemap/cli.py — query класса печатает implements/implementers (registry family)/family siblings
+[not_included] [Changed] codemap/codemap/serve/mermaid.py — classDiagram рисует implements как realization (Protocol <|.. Impl); скоуп подхватывает Protocol-цель. Семейство swing больше не пустая диаграмма
+[not_included] [Changed] codemap/codemap/serve/rag.py — класс-чанк несёт neighbors implements/implementers + текст «Implements:/Implemented by:»
+[not_included] [Added] codemap/tests/fixtures/dispatchpkg/base.py (ThingProtocol, структурная типизация) + codemap/tests/test_m9_family.py — 6 тестов (implements-рёбра, оба конца, family siblings, непустая диаграмма, RAG, детерминизм)
+[not_included] [Changed] codemap/{BACKLOG,DESIGN}.md — M9 ✅ (§10.14/§7 обновление); gaps остаются. Замер bquant: 12 implements-рёбер (swing×3, detection×5, divergence/shape/volatility/volume ×1). query SwingCalculationStrategy → 3 implementers; query ZigZag → implements+siblings. 71/71 тестов; детерминизм; bquest не трогали
