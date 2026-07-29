@@ -101,3 +101,16 @@
 [included] [Added] codemap/gaps/agent_workflow_dogfood_2026-07-29.md — план обкатки на оси «агент через warm serve» (не «один вопрос», а сцепка шагов). 4 задачи: W1 холодная ориентация, W2 добавить детектор зон, W3 трассировка кривой метрики, W4 «дальше читай исходник». Гипотезы H6a–H6d (F9 discovery/обзор, F10 extension-рецепт, F11 dataflow↔callgraph сцепка, F12 source/snippet op). Новая категория гэпов Workflow. Конфиг: repo-scoped full+deep под serve
 [included] [Changed] codemap/gaps/README.md — строка agent_workflow_dogfood
 [not_included] [Technical] Мотивация: F3–F8 (ось «один вопрос») закрыты; M3.1 дал интерфейс, через который ИИ работает реально — тёплый serve. Настоящий тест теперь workflow/ergonomics. Прогон гоняет codemap serve по-настоящему; спайки в scratchpad, bquest не трогаем
+
+==================== COMMIT DIVIDER ====================
+
+[codemap — обкатка агент-через-serve: прогон 4 задач на repo-scoped full+deep под serve; 5 новых гэпов; docs-only]
+
+[not_included] [Technical] Прогон: codemap serve на графе 4217 узлов/9935 рёбер; 4 задачи вёл только через serve-ops, где рвётся сцепка — фиксировал
+[not_included] [Technical] W1 холодная ориентация → F9 (Query-surface): query матчит только точное короткое имя (query detect → пусто); нет op search/list/обзор; report api-surface = дамп 64КБ, не ориентация. + F13 (Precision/Workflow): query.defined_at отдаёт re-export id (...detection.ZoneDetectionStrategy), а implementers ключуется каноническим (...detection.base....) → естественная цепочка молча даёт [] (5 детекторов только по каноническому id)
+[not_included] [Technical] W2 расширение → F10 (Workflow): query класса даёт implements/family, но НЕ декоратор регистрации (@ZoneDetectionRegistry.register('key')) — данные в графе (extras.registry/decorated_by), ни один op не отдаёт; нет decorated_with/registered_as op. Агент знает что реализовать, не знает как встроить
+[not_included] [Technical] W3 трассировка → F11 (Query-surface/Workflow): column(name) даёт читателей/писателей ключа, но обратного «какие колонки читает функция F» нет ни op, ни метода — dataflow queryable только по ключу
+[not_included] [Technical] W4 чтение исходника → F12 (Workflow): query-ответ вообще без file:line (matches={id,kind}), хотя узлы хранят (MACD.calculate→macd.py:60); нет source/snippet op; column-узлы без локации. Serve-only агент не дойдёт до кода
+[included] [Changed] codemap/gaps/agent_workflow_dogfood_2026-07-29.md — §5 прогон W1–W4, §6 таблица findings F9–F13 + приоритизация (F13→F12→F9→F11→F10, все serve/query-слой без схемы)
+[included] [Changed] codemap/gaps/README.md — строка обновлена итогом (5 новых гэпов)
+[not_included] [Technical] Все 4 гипотезы H6a–H6d подтверждены + бонус F13 (не предсказан). Вывод: карта хорошо отвечает про известный символ, плохо пускает холодного агента внутрь и не сцепляет шаги. Кода тула не трогали; спайки/граф в scratchpad; bquest не трогали
