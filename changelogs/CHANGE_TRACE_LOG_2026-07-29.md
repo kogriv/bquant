@@ -74,3 +74,12 @@
 [not_included] [Changed] codemap/tests/test_m0_api_surface.py — инвариант contains-дерева уточнён на узлы-определения (overlay doc/column вне дерева)
 [not_included] [Added] codemap/tests/fixtures/flowpkg (продюсер dict-литерал + subscript-write, потребитель subscript-read) + codemap/tests/test_m12_dataflow.py — 6 тестов (продюсер↔потребитель, subscript-write продюсер, неизвестный ключ None, список колонок, embedded, детерминизм)
 [not_included] [Technical] Замер на bquant: 1007 column-узлов / 2381 reads-writes рёбер. query macd_hist → written by bquant.indicators.custom.macd.MACD.calculate; read by extract_zone_features + 4 визуализатора (было — query давал пусто, F6). Топ-ключи = словарь колонок (close/macd/macd_hist/volume/high/low). 83/83; детерминизм; bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap — финализация findings глубокой обкатки: все F3/F4/F6/F7/F8 закрыты вехами M8–M12; docs-only]
+
+[included] [Changed] codemap/gaps/deep_dogfood_2026-07-29.md — §6 сводка: статусы всех 5 находок → ✅ закрыт с привязкой к вехе (F8/M8, F4/M9, F3/M10, F7/M11, F6/M12); блок «Итог реализации» (схема 0.5→0.8, тесты 57→83, порядок дёшево×ценно)
+[included] [Changed] codemap/gaps/README.md — строка deep_dogfood: все 5 закрыты M8–M12; дата 2026-07-29; вехи M0–M12
+[included] [Changed] codemap/BACKLOG.md — статус-шапка M0…M12 (было M0…M7)
+[not_included] [Technical] Итог дня: обкатка (план+прогон, 2 docs-коммита) → реализация 5 вех M8–M12 (5 фича-коммитов). Схема 0.5→0.8. Тесты 57→83, детерминизм в каждой вехе. Кода bquant не трогали; bquest не трогали; секреты не трогали
