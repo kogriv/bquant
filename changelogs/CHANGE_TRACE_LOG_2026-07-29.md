@@ -50,3 +50,15 @@
 [not_included] [Changed] codemap/codemap/serve/rag.py — _methods_calls(query, class_id): union внешних callees методов класса (сиблинг-методы отсекаются), каждый target с меткой via-метод → neighbors.calls_via_methods; _embed_text добавляет «Methods call: <target> (via <метод>)». Класс-чанк стал самодостаточным — поведение класса живёт на методах
 [not_included] [Added] codemap/tests/test_m9_family.py — +1 тест test_class_chunk_aggregates_method_calls (Worker.work→run виден на классе, via-метка, текст). 72/72
 [not_included] [Technical] Замер на bquant deep: MACDZoneAnalyzer класс-чанк теперь несёт 9 calls_via_methods, включая analyze_zones/detect_zones/with_indicator/build (via analyze_complete_modular) — шов делегирования deprecated→pipeline виден в чанке класса (был невидим, обкатка T4). Синергия с мостом M7 (рёбра уже на методах). bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M11 — F7: арг-контракт на call-site; смена сигнатуры теперь обслуживается; схема 0.6 → 0.7]
+
+[not_included] [Changed] codemap/codemap/extract/behavior.py — _arg_shape(call) (позиц.счёт|None при *args, kwnames, splat) + _arg_contract(shapes) (callsites, posargs, kwargs, splat); _process_function агрегирует форму по target перед эмиссией ребра (дедуп сохранён, схлопывание видно через callsites)
+[not_included] [Changed] codemap/codemap/extract/roots.py — consumer-скан тоже захватывает контракт (call_by_func map по id(func)); calls-рёбра потребителей несут ту же форму. Импорт _arg_shape/_arg_contract из behavior
+[not_included] [Changed] codemap/model.py — SCHEMA_VERSION 0.7 (calls-рёбра: callsites + posargs/kwargs/splat)
+[not_included] [Changed] codemap/codemap/query.py — индекс _call_in (callee→[(caller,extras)]); Query.call_contract(symbol) отдаёт по-вызывающему форму (только behavioral-рёбра, мост пропускается)
+[not_included] [Changed] codemap/codemap/serve/impact.py — секция «Call-site contract (N sites — for signature change)»: по вызывающему posargs/kwargs/+splat, дисклеймер
+[not_included] [Added] codemap/tests/fixtures/argpkg (api.configure + callers: positional/kwargs/2-site/splat) + codemap/tests/test_m11_argcontract.py — 5 тестов (форма, схлопнутые сайты видны ×2, splat флаг, секция impact, детерминизм)
+[not_included] [Technical] Замер на bquant repo-scoped: report impact get_indicator_params → секция контракта: MACD.__init__ ×1, examples ×2 (было схлопнуто в «examples 1»), tests ×1 — все «1 positional, kwargs —». Рефактор видит ломкие сайты. НЕ потолок резолва — рёбра разрешены. 77/77; bquest не трогали
