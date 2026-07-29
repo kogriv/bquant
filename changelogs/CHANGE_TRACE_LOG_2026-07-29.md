@@ -62,3 +62,15 @@
 [not_included] [Changed] codemap/codemap/serve/impact.py — секция «Call-site contract (N sites — for signature change)»: по вызывающему posargs/kwargs/+splat, дисклеймер
 [not_included] [Added] codemap/tests/fixtures/argpkg (api.configure + callers: positional/kwargs/2-site/splat) + codemap/tests/test_m11_argcontract.py — 5 тестов (форма, схлопнутые сайты видны ×2, splat флаг, секция impact, детерминизм)
 [not_included] [Technical] Замер на bquant repo-scoped: report impact get_indicator_params → секция контракта: MACD.__init__ ×1, examples ×2 (было схлопнуто в «examples 1»), tests ×1 — все «1 positional, kwargs —». Рефактор видит ломкие сайты. НЕ потолок резолва — рёбра разрешены. 77/77; bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M12 — F6: dataflow по строковым ключам (колонки датафрейма); схема 0.7 → 0.8]
+
+[not_included] [Added] codemap/codemap/extract/dataflow.py — add_dataflow(graph, root, pkg): проход по функциям, string-keyed subscript'ы (df['k']) → column-узел (column:<key>) + рёбра writes (ctx Store) / reads (ctx Load); dict-литерал-ключи {'k':…} → writes (продюсер). Embedded-датасеты (samples.embedded) исключены. Честность: over-set строковых ключей (dict-доступ тоже), запрос конкретного ключа точен
+[not_included] [Changed] codemap/codemap/extract/griffe_extractor.py — add_dataflow после add_family_links; codemap/model.py — SCHEMA_VERSION 0.8, kind +column, Edge.type +reads/+writes
+[not_included] [Changed] codemap/codemap/query.py — индексы _col_writers/_col_readers; Query.column(name)→{writes,reads}, columns()
+[not_included] [Changed] codemap/codemap/cli.py — query <col> печатает «string-key dataflow: written by / read by»; exit-код учитывает column
+[not_included] [Changed] codemap/tests/test_m0_api_surface.py — инвариант contains-дерева уточнён на узлы-определения (overlay doc/column вне дерева)
+[not_included] [Added] codemap/tests/fixtures/flowpkg (продюсер dict-литерал + subscript-write, потребитель subscript-read) + codemap/tests/test_m12_dataflow.py — 6 тестов (продюсер↔потребитель, subscript-write продюсер, неизвестный ключ None, список колонок, embedded, детерминизм)
+[not_included] [Technical] Замер на bquant: 1007 column-узлов / 2381 reads-writes рёбер. query macd_hist → written by bquant.indicators.custom.macd.MACD.calculate; read by extract_zone_features + 4 визуализатора (было — query давал пусто, F6). Топ-ключи = словарь колонок (close/macd/macd_hist/volume/high/low). 83/83; детерминизм; bquest не трогали
