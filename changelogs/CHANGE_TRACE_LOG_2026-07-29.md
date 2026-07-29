@@ -114,3 +114,13 @@
 [included] [Changed] codemap/gaps/agent_workflow_dogfood_2026-07-29.md — §5 прогон W1–W4, §6 таблица findings F9–F13 + приоритизация (F13→F12→F9→F11→F10, все serve/query-слой без схемы)
 [included] [Changed] codemap/gaps/README.md — строка обновлена итогом (5 новых гэпов)
 [not_included] [Technical] Все 4 гипотезы H6a–H6d подтверждены + бонус F13 (не предсказан). Вывод: карта хорошо отвечает про известный символ, плохо пускает холодного агента внутрь и не сцепляет шаги. Кода тула не трогали; спайки/граф в scratchpad; bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M13 — serve-эргономика: закрытие findings агент-обкатки F9–F13; serve/query-слой, без схемы]
+
+[not_included] [Changed] codemap/codemap/query.py — canonical(name|id) (резолв короткого имени/re-export в канон-узел, F13); search(term,kind,limit) (подстрока по id, F9); columns_of(func)→{reads,writes} (обратный dataflow, F11); families() (Protocol→члены с decorator+key, рецепт регистрации, F9/F10)
+[not_included] [Changed] codemap/codemap/serve/session.py — build_query_result: matches несут file/lines (F12), класс — registered_as (F10), функция — columns (F11); Session(source_root); _canon резолвит вход реляционных ops (F13); новые ops resolve/search/families/columns_of/source (source читает сниппет по source_root, overlay→location-only). Serve 13→18 ops
+[not_included] [Changed] codemap/codemap/cli.py — `codemap serve --source-root`; text-вывод query: file:line на матче, «register with: @<dec>('key')» (F10), reads/writes columns (F11)
+[not_included] [Added] codemap/tests/test_m3_serve.py — +7 тестов (search+kind, file:line в matches, source→код, columns_of обе стороны, canonical короткое имя→implementers, families рецепт); 98/98
+[not_included] [Technical] Проверено на живом графе (serve): search ZoneDetection→5 классов (было пусто); implementers('…detection.ZoneDetectionStrategy' re-export)→5 детекторов (было []); families→ZoneDetectionStrategy с decorator register+key; query extract_zone_features→file zone_features.py:151; source MACD.calculate→код с строки 60; columns_of(extract_zone_features)→reads[atr,close,duration,…]. Все 5 findings закрыты. bquest не трогали
