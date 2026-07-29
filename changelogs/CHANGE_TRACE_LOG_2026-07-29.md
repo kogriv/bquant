@@ -42,3 +42,11 @@
 [not_included] [Changed] codemap/codemap/serve/rag.py — класс-чанк несёт neighbors implements/implementers + текст «Implements:/Implemented by:»
 [not_included] [Added] codemap/tests/fixtures/dispatchpkg/base.py (ThingProtocol, структурная типизация) + codemap/tests/test_m9_family.py — 6 тестов (implements-рёбра, оба конца, family siblings, непустая диаграмма, RAG, детерминизм)
 [not_included] [Changed] codemap/{BACKLOG,DESIGN}.md — M9 ✅ (§10.14/§7 обновление); gaps остаются. Замер bquant: 12 implements-рёбер (swing×3, detection×5, divergence/shape/volatility/volume ×1). query SwingCalculationStrategy → 3 implementers; query ZigZag → implements+siblings. 71/71 тестов; детерминизм; bquest не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M10 — F3: класс-чанк агрегирует call-соседей своих методов; serve-only, без схемы]
+
+[not_included] [Changed] codemap/codemap/serve/rag.py — _methods_calls(query, class_id): union внешних callees методов класса (сиблинг-методы отсекаются), каждый target с меткой via-метод → neighbors.calls_via_methods; _embed_text добавляет «Methods call: <target> (via <метод>)». Класс-чанк стал самодостаточным — поведение класса живёт на методах
+[not_included] [Added] codemap/tests/test_m9_family.py — +1 тест test_class_chunk_aggregates_method_calls (Worker.work→run виден на классе, via-метка, текст). 72/72
+[not_included] [Technical] Замер на bquant deep: MACDZoneAnalyzer класс-чанк теперь несёт 9 calls_via_methods, включая analyze_zones/detect_zones/with_indicator/build (via analyze_complete_modular) — шов делегирования deprecated→pipeline виден в чанке класса (был невидим, обкатка T4). Синергия с мостом M7 (рёбра уже на методах). bquest не трогали
