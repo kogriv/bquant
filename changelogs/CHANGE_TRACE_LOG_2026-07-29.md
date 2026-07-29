@@ -83,3 +83,13 @@
 [included] [Changed] codemap/gaps/README.md — строка deep_dogfood: все 5 закрыты M8–M12; дата 2026-07-29; вехи M0–M12
 [included] [Changed] codemap/BACKLOG.md — статус-шапка M0…M12 (было M0…M7)
 [not_included] [Technical] Итог дня: обкатка (план+прогон, 2 docs-коммита) → реализация 5 вех M8–M12 (5 фича-коммитов). Схема 0.5→0.8. Тесты 57→83, детерминизм в каждой вехе. Кода bquant не трогали; bquest не трогали; секреты не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[codemap M3.1 — тёплый serve-режим: граф в памяти, JSON-стдио, ноль startup на вызов; без новых зависимостей]
+
+[not_included] [Added] codemap/codemap/serve/session.py — Session(graph): грузит граф один раз (Query), handle({op,args})→{ok,result}, никогда не падает (плохой op/args → error-ответ). Ops: ping/stats/query/impact/column/columns/callers/callees/implementers/family/call_contract/report/export — диспетч в существующие сервисы, без новой логики. build_query_result вынесена (общая для query и serve)
+[not_included] [Added] codemap/codemap/serve/server.py — serve_stdio(session, stdin, stdout): построчный JSON (1 запрос/строка → 1 ответ/строка), пустая строка пропускается, битый JSON → error без падения резидента. EOF завершает
+[not_included] [Changed] codemap/codemap/cli.py — команда `codemap serve` (--graph/--build/--deep); _cmd_query переписан на build_query_result (убран дубль + _used_by_summary); codemap/codemap/serve/__init__.py экспортирует Session/build_query_result
+[not_included] [Added] codemap/tests/test_m3_serve.py — 8 тестов: ping, stats (kind column виден), column, query, unknown-op→error, bad-args→error (резидент жив), family на dispatchpkg, стдио-roundtrip (пустая/битая строки переживаются)
+[not_included] [Technical] Смоук на bquant-графе: ping→pong, stats схема 0.8/2716 узлов, column macd_hist→calculate, query analyze_zones ок, bogus→чистая ошибка со списком ops. Форма §14.4 (тёплый процесс > холодный бинарь) реализована; MCP-SDK НЕ тянули (преждевременно) — handle транспорт-нейтрален, MCP-адаптер тонок. M3.2 (свежесть) / M3.3 (SQLite) отложены как преждевременные. 91/91; bquest не трогали
