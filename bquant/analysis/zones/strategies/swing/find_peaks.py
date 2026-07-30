@@ -435,6 +435,12 @@ class FindPeaksSwingStrategy:
         the distance window extends past the end — a still-forming tail swing).
         This is the ``find_peaks`` realisation of the generic
         :attr:`SwingPoint.confirmation_index` contract.
+
+        Known gap (issue #110 follow-up / gap-inventory G14): this estimate is a
+        lower bound and is not yet *strictly* replay-safe — scipy locks a peak's
+        prominence base ~2 bars after the first retrace, so a few pivots repaint
+        under raw-OHLC truncation. Pinned by ``tests/unit/test_swing_replay_causal``
+        (xfail). Tighten separately; ZigZag is already replay-safe (#110).
         """
         if swing_type == 'peak':
             seg = high_arr[index + 1:]
