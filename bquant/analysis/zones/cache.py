@@ -27,7 +27,9 @@ class ZoneAnalysisCache:
     entries are automatically invalidated when the schema version increases.
     """
 
-    CACHE_VERSION = 2
+    # v3 (issue #110): ZigZag swings now come from the non-repainting backtest=True
+    # detector, so serialized swing sets / confirmation_index differ from v2.
+    CACHE_VERSION = 3
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

@@ -18,6 +18,7 @@
 | G3 | `batch_analysis.py` жёстко импортит PyYAML (падал без него) | ✅ ленивый импорт | commit `test(swing)…` |
 | G4 | **Дефолт MACD-зон = гистограмма** (противоречит методологии: зона по линии MACD) | ✅ форвардный дефолт `analyze_macd_zones` → линия | этот док §MACD |
 | G5 | `MockSwingStrategy` в тестах устарел (не реализует расширенный swing-протокол) | ✅ мок обновлён | `test_strategy_infrastructure.py` |
+| G13a | **ZigZag `confirmation_index` не replay-causal** (issue #110): дефолтный pandas-ta детектор (`backtest=False`) перерисовывает под усечением → пивот с `confirmation_index<=as_of` не наблюдаем (35% на сэмпле / 73% downstream) | ✅ `backtest=True` (строго replay-safe) + первый-пивот-наследует-второй; оракул на реальном детекторе; `CACHE_VERSION` 2→3. Generic-остаток → G14 | `devref/gaps/swing/issue110_zigzag_replay_causal_2026-07-30.md`, PR #110 |
 
 ## Решено осознанно (правка не требуется)
 
@@ -34,6 +35,7 @@
 | G8 | Непоследовательность имён выходных колонок: custom RSI → `rsi_14`, MACD → `macd/macd_signal/macd_hist` | Унифицировать контракт выходных колонок custom-индикаторов |
 | G9 | Универсализация: хардкод `macd`/`macd_hist`/`volume_macd_corr` в shape/divergence/volume стратегиях (zouni bugfixes #4–6) | Проверить и убрать остаточный хардкод для 95%+ универсальности |
 | G12 | **Наивность методологии рисёрча Layer A** (KMeans на фичах, коллинеарных длине → полу-циклический вывод; пулинг ног как i.i.d.; отложены все сильные методы) | План R1–R6: отрезать конфаунд длины, заменить KMeans на GMM+стабильность, уйти от пулинга, довести A-vi, перейти на большой приватный датасет. См. `issue_research_method_naivety_2026-07.md` |
+| G14 | **Generic replay-safety `confirmation_index` для find_peaks/pivot_points** (issue #110 follow-up). ZigZag закрыт (backtest=True, см. Исправлено). У прочих свинг-стратегий `confirmation_index` — тоже не строго replay-safe: **find_peaks** отстаёт на ~2 бара (scipy prominence-base lock), **pivot_points** редко перерисовывается у warm-up-края. Пред-существующее, мелкое, не предмет #110. Зафиксировано оракулом `tests/unit/test_swing_replay_causal.py` как `xfail(strict=True)` (регресс-детектор + xpass-сигнал при починке) и пометками в `_confirmation_index` обеих стратегий. **Отдельная задача.** | 🟠 открыто | `devref/gaps/swing/issue110_zigzag_replay_causal_2026-07-30.md` §0 |
 
 ## Enhancements (фичи под рисёрч, не дефекты)
 

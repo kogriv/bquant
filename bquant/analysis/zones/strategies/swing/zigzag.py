@@ -70,6 +70,13 @@ class ZigZagSwingStrategy:
                 'zigzag',
                 legs=self.legs,
                 deviation=self.deviation,
+                # Issue #110: the default (backtest=False) is a repainting, centred
+                # detector — truncating the raw series at as_of relocates/adds/drops
+                # earlier pivots, so a pivot with confirmation_index <= as_of is not
+                # actually observable then. backtest=True is the non-repainting
+                # stream: once a pivot is emitted it never changes under extension
+                # (verified empirically in tests/unit/test_swing_replay_causal.py).
+                backtest=True,
             )
             result = zigzag.calculate(full_data)
         except Exception as exc:
@@ -152,6 +159,19 @@ class ZigZagSwingStrategy:
                 )
             )
             indices.append(position)
+
+        # Warm-up (issue #110): the backtest=True detector emits nothing until the
+        # second swing forms, so the first two pivots become observable *together*.
+        # The first pivot's own deviation-retrace can therefore fall a few bars before
+        # the detector actually reports it — pin its availability to the second
+        # pivot's (the bar they both first appear at). Later pivots' retrace times are
+        # already safe (empirically confirmation_index >= first-appearance).
+        if len(swing_points) >= 2 and swing_points[0].confirmation_index is not None \
+                and swing_points[1].confirmation_index is not None:
+            swing_points[0].confirmation_index = max(
+                swing_points[0].confirmation_index,
+                swing_points[1].confirmation_index,
+            )
 
         logger.info("ZigZag global: detected %d swing points", len(swing_points))
 
@@ -452,18 +472,18 @@ class ZigZagSwingStrategy:
         found. ``deviation`` is a fraction (0.05 == 5%), matching the pivot scale.
         """
         if next_position <= position:
-            return next_position
-        if swing_type == 'peak':
-            threshold = price * (1.0 - self.deviation)
-            seg = low_arr[position + 1:next_position + 1]
-            hits = np.nonzero(seg <= threshold)[0]
+            conf = next_position
         else:
-            threshold = price * (1.0 + self.deviation)
-            seg = high_arr[position + 1:next_position + 1]
-            hits = np.nonzero(seg >= threshold)[0]
-        if len(hits):
-            return position + 1 + int(hits[0])
-        return next_position
+            if swing_type == 'peak':
+                threshold = price * (1.0 - self.deviation)
+                seg = low_arr[position + 1:next_position + 1]
+                hits = np.nonzero(seg <= threshold)[0]
+            else:
+                threshold = price * (1.0 + self.deviation)
+                seg = high_arr[position + 1:next_position + 1]
+                hits = np.nonzero(seg >= threshold)[0]
+            conf = position + 1 + int(hits[0]) if len(hits) else next_position
+        return conf
 
     def _empty_metrics(self) -> SwingMetrics:
         return self._aggregate_metrics([], [])

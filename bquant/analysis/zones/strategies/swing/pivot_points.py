@@ -410,6 +410,12 @@ class PivotPointsSwingStrategy:
         after its fixed right-hand look-ahead window). Because pivots are only
         detected for ``index <= len - right_bars - 1``, the confirmation bar always
         lies inside the data; the guard returns ``None`` only defensively.
+
+        Known gap (issue #110 follow-up / gap-inventory G14): a pivot near the
+        warm-up edge can still repaint under raw-OHLC truncation (the amplitude
+        filter re-selects it once later structure forms), so this is not yet
+        *strictly* replay-safe. Pinned by ``tests/unit/test_swing_replay_causal``
+        (xfail). Tighten separately; ZigZag is already replay-safe (#110).
         """
         conf = index + self.right_bars
         return conf if conf < full_data_length else None
