@@ -42,11 +42,15 @@
 | G10a | Per-swing позиция в зоне (`rel_time`/`rel_price`) как переиспользуемый тул | S1 сейчас считает ad-hoc; `SwingMetrics` — только агрегаты на зону |
 | G10b | Форвардная разметка «откат vs конец зоны» | S3 лестницы `swing_structure_research_program.md` |
 
-## codemap (инструмент P1 — граф кода)
+## codemap (инструмент P1 — граф кода) — вынесен в отдельный репо (2026-07-30)
+
+codemap выделен в самостоятельный репо-продукт (https://github.com/kogriv/codemap ·
+https://gitlab.com/kogriv/codemap) с сохранением истории M0–M16. Его гэп-реестр и дизайн переехали
+туда (`gaps/`, `DESIGN.md`, `BACKLOG.md`). Запись G13 закрыта в этом репо как «инкубация завершена».
 
 | # | Гэп | Статус | Где |
 |---|-----|--------|-----|
-| G13 | **Неполное семантическое покрытие codemap:** M1.5 (схема `0.2`) закрыл структурные «быстрые wins» (CM-01/02/06/07/08); M4 (`0.3`) — поведенческий слой (CM-09/10/11/12/03); M5 — deep-резолв вызовов на jedi (CM-09: fast ~19% → deep ~26%, замерено спайком). Открыты: import module→symbol (CM-05), entry points (CM-13), external-узлы (CM-14). Вне v1 (граница, не нора лени): sound call-graph, value-level data-flow, межфункциональный points-to | 🟡 частично | `codemap/gaps/coverage_gap_analysis_2026-07-24.md`, `codemap/gaps/call_resolution_spike_2026-07-26.md` |
+| G13 | **Неполное семантическое покрытие codemap** (инкубация в bquant, M1.5–M16). Дальнейший учёт покрытия/гэпов — в репо codemap (`gaps/`). Здесь закрыто как «вынесено». | ✅ вынесено | репо codemap (`gaps/`, `dogfood_axes.md`) |
 
 ---
 

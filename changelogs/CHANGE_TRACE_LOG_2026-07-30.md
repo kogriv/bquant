@@ -37,3 +37,12 @@
 [included] [Added] codemap/tests/test_m16_architecture.py — 7 тестов: layers shape + violation order-free (синтетический a↔b), coupling метрики+границы I∈[0,1], hotspots shape+pervasive, build/render architecture, op+report architecture. Полный набор **123 passed** (было 116)
 [included] [Changed] codemap/BACKLOG.md, codemap/gaps/dogfood_axes.md, codemap/gaps/README.md — секция A9 (F18–F21→M16); статус M8–M16; A9 отмечена ✅; **стоп-критерий ДОСТИГНУТ**: три приоритетные оси (B1/A11/A9) закрыты, развилка на «пользоваться/выносить» (MCP-адаптер / вынос в репо), обкатку осей — по нужде
 [not_included] [Technical] Верификация на живом графе: `report architecture` — читаемый одностраничный обзор; поймал реальное слоевое нарушение bquant `analysis↔indicators` (взаимозависимость) + цикл `zones.cache↔zones.pipeline`; coupling выделил стабильное ядро (exceptions/config/nb I=0.00), pervasive-флаг отделил логгер-хабы от реальных (analyze_zones 48). Без схемы (агрегация готовых рёбер). bquest/~.pypirc не трогали
+
+==================== COMMIT DIVIDER ====================
+
+[bquant — codemap вынесен в отдельный публичный репо-продукт (чистый вынос, история сохранена)]
+
+[included] [Removed] codemap/ (71 файлов) — инструмент P1 (граф кода) инкубировался в этом монорепо до M0–M16 (схема 0.9, 123 теста, warm-serve 21 op) и выделен в самостоятельный публичный репо с сохранением истории (git subtree split --prefix=codemap → новый репо, 41 коммит). Теперь codemap — сторонний тул; bquant — его подопытная мишень (`codemap build ../bquant/bquant` из соседнего чекаута)
+[included] [Changed] devref/architecture/package_roadmap_2026-07.md — §P1 отмечен ✅ «вынесен в отдельный репо» (github.com/kogriv/codemap, gitlab.com/kogriv/codemap); дальнейшее развитие codemap — в его репо; для ядра bquant следующее — P2 (интерфейсы поверх графа)
+[included] [Changed] devref/gaps/gap_inventory_2026-07.md — G13 закрыт как «вынесено»; учёт покрытия/гэпов codemap переехал в его репо
+[not_included] [Technical] Вынос: subtree split (сохранил M0–M16), FOSS-гигиена в новом репо (MIT LICENSE, CONTRIBUTING, CHANGELOG, standalone README, research/ под будущий трек изучения похожих тулов, .python-version=3.12), расцепка ../devref/../README ссылок, acceptance-тесты нацелены на bquant как сиблинг (../bquant/bquant, skip если нет) — 123 passed standalone. Dual-remote origin как у bquant (push github+gitlab). bquest/~.pypirc не трогали
