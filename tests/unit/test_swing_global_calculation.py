@@ -87,9 +87,17 @@ def test_zigzag_confirmation_index_causal(monkeypatch, synthetic_data):
     for i, sp in enumerate(swings[:-1]):
         nxt = swings[i + 1]
         assert sp.confirmation_index is not None, "non-terminal pivot must be confirmed"
-        # a pivot is never known at or before its own bar, and no later than the
-        # next pivot (which already exceeds the deviation threshold)
-        assert sp.index < sp.confirmation_index <= nxt.index
+        # a pivot is never known at or before its own bar
+        assert sp.index < sp.confirmation_index
+        if i == 0:
+            # issue #110: the non-repainting detector emits nothing until the second
+            # swing forms, so the first two pivots become observable together — the
+            # first inherits the second's confirmation bar (which may lie beyond its
+            # own next pivot).
+            assert sp.confirmation_index == swings[1].confirmation_index
+        else:
+            # a later pivot confirms no later than its next pivot (deviation retrace)
+            assert sp.confirmation_index <= nxt.index
     # the last, still-forming swing has no confirmed reversal within the data
     assert swings[-1].confirmation_index is None
 
