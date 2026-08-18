@@ -193,7 +193,7 @@ css = [
 
 [[package]]
 name = "bquant"
-version = "0.0.1"
+version = "0.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
