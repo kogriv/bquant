@@ -29,7 +29,10 @@ class ZoneAnalysisCache:
 
     # v3 (issue #110): ZigZag swings now come from the non-repainting backtest=True
     # detector, so serialized swing sets / confirmation_index differ from v2.
-    CACHE_VERSION = 3
+    # v4 (G14): find_peaks confirmation waits for the distance-suppression chain to
+    # settle, and both find_peaks and pivot_points hold the first swing back to the
+    # second's confirmation — serialized confirmation_index values differ from v3.
+    CACHE_VERSION = 4
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

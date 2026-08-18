@@ -87,19 +87,99 @@ def test_zigzag_replay_safe_across_configs(sample):
         assert violations == [], f"legs={legs} dev={dev}: {len(violations)} repaint(s)"
 
 
-# -- generic contract: other strategies (pre-existing residuals, tracked) -----
-# find_peaks (scipy prominence-base lag) and pivot_points (amplitude filter at the
-# warm-up edge) have small pre-existing replay-safety gaps that #110 did not touch.
-# The oracle pins them so they are visible and cannot regress further; strict xfail
-# flips to a failure once tightened, prompting removal of the marker.
+# -- generic contract: the same guarantee on the other strategies (G14) -------
 
-@pytest.mark.xfail(strict=True, reason="find_peaks prominence-base lag — #110 generic follow-up")
 def test_find_peaks_replay_safe(sample):
-    assert _repaint_violations(
-        FindPeaksSwingStrategy(distance=3, prominence=0.5), sample) == []
+    """Every find_peaks extremum is observable, unchanged, at its confirmation_index.
+
+    Guards the G14 fix: scipy applies ``distance`` before ``prominence`` and
+    greedily by height, so an extremum suppressed by a higher neighbour revives
+    once that neighbour is itself suppressed from further right. Confirmation
+    therefore waits for the whole suppression chain to settle, not merely for
+    ``index + distance``.
+    """
+    violations = _repaint_violations(
+        FindPeaksSwingStrategy(distance=3, prominence=0.5), sample)
+    assert violations == [], (
+        f"{len(violations)} find_peaks extrema repaint under truncation "
+        f"(first few: {violations[:5]})"
+    )
 
 
-@pytest.mark.xfail(strict=True, reason="pivot_points warm-up-edge repaint — #110 generic follow-up")
+def test_find_peaks_replay_safe_across_configs(sample):
+    """Replay-safety holds across distance/prominence settings."""
+    for distance, prominence in [(2, 1.0), (5, 2.0), (10, 0.5)]:
+        violations = _repaint_violations(
+            FindPeaksSwingStrategy(distance=distance, prominence=prominence), sample)
+        assert violations == [], (
+            f"distance={distance} prominence={prominence}: {len(violations)} repaint(s)")
+
+
 def test_pivot_points_replay_safe(sample):
-    assert _repaint_violations(
-        PivotPointsSwingStrategy(left_bars=3, right_bars=3), sample) == []
+    """Every pivot is observable, unchanged, at its confirmation_index.
+
+    Guards the G14 fix: the N-bar pattern itself is local and exact, but a context
+    is only emitted once two extrema exist, so the first pivot inherits the
+    second's confirmation (as ZigZag does).
+    """
+    violations = _repaint_violations(
+        PivotPointsSwingStrategy(left_bars=3, right_bars=3), sample)
+    assert violations == [], (
+        f"{len(violations)} pivots repaint under truncation "
+        f"(first few: {violations[:5]})"
+    )
+
+
+def test_pivot_points_replay_safe_across_configs(sample):
+    """Replay-safety holds for other left/right bar settings, including asymmetric."""
+    for left, right in [(2, 2), (1, 1), (2, 5), (5, 2)]:
+        violations = _repaint_violations(
+            PivotPointsSwingStrategy(left_bars=left, right_bars=right), sample)
+        assert violations == [], f"left={left} right={right}: {len(violations)} repaint(s)"
+
+
+# -- adversarial direction: claimed-then-vanished ------------------------------
+# The checks above verify that a full-history pivot is already there at its
+# confirmation bar. The converse matters just as much to a live consumer: a pivot
+# it SEES at time t (confirmation_index <= t) must not evaporate later.
+
+def _vanish_violations(strategy, df, step=50) -> list:
+    """Pivots a consumer could act on at bar ``t`` that are absent from full history."""
+    full = strategy.calculate_global(df)
+    violations = []
+    for t in range(50, len(df), step):
+        context = strategy.calculate_global(df.iloc[: t + 1])
+        for sp in context.swing_points:
+            if sp.confirmation_index is None or sp.confirmation_index > t:
+                continue
+            if not _present(full, sp):
+                violations.append((t, sp.index, sp.swing_type))
+    return violations
+
+
+def test_confirmed_swings_do_not_vanish(sample):
+    """A swing confirmed as of bar t survives into the full history."""
+    for strategy in (
+        ZigZagSwingStrategy(legs=3, deviation=0.008),
+        FindPeaksSwingStrategy(distance=3, prominence=0.5),
+        PivotPointsSwingStrategy(left_bars=3, right_bars=3),
+    ):
+        violations = _vanish_violations(strategy, sample)
+        assert violations == [], (
+            f"{type(strategy).__name__}: {len(violations)} confirmed swings vanish "
+            f"later (first few: {violations[:5]})"
+        )
+
+
+# -- known limitation: auto-prominence (gap-inventory G15) --------------------
+# With `prominence=None` (the find_peaks default) the threshold is derived from the
+# observed price range, so it *grows* as bars arrive (1.27 -> 2.07 on this sample).
+# An extremum clearing the early, smaller threshold can fail the later, larger one
+# and disappear. No confirmation_index can repair that: the filter itself keeps
+# moving. Fixing it means changing detection semantics (e.g. a frozen warm-up
+# threshold), which is out of scope here — pinned so the limitation stays visible.
+
+@pytest.mark.xfail(strict=True, reason="auto-prominence threshold is not truncation-stable — G15")
+def test_auto_prominence_replay_safe(sample):
+    assert _vanish_violations(
+        FindPeaksSwingStrategy(distance=5, prominence=None), sample) == []
