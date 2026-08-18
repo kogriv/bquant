@@ -374,3 +374,6 @@ outputs/
 # Cleanup Batch C1 (2026-07-22): research run artifacts
 research/**/outputs/
 research/**/*_log.txt
+
+# GitNexus code-intelligence index (123 MB binary LadybugDB — never commit)
+.gitnexus/
