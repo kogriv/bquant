@@ -111,10 +111,16 @@ def test_pivot_points_confirmation_index_fractal(synthetic_data):
 
     assert len(swings) >= 2
     n = context.full_data_length
-    for sp in swings:
-        # the N-bar pattern completes exactly right_bars later; always causal and
-        # inside the data (pivots are only detected for index <= n - right_bars - 1)
-        assert sp.confirmation_index == sp.index + strategy.right_bars
+    for position, sp in enumerate(swings):
+        if position == 0:
+            # warm-up (G14): a context needs two extrema, so the first pivot is
+            # only observable once the second confirms — it inherits that bar
+            assert sp.confirmation_index == swings[1].index + strategy.right_bars
+        else:
+            # the N-bar pattern completes exactly right_bars later
+            assert sp.confirmation_index == sp.index + strategy.right_bars
+        # always causal and inside the data (pivots are only detected for
+        # index <= n - right_bars - 1)
         assert sp.index < sp.confirmation_index < n
 
 

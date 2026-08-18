@@ -57,6 +57,16 @@ class FindPeaksSwingStrategy:
         low_arr = full_data['low'].to_numpy(dtype=float)
         full_len = len(full_data)
 
+        # Detection series per swing type (troughs are found on the negated lows,
+        # exactly as in `_detect_extrema`) plus their *unfiltered* local maxima —
+        # the raw input scipy's `distance` filter operates on, needed to settle
+        # that filter's verdict in `_distance_settled_bar`.
+        series_by_type = {'peak': high_arr, 'trough': -low_arr}
+        maxima_by_type = {
+            swing_type: find_peaks(series)[0]
+            for swing_type, series in series_by_type.items()
+        }
+
         for point_id, point in enumerate(extrema):
             timestamp = point['timestamp']
             ts = (
@@ -80,11 +90,9 @@ class FindPeaksSwingStrategy:
 
             confirmation_index = self._confirmation_index(
                 index_position,
-                float(price),
-                point['type'],
                 prominence_value,
-                high_arr,
-                low_arr,
+                series_by_type[point['type']],
+                maxima_by_type[point['type']],
                 full_len,
             )
 
@@ -103,6 +111,17 @@ class FindPeaksSwingStrategy:
                 )
             )
             indices.append(index_position)
+
+        # Warm-up (issue #110 follow-up / G14): a context is only emitted once at
+        # least two extrema exist (see the guard above), so a lone first extremum
+        # is not yet observable at its own confirmation — it appears together with
+        # the second one. Pin its availability to the second's, as ZigZag does.
+        if len(swing_points) >= 2 and swing_points[0].confirmation_index is not None \
+                and swing_points[1].confirmation_index is not None:
+            swing_points[0].confirmation_index = max(
+                swing_points[0].confirmation_index,
+                swing_points[1].confirmation_index,
+            )
 
         logger.info(
             "FindPeaks global: detected %d swing points", len(swing_points)
@@ -402,56 +421,88 @@ class FindPeaksSwingStrategy:
 
         return metrics
 
+    def _distance_settled_bar(
+        self, index: int, series: np.ndarray, maxima: np.ndarray
+    ) -> int:
+        """Bar by which scipy's ``distance`` verdict for ``index`` stops changing.
+
+        scipy applies ``distance`` *before* ``prominence``, greedily over **all**
+        raw local maxima by descending height: an extremum is dropped when a
+        higher one survives strictly within ``distance`` of it. That verdict is
+        therefore **not** settled at ``index + distance`` — the neighbour that
+        suppresses this extremum may itself be dropped later by a still higher
+        one further right, reviving this extremum. Observed on the embedded
+        sample: the peak at 178 is suppressed by 180 until 182 becomes visible
+        and removes 180, so 178 only appears two bars after ``index + distance``.
+
+        The verdict depends on the transitive *suppression chain*: every local
+        maximum within ``distance`` that is at least as high, then their own
+        suppressors, and so on (heights are non-decreasing along the chain, so it
+        terminates). A chain member at ``p`` has its own neighbourhood fully
+        observable at ``p + distance``; the chain — and hence this extremum's
+        verdict — is settled at the latest such bar.
+        """
+        settled = index + self.distance
+        seen = {index}
+        frontier = [index]
+
+        while frontier:
+            q = frontier.pop()
+            lo = np.searchsorted(maxima, q - self.distance, side='right')
+            hi = np.searchsorted(maxima, q + self.distance, side='left')
+            for candidate in maxima[lo:hi]:
+                p = int(candidate)
+                # only an at-least-as-high neighbour can suppress; ties are taken
+                # as suppressors (conservative — never confirms too early)
+                if p in seen or series[p] < series[q]:
+                    continue
+                seen.add(p)
+                frontier.append(p)
+                settled = max(settled, p + self.distance)
+
+        return settled
+
     def _confirmation_index(
         self,
         index: int,
-        price: float,
-        swing_type: str,
         prominence: float,
-        high_arr: np.ndarray,
-        low_arr: np.ndarray,
+        series: np.ndarray,
+        maxima: np.ndarray,
         full_len: int,
     ) -> Optional[int]:
         """Bar by which this find_peaks extremum is causally confirmed.
 
-        A find_peaks extremum survives the global pass only if it clears BOTH the
-        ``distance`` (minimum separation) and ``prominence`` filters. It becomes
-        causally known at the later of two events:
+        ``series`` is the detection series for this extremum's type (highs for
+        peaks, negated lows for troughs, as in :meth:`_detect_extrema`), so the
+        extremum is a maximum of ``series`` either way; ``maxima`` are that
+        series' unfiltered local maxima.
 
-        * **distance stabilisation** — ``index + distance``: once that many
-          right-hand bars are observed, no nearer higher peak (resp. lower trough)
-          can still displace it via the distance filter (had one existed within
-          ``distance``, the extremum would have been dropped, so its absence is
-          confirmed here);
-        * **prominence retrace** — the first bar after ``index`` at which the right
-          base falls ``prominence`` away from the pivot (peak: ``high <= price -
-          prominence``; trough: ``low >= price + prominence``). scipy's prominence
-          requires *both* bases below ``price - prominence``, so this right-side
-          retrace is a necessary condition and, for a kept extremum, occurs before
-          any higher opposing bar.
+        An extremum survives the global pass only if it clears BOTH the
+        ``distance`` and ``prominence`` filters, so it becomes causally known at
+        the later of two events:
+
+        * **distance settling** — the bar at which the suppression chain around
+          it resolves, see :meth:`_distance_settled_bar` (never earlier than
+          ``index + distance``);
+        * **prominence retrace** — the first bar after ``index`` at which the
+          right base falls ``prominence`` below the pivot. Truncation can only
+          shorten the right-base interval, so the computed prominence grows
+          monotonically with observed bars: once this bar is reached the
+          prominence filter stays cleared. The left base does not depend on
+          truncation and already clears the threshold for a kept extremum.
 
         Returns ``max`` of the two (both are necessary), or ``None`` if the pivot
         cannot yet be confirmed within the available data (retrace not reached, or
-        the distance window extends past the end — a still-forming tail swing).
-        This is the ``find_peaks`` realisation of the generic
-        :attr:`SwingPoint.confirmation_index` contract.
-
-        Known gap (issue #110 follow-up / gap-inventory G14): this estimate is a
-        lower bound and is not yet *strictly* replay-safe — scipy locks a peak's
-        prominence base ~2 bars after the first retrace, so a few pivots repaint
-        under raw-OHLC truncation. Pinned by ``tests/unit/test_swing_replay_causal``
-        (xfail). Tighten separately; ZigZag is already replay-safe (#110).
+        the settling bar lies past the end — a still-forming tail swing). This is
+        the ``find_peaks`` realisation of the generic
+        :attr:`SwingPoint.confirmation_index` contract, verified replay-safe by
+        ``tests/unit/test_swing_replay_causal`` (G14).
         """
-        if swing_type == 'peak':
-            seg = high_arr[index + 1:]
-            hits = np.nonzero(seg <= price - prominence)[0]
-        else:
-            seg = low_arr[index + 1:]
-            hits = np.nonzero(seg >= price + prominence)[0]
+        hits = np.nonzero(series[index + 1:] <= series[index] - prominence)[0]
         if not len(hits):
             return None
         prominence_bar = index + 1 + int(hits[0])
-        conf = max(index + self.distance, prominence_bar)
+        conf = max(self._distance_settled_bar(index, series, maxima), prominence_bar)
         return conf if conf < full_len else None
 
     def _empty_metrics(self) -> SwingMetrics:

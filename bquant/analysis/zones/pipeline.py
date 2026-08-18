@@ -49,7 +49,9 @@ _SWING_CLASS_TO_NAME = {
 #   v2 (2026-07): SwingPoint.confirmation_index added (causal availability).
 #   v3 (2026-07): confirmation_index now populated by find_peaks & pivot_points
 #                 (previously only zigzag; changes cached swing output).
-CACHE_SCHEMA_VERSION = 3
+#   v4 (2026-08): find_peaks & pivot_points confirmation_index made replay-safe
+#                 (G14) — distance-chain settling + first-swing warm-up hold.
+CACHE_SCHEMA_VERSION = 4
 
 
 @dataclass

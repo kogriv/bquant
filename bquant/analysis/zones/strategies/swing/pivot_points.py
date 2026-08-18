@@ -112,6 +112,18 @@ class PivotPointsSwingStrategy:
             )
             indices.append(index_position)
 
+        # Warm-up (issue #110 follow-up / G14): a context is only emitted once at
+        # least two extrema exist (see the guard above), so a lone first pivot is
+        # not yet observable at its own fractal confirmation — it appears together
+        # with the second one. Pin its availability to the second pivot's, as
+        # ZigZag does. Later pivots confirm at or after that bar already.
+        if len(swing_points) >= 2 and swing_points[0].confirmation_index is not None \
+                and swing_points[1].confirmation_index is not None:
+            swing_points[0].confirmation_index = max(
+                swing_points[0].confirmation_index,
+                swing_points[1].confirmation_index,
+            )
+
         logger.info(
             "PivotPoints global: detected %d swing points", len(swing_points)
         )
@@ -411,11 +423,10 @@ class PivotPointsSwingStrategy:
         detected for ``index <= len - right_bars - 1``, the confirmation bar always
         lies inside the data; the guard returns ``None`` only defensively.
 
-        Known gap (issue #110 follow-up / gap-inventory G14): a pivot near the
-        warm-up edge can still repaint under raw-OHLC truncation (the amplitude
-        filter re-selects it once later structure forms), so this is not yet
-        *strictly* replay-safe. Pinned by ``tests/unit/test_swing_replay_causal``
-        (xfail). Tighten separately; ZigZag is already replay-safe (#110).
+        The N-bar pattern is purely local, so this is exact for every pivot but the
+        first, whose availability is additionally held back by the two-extrema
+        warm-up in :meth:`calculate_global` (see the note there). Verified
+        replay-safe by ``tests/unit/test_swing_replay_causal`` (G14).
         """
         conf = index + self.right_bars
         return conf if conf < full_data_length else None
