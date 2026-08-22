@@ -126,7 +126,7 @@ class ZoneAnalysisPipeline:
             indicator=IndicatorConfig('custom', 'macd', {'fast': 12}),
             zone_detection=ZoneDetectionConfig(
                 strategy_name='zero_crossing',
-                rules={'indicator_col': 'macd_histogram'}
+                rules={'indicator_col': 'macd_hist'}
             )
         )
         pipeline = ZoneAnalysisPipeline(config, enable_cache=True)

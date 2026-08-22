@@ -54,15 +54,17 @@ print(f"Found {len(result.zones)} zones")
 print(f"Statistics: {result.statistics}")
 ```
 
-### Legacy MACD Wrapper (Deprecated)
+### MACD-зоны в одну строку
 
 ```python
-# ⚠️ DEPRECATED: Используйте analyze_zones() вместо этого
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
-analyzer = MACDZoneAnalyzer()  # Deprecated wrapper
-result = analyzer.analyze_complete(data)  # Delegates to analyze_zones()
+result = analyze_macd_zones(data)  # пресет поверх того же пайплайна
 ```
+
+> `MACDZoneAnalyzer` (и обёртки `create_macd_analyzer` / `analyze_macd_zones` из
+> `bquant.indicators.macd`) **удалён**. Замена — пресет выше либо полный билдер
+> `analyze_zones(...)`. Сам индикатор MACD не менялся.
 
 #### pandas-ta indicators in one line
 

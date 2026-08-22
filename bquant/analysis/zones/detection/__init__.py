@@ -25,7 +25,7 @@ Example:
     config = ZoneDetectionConfig(
         min_duration=2,
         zone_types=['bull', 'bear'],
-        rules={'indicator_col': 'macd_histogram'}
+        rules={'indicator_col': 'macd_hist'}
     )
     
     # Detect zones

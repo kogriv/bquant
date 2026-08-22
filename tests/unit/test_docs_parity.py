@@ -6,7 +6,7 @@ These supersede the hand-maintained validators under
 file that had moved to ``devref/archive/``), these scan the *live* docs on every
 run and assert two invariants:
 
-1. **Cross-reference integrity** — every local file link in ``docs/**/*.md``
+1. **Cross-reference integrity** — every local file link in the scanned markdown
    resolves to a file that exists. (This is the check that caught the broken
    ``MIGRATION_v2`` and ``swing_detection_approaches`` links during D1, plus 12
    wrong-depth links during D2.)
@@ -38,6 +38,13 @@ os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DOCS = PROJECT_ROOT / "docs"
 
+# Root-level markdown is user-facing too — README.md is what `pyproject.toml`
+# ships to PyPI as the package description — but it lives outside `docs/`, so an
+# earlier version of this scanner could not see it. A removed API left a broken
+# `from bquant.indicators import MACDZoneAnalyzer` example on the front page and
+# nothing failed. Scan these as well.
+ROOT_DOCS = ("README.md", "AGENTS.md", "CONTRIBUTING.md")
+
 _LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 _HAS_EXT_RE = re.compile(r"\.\w+$")
 _PY_BLOCK_RE = re.compile(r"```python\n(.*?)```", re.DOTALL)
@@ -45,7 +52,10 @@ _IMPORT_RE = re.compile(r"^\s*from\s+(bquant[\w.]*)\s+import\s+(.+)$", re.MULTIL
 
 
 def _iter_docs():
-    return sorted(p for p in DOCS.rglob("*.md") if "_build" not in p.parts)
+    docs = [p for p in DOCS.rglob("*.md") if "_build" not in p.parts]
+    docs += [PROJECT_ROOT / name for name in ROOT_DOCS
+             if (PROJECT_ROOT / name).is_file()]
+    return sorted(docs)
 
 
 # --------------------------------------------------------------------------- #
@@ -129,3 +139,14 @@ def test_parity_scan_found_content():
     """Guard against the scanners silently collecting nothing (e.g. moved docs)."""
     assert _LOCAL_LINKS, "no local markdown links collected — docs path wrong?"
     assert _BQUANT_IMPORTS, "no bquant imports collected — docs path wrong?"
+
+
+def test_parity_covers_root_readme():
+    """README.md must be in scope — it is the package description shipped to PyPI.
+
+    Pinned because it was NOT covered before: the scanner only walked `docs/`, so a
+    removed API could (and did) leave a broken import example on the repository's
+    front page with the whole suite green.
+    """
+    scanned = {p.name for p in _iter_docs()}
+    assert "README.md" in scanned
