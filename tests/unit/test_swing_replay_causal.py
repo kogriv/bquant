@@ -171,15 +171,54 @@ def test_confirmed_swings_do_not_vanish(sample):
         )
 
 
-# -- known limitation: auto-prominence (gap-inventory G15) --------------------
-# With `prominence=None` (the find_peaks default) the threshold is derived from the
-# observed price range, so it *grows* as bars arrive (1.27 -> 2.07 on this sample).
-# An extremum clearing the early, smaller threshold can fail the later, larger one
-# and disappear. No confirmation_index can repair that: the filter itself keeps
-# moving. Fixing it means changing detection semantics (e.g. a frozen warm-up
-# threshold), which is out of scope here — pinned so the limitation stays visible.
+# -- auto-prominence: the default path must be stable too (G15) ---------------
+# The auto threshold used to be derived from the whole observed price range, so it
+# *grew* as bars arrived (1.27 -> 2.07 on this sample) and an extremum clearing the
+# early, smaller threshold could fail the later, larger one and disappear. No
+# confirmation_index could repair that — the filter itself kept moving. It is now
+# frozen on the first `prominence_warmup` bars, which truncation leaves untouched.
 
-@pytest.mark.xfail(strict=True, reason="auto-prominence threshold is not truncation-stable — G15")
 def test_auto_prominence_replay_safe(sample):
-    assert _vanish_violations(
-        FindPeaksSwingStrategy(distance=5, prominence=None), sample) == []
+    """The find_peaks DEFAULT (prominence=None) is replay-stable (G15).
+
+    This is the path most callers are on, so it carries the same guarantee as the
+    explicit-threshold ones above. Before the freeze this failed with swings that
+    were announced and later vanished.
+    """
+    violations = _vanish_violations(
+        FindPeaksSwingStrategy(distance=5, prominence=None), sample)
+    assert violations == [], (
+        f"{len(violations)} auto-prominence swings vanish after being confirmed "
+        f"(first few: {violations[:5]})"
+    )
+
+
+def test_auto_prominence_replay_safe_across_warmups(sample):
+    """Stability does not depend on the warm-up length — only the cost does."""
+    for warmup in (100, 200, 300):
+        strategy = FindPeaksSwingStrategy(
+            distance=3, prominence=None, prominence_warmup=warmup)
+        assert _vanish_violations(strategy, sample) == [], f"warmup={warmup}"
+        assert _repaint_violations(strategy, sample) == [], f"warmup={warmup}"
+
+
+def test_auto_prominence_confirmations_respect_warmup(sample):
+    """Nothing is declared available while the warm-up window is still filling."""
+    warmup = 200
+    context = FindPeaksSwingStrategy(
+        distance=3, prominence=None, prominence_warmup=warmup
+    ).calculate_global(sample)
+    confirmed = [sp.confirmation_index for sp in context.swing_points
+                 if sp.confirmation_index is not None]
+    assert confirmed, "expected some confirmed swings on this sample"
+    assert min(confirmed) >= warmup - 1
+
+
+def test_explicit_prominence_is_not_delayed(sample):
+    """An explicit threshold is a constant, so it must not incur the warm-up hold."""
+    context = FindPeaksSwingStrategy(
+        distance=3, prominence=0.5, prominence_warmup=200
+    ).calculate_global(sample)
+    confirmed = [sp.confirmation_index for sp in context.swing_points
+                 if sp.confirmation_index is not None]
+    assert min(confirmed) < 199

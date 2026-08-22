@@ -1,5 +1,6 @@
 """Unit tests covering global swing calculation workflows."""
 
+import logging
 import os
 from datetime import datetime, timedelta
 
@@ -125,9 +126,15 @@ def test_pivot_points_confirmation_index_fractal(synthetic_data):
 
 
 def test_find_peaks_confirmation_index_causal(synthetic_data):
-    """find_peaks confirmation is causal and respects the distance window."""
+    """find_peaks confirmation is causal and respects the distance window.
 
-    strategy = FindPeaksSwingStrategy(distance=3)
+    The warm-up is set below the fixture length on purpose: this test is about
+    causality and the distance lower bound, not about the G15 warm-up. With the
+    default warm-up (200) a 40-bar fixture confirms nothing at all — that case is
+    covered by ``test_find_peaks_short_series_confirms_nothing``.
+    """
+
+    strategy = FindPeaksSwingStrategy(distance=3, prominence_warmup=10)
     context = strategy.calculate_global(synthetic_data)
     swings = context.swing_points
 
@@ -142,6 +149,40 @@ def test_find_peaks_confirmation_index_causal(synthetic_data):
         assert sp.confirmation_index >= sp.index + strategy.distance
     # on real sample data at least one non-tail extremum must confirm
     assert any(sp.confirmation_index is not None for sp in swings)
+
+
+def test_find_peaks_short_series_confirms_nothing(synthetic_data):
+    """A series shorter than the warm-up cannot promise availability (G15).
+
+    The auto threshold is frozen on the first ``prominence_warmup`` bars, so until
+    that many bars exist it is still computed on a shorter window — a different
+    number. Claiming availability then would reopen exactly the hole the freeze
+    closes, so nothing is confirmed, and the user is told why rather than left with
+    a silently empty result.
+    """
+    strategy = FindPeaksSwingStrategy(distance=3, prominence_warmup=200)
+    assert len(synthetic_data) < strategy.prominence_warmup
+
+    # bquant's loggers do not propagate to root, so pytest's caplog never sees them —
+    # attach directly to the module logger instead.
+    messages: list = []
+
+    class _Collect(logging.Handler):
+        def emit(self, record):
+            messages.append(record.getMessage())
+
+    module_logger = logging.getLogger(
+        "bquant.analysis.zones.strategies.swing.find_peaks")
+    handler = _Collect(level=logging.WARNING)
+    module_logger.addHandler(handler)
+    try:
+        context = strategy.calculate_global(synthetic_data)
+    finally:
+        module_logger.removeHandler(handler)
+
+    assert context.swing_points, "swings are still detected — only availability is withheld"
+    assert all(sp.confirmation_index is None for sp in context.swing_points)
+    assert any("shorter than the auto-prominence warm-up" in m for m in messages)
 
 
 def test_swing_context_slice_with_neighbors():

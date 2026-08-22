@@ -48,40 +48,34 @@ from bquant.analysis.zones.strategies.swing import FindPeaksSwingStrategy
 # Policies
 # --------------------------------------------------------------------------
 
-class FrozenProminence(FindPeaksSwingStrategy):
-    """find_peaks with the auto threshold frozen on a warm-up window.
+class LegacyExpandingProminence(FindPeaksSwingStrategy):
+    """The pre-G15 behaviour: auto threshold over the WHOLE observed window.
 
-    ``warmup`` bars define the threshold; ``confirmation_index`` is floored at
-    ``warmup - 1`` so nothing is ever declared available while the window that
-    defines the filter is still filling.
+    Kept so the defect stays reproducible after the fix shipped. This is what the
+    `current` policy measured before 2026-08-22 — the threshold grows with every
+    new bar, so an extremum that cleared the early, smaller value can fail the
+    later, larger one and vanish.
     """
 
-    def __init__(self, warmup: int, **kw):
-        super().__init__(**kw)
-        self.warmup = warmup
+    def _active_warmup(self):  # no freeze, no confirmation floor
+        return None
 
-    def _resolve_prominence(self, data: pd.DataFrame) -> float:
+    def _resolve_prominence(self, data: pd.DataFrame, *, warmup=None) -> float:
         if self.prominence is not None:
             return float(self.prominence)
-        head = data.iloc[: self.warmup]
-        price_range = float(head["high"].max() - head["low"].min())
+        price_range = float(data["high"].max() - data["low"].min())
         return max(price_range * 0.01, 1e-9)
-
-    def calculate_global(self, full_data: pd.DataFrame):
-        ctx = super().calculate_global(full_data)
-        floor = self.warmup - 1
-        for sp in ctx.swing_points:
-            if sp.confirmation_index is not None and sp.confirmation_index < floor:
-                sp.confirmation_index = floor
-        return ctx
 
 
 def build(policy: str, distance: int):
+    """`current` = the shipped legacy behaviour; `frozen-N` = the shipped fix."""
     if policy == "current":
-        return FindPeaksSwingStrategy(distance=distance, prominence=None)
+        return LegacyExpandingProminence(distance=distance, prominence=None)
     if policy.startswith("frozen"):
         n = int(policy.split("-")[1])
-        return FrozenProminence(warmup=n, distance=distance, prominence=None)
+        return FindPeaksSwingStrategy(
+            distance=distance, prominence=None, prominence_warmup=n
+        )
     raise ValueError(policy)
 
 

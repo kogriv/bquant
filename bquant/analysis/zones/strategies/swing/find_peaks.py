@@ -28,13 +28,18 @@ class FindPeaksSwingStrategy:
     prominence: float = None  # Auto-calculate if None
     distance: int = 5
     min_amplitude_pct: float = 0.02  # 2% minimum movement
+    # Warm-up window for the auto threshold (G15). Only used when `prominence`
+    # is None; see `_resolve_prominence` for why it exists.
+    prominence_warmup: int = 200
 
     def calculate_global(self, full_data: pd.DataFrame) -> SwingContext:
         """Calculate global extrema and convert them into swing context."""
 
         self._validate_input(full_data)
 
-        prominence_value = self._resolve_prominence(full_data)
+        prominence_value = self._resolve_prominence(
+            full_data, warmup=self._active_warmup()
+        )
         extrema = self._detect_extrema(full_data, prominence_value)
 
         if len(extrema) < 2:
@@ -122,6 +127,32 @@ class FindPeaksSwingStrategy:
                 swing_points[0].confirmation_index,
                 swing_points[1].confirmation_index,
             )
+
+        # Warm-up floor (G15). While fewer than `prominence_warmup` bars exist the
+        # frozen threshold is still computed on a shorter window, i.e. it is a
+        # different number — so nothing may be declared available yet. Without this
+        # the freeze leaves exactly the same hole, merely a narrower one. A series
+        # that has not reached the end of its warm-up confirms nothing at all.
+        warmup = self._active_warmup()
+        if warmup:
+            floor = warmup - 1
+            if floor >= full_len:
+                logger.warning(
+                    "FindPeaks global: series of %d bars is shorter than the "
+                    "auto-prominence warm-up (%d), so no swing can be declared "
+                    "causally available — every confirmation_index is None. "
+                    "Pass an explicit `prominence`, or lower `prominence_warmup`, "
+                    "if you need availability markers on a series this short.",
+                    full_len,
+                    warmup,
+                )
+            for swing_point in swing_points:
+                if swing_point.confirmation_index is None:
+                    continue
+                if floor >= full_len:
+                    swing_point.confirmation_index = None
+                elif swing_point.confirmation_index < floor:
+                    swing_point.confirmation_index = floor
 
         logger.info(
             "FindPeaks global: detected %d swing points", len(swing_points)
@@ -522,10 +553,41 @@ class FindPeaksSwingStrategy:
         if data.empty:
             raise ValueError("zone_data cannot be empty")
 
-    def _resolve_prominence(self, data: pd.DataFrame) -> float:
+    def _active_warmup(self) -> Optional[int]:
+        """Warm-up length in force, or None when it does not apply.
+
+        An explicitly configured ``prominence`` is a constant — it needs no warm-up
+        and must not delay any confirmation. The window only governs the auto path.
+        """
+        if self.prominence is not None:
+            return None
+        warmup = int(self.prominence_warmup or 0)
+        return warmup if warmup > 1 else None
+
+    def _resolve_prominence(
+        self, data: pd.DataFrame, *, warmup: Optional[int] = None
+    ) -> float:
+        """Resolve the prominence threshold, optionally frozen on a warm-up window.
+
+        With ``warmup`` set (the global path), the threshold is derived from the
+        first ``warmup`` bars only. That is what makes it replay-stable: truncating
+        the series to ``data[:t+1]`` for any ``t >= warmup`` leaves those bars
+        untouched, so the threshold is identical on replay.
+
+        Without it (the per-zone path) the whole window is used, as before — a zone
+        handed to :meth:`calculate` is already closed, so there is no growing
+        window to defend against.
+
+        The unfrozen full-window form was the G15 defect: ``high.max()`` can only
+        rise and ``low.min()`` can only fall, so the threshold was monotonically
+        non-decreasing in t, and an extremum clearing the early, smaller threshold
+        could fail the later, larger one and vanish — after a consumer had been
+        told it was available.
+        """
         if self.prominence is not None:
             return float(self.prominence)
-        price_range = float(data['high'].max() - data['low'].min())
+        window = data.iloc[:warmup] if warmup else data
+        price_range = float(window['high'].max() - window['low'].min())
         return max(price_range * 0.01, 1e-9)
 
     def _build_strategy_params(
@@ -539,11 +601,16 @@ class FindPeaksSwingStrategy:
         else:
             resolved_prominence = float(self.prominence)
 
-        return {
+        params: Dict[str, Any] = {
             'prominence': resolved_prominence,
             'distance': self.distance,
             'min_amplitude_pct': self.min_amplitude_pct,
         }
+        # Only meaningful on the auto path, but it changes the produced swings, so
+        # it must reach the cache key whenever it is in force (see CACHE_VERSION).
+        if self._active_warmup():
+            params['prominence_warmup'] = int(self.prominence_warmup)
+        return params
 
     def get_metadata(self) -> Dict[str, Any]:
         """Get strategy metadata for logging and traceability."""

@@ -32,7 +32,10 @@ class ZoneAnalysisCache:
     # v4 (G14): find_peaks confirmation waits for the distance-suppression chain to
     # settle, and both find_peaks and pivot_points hold the first swing back to the
     # second's confirmation — serialized confirmation_index values differ from v3.
-    CACHE_VERSION = 4
+    # v5 (G15): the find_peaks auto prominence is frozen on a warm-up window instead
+    # of the whole observed range, so the detected swing set itself differs (strictly
+    # additive), and confirmations are floored at the end of warm-up.
+    CACHE_VERSION = 5
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

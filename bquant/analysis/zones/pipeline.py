@@ -51,7 +51,9 @@ _SWING_CLASS_TO_NAME = {
 #                 (previously only zigzag; changes cached swing output).
 #   v4 (2026-08): find_peaks & pivot_points confirmation_index made replay-safe
 #                 (G14) — distance-chain settling + first-swing warm-up hold.
-CACHE_SCHEMA_VERSION = 4
+#   v5 (2026-08): find_peaks auto prominence frozen on a warm-up window (G15) —
+#                 changes the detected swing set, not only its confirmations.
+CACHE_SCHEMA_VERSION = 5
 
 
 @dataclass
