@@ -243,7 +243,7 @@ print(f"Chart saved to: {saved_path}")
 saved_path_png = save_figure(
     fig,
     "01_overview_custom",
-    output_dir="C:/Users/Ivan/Documents/pro/bquant/output/my_charts",
+    output_dir="output/my_charts",
     prefer='png',  # Предпочесть PNG, если возможно
     width=1600,
     height=900

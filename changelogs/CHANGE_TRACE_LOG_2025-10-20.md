@@ -2032,7 +2032,7 @@ result = (
 
 **Logs confirm:**
 ```
-11:49:56 - bquant.core.cache.DiskCache - INFO - Disk cache initialized: C:\Users\Ivan\.cache\bquant
+11:49:56 - bquant.core.cache.DiskCache - INFO - Disk cache initialized: <user-home>\.cache\bquant
 11:49:56 - bquant.analysis.zones.pipeline - INFO - Cache miss, running zone analysis...
 11:49:56 - bquant.analysis.zones.pipeline - INFO - Zone analysis result saved to cache (key: zone_ana...)
 ```

@@ -183,6 +183,32 @@ the stale doc reference, so update the docs in the same change.
 - Monitor performance with the built-in tools
 - Prefer vectorized pandas operations over loops
 
+## This Is a Public Repository — No Internal Infrastructure
+
+**BQuant is public (GitHub + GitLab + PyPI). Nothing about the owner's private infrastructure
+belongs in it — not in code, not in docs, not in `devref/`, and not in `changelogs/`.**
+
+Never commit:
+- **Credentials of any kind** — keys, tokens, passwords, `.pypirc` contents, `authorized_keys`.
+- **Access topology** — hostnames, IPs, ports, SSH aliases or `ProxyJump` chains, tunnel setups,
+  VM/container names, names of private machines or build stands.
+- **Personal filesystem paths** — `C:\Users\<name>\...`, `/home/<name>/...`. Use repo-relative
+  paths or neutral placeholders in examples and scripts.
+- **Names of private sibling projects** and what is done in them.
+
+This applies to trace logs too. A trace log records *what changed in this repository* — the fact
+that a measurement ran on some other machine is infrastructure, not project history. If a hardware
+detail is genuinely needed to read a number (e.g. "single-threaded, so core count does not help"),
+state the **property**, not the machine.
+
+Internal infrastructure documentation lives outside the repo, in `/data/infra/`.
+
+**Before committing, grep the diff** for: your own username, `ssh`, `ProxyJump`, host names,
+`C:\Users`, `/home/`, `token`, `.pypirc`, and the names of private machines.
+
+If something already slipped through, say so plainly and treat removing it as its own task —
+redacting `HEAD` does not remove it from history that has already been pushed.
+
 ## Research Scripts
 
 Research scripts in `research/notebooks/` use the NotebookSimulator pattern. These are Python files that simulate Jupyter notebook behavior with automatic CLI argument parsing, step-by-step execution, rich logging, error handling, and automatic cleanup.

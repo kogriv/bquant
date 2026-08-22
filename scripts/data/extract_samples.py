@@ -46,7 +46,9 @@ class SampleDataExtractor:
                 'source': 'TradingView via OANDA',
                 'symbol': 'XAUUSD',
                 'timeframe': '1H',
-                'source_file': r'C:\Users\Ivan\YandexDisk\pro\quant\data\OANDA_XAUUSD, 60.csv',
+                # Placeholder: the raw file lives outside the repo. Override with
+                # --source / custom_source when regenerating the embedded sample.
+                'source_file': 'data/raw/OANDA_XAUUSD, 60.csv',
                 'rows': 1000,
                 'license': 'Open data, free for research and educational use',
                 'disclaimer': 'For demonstration purposes only. Not for production trading.'
@@ -57,7 +59,8 @@ class SampleDataExtractor:
                 'source': 'MetaTrader',
                 'symbol': 'XAUUSD',
                 'timeframe': '15M',
-                'source_file': r'C:\Users\Ivan\YandexDisk\pro\quant\data\alldata\XAUUSDM15.csv',
+                # Placeholder: see the note above.
+                'source_file': 'data/raw/XAUUSDM15.csv',
                 'rows': 1000,
                 'license': 'Open data, free for research and educational use',
                 'disclaimer': 'For demonstration purposes only. Not for production trading.'
