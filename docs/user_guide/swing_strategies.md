@@ -117,9 +117,17 @@ strategy = FindPeaksSwingStrategy(distance=3, prominence=0.5)
 ## 📐 Адаптивные пороги
 
 Для инструментов с широким ценовым диапазоном включите адаптивные пороги — они
-пересчитывают `deviation`/`prominence` на основе диапазона зоны. Fluent-билдер
-предоставляет `.with_auto_swing_thresholds(True)`; низкоуровневый флаг конструктора
-`ZoneAnalysisPipeline` — `strategy_auto_thresholds`.
+пересчитывают **относительные** пороги на основе диапазона: `deviation` у ZigZag и
+`min_amplitude_pct` у `find_peaks`/`pivot_points`.
+
+Fluent-билдер предоставляет `.with_auto_swing_thresholds(True)`; низкоуровневый флаг
+конструктора `ZoneAnalysisPipeline` — `strategy_auto_thresholds`.
+
+> ⚠️ Проминенцию `find_peaks` этот режим **намеренно не трогает**. Она задаётся в единицах
+> цены, а не долей, и подстановка сюда относительной величины раньше её обнуляла — фильтр
+> переставал фильтровать, и адаптивный режим давал *больше* свингов, чем обычный (G16).
+> У `find_peaks` есть собственный адаптивный к диапазону порог — см. раздел про прогрев выше;
+> он и работает.
 
 ```python
 result = (

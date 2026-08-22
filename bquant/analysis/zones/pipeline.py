@@ -53,7 +53,9 @@ _SWING_CLASS_TO_NAME = {
 #                 (G14) — distance-chain settling + first-swing warm-up hold.
 #   v5 (2026-08): find_peaks auto prominence frozen on a warm-up window (G15) —
 #                 changes the detected swing set, not only its confirmations.
-CACHE_SCHEMA_VERSION = 5
+#   v6 (2026-08): adaptive thresholds stop overwriting find_peaks' prominence with a
+#                 relative value (G16); `peak_prominence` metadata key renamed.
+CACHE_SCHEMA_VERSION = 6
 
 
 @dataclass

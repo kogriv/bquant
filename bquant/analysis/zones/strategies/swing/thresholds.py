@@ -12,10 +12,28 @@ from ..registry import StrategyRegistry
 
 @dataclass(frozen=True)
 class SwingThresholds:
-    """Container for dynamically computed swing thresholds."""
+    """Dynamically computed swing thresholds.
 
+    **Every field here is RELATIVE — a fraction of price, never an amount of price.**
+    They are derived as ``price_range / mid_price * k``, so 0.019 means 1.9%.
+
+    That is not a detail: routing one of these into a knob that expects absolute price
+    units was gap G16. A fraction of ~0.019 handed to scipy's ``prominence``, on an
+    instrument trading near 3350, reads as under two cents and switches the filter off.
+    Nor can it be repaired by multiplying back by price — the coefficients below are
+    chosen for the relative meaning, and converting them yields ~30% of the whole
+    observed range, which filters almost everything out.
+
+    So: only assign these to parameters that are themselves relative
+    (``deviation``, ``min_amplitude_pct``).
+    """
+
+    #: relative price move required by ZigZag
     zigzag_deviation: float
-    peak_prominence: float
+    #: relative amplitude floor for find_peaks movements. Named for what it IS, not for
+    #: the ``prominence`` knob it must NOT be assigned to (G16).
+    peak_min_amplitude: float
+    #: relative amplitude floor for pivot_points movements
     pivot_deviation: float
 
 
@@ -42,7 +60,7 @@ def auto_swing_thresholds(
     if zone_df.empty:
         return SwingThresholds(
             zigzag_deviation=base_deviation,
-            peak_prominence=base_deviation,
+            peak_min_amplitude=base_deviation,
             pivot_deviation=base_deviation,
         )
 
@@ -63,7 +81,7 @@ def auto_swing_thresholds(
 
     return SwingThresholds(
         zigzag_deviation=deviation,
-        peak_prominence=prominence,
+        peak_min_amplitude=prominence,
         pivot_deviation=pivot_dev,
     )
 
@@ -139,8 +157,14 @@ class _AdaptiveSwingStrategy:
         if self.base_strategy_name == 'zigzag':
             strategy.deviation = thresholds.zigzag_deviation
         elif self.base_strategy_name == 'find_peaks':
-            strategy.prominence = thresholds.peak_prominence
-            strategy.min_amplitude_pct = thresholds.peak_prominence
+            # `prominence` is deliberately NOT set here (G16). It is absolute — an amount
+            # of price — while everything in SwingThresholds is a fraction, so assigning
+            # one to the other switched the filter off (~0.019 read as under two cents).
+            # find_peaks already derives its own range-adaptive prominence, and since G15
+            # that one is frozen on a warm-up window and replay-safe; leaving it on auto
+            # is both correct in units and better behaved than anything this layer could
+            # supply. The adaptive layer contributes only the relative amplitude floor.
+            strategy.min_amplitude_pct = thresholds.peak_min_amplitude
         elif self.base_strategy_name == 'pivot_points':
             strategy.min_amplitude_pct = thresholds.pivot_deviation
 
@@ -148,6 +172,7 @@ class _AdaptiveSwingStrategy:
     def _thresholds_to_dict(thresholds: SwingThresholds) -> Dict[str, float]:
         return {
             'zigzag_deviation': thresholds.zigzag_deviation,
-            'peak_prominence': thresholds.peak_prominence,
+            # renamed from 'peak_prominence' in G16 — it never was a prominence
+            'peak_min_amplitude': thresholds.peak_min_amplitude,
             'pivot_deviation': thresholds.pivot_deviation,
         }

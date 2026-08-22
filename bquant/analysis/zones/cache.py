@@ -35,7 +35,9 @@ class ZoneAnalysisCache:
     # v5 (G15): the find_peaks auto prominence is frozen on a warm-up window instead
     # of the whole observed range, so the detected swing set itself differs (strictly
     # additive), and confirmations are floored at the end of warm-up.
-    CACHE_VERSION = 5
+    # v6 (G16): the adaptive-threshold layer no longer overwrites find_peaks' prominence
+    # with a relative value, so adaptive runs detect a different (smaller) swing set.
+    CACHE_VERSION = 6
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
