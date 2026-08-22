@@ -196,14 +196,12 @@ if __name__ == "__main__":
 
 ## 🔄 Migration Guide - Legacy API
 
+> **Removed:** `MACDZoneAnalyzer` (`from bquant.indicators import MACDZoneAnalyzer`,
+> deprecated since v2.1) has been removed. Use the Universal Pipeline below. See
+> [MIGRATION_v2](../migration/MIGRATION_v2.md) for the full mapping.
+
 ```python
-# ⚠️ DEPRECATED: Старый способ
-from bquant.indicators import MACDZoneAnalyzer
-
-analyzer = MACDZoneAnalyzer()  # Deprecated wrapper
-result = analyzer.analyze_complete(data)  # Delegates to analyze_zones()
-
-# ✅ NEW: Universal Pipeline
+# ✅ Universal Pipeline
 from bquant.analysis.zones import analyze_zones
 
 result = (

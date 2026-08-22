@@ -8,7 +8,7 @@ import pandas as pd
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
 from bquant.analysis.zones.strategies.swing import ZigZagSwingStrategy, FindPeaksSwingStrategy
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 
 class TestZoneFeaturesSwingIntegration:
@@ -18,8 +18,7 @@ class TestZoneFeaturesSwingIntegration:
     def sample_zones(self):
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
-        analyzer = MACDZoneAnalyzer()
-        result = analyzer.analyze_complete_modular(df)
+        result = analyze_macd_zones(df)
         zones = result.zones
         
         # Add macd_hist to each zone (already present in new API but ensure name consistency)

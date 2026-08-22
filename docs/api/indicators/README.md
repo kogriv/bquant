@@ -30,12 +30,13 @@ Indicators модули содержат технические индикато
 - Вспомогательные функции: `create_macd_analyzer()`, `analyze_macd_zones()`
 
 **Migration Path:**
-```python
-# Старый способ (Deprecated)
+```text
+# Старый способ (removed)
 from bquant.indicators.macd import MACDZoneAnalyzer
 analyzer = MACDZoneAnalyzer()
 result = analyzer.analyze_complete(data)
-
+```
+```python
 # Новый способ (Universal Pipeline)
 from bquant.analysis.zones import analyze_zones
 result = (

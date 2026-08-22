@@ -88,13 +88,9 @@ print(f"Статистика: {result.statistics}")
 
 ```python
 # examples/02_macd_zone_analysis.py
+# (MACDZoneAnalyzer was removed — this example now uses the pipeline)
 
-# ⚠️ УСТАРЕВШИЙ СПОСОБ (DEPRECATED)
-from bquant.indicators import MACDZoneAnalyzer
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
-
-# ✅ Новый способ: Universal Pipeline
+# ✅ Universal Pipeline
 from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
@@ -179,7 +175,7 @@ if result.hypothesis_tests:
 ```python
 import bquant as bq
 from bquant.data.samples import get_sample_data
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_zones
 from bquant.visualization import FinancialCharts
 
 # Настройка логирования

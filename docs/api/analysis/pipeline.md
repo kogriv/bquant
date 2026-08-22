@@ -305,8 +305,8 @@ result = (
 
 ### От старого API к новому
 
-**Старый способ (Deprecated):**
-```python
+**Старый способ (removed):**
+```text
 from bquant.indicators import MACDZoneAnalyzer
 
 analyzer = MACDZoneAnalyzer()

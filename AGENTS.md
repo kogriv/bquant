@@ -29,7 +29,7 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 ### Indicators (`bquant/indicators/`)
 - **`base.py`**: Base classes and `IndicatorFactory` for custom and library-backed indicators
 - **`calculators.py`**: Core indicator calculation functions
-- **`macd.py`**: `MACDZoneAnalyzer` — **deprecated** (removal in v3.0.0); delegates to the Universal Pipeline `analyze_zones()`. Prefer the pipeline for new code.
+- **`MACDZoneAnalyzer` was removed** (module `indicators/macd.py` deleted; deprecated since v2.1). MACD zone analysis is now the Universal Pipeline — `analyze_zones(...)` or the `analyze_macd_zones(...)` preset in `bquant.analysis.zones`. The MACD *indicator* itself is unchanged (`custom/macd.py`, `preloaded/macd.py`, calculators).
 - **`library/`**: Integration with pandas-ta and TA-Lib (`manager.py`, `pandas_ta.py`, `talib.py`) — a package, not a single module
 
 ### Analysis (`bquant/analysis/`)
@@ -46,7 +46,7 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 
 ### Universal Zone Analysis Pipeline (flagship API)
 The primary way to analyze zones is the `analyze_zones()` fluent builder — indicator-agnostic,
-works with any oscillator. This supersedes the deprecated `MACDZoneAnalyzer`.
+works with any oscillator. It replaced `MACDZoneAnalyzer` (removed).
 
 ```python
 from bquant.analysis.zones import analyze_zones

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-BQuant - MACD Zone Analysis: Old vs New Approach
+BQuant - MACD Zone Analysis (Universal Pipeline)
 
-Этот пример демонстрирует миграцию на новую универсальную архитектуру анализа зон.
+Этот пример демонстрирует анализ MACD-зон на универсальной архитектуре анализа зон.
 
 Разделы:
-1. [!] Deprecated подход (MACDZoneAnalyzer) - для backward compatibility
-2. [OK] Новый универсальный подход (analyze_zones) - RECOMMENDED
+1. Быстрый пресет analyze_macd_zones() - одна строка
+2. Fluent API (builder) analyze_zones() - полный контроль
 3. Разные стратегии детекции зон
 4. Модульное использование компонентов
 5. Базовая визуализация результатов
@@ -153,7 +153,7 @@ def print_separator(title: str):
 def main():
     setup_logging(console_level='WARNING', file_level='ERROR', log_to_file=False, use_colors=False, reset_loggers=True)
 
-    print_separator("MACD Zone Analysis - Old vs New Approach")
+    print_separator("MACD Zone Analysis - Universal Pipeline")
     
     # Генерация данных
     print("[*] Generating data...")
@@ -161,27 +161,22 @@ def main():
     print(f"[OK] Created {len(df)} bars (period: {df.index[0]} - {df.index[-1]})")
     
     # ========================================================================
-    # РАЗДЕЛ 1: [!] DEPRECATED ПОДХОД (для backward compatibility)
+    # РАЗДЕЛ 1: БЫСТРЫЙ ПРЕСЕТ (одна строка)
     # ========================================================================
-    print_separator("1. [!] Deprecated подход (MACDZoneAnalyzer)")
-    
-    print("[!] WARNING: Этот подход устарел и будет удален в v3.0.0")
-    print("   Используется только для backward compatibility\n")
-    
-    from bquant.indicators.macd import MACDZoneAnalyzer
-    
-    # Старый способ - через класс
-    analyzer_old = MACDZoneAnalyzer(
-        macd_params={'fast': 12, 'slow': 26, 'signal': 9},
-        zone_params={'min_duration': 2}
+    print_separator("1. Быстрый пресет: analyze_macd_zones()")
+
+    print("Одна строка для типового MACD-анализа (обёртка над пайплайном)\n")
+
+    from bquant.analysis.zones import analyze_macd_zones
+
+    result_preset = analyze_macd_zones(
+        df, fast=12, slow=26, signal=9, clustering=True, n_clusters=3
     )
-    
-    result_old = analyzer_old.analyze_complete(df, perform_clustering=True, n_clusters=3)
-    
-    print(f"[OK] Analysis complete (old approach):")
-    print(f"   - Zones found: {len(result_old.zones)}")
-    print(f"   - Bull zones: {sum(1 for z in result_old.zones if z.type == 'bull')}")
-    print(f"   - Bear zones: {sum(1 for z in result_old.zones if z.type == 'bear')}")
+
+    print(f"[OK] Analysis complete (preset):")
+    print(f"   - Zones found: {len(result_preset.zones)}")
+    print(f"   - Bull zones: {sum(1 for z in result_preset.zones if z.type == 'bull')}")
+    print(f"   - Bear zones: {sum(1 for z in result_preset.zones if z.type == 'bear')}")
     
     # ========================================================================
     # РАЗДЕЛ 2: [OK] НОВЫЙ УНИВЕРСАЛЬНЫЙ ПОДХОД (RECOMMENDED)
@@ -380,9 +375,9 @@ def main():
     print("-" * 40)
     print(f"{'Метрика':<30} {'Старый API':<15} {'Новый API':<15}")
     print("-" * 60)
-    print(f"{'Количество зон':<30} {len(result_old.zones):<15} {len(result_new.zones):<15}")
-    print(f"{'Bull зоны':<30} {sum(1 for z in result_old.zones if z.type == 'bull'):<15} {sum(1 for z in result_new.zones if z.type == 'bull'):<15}")
-    print(f"{'Bear зоны':<30} {sum(1 for z in result_old.zones if z.type == 'bear'):<15} {sum(1 for z in result_new.zones if z.type == 'bear'):<15}")
+    print(f"{'Количество зон':<30} {len(result_preset.zones):<15} {len(result_new.zones):<15}")
+    print(f"{'Bull зоны':<30} {sum(1 for z in result_preset.zones if z.type == 'bull'):<15} {sum(1 for z in result_new.zones if z.type == 'bull'):<15}")
+    print(f"{'Bear зоны':<30} {sum(1 for z in result_preset.zones if z.type == 'bear'):<15} {sum(1 for z in result_new.zones if z.type == 'bear'):<15}")
     
     print("\n[OK] Ключевые преимущества нового подхода:")
     print("   1. Универсальность - один API для всех индикаторов")

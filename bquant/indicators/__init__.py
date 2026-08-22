@@ -47,14 +47,10 @@ from .library import (
 #     validate_indicator_data
 # )
 
-# MACD analyzer
-from .macd import (
-    ZoneInfo,
-    ZoneAnalysisResult,
-    MACDZoneAnalyzer,
-    create_macd_analyzer,
-    analyze_macd_zones
-)
+# MACDZoneAnalyzer and its convenience wrappers were removed (deprecated
+# since v2.1). Use the Universal Zone Analysis pipeline instead:
+#     from bquant.analysis.zones import analyze_zones, analyze_macd_zones
+# ZoneInfo / ZoneAnalysisResult live in bquant.analysis.zones.models.
 
 # PRELOADED indicators
 from .preloaded import (
@@ -138,11 +134,4 @@ __all__ = [
     "load_pandas_ta",
     "load_talib",
     "load_all_indicators",
-    
-    # MACD analyzer
-    "ZoneInfo",
-    "ZoneAnalysisResult", 
-    "MACDZoneAnalyzer",
-    "create_macd_analyzer",
-    "analyze_macd_zones",
 ]

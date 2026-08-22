@@ -10,7 +10,7 @@ from bquant.analysis.zones.strategies.volatility import CombinedVolatilityStrate
 from bquant.analysis.zones.strategies.base import VolatilityMetrics
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 
 class TestCombinedVolatilityStrategy:
@@ -20,8 +20,7 @@ class TestCombinedVolatilityStrategy:
     def sample_zones(self):
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
-        analyzer = MACDZoneAnalyzer()
-        result = analyzer.analyze_complete_modular(df)
+        result = analyze_macd_zones(df)
         zones = result.zones
         
         # Add macd_hist to each zone
