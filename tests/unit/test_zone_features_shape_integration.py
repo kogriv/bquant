@@ -8,7 +8,7 @@ import pandas as pd
 from bquant.analysis.zones import ZoneFeaturesAnalyzer
 from bquant.analysis.zones.strategies.shape import StatisticalShapeStrategy
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 
 class TestZoneFeaturesShapeIntegration:
@@ -18,8 +18,7 @@ class TestZoneFeaturesShapeIntegration:
     def sample_zones(self):
         """Load real zones from sample data and add macd_hist."""
         df = get_sample_data('tv_xauusd_1h')
-        analyzer = MACDZoneAnalyzer()
-        result = analyzer.analyze_complete_modular(df)
+        result = analyze_macd_zones(df)
         zones = result.zones
         
         # Add macd_hist to each zone (it's missing in sample data)

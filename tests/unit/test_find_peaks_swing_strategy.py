@@ -10,7 +10,7 @@ from bquant.analysis.zones.strategies.swing import FindPeaksSwingStrategy
 from bquant.analysis.zones.strategies.base import SwingMetrics
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 
 class TestFindPeaksSwingStrategy:
@@ -20,8 +20,7 @@ class TestFindPeaksSwingStrategy:
     def sample_zones(self):
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
-        analyzer = MACDZoneAnalyzer()
-        result = analyzer.analyze_complete_modular(df)
+        result = analyze_macd_zones(df)
         zones = result.zones
         return [z for z in zones if len(z.data) >= 10]  # Lowered threshold from 30 to 10
     

@@ -17,7 +17,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from bquant.data.samples import get_sample_data, list_dataset_names, validate_dataset_name
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.analysis.statistical import run_all_hypothesis_tests, run_single_hypothesis_test
 from bquant.visualization import FinancialCharts, create_financial_chart
 
@@ -54,11 +54,8 @@ class TestFullMACDPipeline:
             assert col in data.columns, f"Column '{col}' missing from data"
         
         # 2. MACD анализ
-        analyzer = MACDZoneAnalyzer()
-        assert analyzer is not None, "MACDZoneAnalyzer should be created"
-        
         # Выполняем полный анализ
-        analysis_result = analyzer.analyze_complete(data)
+        analysis_result = analyze_macd_zones(data)
         assert analysis_result is not None, "Analysis result should not be None"
         
         # Проверяем структуру результата
@@ -135,8 +132,7 @@ class TestFullMACDPipeline:
                 assert len(data) > 0, f"Data should not be empty for {dataset_name}"
                 
                 # MACD анализ
-                analyzer = MACDZoneAnalyzer()
-                analysis_result = analyzer.analyze_complete(data)
+                analysis_result = analyze_macd_zones(data)
                 
                 zones = analysis_result.zones
                 
@@ -176,8 +172,7 @@ class TestFullMACDPipeline:
         start_time = time.time()
         
         # MACD анализ на большом dataset
-        analyzer = MACDZoneAnalyzer()
-        analysis_result = analyzer.analyze_complete(large_ohlcv_data)
+        analysis_result = analyze_macd_zones(large_ohlcv_data)
         
         zones = analysis_result.zones
         
@@ -373,8 +368,7 @@ class TestEndToEndWorkflow:
         }
         
         # 3. Выполнение анализа
-        analyzer = MACDZoneAnalyzer(macd_params=macd_params, zone_params=zone_params)
-        analysis_result = analyzer.analyze_complete(data)
+        analysis_result = analyze_macd_zones(data, fast=12, slow=26, signal=9)
         
         # 4. Получение результатов
         zones = analysis_result.zones

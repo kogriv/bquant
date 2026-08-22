@@ -23,9 +23,9 @@ data = get_sample_data("btc_hourly")
 
 Эти строки остаются неизменными и совпадают с примером. 
 
-### Шаг 2. Старый способ (для сравнения)
+### Шаг 2. Старый способ (для сравнения, removed)
 
-```python
+```text
 from bquant.indicators.macd import MACDZoneAnalyzer
 
 analyzer = MACDZoneAnalyzer()

@@ -26,7 +26,7 @@ sys.path.insert(0, str(project_root))
 
 from bquant.core.logging_config import get_logger
 from bquant.data.samples import get_sample_data, list_dataset_names, validate_dataset_name
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 logger = get_logger(__name__)
 
@@ -75,14 +75,12 @@ class MACDAnalysisScript:
             data = self._load_data(symbol, timeframe, use_sample_data, verbose)
             
             # Выполнение MACD анализа
-            analyzer = MACDZoneAnalyzer()
-            
             if verbose:
                 print(f"📊 Loaded {len(data)} data points for {symbol}")
                 print(f"🔧 Initializing MACD analyzer...")
             
             # Полный анализ (включает расчет MACD, идентификацию зон, расчет признаков)
-            complete_analysis = analyzer.analyze_complete(data)
+            complete_analysis = analyze_macd_zones(data)
             
             # Извлекаем компоненты из результата анализа
             zones = complete_analysis.zones

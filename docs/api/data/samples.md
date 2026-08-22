@@ -140,14 +140,13 @@ print_sample_data_status()
 
 ```python
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 # Загружаем данные
 data = get_sample_data('tv_xauusd_1h')
 
-# Используем с MACD анализатором
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
+# Анализ MACD-зон через универсальный пайплайн
+result = analyze_macd_zones(data)
 
 print(f"Found {len(result.zones)} MACD zones")
 ```
@@ -171,16 +170,15 @@ fig.show()
 
 ```python
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.analysis.statistical import run_all_hypothesis_tests
 from bquant.analysis.zones.zone_features import ZoneFeaturesAnalyzer
 
 # Загружаем данные
 data = get_sample_data('tv_xauusd_1h')
 
-# Анализируем MACD зоны
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
+# Анализируем MACD зоны через универсальный пайплайн
+result = analyze_macd_zones(data)
 
 # Статистические тесты
 features = ZoneFeaturesAnalyzer().extract_all_zones_features(result.zones)

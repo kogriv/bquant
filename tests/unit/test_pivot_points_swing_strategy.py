@@ -9,7 +9,7 @@ from bquant.analysis.zones.strategies.swing import PivotPointsSwingStrategy
 from bquant.analysis.zones.strategies.base import SwingMetrics
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
 from bquant.data.samples import get_sample_data
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 
 
 class TestPivotPointsSwingStrategy:
@@ -19,8 +19,7 @@ class TestPivotPointsSwingStrategy:
     def sample_zones(self):
         """Load real zones from sample data."""
         df = get_sample_data('tv_xauusd_1h')
-        analyzer = MACDZoneAnalyzer()
-        result = analyzer.analyze_complete_modular(df)
+        result = analyze_macd_zones(df)
         zones = result.zones
         return [z for z in zones if len(z.data) >= 20]
     

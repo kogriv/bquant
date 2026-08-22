@@ -25,7 +25,7 @@ from bquant.indicators.calculators import (
     calculate_moving_averages,
     create_indicator_suite
 )
-from bquant.indicators.macd import MACDZoneAnalyzer, analyze_macd_zones
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.data.processor import (
     calculate_derived_indicators,
     clean_ohlcv_data,
@@ -310,7 +310,7 @@ class TestCalculatorPerformance:
 
 
 class TestMACDAnalyzerPerformance:
-    """Тесты производительности MACDZoneAnalyzer."""
+    """Тесты производительности analyze_macd_zones."""
     
     @pytest.fixture
     def trending_data(self):
@@ -341,10 +341,8 @@ class TestMACDAnalyzerPerformance:
             'significance_threshold': 0.1
         }
 
-        analyzer = MACDZoneAnalyzer(macd_params, zone_params)
-        
         # Получаем зоны через новый API
-        result = analyzer.analyze_complete_modular(trending_data)
+        result = analyze_macd_zones(trending_data, fast=12, slow=26, signal=9, min_duration=5)
         zones = result.zones
         
         assert isinstance(zones, list)
@@ -363,11 +361,10 @@ class TestMACDAnalyzerPerformance:
         """Тест производительности расчета признаков зон через модульный анализатор."""
         from bquant.analysis.zones import ZoneFeaturesAnalyzer
         
-        analyzer = MACDZoneAnalyzer()
         features_analyzer = ZoneFeaturesAnalyzer()
         
         # Получаем зоны через новый API
-        result = analyzer.analyze_complete_modular(trending_data)
+        result = analyze_macd_zones(trending_data)
         zones = result.zones
         
         # extract_zone_features expects dict-like or ZoneInfo with proper interface
@@ -396,10 +393,8 @@ class TestMACDAnalyzerPerformance:
     @pytest.mark.skip(reason="API changed - hypothesis_tests structure changed")
     def test_statistical_analysis_performance(self, trending_data):
         """Тест производительности статистических тестов через модульный анализатор."""
-        analyzer = MACDZoneAnalyzer()
-        
-        # Используем analyze_complete_modular для полного анализа
-        result = analyzer.analyze_complete_modular(trending_data, perform_clustering=False)
+        # Используем analyze_macd_zones для полного анализа
+        result = analyze_macd_zones(trending_data, clustering=False)
         
         hypothesis_tests = result.hypothesis_tests
         
@@ -415,10 +410,8 @@ class TestMACDAnalyzerPerformance:
     @performance_test
     def test_clustering_performance(self, trending_data):
         """Тест производительности кластеризации через модульный анализатор."""
-        analyzer = MACDZoneAnalyzer()
-        
-        # Используем analyze_complete_modular с кластеризацией
-        result = analyzer.analyze_complete_modular(trending_data, perform_clustering=True, n_clusters=3)
+        # Используем analyze_macd_zones с кластеризацией
+        result = analyze_macd_zones(trending_data, clustering=True, n_clusters=3)
         
         if result.clustering is not None:
             cluster_result = result.clustering
@@ -435,7 +428,7 @@ class TestMACDAnalyzerPerformance:
         """Тест производительности полного анализа."""
         result = analyze_macd_zones(
             trending_data,
-            perform_clustering=True,
+            clustering=True,
             n_clusters=3
         )
         

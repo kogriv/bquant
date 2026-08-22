@@ -28,7 +28,7 @@ except ImportError as e:
     visualization_available = False
     print(f"Visualization module not available: {e}")
 
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.data.samples import get_sample_data, list_dataset_names
 
 
@@ -123,8 +123,7 @@ class TestVisualizationPipeline:
         data = get_sample_data(dataset_name)
         
         # 2. MACD анализ
-        analyzer = MACDZoneAnalyzer()
-        analysis_result = analyzer.analyze_complete(data)
+        analysis_result = analyze_macd_zones(data)
         zones = analysis_result.zones
         data_with_macd = analysis_result.data  # Данные с MACD индикаторами
         
@@ -347,8 +346,7 @@ class TestVisualizationIntegration:
         data = get_sample_data(dataset_name)
         
         # 2. Полный анализ
-        analyzer = MACDZoneAnalyzer()
-        analysis_result = analyzer.analyze_complete(data)
+        analysis_result = analyze_macd_zones(data)
         
         # 3. Создание comprehensive визуализации
         visualization_results = {}

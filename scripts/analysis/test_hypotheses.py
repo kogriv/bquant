@@ -26,7 +26,7 @@ sys.path.insert(0, str(project_root))
 
 from bquant.core.logging_config import get_logger
 from bquant.data.samples import get_sample_data, list_dataset_names, validate_dataset_name
-from bquant.indicators import MACDZoneAnalyzer
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.analysis.statistical import run_all_hypothesis_tests, run_single_hypothesis_test
 
 logger = get_logger(__name__)
@@ -89,14 +89,12 @@ class HypothesisTestingScript:
             data = self._load_data(symbol, timeframe, use_sample_data, verbose)
             
             # Выполнение MACD анализа для получения зон
-            analyzer = MACDZoneAnalyzer()
-            
             if verbose:
                 print(f"📊 Loaded {len(data)} data points for {symbol}")
                 print(f"🔧 Performing MACD analysis...")
             
             # Получение полного анализа зон
-            zones_analysis = analyzer.analyze_complete(data)
+            zones_analysis = analyze_macd_zones(data)
             
             if not zones_analysis or not zones_analysis.zones:
                 raise ValueError("Insufficient zone data for hypothesis testing")
