@@ -671,10 +671,10 @@ nb.info("Как мигрировать со старого API:")
 
 nb.log("")
 nb.log("=" * 70)
-nb.log("СТАРЫЙ КОД (deprecated):")
+nb.log("СТАРЫЙ КОД (removed in v0.1.0 — для справки, если мигрируете со старого):")
 nb.log("=" * 70)
 nb.log("""
-from bquant.indicators.macd import MACDZoneAnalyzer
+from bquant.indicators.macd import MACDZoneAnalyzer   # removed in v0.1.0
 
 analyzer = MACDZoneAnalyzer(
     macd_params={'fast_period': 12, 'slow_period': 26, 'signal_period': 9}
