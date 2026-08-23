@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-08-23
+
 ### Removed
 - **`MACDZoneAnalyzer` удалён (ломающее изменение).** Вместе с ним удалены модуль
   `bquant/indicators/macd.py` и обёртки `create_macd_analyzer` / `analyze_macd_zones`,
@@ -27,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   зон: `analyze_macd_zones` детектирует по **линии MACD**, а не по гистограмме, как делал
   удалённый класс, — при сравнении со старыми артефактами передавайте
   `zone_basis='histogram'`. См. `docs/migration/MIGRATION_v2.md`.
+
+  **О номере версии.** Deprecation-предупреждение класса обещало удаление в «v3.0.0» —
+  это была нумерация внутренней ветки разработки, которая до публикации не дожила:
+  на PyPI пакет вышел с 0.0.x и туда `MACDZoneAnalyzer` уже попал как deprecated.
+  Мажорной версии 3.0.0 у публичного пакета не было и не будет, поэтому удаление
+  происходит на 0.0.5. Если вы ориентировались на текст того предупреждения —
+  ориентир был неверен, и это наша недоработка, а не смена условий.
 
 ### Fixed
 - **Адаптивные пороги больше не отключают фильтр проминенции у `find_peaks` (G16).**

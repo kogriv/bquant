@@ -42,7 +42,7 @@ setup_logging(profile='research')
 
 from bquant.core.nb import NotebookSimulator
 from bquant.data.samples import get_sample_data
-# v2.1: New universal API (MACDZoneAnalyzer removed in v0.1.0)
+# v2.1: New universal API (MACDZoneAnalyzer removed in 0.0.5)
 from bquant.analysis.zones import analyze_zones, analyze_macd_zones
 from bquant.analysis.zones.models import ZoneAnalysisResult
 from bquant.analysis.zones import ZoneFeaturesAnalyzer, ZoneSequenceAnalyzer
@@ -547,7 +547,7 @@ with nb.error_handling("Regression & Validation"):
         nb.info("8.3. v2.1 Validation with updated analyze_func:")
         
         if validation_available:
-            # v2.1: analyze_func uses the pipeline (MACDZoneAnalyzer removed in v0.1.0)
+            # v2.1: analyze_func uses the pipeline (MACDZoneAnalyzer removed in 0.0.5)
             def analyze_func_v2(data):
                 """v2.1 analyze function for validation."""
                 return (
