@@ -26,6 +26,7 @@ strict check there would be flaky. Markdown links are the reliable signal.
 import importlib
 import os
 import re
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -38,24 +39,57 @@ os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DOCS = PROJECT_ROOT / "docs"
 
-# Root-level markdown is user-facing too — README.md is what `pyproject.toml`
-# ships to PyPI as the package description — but it lives outside `docs/`, so an
-# earlier version of this scanner could not see it. A removed API left a broken
-# `from bquant.indicators import MACDZoneAnalyzer` example on the front page and
-# nothing failed. Scan these as well.
-ROOT_DOCS = ("README.md", "AGENTS.md", "CONTRIBUTING.md")
+# User-facing docs that live OUTSIDE `docs/`. Each entry here was added because
+# the scanner's scope, not the check itself, was the thing that failed:
+#   - `README.md` is what `pyproject.toml` ships to PyPI as the package
+#     description; a removed API left a broken
+#     `from bquant.indicators import MACDZoneAnalyzer` on the front page.
+#   - `examples/README.md` carried the same broken import in a ```python block
+#     while the whole suite stayed green.
+# Add a file here rather than trusting that `docs/` is the whole surface.
+EXTRA_DOCS = (
+    "README.md",
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "examples/README.md",
+    "research/README.md",
+    "scripts/README.md",
+)
 
 _LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 _HAS_EXT_RE = re.compile(r"\.\w+$")
 _PY_BLOCK_RE = re.compile(r"```python\n(.*?)```", re.DOTALL)
-_IMPORT_RE = re.compile(r"^\s*from\s+(bquant[\w.]*)\s+import\s+(.+)$", re.MULTILINE)
+# reStructuredText equivalent. `docs/index.rst` is the Sphinx landing page and was
+# invisible to a markdown-only scanner — it kept a live import of a class that had
+# already been deleted. Matches an indented literal block after the directive.
+_RST_BLOCK_RE = re.compile(
+    r"\.\.[ \t]+code-block::[ \t]*python[^\n]*\n\n((?:(?:[ \t]+[^\n]*)?\n)+)"
+)
+# Matches both single-line imports and the parenthesised multi-line form. The
+# earlier single-line pattern captured a bare "(" as the imported name, which the
+# collector then stripped to an empty string and skipped — so every multi-line
+# `from bquant... import (...)` block in the docs (11 of them) was silently
+# unchecked. A silent skip in a parity checker is worse than no checker.
+_IMPORT_RE = re.compile(
+    r"^[ \t]*from[ \t]+(bquant[\w.]*)[ \t]+import[ \t]+(\([\s\S]*?\)|[^\n(]+)",
+    re.MULTILINE,
+)
+_COMMENT_RE = re.compile(r"#[^\n]*")
 
 
 def _iter_docs():
     docs = [p for p in DOCS.rglob("*.md") if "_build" not in p.parts]
-    docs += [PROJECT_ROOT / name for name in ROOT_DOCS
+    docs += [p for p in DOCS.rglob("*.rst") if "_build" not in p.parts]
+    docs += [PROJECT_ROOT / name for name in EXTRA_DOCS
              if (PROJECT_ROOT / name).is_file()]
     return sorted(docs)
+
+
+def _python_blocks(md, text):
+    """Python example blocks, in whichever markup the file uses."""
+    if md.suffix == ".rst":
+        return [textwrap.dedent(b) for b in _RST_BLOCK_RE.findall(text)]
+    return _PY_BLOCK_RE.findall(text)
 
 
 # --------------------------------------------------------------------------- #
@@ -101,10 +135,12 @@ def _collect_bquant_imports():
     seen = {}
     for md in _iter_docs():
         text = md.read_text(encoding="utf-8")
-        for block in _PY_BLOCK_RE.findall(text):
+        for block in _python_blocks(md, text):
             for match in _IMPORT_RE.finditer(block):
                 module = match.group(1)
-                raw_names = match.group(2).split("#", 1)[0]
+                # Strip comments on every line, not just the first — multi-line
+                # blocks can annotate individual names.
+                raw_names = _COMMENT_RE.sub("", match.group(2))
                 raw_names = raw_names.replace("(", "").replace(")", "")
                 for name in raw_names.split(","):
                     name = name.strip().split(" as ", 1)[0].strip()
@@ -135,18 +171,52 @@ def test_doc_bquant_import_resolves(module, name, md):
     )
 
 
+def test_parity_parses_multiline_imports():
+    """Parenthesised multi-line imports must yield their names, not a bare "(".
+
+    Pinned because they used to collapse to an empty name and be skipped, leaving
+    11 documented import blocks unchecked while the suite reported green.
+    """
+    sample = (
+        "from bquant.analysis.zones.presets import (\n"
+        "    analyze_macd_zones,\n"
+        "    analyze_rsi_zones,  # comment\n"
+        ")\n"
+    )
+    found = _IMPORT_RE.findall(sample)
+    assert found, "multi-line import not matched at all"
+    module, raw = found[0]
+    names = {
+        n.strip()
+        for n in _COMMENT_RE.sub("", raw).replace("(", "").replace(")", "").split(",")
+        if n.strip()
+    }
+    assert module == "bquant.analysis.zones.presets"
+    assert names == {"analyze_macd_zones", "analyze_rsi_zones"}
+
+
 def test_parity_scan_found_content():
     """Guard against the scanners silently collecting nothing (e.g. moved docs)."""
     assert _LOCAL_LINKS, "no local markdown links collected — docs path wrong?"
     assert _BQUANT_IMPORTS, "no bquant imports collected — docs path wrong?"
 
 
-def test_parity_covers_root_readme():
-    """README.md must be in scope — it is the package description shipped to PyPI.
+def test_parity_covers_docs_outside_the_docs_tree():
+    """Files that a narrower scanner missed must stay in scope.
 
-    Pinned because it was NOT covered before: the scanner only walked `docs/`, so a
-    removed API could (and did) leave a broken import example on the repository's
-    front page with the whole suite green.
+    Each of these was a real blind spot, not a hypothetical one: `README.md` is the
+    package description shipped to PyPI, `examples/README.md` held a ```python block
+    importing a deleted class, and `docs/index.rst` — the Sphinx landing page — was
+    invisible to a markdown-only scan. All three stayed green while broken.
     """
-    scanned = {p.name for p in _iter_docs()}
-    assert "README.md" in scanned
+    scanned = {p.relative_to(PROJECT_ROOT).as_posix() for p in _iter_docs()}
+    for required in ("README.md", "examples/README.md", "docs/index.rst"):
+        assert required in scanned, f"{required} dropped out of parity scope"
+
+
+def test_parity_reads_rst_code_blocks():
+    """The .rst extractor must actually extract — a silently-empty regex is a no-op."""
+    landing = DOCS / "index.rst"
+    blocks = _python_blocks(landing, landing.read_text(encoding="utf-8"))
+    assert blocks, "no python code-blocks parsed out of docs/index.rst"
+    assert any("bquant" in b for b in blocks), "rst blocks parsed but carry no bquant code"

@@ -151,7 +151,7 @@ pytest tests/ -v
 - **Two-Layer Design**: Simplification from 3 to 2 layers
 - **Zero Hardcode**: ZERO hardcoded indicators, full universality
 - **Design Patterns**: Strategy, Dependency Injection, Builder, Registry
-- **115 Tests**: 100% pass rate, proof of universality
+- **Test Suite**: 1155 tests, green on every release
 
 ## 🎯 Roadmap
 

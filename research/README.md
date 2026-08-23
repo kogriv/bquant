@@ -93,9 +93,8 @@ sys.path.append('..')
 
 # Импорт основных модулей BQuant
 from bquant.data import load_symbol_data, clean_ohlcv_data
-from bquant.indicators import MACDAnalyzer
 from bquant.analysis.statistical import run_all_hypothesis_tests
-from bquant.analysis.zones import ZoneAnalyzer
+from bquant.analysis.zones import analyze_zones, analyze_macd_zones
 from bquant.visualization import FinancialCharts, set_default_theme
 
 # Установка темы для визуализации

@@ -109,10 +109,17 @@
 - `ZoneVisualizer` - Визуализация зон с контекстом
 - `create_candlestick_chart()` - Быстрое создание candlestick
 
-### ⚠️ Deprecated API
-- `MACDZoneAnalyzer` - Используйте `analyze_zones()` вместо этого
-- `analyze_complete()` - Заменен на Universal Pipeline
-- `_zone_to_dict()` - Заменен на `zone.features.get()`
+### 🗑️ Удалённый API
+
+Удалено в 0.0.5 — при обновлении замените:
+
+| Было | Стало |
+|------|-------|
+| `MACDZoneAnalyzer` | `analyze_zones()` / пресет `analyze_macd_zones()` |
+| `analyze_complete()` | `.analyze().build()` |
+| `_zone_to_dict()` | `zone.features.get()` |
+
+Полное соответствие — в [MIGRATION_v2](../migration/MIGRATION_v2.md).
 
 ## Актуальные примеры работы с MACD
 
@@ -163,55 +170,47 @@ result = (
 ### Структура документации класса
 
 ```python
-class MACDZoneAnalyzer:  # ⚠️ DEPRECATED - используйте analyze_zones()
+class MACD(CustomIndicator):
     """
-    Анализатор MACD с идентификацией зон.
-    
-    ⚠️ DEPRECATED: Этот класс устарел. Используйте Universal Pipeline:
-    analyze_zones().with_indicator('custom', 'macd').detect_zones().build()
-    
-    Этот класс выполняет полный анализ MACD индикатора,
-    включая расчет значений, идентификацию зон и статистический анализ.
-    
+    Moving Average Convergence Divergence (MACD) indicator.
+
+    Измеряет соотношение двух скользящих средних для выявления смены импульса.
+
     Attributes:
-        macd_params (dict): Параметры MACD (fast, slow, signal)
-        zone_params (dict): Параметры зон (min_duration, min_amplitude)
-    
-    Example (DEPRECATED):
-        >>> analyzer = MACDZoneAnalyzer()  # ⚠️ Не рекомендуется
-        >>> result = analyzer.analyze_complete(data)
-        >>> print(f"Найдено зон: {len(result.zones)}")
-        
-    Example (рекомендуемый):
-        >>> result = analyze_zones(data).with_indicator('custom', 'macd').build()
+        fast_period (int): Период быстрой EMA
+        slow_period (int): Период медленной EMA
+        signal_period (int): Период сигнальной линии
+
+    Example:
+        >>> macd = MACD(fast_period=12, slow_period=26, signal_period=9)
+        >>> result = macd.calculate(data)
+        >>> print(result.data.columns.tolist())
+        ['macd', 'macd_signal', 'macd_hist']
     """
-    
-    def __init__(self, macd_params=None, zone_params=None):
+
+    def __init__(self, fast_period: int = 12, slow_period: int = 26,
+                 signal_period: int = 9):
         """
-        Инициализация анализатора.
-        
+        Инициализация индикатора.
+
         Args:
-            macd_params (dict, optional): Параметры MACD. 
-                Defaults to {'fast': 12, 'slow': 26, 'signal': 9}.
-            zone_params (dict, optional): Параметры зон.
-                Defaults to {'min_duration': 2, 'min_amplitude': 0.001}.
+            fast_period (int, optional): Период быстрой EMA. Defaults to 12.
+            slow_period (int, optional): Период медленной EMA. Defaults to 26.
+            signal_period (int, optional): Период сигнальной линии. Defaults to 9.
         """
-    
-    def analyze_complete(self, data):
+
+    def calculate(self, data):
         """
-        Выполняет полный анализ данных.
-        
-        ⚠️ DEPRECATED: Используйте analyze_zones().build() вместо этого метода.
-        
+        Рассчитывает значения индикатора.
+
         Args:
             data (pd.DataFrame): OHLCV данные
-            
+
         Returns:
-            ZoneAnalysisResult: Результат анализа с зонами и статистикой
-            
+            IndicatorResult: Результат с колонками macd/macd_signal/macd_hist
+
         Raises:
             DataError: Если данные некорректны
-            AnalysisError: Если анализ не может быть выполнен
         """
 ```
 

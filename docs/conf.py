@@ -20,8 +20,11 @@ project = 'BQuant Zone Analysis'
 copyright = '2025, BQuant Team'
 author = 'BQuant Team'
 
-# The full version, including alpha/beta/rc tags
-release = '0.0.1'
+# The full version, including alpha/beta/rc tags.
+# Derived from the package rather than hardcoded: this was pinned at '0.0.1' through
+# four releases because nothing tied it to the real version. `sys.path` already points
+# at the repo root above, so this reads the working tree, not an installed copy.
+from bquant import __version__ as release  # noqa: E402
 
 # -- General configuration ---------------------------------------------------
 

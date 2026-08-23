@@ -14,15 +14,15 @@
 ### Zone Analysis (анализ зон)
 
 **02_macd_zone_analysis.py** ⭐ **START HERE**
-- Сравнение старого (deprecated) и нового (universal) API
-- Миграция с MACDZoneAnalyzer на analyze_zones()
+- Быстрый пресет `analyze_macd_zones()` — одна строка
+- Fluent API (builder) `analyze_zones()` — полный контроль
 - Разные стратегии детекции зон
 - Модульное использование
 - Базовая визуализация
 
 **Рекомендуется для:**
-- Знакомства с новой архитектурой
-- Понимания миграции со старого API
+- Знакомства с универсальной архитектурой
+- Выбора между пресетом и билдером
 - Изучения основ zone analysis
 
 **02a_universal_zones.py** ⭐ **RECOMMENDED**
@@ -138,8 +138,8 @@ python examples/04_comprehensive_analysis.py
 
 ### Универсальная архитектура (v2.0+)
 
-**Старый подход (deprecated):**
-```python
+**Старый подход (удалён в 0.0.5, приведён для миграции):**
+```text
 from bquant.indicators.macd import MACDZoneAnalyzer
 analyzer = MACDZoneAnalyzer()
 result = analyzer.analyze_complete(df)

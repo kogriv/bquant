@@ -8,7 +8,7 @@ Indicators модули содержат технические индикато
 > 
 > **IndicatorFactory Integration:** Все источники индикаторов поддерживаются универсально
 > 
-> **MACDZoneAnalyzer Status:** Deprecated wrapper с четким migration path
+> **MACDZoneAnalyzer Status:** удалён в 0.0.5 — миграция на Universal Pipeline
 > 
 > **Universal Pipeline:** Интеграция через `.with_indicator()` API
 
@@ -20,14 +20,17 @@ Indicators модули содержат технические индикато
 - **IndicatorConfig**/**IndicatorSource** - конфигурация/источник данных
 - **IndicatorFactory** - единая фабрика индикаторов (`create()` для preloaded/custom/library)
 
-### 📈 [bquant.indicators.macd](macd.md) - MACD индикатор и зоны (Deprecated)
+### 📈 [bquant.indicators.macd](macd.md) - удалён
 
-⚠️ **DEPRECATED:** `MACDZoneAnalyzer` устарел в v2.1. Используйте Universal Pipeline.
+🗑️ **REMOVED:** модуль `bquant.indicators.macd` удалён в 0.0.5 (был deprecated с v2.1).
+Анализ MACD-зон — через Universal Pipeline.
 
-**Legacy API (Deprecated):**
-- **MACDZoneAnalyzer** - тонкий wrapper с @deprecated decorator
-- **ZoneInfo**/**ZoneAnalysisResult** - модели результатов (перенесены в analysis.zones)
+**Что было удалено:**
+- **MACDZoneAnalyzer** - тонкий wrapper с `@deprecated`, делегировавший в тот же pipeline
 - Вспомогательные функции: `create_macd_analyzer()`, `analyze_macd_zones()`
+- **ZoneInfo**/**ZoneAnalysisResult** - ре-экспорты; сами модели живут в `analysis.zones.models`
+
+Сам **индикатор** MACD не тронут — см. `custom/macd.py`, `preloaded/macd.py`, calculators.
 
 **Migration Path:**
 ```text
@@ -78,7 +81,7 @@ result = (
 - `analyze_zones().with_indicator()` - Универсальный анализ зон
 - `IndicatorFactory.create()` - Создание индикаторов из всех источников
 - `LibraryManager.create_indicator()` - Создание из внешних библиотек
-- **Deprecated:** `MACDZoneAnalyzer.analyze_complete()` - используйте Universal Pipeline
+- **Удалено в 0.0.5:** `MACDZoneAnalyzer.analyze_complete()` - используйте Universal Pipeline
 
 #### PRELOADED индикаторы
 - `MACDPreloadedIndicator.calculate()` - Извлечение готовых значений
@@ -112,22 +115,23 @@ result = (
 #### 🏗️ Классы
 - `BaseIndicator` - Базовый класс индикатора
 - `PreloadedIndicator` - Базовый класс для PRELOADED индикаторов
+- `LibraryIndicator` - Обёртка индикатора из внешней библиотеки
 - `MACDPreloadedIndicator` - PRELOADED MACD индикатор
-- `MACDZoneAnalyzer` - Анализатор MACD
 - `IndicatorFactory` - Фабрика индикаторов
-- `IndicatorRegistry` - Реестр индикаторов
 
 #### 🔧 Функции
-- `calculate_macd()` - Расчет MACD
-- `identify_zones()` - Идентификация зон
-- `register_indicator()` - Регистрация индикатора
-- `create_indicator()` - Создание индикатора
+- `IndicatorFactory.create()` - Создание индикатора из любого источника
+- `IndicatorFactory.create_indicator()` - Создание зарегистрированного индикатора
+- `IndicatorFactory.register_indicator()` - Регистрация индикатора
+- `LibraryManager.create_indicator()` - Создание из внешней библиотеки
+- `calculators.calculate_macd()` - Расчет MACD (модуль `bquant.indicators.calculators`)
 
 #### 📋 Типы данных
 - `IndicatorResult` - Результат индикатора
 - `IndicatorConfig` - Конфигурация индикатора
-- `ZoneAnalysisResult` - Результат анализа зон
-- `ZoneInfo` - Информация о зоне
+- `IndicatorSource` - Источник индикатора
+- `ZoneAnalysisResult` / `ZoneInfo` - модели зон; живут в `bquant.analysis.zones.models`
+  (ре-экспорты из `bquant.indicators` убраны в 0.0.5)
 
 ## 💡 Примеры использования
 
@@ -468,7 +472,7 @@ print("Universal analysis exported to universal_analysis.json")
 
 - **[Universal Pipeline](../analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
 - **[Base Module](base.md)** - Подробная документация базовых классов
-- **[MACD Module](macd.md)** - Документация MACD индикатора (Deprecated)
+- **[MACD Module](macd.md)** - `bquant.indicators.macd` удалён: заметка о миграции
 - **[PRELOADED Module](preloaded.md)** - Документация PRELOADED индикаторов
 - **[Factory Module](factory.md)** - Документация Universal Indicator Factory
 

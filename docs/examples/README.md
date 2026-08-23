@@ -197,8 +197,14 @@ def main():
     
     # 2. Анализ
     print("Выполняем анализ...")
-    analyzer = MACDZoneAnalyzer()
-    result = analyzer.analyze_complete(data)
+    result = (
+        analyze_zones(data)
+        .with_indicator('custom', 'macd',
+                        fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones('zero_crossing', indicator_col='macd')
+        .analyze()
+        .build()
+    )
     
     # 3. Результаты
     print("Результаты анализа:")

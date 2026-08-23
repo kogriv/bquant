@@ -132,16 +132,21 @@ BQuant Documentation
    print(f"Найдено зон: {len(result.zones)}")
    print(f"Статистика: {result.statistics}")
 
-Legacy MACD Wrapper (Deprecated)
---------------------------------
+MACD-зоны в одну строку
+--------------------------
 
 .. code-block:: python
 
-   # ⚠️ DEPRECATED: Используйте analyze_zones() вместо этого
-   from bquant.indicators import MACDZoneAnalyzer
-   
-   analyzer = MACDZoneAnalyzer()  # Deprecated wrapper
-   result = analyzer.analyze_complete(data)  # Delegates to analyze_zones()
+   from bquant.analysis.zones import analyze_macd_zones
+
+   result = analyze_macd_zones(data)  # пресет поверх того же пайплайна
+
+.. note::
+
+   Класс ``MACDZoneAnalyzer`` (и обёртки ``create_macd_analyzer`` /
+   ``analyze_macd_zones`` из ``bquant.indicators.macd``) **удалён** в 0.0.5.
+   Замена — пресет выше либо полный билдер ``analyze_zones()``.
+   Сам индикатор MACD не менялся.
 
 Основные возможности
 -------------------
