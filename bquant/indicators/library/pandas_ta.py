@@ -21,6 +21,23 @@ from ...core.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+def _is_usable_name(name: Any) -> bool:
+    """Is this a column name the library meaningfully chose?
+
+    pandas-ta labels its output from the parameters actually used, which is exactly
+    the information we want to keep. But it can also hand back positional columns
+    (integers from a bare RangeIndex) or an unnamed Series — those carry no meaning
+    and we supply our own name instead.
+    """
+    return isinstance(name, str) and bool(name.strip())
+
+
+def _needs_generated_names(columns: Iterable[Any]) -> bool:
+    """True when the library's own column labels are unusable and must be replaced."""
+    columns = list(columns)
+    return not columns or not all(_is_usable_name(c) for c in columns)
+
+
 class PandasTALoader:
     """Загрузчик индикаторов из библиотеки pandas-ta."""
 
@@ -352,7 +369,23 @@ class PandasTALoader:
                 parameters=parameters,
             )
             self._price_params = price_params
-            self.config.columns = output_columns
+            # `output_columns` was derived ONCE at registration time, on synthetic
+            # data, with default parameters. Reusing it for an instance built with
+            # different parameters is G18: rsi(length=50) was declared (and emitted)
+            # as RSI_14. When the caller overrode anything, re-derive the names from
+            # the parameters this instance will actually use. Defaults need no work —
+            # for them the registration-time names are correct by construction.
+            resolved_columns = output_columns
+            if kwargs:
+                recomputed = cls._determine_output_columns(
+                    func_name,
+                    library_function,
+                    price_params,
+                    {k: v for k, v in parameters.items() if k in tunable_params},
+                )
+                if recomputed:
+                    resolved_columns = recomputed
+            self.config.columns = resolved_columns
             self.config.description = description
 
         def get_required_columns(self) -> List[str]:
@@ -403,15 +436,25 @@ class PandasTALoader:
                     f"Failed to calculate {base_name}: {exc}"
                 ) from exc
 
+            # pandas-ta names its own output from the parameters actually used
+            # (RSI_50, MACD_12_26_9, BBL_20_2.0). Those names are correct. Replacing
+            # them with registration-time names computed on defaults is G18 — the
+            # values were right and the label lied. Keep the library's names, and
+            # fall back to our own only when it gives us nothing usable.
+            declared = self.get_output_columns()
+
             if isinstance(result, pd.DataFrame):
                 result_df = result.copy()
-                if output_columns and len(result_df.columns) == len(output_columns):
-                    result_df.columns = output_columns
+                if _needs_generated_names(result_df.columns):
+                    if declared and len(result_df.columns) == len(declared):
+                        result_df.columns = declared
             elif isinstance(result, pd.Series):
-                column_name = output_columns[0] if output_columns else base_name
+                column_name = result.name
+                if not _is_usable_name(column_name):
+                    column_name = declared[0] if declared else base_name
                 result_df = result.to_frame(name=column_name)
             else:
-                column_name = output_columns[0] if output_columns else base_name
+                column_name = declared[0] if declared else base_name
                 result_df = pd.DataFrame(
                     {column_name: result}, index=getattr(data, "index", None)
                 )

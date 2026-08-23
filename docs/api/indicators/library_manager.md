@@ -40,6 +40,46 @@ result = macd.calculate(data)
 `LibraryManager.create_indicator()` скрывает детали префиксов (`pandas_ta_macd`) и использует
 `IndicatorFactory` для создания корректного экземпляра.
 
+### Как называются выходные колонки
+
+Имена колонок задаёт **сама библиотека**, и они включают параметры расчёта:
+
+```python
+LibraryManager.create_indicator('pandas_ta', 'rsi', length=14).calculate(data)
+# колонка: RSI_14
+
+LibraryManager.create_indicator('pandas_ta', 'rsi', length=50).calculate(data)
+# колонка: RSI_50   <- имя следует за параметром
+```
+
+Практическое следствие: **не задавайте имя колонки константой, если меняете параметры.**
+Узнать его заранее можно у самого индикатора:
+
+```python
+rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=50)
+col = rsi.get_output_columns()[0]        # 'RSI_50'
+
+result = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=50)
+    .detect_zones('threshold',
+                  indicator_col=col,                        # не константа, а имя от индикатора
+                  zone_types=['overbought', 'oversold'],    # см. примечание ниже
+                  upper_threshold=70, lower_threshold=30)
+    .build()
+)
+```
+
+> **Передавайте `zone_types` явно для порогового детектора.** По умолчанию
+> `zone_types` = `['bull', 'bear']` — это словарь MACD-подобных стратегий, а пороговый
+> детектор выдаёт `overbought` / `neutral` / `oversold`. Без явного списка **все зоны
+> отфильтровываются и результат пуст**. Дефект зарегистрирован как **G19**.
+
+> **Изменение в 0.0.6 (G18).** Раньше имя выводилось один раз при регистрации индикатора,
+> на дефолтных параметрах, и подставлялось всегда: `rsi(length=50)` считался верно, но
+> колонка называлась `RSI_14`. Теперь имя соответствует фактическим параметрам. Вызовы
+> **без параметров** не затронуты.
+
 ## Получение информации о библиотеках
 
 ```python

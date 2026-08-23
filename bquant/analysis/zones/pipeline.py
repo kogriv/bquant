@@ -291,6 +291,26 @@ class ZoneAnalysisPipeline:
         result: IndicatorResult = indicator.calculate(df)
 
         df_with_indicator = df.copy()
+        # An indicator column whose name is already taken REPLACES the caller's data
+        # (G17). This is easy to miss: the bundled TradingView sample ships its own
+        # `macd` column, so computing MACD over it silently substitutes recomputed
+        # values — and on that sample the final bar happens to agree, so a spot check
+        # at the tail sees nothing. Warn rather than raise: some callers legitimately
+        # recompute an indicator that arrived with the data. Silence is the defect,
+        # not the overwrite itself.
+        overwritten = [col for col in result.data.columns if col in df.columns]
+        if overwritten:
+            self.logger.warning(
+                "Indicator %s.%s overwrites %d existing column(s) in the input data: "
+                "%s. The original values are replaced and cannot be recovered from the "
+                "result. Rename the incoming column(s), or drop them before analysis, "
+                "if you meant to keep both.",
+                ind.source,
+                ind.name,
+                len(overwritten),
+                ", ".join(repr(c) for c in overwritten),
+            )
+
         for col in result.data.columns:
             df_with_indicator[col] = result.data[col]
 
