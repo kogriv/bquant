@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **`MACDZoneAnalyzer` удалён (ломающее изменение).** Вместе с ним удалены модуль
+  `bquant/indicators/macd.py` и обёртки `create_macd_analyzer` / `analyze_macd_zones`,
+  которые из него ре-экспортировались, а также ре-экспорты из `bquant/indicators/__init__.py`.
+  Класс был помечен deprecated с v2.1 и представлял собой тонкую обёртку, делегировавшую
+  в Universal Zone Analysis pipeline, — сам пайплайн от него никогда не зависел.
+  Сам **индикатор** MACD не тронут (`custom/macd.py`, `preloaded/macd.py`, calculators).
+
+  Миграция:
+  ```diff
+  - from bquant.indicators.macd import MACDZoneAnalyzer      # удалено
+  + from bquant.analysis.zones import analyze_macd_zones     # пресет
+  + from bquant.analysis.zones import analyze_zones          # полный билдер
+  ```
+  Пресет считает по тому же пайплайну и даёт тот же результат. Учтите форвардный дефолт
+  зон: `analyze_macd_zones` детектирует по **линии MACD**, а не по гистограмме, как делал
+  удалённый класс, — при сравнении со старыми артефактами передавайте
+  `zone_basis='histogram'`. См. `docs/migration/MIGRATION_v2.md`.
+
 ### Fixed
 - **Адаптивные пороги больше не отключают фильтр проминенции у `find_peaks` (G16).**
   `auto_swing_thresholds` возвращает **относительные** величины, но одна из них
