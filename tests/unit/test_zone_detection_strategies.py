@@ -338,7 +338,6 @@ class TestPreloadedZonesDetection:
         strategy = PreloadedZonesDetection()
         config = ZoneDetectionConfig(
             min_duration=2,
-            zone_types=['any'],
             rules={'zones_data': sample_zones_df},
             strategy_name='preloaded'
         )
@@ -358,7 +357,6 @@ class TestPreloadedZonesDetection:
             strategy = PreloadedZonesDetection()
             config = ZoneDetectionConfig(
                 min_duration=2,
-                zone_types=['any'],
                 rules={'zones_data': str(csv_path)},
                 strategy_name='preloaded'
             )
@@ -486,7 +484,11 @@ class TestZoneDetectionConfig:
         config = ZoneDetectionConfig()
         
         assert config.min_duration == 2
-        assert config.zone_types == ['bull', 'bear']
+        # None означает «не фильтровать»: раньше здесь подставлялся словарь
+        # MACD-подобных детекторов, из-за чего threshold и combined молча
+        # возвращали пустой успешный результат (G19).
+        assert config.zone_types is None
+        assert config.accepts('overbought')
         assert config.rules == {}
         assert config.metadata == {}
     

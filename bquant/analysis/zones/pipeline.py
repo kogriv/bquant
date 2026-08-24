@@ -55,7 +55,11 @@ _SWING_CLASS_TO_NAME = {
 #                 changes the detected swing set, not only its confirmations.
 #   v6 (2026-08): adaptive thresholds stop overwriting find_peaks' prominence with a
 #                 relative value (G16); `peak_prominence` metadata key renamed.
-CACHE_SCHEMA_VERSION = 6
+#   v7 (2026-08): zone features carry start_idx/end_idx; sequence and hypothesis
+#                 results derive from declared zone-type properties and count
+#                 only transitions between adjacent zones (G20/G21); the
+#                 asymmetry test key is now `contrast_asymmetry`.
+CACHE_SCHEMA_VERSION = 7
 
 
 @dataclass

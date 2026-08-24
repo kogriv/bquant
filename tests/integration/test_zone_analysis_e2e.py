@@ -106,7 +106,10 @@ class TestRSIFullPipeline:
             analyze_zones(df)
             .with_indicator('custom', 'rsi', period=14)
             .detect_zones('threshold', 
-                         indicator_col='rsi',
+                         # Колонка, которую действительно считает custom.rsi(14);
+                         # 'rsi' резолвился лишь потому, что встроенный сэмпл несёт
+                         # собственную колонку из выгрузки TradingView.
+                         indicator_col='rsi_14',
                          upper_threshold=70,
                          lower_threshold=30,
                          min_duration=2)
@@ -116,14 +119,28 @@ class TestRSIFullPipeline:
         )
         
         assert isinstance(result, ZoneAnalysisResult)
-        assert len(result.zones) >= 0, "May have 0 zones if no threshold breaches"
-        assert 'rsi' in result.data.columns
+        # Раньше здесь стояло `>= 0` с примечанием «может быть 0 зон» — утверждение,
+        # истинное всегда, и написано оно было под симптом G19: не переданный
+        # zone_types подменялся на ['bull','bear'], и пороговый детектор возвращал
+        # пустой успешный результат. На этих данных зоны есть заведомо.
+        assert result.zones, "threshold detection found nothing on data that has zones"
+        assert 'rsi_14' in result.data.columns
         
-        # Если есть зоны, проверяем их
+        # Без явного zone_types детектор отдаёт все объявленные им типы
+        observed = {zone.type for zone in result.zones}
+        assert observed <= {'overbought', 'neutral', 'oversold'}, observed
+        assert observed & {'overbought', 'oversold'}, (
+            f"only neutral zones detected: {observed}"
+        )
+        
+        # Метрики стратегий лежат в features['metadata'], а не на верхнем уровне.
+        # Прежняя проверка искала 'shape_quality'/'volume_surge' — таких ключей нет
+        # нигде; она не падала лишь потому, что при старом дефолте zone_types зон
+        # было ноль и цикл не выполнялся ни разу.
         for zone in result.zones[:3]:
-            assert zone.type in ['overbought', 'oversold']
-            if zone.features:
-                assert 'shape_quality' in zone.features or 'volume_surge' in zone.features
+            metadata = (zone.features or {}).get('metadata', {})
+            assert 'shape_metrics' in metadata, sorted(metadata)
+            assert 'volume_metrics' in metadata, sorted(metadata)
     
     @pytest.mark.integration
     def test_rsi_preset_convenience(self):

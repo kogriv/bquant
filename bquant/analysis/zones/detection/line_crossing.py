@@ -15,14 +15,18 @@ from typing import List
 
 from .base import ZoneDetectionStrategy, ZoneDetectionConfig
 from .registry import ZoneDetectionRegistry
-from ..models import ZoneInfo
+from ..models import ZoneInfo, ZoneType
 from bquant.core.logging_config import get_logger
 
 
 @ZoneDetectionRegistry.register(
     'line_crossing',
     description='Detect zones by two lines crossing each other',
-    supported_zones=['bull', 'bear'],
+    supported_zones=[
+        # Первая линия выше второй — приподнятое состояние, ниже — подавленное.
+        ZoneType('bull', polarity=+1, counterpart='bear', label='Bullish'),
+        ZoneType('bear', polarity=-1, counterpart='bull', label='Bearish'),
+    ],
     required_rules=['line1_col', 'line2_col']
 )
 class LineCrossingDetection:
@@ -101,7 +105,7 @@ class LineCrossingDetection:
             zone_mean_diff = diff[start_idx:end_idx + 1].mean()
             zone_type = 'bull' if zone_mean_diff > 0 else 'bear'
             
-            if zone_type not in config.zone_types:
+            if not config.accepts(zone_type):
                 continue
             
             zone_data = df.iloc[start_idx:end_idx + 1].copy()

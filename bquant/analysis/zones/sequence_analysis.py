@@ -18,6 +18,7 @@ from ...core.logging_config import get_logger
 from ...core.exceptions import AnalysisError
 from .. import AnalysisResult, BaseAnalyzer
 from .zone_features import ZoneFeatures
+from .models import ZoneVocabulary
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
@@ -81,6 +82,17 @@ class ClusterAnalysis:
             self.metadata = {}
 
 
+
+def _polarity_ratio(cluster_data: pd.DataFrame, vocabulary: ZoneVocabulary,
+                    polarity: int) -> float:
+    """Доля зон кластера, чей тип объявлен с данной полярностью."""
+    if 'zone_type' not in cluster_data.columns or cluster_data.empty:
+        return 0.0
+    matching = cluster_data['zone_type'].map(
+        lambda name: vocabulary.polarity_of(name) == polarity
+    )
+    return float(matching.mean())
+
 class ZoneSequenceAnalyzer(BaseAnalyzer):
     """
     Анализатор последовательностей торговых зон.
@@ -92,25 +104,40 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
     - Выявления паттернов в последовательностях
     """
     
-    def __init__(self, min_sequence_length: int = 3):
+    def __init__(self, min_sequence_length: int = 3,
+                 vocabulary: Optional[ZoneVocabulary] = None):
         """
         Инициализация анализатора.
         
         Args:
             min_sequence_length: Минимальная длина последовательности для анализа
+            vocabulary: Объявленный словарь типов зон. Нужен там, где анализ
+                опирается на **направление** (runs-test бинаризует
+                последовательность). Раньше направление определялось сравнением
+                имени с литералом ``'bull'``, из-за чего любой другой словарь
+                давал константный ряд. Если словарь не передан, он выводится из
+                зон при вызове :meth:`analyze_zone_transitions`; если и там нет —
+                собирается голый по встреченным именам, и направленные тесты
+                честно сообщают о неприменимости.
         """
         super().__init__("ZoneSequenceAnalyzer")
         self.min_sequence_length = min_sequence_length
+        self.vocabulary = vocabulary
         self.logger = get_logger(f"{__name__}.ZoneSequenceAnalyzer")
         
         self.logger.info(f"Initialized zone sequence analyzer with min_sequence_length={min_sequence_length}")
     
-    def analyze_zone_transitions(self, zones_features: List[Union[ZoneFeatures, Dict[str, Any]]]) -> AnalysisResult:
+    def analyze_zone_transitions(self, zones_features: List[Union[ZoneFeatures, Dict[str, Any]]],
+                                 vocabulary: Optional[ZoneVocabulary] = None) -> AnalysisResult:
         """
         Анализ переходов между зонами.
         
         Args:
             zones_features: Список объектов ZoneFeatures или словарей
+            vocabulary: Объявленный словарь типов зон. Если не передан, берётся
+                переданный в конструктор, иначе собирается голый по встреченным
+                именам — тогда переходы и матрица считаются, а направленные тесты
+                сообщают о неприменимости вместо того, чтобы угадывать.
         
         Returns:
             AnalysisResult с анализом переходов
@@ -136,26 +163,55 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             # Создаем последовательность типов зон
             zone_sequence = df_features['zone_type'].tolist()
             
+            # Словарь типов: аргумент → конструктор → голый по наблюдённым именам
+            if vocabulary is None:
+                vocabulary = self.vocabulary
+            if vocabulary is None:
+                vocabulary = ZoneVocabulary.coerce(sorted(set(zone_sequence)))
+                self.logger.debug(
+                    "No declared zone vocabulary supplied; falling back to the "
+                    "observed names without properties. Directional tests will "
+                    "report themselves as not applicable."
+                )
+            
+            # Примыкание проверяется, а не предполагается: пара зон, разделённая
+            # пропуском, переходом не является (см. _contiguous_segments).
+            segments = self._contiguous_segments(df_features)
+            adjacency = self._adjacency_summary(df_features, segments)
+            
             # Анализируем переходы
-            transitions = self._calculate_transitions(df_features)
+            transitions = self._calculate_transitions(df_features, segments)
             transition_probabilities = self._calculate_transition_probabilities(transitions)
-            transition_details = self._analyze_transition_details(df_features, transitions)
+            transition_details = self._analyze_transition_details(df_features, transitions, segments)
             
             # Анализ паттернов
-            patterns = self._find_sequence_patterns(zone_sequence)
+            patterns = self._find_sequence_patterns(zone_sequence, segments)
             
             # Статистические тесты
-            randomness_tests = self._test_sequence_randomness(zone_sequence)
+            randomness_tests = self._test_sequence_randomness(zone_sequence, segments, vocabulary)
             
             # Марковский анализ
-            markov_analysis = self._markov_chain_analysis(zone_sequence)
+            markov_analysis = self._markov_chain_analysis(zone_sequence, segments)
+            
+            if adjacency['discarded_transitions']:
+                self.logger.info(
+                    "%d of %d consecutive zone pairs are separated by a gap "
+                    "(%d bars missing, typically zones dropped by min_duration) and "
+                    "are not counted as transitions.",
+                    adjacency['discarded_transitions'],
+                    len(zone_sequence) - 1,
+                    adjacency['bars_missing'],
+                )
             
             results = {
                 'sequence_summary': {
                     'total_zones': len(zone_sequence),
-                    'total_transitions': len(zone_sequence) - 1,
+                    'total_transitions': adjacency['adjacent_transitions'],
                     'unique_transition_types': len(transitions),
-                    'sequence_length': len(zone_sequence)
+                    'sequence_length': len(zone_sequence),
+                    'zone_types_observed': sorted(set(zone_sequence)),
+                    'vocabulary_declared': vocabulary.is_declared,
+                    **adjacency,
                 },
                 'transitions': transitions,
                 'transition_probabilities': transition_probabilities,
@@ -185,7 +241,8 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
     
     def cluster_zones(self, zones_features: List[Union[ZoneFeatures, Dict[str, Any]]], 
                      n_clusters: int = 3, 
-                     features_to_use: Optional[List[str]] = None) -> AnalysisResult:
+                     features_to_use: Optional[List[str]] = None,
+                     vocabulary: Optional[ZoneVocabulary] = None) -> AnalysisResult:
         """
         Кластеризация зон по характеристикам.
         
@@ -247,7 +304,15 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             df_features['cluster'] = cluster_labels
             
             # Анализ кластеров
-            clusters_analysis = self._analyze_clusters(df_features, available_features, kmeans, scaler)
+            if vocabulary is None:
+                vocabulary = self.vocabulary
+            if vocabulary is None and 'zone_type' in df_features.columns:
+                vocabulary = ZoneVocabulary.coerce(sorted(set(df_features['zone_type'])))
+            
+            clusters_analysis = self._analyze_clusters(
+                df_features, available_features, kmeans, scaler,
+                vocabulary or ZoneVocabulary()
+            )
             
             # Валидация кластеризации
             clustering_quality = self._evaluate_clustering_quality(features_scaled, cluster_labels, n_clusters)
@@ -283,17 +348,100 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             self.logger.error(f"Zone clustering failed: {e}")
             raise AnalysisError(f"Zone clustering failed: {e}")
     
-    def _calculate_transitions(self, df_features: pd.DataFrame) -> Dict[str, int]:
-        """Подсчет переходов между зонами."""
+    @staticmethod
+    def _contiguous_segments(df_features: pd.DataFrame) -> List[List[int]]:
+        """Разбить зоны на максимальные серии **примыкающих** зон.
+
+        Детекторы выдают зоны, мостящие таймлайн: зона ``i+1`` начинается там, где
+        кончилась зона ``i``. Анализ последовательностей на этом и построен — он
+        читает соседние элементы списка как переход. Но ``min_duration`` отбрасывает
+        короткие зоны, и соседи отброшенной перестают примыкать: при дефолтном
+        ``min_duration=2`` на встроенном сэмпле 8 из 71 «переходов» MACD-детектора
+        соединяют зоны через пропуск, включая структурно невозможные ``bull → bull``
+        (детектор по пересечению нуля обязан чередовать типы). Разбор:
+        ``devref/gaps/sequence/``.
+
+        Здесь примыкание проверяется по границам зон, а не предполагается. Если
+        границы неизвестны (``start_idx``/``end_idx`` отсутствуют — например, фичи
+        пришли из старого сохранённого артефакта), последовательность считается
+        одной серией: это прежнее поведение, и оно отмечается в сводке
+        ``adjacency_verified=False``, чтобы допущение было видно.
+
+        Returns:
+            Список серий; каждая — список позиций строк ``df_features`` подряд.
+        """
+        n = len(df_features)
+        if n == 0:
+            return []
+
+        has_bounds = (
+            'start_idx' in df_features.columns
+            and 'end_idx' in df_features.columns
+            and df_features['start_idx'].notna().all()
+            and df_features['end_idx'].notna().all()
+        )
+        if not has_bounds:
+            return [list(range(n))]
+
+        starts = df_features['start_idx'].tolist()
+        ends = df_features['end_idx'].tolist()
+
+        segments = [[0]]
+        for i in range(1, n):
+            if starts[i] <= ends[i - 1] + 1:
+                segments[-1].append(i)
+            else:
+                segments.append([i])
+        return segments
+
+    @staticmethod
+    def _adjacency_summary(df_features: pd.DataFrame,
+                           segments: List[List[int]]) -> Dict[str, Any]:
+        """Сколько «переходов» отброшено как соединяющие непримыкающие зоны."""
+        verified = (
+            'start_idx' in df_features.columns
+            and 'end_idx' in df_features.columns
+            and df_features['start_idx'].notna().all()
+            and df_features['end_idx'].notna().all()
+        )
+        n = len(df_features)
+        counted = sum(len(seg) - 1 for seg in segments)
+        summary = {
+            'adjacency_verified': bool(verified),
+            'contiguous_segments': len(segments),
+            'segment_lengths': [len(seg) for seg in segments],
+            'adjacent_transitions': counted,
+            'discarded_transitions': max(n - 1, 0) - counted,
+        }
+        if verified and len(segments) > 1:
+            starts = df_features['start_idx'].tolist()
+            ends = df_features['end_idx'].tolist()
+            gaps = [
+                starts[seg[0]] - ends[prev[-1]] - 1
+                for prev, seg in zip(segments, segments[1:])
+            ]
+            summary['bars_missing'] = int(sum(gaps))
+            summary['gap_sizes'] = [int(g) for g in gaps]
+        else:
+            summary['bars_missing'] = 0
+            summary['gap_sizes'] = []
+        return summary
+
+    def _calculate_transitions(self, df_features: pd.DataFrame,
+                               segments: List[List[int]]) -> Dict[str, int]:
+        """Подсчет переходов между **примыкающими** зонами.
+
+        Пара, разделённая пропуском, переходом не является: между этими зонами
+        было что-то, чего в выборке нет. Такие пары не считаются, а их количество
+        сообщается в ``sequence_summary``.
+        """
         zone_sequence = df_features['zone_type'].tolist()
         transitions = {}
         
-        for i in range(len(zone_sequence) - 1):
-            current = zone_sequence[i]
-            next_zone = zone_sequence[i + 1]
-            transition = f"{current}_to_{next_zone}"
-            
-            transitions[transition] = transitions.get(transition, 0) + 1
+        for segment in segments:
+            for i, j in zip(segment, segment[1:]):
+                transition = f"{zone_sequence[i]}_to_{zone_sequence[j]}"
+                transitions[transition] = transitions.get(transition, 0) + 1
         
         return transitions
     
@@ -307,8 +455,9 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
                 for transition, count in transitions.items()}
     
     def _analyze_transition_details(self, df_features: pd.DataFrame, 
-                                  transitions: Dict[str, int]) -> Dict[str, TransitionAnalysis]:
-        """Детальный анализ переходов."""
+                                  transitions: Dict[str, int],
+                                  segments: List[List[int]]) -> Dict[str, TransitionAnalysis]:
+        """Детальный анализ переходов (только между примыкающими зонами)."""
         zone_sequence = df_features['zone_type'].tolist()
         transition_details = {}
         
@@ -316,14 +465,13 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
         transition_data = {transition: {'before': [], 'after': []} 
                           for transition in transitions.keys()}
         
-        for i in range(len(zone_sequence) - 1):
-            current = zone_sequence[i]
-            next_zone = zone_sequence[i + 1]
-            transition = f"{current}_to_{next_zone}"
-            
-            if transition in transition_data:
-                transition_data[transition]['before'].append(i)
-                transition_data[transition]['after'].append(i + 1)
+        for segment in segments:
+            for i, j in zip(segment, segment[1:]):
+                transition = f"{zone_sequence[i]}_to_{zone_sequence[j]}"
+                
+                if transition in transition_data:
+                    transition_data[transition]['before'].append(i)
+                    transition_data[transition]['after'].append(j)
         
         # Анализируем каждый тип перехода
         total_transitions = sum(transitions.values())
@@ -365,27 +513,36 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
         
         return {k: v.__dict__ for k, v in transition_details.items()}
     
-    def _find_sequence_patterns(self, zone_sequence: List[str]) -> Dict[str, Any]:
-        """Поиск паттернов в последовательностях."""
+    def _find_sequence_patterns(self, zone_sequence: List[str],
+                                segments: List[List[int]]) -> Dict[str, Any]:
+        """Поиск паттернов в последовательностях.
+
+        Серии и триплеты считаются **внутри примыкающих отрезков**: серия из двух
+        зон одного типа, разделённых пропуском, — не серия, а триплет через
+        пропуск склеивает то, что рядом не стояло.
+        """
         patterns = {}
         
         # Анализ длин серий
-        current_type = zone_sequence[0]
-        current_length = 1
-        series_lengths = {current_type: []}
+        series_lengths: Dict[str, List[int]] = {}
         
-        for i in range(1, len(zone_sequence)):
-            if zone_sequence[i] == current_type:
-                current_length += 1
-            else:
-                series_lengths[current_type].append(current_length)
-                current_type = zone_sequence[i]
-                if current_type not in series_lengths:
-                    series_lengths[current_type] = []
-                current_length = 1
-        
-        # Добавляем последнюю серию
-        series_lengths[current_type].append(current_length)
+        for segment in segments:
+            current_type = zone_sequence[segment[0]]
+            current_length = 1
+            series_lengths.setdefault(current_type, [])
+            
+            for position in segment[1:]:
+                zone_type = zone_sequence[position]
+                if zone_type == current_type:
+                    current_length += 1
+                else:
+                    series_lengths[current_type].append(current_length)
+                    current_type = zone_type
+                    series_lengths.setdefault(current_type, [])
+                    current_length = 1
+            
+            # Последняя серия отрезка
+            series_lengths[current_type].append(current_length)
         
         # Статистика серий
         patterns['series_analysis'] = {}
@@ -399,46 +556,111 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
                     'std_series_length': np.std(lengths)
                 }
         
-        # Поиск триплетов (последовательности из 3 зон)
-        if len(zone_sequence) >= 3:
-            triplets = {}
-            for i in range(len(zone_sequence) - 2):
-                triplet = f"{zone_sequence[i]}-{zone_sequence[i+1]}-{zone_sequence[i+2]}"
+        # Поиск триплетов (последовательности из 3 примыкающих зон)
+        triplets: Dict[str, int] = {}
+        for segment in segments:
+            for a, b, c in zip(segment, segment[1:], segment[2:]):
+                triplet = f"{zone_sequence[a]}-{zone_sequence[b]}-{zone_sequence[c]}"
                 triplets[triplet] = triplets.get(triplet, 0) + 1
-            
+        
+        if triplets:
             patterns['triplet_patterns'] = triplets
         
         return patterns
-    
-    def _test_sequence_randomness(self, zone_sequence: List[str]) -> Dict[str, Any]:
-        """Тестирование случайности последовательности."""
-        randomness_tests = {}
+
+    def _test_sequence_randomness(self, zone_sequence: List[str],
+                                  segments: List[List[int]],
+                                  vocabulary: ZoneVocabulary) -> Dict[str, Any]:
+        """Тестирование случайности последовательности.
+
+        Раньше здесь стояло ``1 if zone == 'bull' else 0`` — бинаризация по имени.
+        На любом другом словаре ряд получался константным, и тест отвечал на
+        вопрос о величине, которая не меняется. Теперь бинаризация идёт по
+        **объявленной полярности**: приподнятые зоны против подавленных.
+
+        Кроме того, тест считается на **самом длинном примыкающем отрезке**, а не
+        на всей выборке: прогон, прерванный пропуском, — не тот прогон. Если
+        полярность не объявлена ни для одного встреченного типа или подходящего
+        отрезка нет, возвращается ``not_applicable`` с причиной, а не число.
+        """
+        randomness_tests: Dict[str, Any] = {}
         
-        # Runs test
-        binary_sequence = [1 if zone == 'bull' else 0 for zone in zone_sequence]
-        runs_result = self._runs_test(binary_sequence)
-        randomness_tests['runs_test'] = runs_result
+        observed = sorted(set(zone_sequence))
+        directional = [t for t in observed if vocabulary.polarity_of(t) in (-1, 1)]
         
-        # Chi-square test для равномерности
-        bull_count = zone_sequence.count('bull')
-        bear_count = zone_sequence.count('bear')
+        if not directional:
+            reason = (
+                "no observed zone type declares a polarity, so there is no "
+                f"direction to test; observed types: {observed}"
+            )
+            randomness_tests['runs_test'] = {'not_applicable': reason}
+            randomness_tests['uniformity_test'] = {'not_applicable': reason}
+            return randomness_tests
         
-        if bull_count > 0 and bear_count > 0:
-            expected = len(zone_sequence) / 2
-            chi2_stat = ((bull_count - expected)**2 / expected + 
-                        (bear_count - expected)**2 / expected)
+        longest = max(segments, key=len) if segments else []
+        elevated = [
+            position for position in longest
+            if vocabulary.polarity_of(zone_sequence[position]) == 1
+        ]
+        depressed = [
+            position for position in longest
+            if vocabulary.polarity_of(zone_sequence[position]) == -1
+        ]
+        directional_positions = sorted(elevated + depressed)
+        
+        if len(directional_positions) < 2:
+            reason = (
+                "the longest contiguous run of zones holds fewer than two "
+                f"directional zones ({len(directional_positions)}); the sequence is "
+                "too fragmented to test"
+            )
+            randomness_tests['runs_test'] = {'not_applicable': reason}
+        else:
+            binary_sequence = [
+                1 if vocabulary.polarity_of(zone_sequence[position]) == 1 else 0
+                for position in directional_positions
+            ]
+            runs_result = self._runs_test(binary_sequence)
+            runs_result['basis'] = {
+                'segment_length': len(longest),
+                'directional_zones_used': len(directional_positions),
+                'total_zones': len(zone_sequence),
+                'binarised_by': 'declared polarity (+1 vs -1)',
+            }
+            randomness_tests['runs_test'] = runs_result
+        
+        # Chi-square на равномерность — по всей выборке: он не про порядок,
+        # поэтому пропуски ему не мешают.
+        elevated_count = sum(1 for z in zone_sequence if vocabulary.polarity_of(z) == 1)
+        depressed_count = sum(1 for z in zone_sequence if vocabulary.polarity_of(z) == -1)
+        
+        if elevated_count > 0 and depressed_count > 0:
+            total = elevated_count + depressed_count
+            expected = total / 2
+            chi2_stat = ((elevated_count - expected) ** 2 / expected +
+                        (depressed_count - expected) ** 2 / expected)
             chi2_p = 1 - stats.chi2.cdf(chi2_stat, df=1)
             
             randomness_tests['uniformity_test'] = {
                 'chi2_statistic': chi2_stat,
                 'p_value': chi2_p,
                 'is_uniform': chi2_p > 0.05,
-                'bull_count': bull_count,
-                'bear_count': bear_count
+                'elevated_count': elevated_count,
+                'depressed_count': depressed_count,
+                'elevated_types': [t for t in observed if vocabulary.polarity_of(t) == 1],
+                'depressed_types': [t for t in observed if vocabulary.polarity_of(t) == -1],
+            }
+        else:
+            randomness_tests['uniformity_test'] = {
+                'not_applicable': (
+                    "only one polarity is present among the observed zones "
+                    f"(elevated={elevated_count}, depressed={depressed_count}); "
+                    "there is nothing to compare"
+                )
             }
         
         return randomness_tests
-    
+
     def _runs_test(self, binary_sequence: List[int]) -> Dict[str, Any]:
         """Runs test для проверки случайности."""
         n = len(binary_sequence)
@@ -477,25 +699,47 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             'is_random': p_value > 0.05
         }
     
-    def _markov_chain_analysis(self, zone_sequence: List[str]) -> Dict[str, Any]:
-        """Анализ последовательности как цепи Маркова."""
+    def _markov_chain_analysis(self, zone_sequence: List[str],
+                               segments: List[List[int]]) -> Dict[str, Any]:
+        """Анализ последовательности как цепи Маркова.
+
+        Две правки против прежней версии, и обе меняют ответ, а не оформление.
+
+        **Состояния берутся из наблюдённых данных, а не из литералов.** Раньше
+        здесь стояло ``states = ['bull', 'bear']`` с матрицей 2×2 и жёстким
+        отображением имён в индексы. На словаре из других имён ни один переход не
+        попадал в матрицу, и функция возвращала нули как успех — вместе с
+        ``states: ['bull','bear']`` и стационарным распределением ``[1.0, 0.0]``,
+        то есть уверенным утверждением о состоянии, ни разу не встретившемся в
+        выборке. Соседний ``_calculate_transitions`` при этом считал те же данные
+        верно, не зная словаря.
+
+        **Считаются только переходы между примыкающими зонами.** Пара, разделённая
+        пропуском, переходом не является.
+        """
         if len(zone_sequence) < 2:
             return {'error': 'Sequence too short for Markov analysis'}
         
-        # Матрица переходов
-        states = ['bull', 'bear']
-        transition_matrix = np.zeros((2, 2))
-        state_to_index = {'bull': 0, 'bear': 1}
+        states = sorted(set(zone_sequence))
+        state_to_index = {state: i for i, state in enumerate(states)}
+        n_states = len(states)
+        transition_matrix = np.zeros((n_states, n_states))
         
-        # Подсчет переходов
-        for i in range(len(zone_sequence) - 1):
-            current_state = zone_sequence[i]
-            next_state = zone_sequence[i + 1]
-            
-            if current_state in state_to_index and next_state in state_to_index:
-                current_idx = state_to_index[current_state]
-                next_idx = state_to_index[next_state]
+        for segment in segments:
+            for i, j in zip(segment, segment[1:]):
+                current_idx = state_to_index[zone_sequence[i]]
+                next_idx = state_to_index[zone_sequence[j]]
                 transition_matrix[current_idx, next_idx] += 1
+        
+        observed_transitions = int(transition_matrix.sum())
+        if observed_transitions == 0:
+            return {
+                'error': (
+                    'no transitions between adjacent zones: every consecutive pair '
+                    'is separated by a gap, so no transition was actually observed'
+                ),
+                'states': states,
+            }
         
         # Нормализация для получения вероятностей
         row_sums = transition_matrix.sum(axis=1, keepdims=True)
@@ -508,20 +752,22 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             stationary_idx = np.argmax(eigenvalues.real)
             stationary_distribution = np.abs(eigenvectors[:, stationary_idx].real)
             stationary_distribution = stationary_distribution / stationary_distribution.sum()
-        except:
+        except Exception:
             stationary_distribution = None
         
         return {
             'transition_matrix': transition_matrix.tolist(),
             'transition_probabilities': transition_probabilities.tolist(),
             'states': states,
+            'observed_transitions': observed_transitions,
             'stationary_distribution': stationary_distribution.tolist() if stationary_distribution is not None else None
         }
-    
+
     def _analyze_clusters(self, df_features: pd.DataFrame, 
                          available_features: List[str], 
                          kmeans: KMeans, 
-                         scaler: StandardScaler) -> Dict[str, ClusterAnalysis]:
+                         scaler: StandardScaler,
+                         vocabulary: ZoneVocabulary) -> Dict[str, ClusterAnalysis]:
         """Анализ результатов кластеризации."""
         clusters_analysis = {}
         
@@ -561,8 +807,16 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
                 avg_duration=avg_duration,
                 avg_return=avg_return,
                 metadata={
-                    'bull_ratio': (cluster_data['zone_type'] == 'bull').mean() if 'zone_type' in cluster_data.columns else 0,
-                    'bear_ratio': (cluster_data['zone_type'] == 'bear').mean() if 'zone_type' in cluster_data.columns else 0
+                    # Раньше здесь считались доли двух захардкоженных имён, и на
+                    # любом другом словаре обе выходили нулевыми. Теперь — доли по
+                    # объявленной полярности, плюс полное распределение типов,
+                    # которое не зависит от словаря вовсе.
+                    'type_distribution': (
+                        cluster_data['zone_type'].value_counts(normalize=True).to_dict()
+                        if 'zone_type' in cluster_data.columns else {}
+                    ),
+                    'elevated_ratio': _polarity_ratio(cluster_data, vocabulary, 1),
+                    'depressed_ratio': _polarity_ratio(cluster_data, vocabulary, -1),
                 }
             )
         

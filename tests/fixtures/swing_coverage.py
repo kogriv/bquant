@@ -61,7 +61,7 @@ def compare_swing_coverage() -> Dict[str, float]:
             .with_cache(enable=False)
             .with_strategies(swing="zigzag")
             .with_swing_scope("global")
-            .detect_zones("preloaded", zones_data=zones_df, zone_types=["any"])
+            .detect_zones("preloaded", zones_data=zones_df)
             .build()
         )
 
@@ -70,7 +70,7 @@ def compare_swing_coverage() -> Dict[str, float]:
             .with_cache(enable=False)
             .with_strategies(swing="zigzag")
             .with_swing_scope("per_zone")
-            .detect_zones("preloaded", zones_data=zones_df, zone_types=["any"])
+            .detect_zones("preloaded", zones_data=zones_df)
             .build()
         )
 

@@ -22,7 +22,9 @@ from bquant.core.logging_config import get_logger
 @ZoneDetectionRegistry.register(
     'combined',
     description='Detect zones by combining multiple conditions with AND/OR logic',
-    supported_zones=['custom'],
+    # Словарь определяется во время выполнения — типы задаёт вызывающий через
+    # rules['zone_type_map']. Потребители читают ZoneVocabulary.is_declared.
+    supported_zones=None,
     required_rules=['conditions']
 )
 class CombinedRulesDetection:
@@ -123,7 +125,7 @@ class CombinedRulesDetection:
             zone_active = combined[start_idx]
             zone_type = zone_type_map.get(zone_active, f'zone_{zone_active}')
             
-            if zone_type not in config.zone_types:
+            if not config.accepts(zone_type):
                 continue
             
             zone_data = df.iloc[start_idx:end_idx + 1].copy()

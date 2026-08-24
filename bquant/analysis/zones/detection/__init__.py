@@ -37,7 +37,7 @@ Example:
 """
 
 from .base import ZoneDetectionStrategy, ZoneDetectionConfig
-from .registry import ZoneDetectionRegistry
+from .registry import ZoneDetectionRegistry, resolve_vocabulary
 
 # Import all strategies to trigger registration
 from .zero_crossing import ZeroCrossingDetection
@@ -55,6 +55,7 @@ __all__ = [
     'ZoneDetectionStrategy',
     'ZoneDetectionConfig',
     'ZoneDetectionRegistry',
+    'resolve_vocabulary',
     
     # Strategies
     'ZeroCrossingDetection',

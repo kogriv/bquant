@@ -15,14 +15,22 @@ from typing import List
 
 from .base import ZoneDetectionStrategy, ZoneDetectionConfig
 from .registry import ZoneDetectionRegistry
-from ..models import ZoneInfo
+from ..models import ZoneInfo, ZoneType
 from bquant.core.logging_config import get_logger
 
 
 @ZoneDetectionRegistry.register(
     'threshold',
     description='Detect zones by indicator crossing upper/lower thresholds',
-    supported_zones=['overbought', 'neutral', 'oversold'],
+    supported_zones=[
+        # Три полосы осциллятора. Нейтральная объявлена наравне с сигнальными:
+        # без неё зоны покрывают лишь часть таймлайна и соседние зоны перестают
+        # примыкать, а анализ последовательностей читает соседние элементы как
+        # переход (замер: devref/gaps/detection/g19_*.md).
+        ZoneType('overbought', polarity=+1, counterpart='oversold', label='Overbought'),
+        ZoneType('neutral', polarity=0, label='Neutral'),
+        ZoneType('oversold', polarity=-1, counterpart='overbought', label='Oversold'),
+    ],
     required_rules=['indicator_col', 'upper_threshold', 'lower_threshold']
 )
 class ThresholdDetection:
@@ -104,7 +112,7 @@ class ThresholdDetection:
             
             zone_type = zone_classes[start_idx]
             
-            if zone_type not in config.zone_types:
+            if not config.accepts(zone_type):
                 continue
             
             zone_data = df.iloc[start_idx:end_idx + 1].copy()

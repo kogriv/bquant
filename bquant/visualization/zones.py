@@ -11,7 +11,7 @@ import pandas as pd
 
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
-from ..analysis.zones.models import ZoneInfo, SwingContext, SwingPoint
+from ..analysis.zones.models import ZoneInfo, SwingContext, SwingPoint, ZoneVocabulary
 from .themes import ChartThemes
 from .utils import find_all_gaps, generate_dense_axis_labels
 
@@ -110,17 +110,79 @@ class ZoneChartBuilder:
             else:
                 raise AnalysisError("No visualization libraries available")
         
-        # Цветовая схема для зон
+        # Цветовая схема зон — по ОБЪЯВЛЕННОЙ ПОЛЯРНОСТИ типа, а не по его имени.
+        #
+        # Раньше палитра была словарём по именам с фолбэком на 'bull': зона любого
+        # другого типа (`overbought`, `regime_a`, …) молча раскрашивалась как бычья,
+        # то есть график сообщал направление, которого никто не объявлял.
+        # Полярность даёт те же цвета для `bull`/`bear` и осмысленные — для любого
+        # другого словаря.
+        self.polarity_colors = {
+            1: {'fill': 'rgba(0, 255, 136, 0.3)', 'line': '#00ff88'},     # приподнятая
+            -1: {'fill': 'rgba(255, 68, 68, 0.3)', 'line': '#ff4444'},    # подавленная
+            0: {'fill': 'rgba(160, 160, 160, 0.25)', 'line': '#a0a0a0'},  # нейтральная
+            None: {'fill': 'rgba(0, 136, 255, 0.3)', 'line': '#0088ff'},  # без направления
+        }
+        self.polarity_colors_mpl = {
+            1: 'lightgreen',
+            -1: 'lightpink',
+            0: 'lightgrey',
+            None: 'lightblue',
+        }
+        
+        # Именованные переопределения: имеют приоритет над полярностью. Это точка
+        # настройки для пользователя, а не способ ядру угадывать смысл имени.
         self.zone_colors = {
-            'bull': {'fill': 'rgba(0, 255, 136, 0.3)', 'line': '#00ff88'},
-            'bear': {'fill': 'rgba(255, 68, 68, 0.3)', 'line': '#ff4444'},
             'support': {'fill': 'rgba(0, 136, 255, 0.3)', 'line': '#0088ff'},
             'resistance': {'fill': 'rgba(255, 136, 0, 0.3)', 'line': '#ff8800'}
         }
         
+        # Словарь типов зон текущего набора; заполняется при подготовке данных.
+        self.vocabulary: Optional[ZoneVocabulary] = None
+        
         # Тихий вывод: детально логируем только на DEBUG
         self.logger.debug(f"Zone chart builder initialized with {self.backend} backend")
     
+    def _zone_style(self, zone_type: Optional[str]) -> Dict[str, str]:
+        """Цвета заливки и контура для типа зоны.
+
+        Порядок: именованное переопределение → объявленная полярность → «без
+        направления». Ни на одном шаге имя типа не интерпретируется ядром.
+        """
+        if zone_type in self.zone_colors:
+            return self.zone_colors[zone_type]
+        polarity = self.vocabulary.polarity_of(zone_type) if self.vocabulary else None
+        return self.polarity_colors.get(polarity, self.polarity_colors[None])
+
+    def _zone_color_mpl(self, zone_type: Optional[str]) -> str:
+        """Цвет заливки для matplotlib-путей."""
+        polarity = self.vocabulary.polarity_of(zone_type) if self.vocabulary else None
+        return self.polarity_colors_mpl.get(polarity, self.polarity_colors_mpl[None])
+
+    def _zone_label(self, zone_type: Optional[str]) -> str:
+        """Подпись типа зоны: объявленная стратегией, иначе само имя."""
+        if self.vocabulary and zone_type:
+            declared = self.vocabulary.get(zone_type)
+            if declared is not None:
+                return declared.display_label
+        return str(zone_type) if zone_type else 'unknown'
+
+    def _adopt_vocabulary(self, zones: List[Dict[str, Any]]) -> None:
+        """Запомнить словарь типов зон текущего набора.
+
+        Резолвится из самих зон: имя стратегии детекции лежит в
+        ``indicator_context``. Если его нет, собирается голый словарь по
+        встреченным именам — тогда полярности неизвестны, и зоны получают
+        нейтральную палитру вместо чужого направления.
+        """
+        from ..analysis.zones.detection import resolve_vocabulary
+
+        try:
+            self.vocabulary = resolve_vocabulary(zones)
+        except Exception as exc:  # pragma: no cover - защита от неожиданной формы входа
+            self.logger.debug(f"Could not resolve zone vocabulary: {exc}")
+            self.vocabulary = None
+
     def _prepare_zone_data(self, zones_data: Union[List[Dict], pd.DataFrame, List[Any]]) -> List[Dict]:
         """
         Подготовка данных зон для визуализации.
@@ -132,7 +194,9 @@ class ZoneChartBuilder:
             Список словарей с данными зон
         """
         if isinstance(zones_data, pd.DataFrame):
-            return zones_data.to_dict('records')
+            records = zones_data.to_dict('records')
+            self._adopt_vocabulary(records)
+            return records
         elif isinstance(zones_data, list):
             normalized: List[Dict[str, Any]] = []
             for zone in zones_data:
@@ -162,6 +226,9 @@ class ZoneChartBuilder:
                 else:
                     raise ValueError("Unsupported zone object type: %r" % (type(zone),))
 
+            # Словарь типов резолвится по нормализованным зонам: в них сохранён
+            # indicator_context, из которого известно имя стратегии детекции.
+            self._adopt_vocabulary(normalized)
             return normalized
         else:
             raise ValueError("zones_data must be DataFrame or list of dicts")
@@ -897,11 +964,19 @@ class ZoneVisualizer(ZoneChartBuilder):
         self,
         zones: List[Dict[str, Any]],
     ) -> Optional[Dict[str, Dict[str, Any]]]:
-        """Агрегировать swing-метрики по списку зон (MVP)."""
-        bull_zones = [zone for zone in zones if zone.get('type') == 'bull']
-        bear_zones = [zone for zone in zones if zone.get('type') == 'bear']
+        """Агрегировать swing-метрики по типам зон (MVP).
 
-        if not bull_zones and not bear_zones:
+        Группировка идёт по фактически встреченным типам, а не по двум
+        захардкоженным именам: раньше зоны любого другого словаря не попадали ни
+        в одну корзину, и панель метрик молча оставалась пустой.
+        """
+        by_type: Dict[str, List[Dict[str, Any]]] = {}
+        for zone in zones:
+            zone_type = zone.get('type')
+            if zone_type:
+                by_type.setdefault(zone_type, []).append(zone)
+
+        if not by_type:
             return None
 
         def _collect(zones_list: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1001,11 +1076,17 @@ class ZoneVisualizer(ZoneChartBuilder):
                 'ratio_samples': metric_samples['ratio'],
             }
 
-        result: Dict[str, Dict[str, Any]] = {}
-        if bull_zones:
-            result['bull'] = _collect(bull_zones)
-        if bear_zones:
-            result['bear'] = _collect(bear_zones)
+        # Порядок детерминированный и осмысленный: приподнятые, нейтральные,
+        # подавленные, затем без объявленного направления — внутри группы по имени.
+        def _order(zone_type: str):
+            polarity = self.vocabulary.polarity_of(zone_type) if self.vocabulary else None
+            rank = {1: 0, 0: 1, -1: 2}.get(polarity, 3)
+            return (rank, zone_type)
+
+        result: Dict[str, Dict[str, Any]] = {
+            zone_type: _collect(by_type[zone_type])
+            for zone_type in sorted(by_type, key=_order)
+        }
 
         return result if result else None
 
@@ -1022,11 +1103,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             mode = 'compact'
 
         parts: List[str] = []
-        for side in ('bull', 'bear'):
-            if side not in aggregated:
-                continue
-            stats = aggregated[side]
-            label = "📊 Bull Zones" if side == 'bull' else "📊 Bear Zones"
+        for side, stats in aggregated.items():
+            label = f"📊 {self._zone_label(side).title()} Zones"
             count = stats.get('count', 0) or 0
             with_swings = stats.get('with_swings', 0) or 0
             coverage_pct = (with_swings / count * 100) if count else 0.0
@@ -1777,8 +1855,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             # Добавляем зоны
             for i, zone in enumerate(zones):
                 if 'start_time' in zone and 'end_time' in zone:
-                    zone_type = zone.get('type', 'bull')
-                    color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+                    zone_type = zone.get('type')
+                    color_config = self._zone_style(zone_type)
                     y0 = price_data['low'].min()
                     y1 = price_data['high'].max()
                     fig.add_vrect(
@@ -1911,8 +1989,8 @@ class ZoneVisualizer(ZoneChartBuilder):
 
             for i, zone in enumerate(zones):
                 if 'start_time' in zone and 'end_time' in zone:
-                    zone_type = zone.get('type', 'bull')
-                    color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+                    zone_type = zone.get('type')
+                    color_config = self._zone_style(zone_type)
                     start_time = zone['start_time']
                     end_time = zone['end_time']
                     x0_pos, x1_pos = None, None
@@ -2089,8 +2167,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             if zone_start_idx <= zone_end_idx:
                 x0 = window_index[zone_start_idx]
                 x1 = window_index[zone_end_idx]
-                zone_type = zone.get('type', 'bull')
-                color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+                zone_type = zone.get('type')
+                color_config = self._zone_style(zone_type)
                 fig.add_vrect(
                     x0=x0,
                     x1=x1,
@@ -2195,8 +2273,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             if zone_start_idx <= zone_end_idx:
                 x0_pos = zone_start_idx - 0.5
                 x1_pos = zone_end_idx + 0.5
-                zone_type = zone.get('type', 'bull')
-                color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+                zone_type = zone.get('type')
+                color_config = self._zone_style(zone_type)
                 y0 = price_window['low'].min()
                 y1 = price_window['high'].max()
                 fig.add_shape(
@@ -2412,8 +2490,8 @@ class ZoneVisualizer(ZoneChartBuilder):
         for block_idx, block in enumerate(zone_blocks):
             payload = block['payload']
             zone = payload['zone']
-            zone_type = zone.get('type', 'bull')
-            color_config = self.zone_colors.get(zone_type, self.zone_colors['bull'])
+            zone_type = zone.get('type')
+            color_config = self._zone_style(zone_type)
             positions = block['positions']
             timestamps = block.get('timestamps') or []
             if not positions:
@@ -2603,8 +2681,8 @@ class ZoneVisualizer(ZoneChartBuilder):
         # Добавляем зоны
         for i, zone in enumerate(zones):
             if 'start_time' in zone and 'end_time' in zone:
-                zone_type = zone.get('type', 'bull')
-                color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+                zone_type = zone.get('type')
+                color = self._zone_color_mpl(zone_type)
                 
                 # Добавляем зону на график MACD
                 fig.add_vrect(
@@ -2699,7 +2777,10 @@ class ZoneVisualizer(ZoneChartBuilder):
                 name="Zone Timeline",
                 marker=dict(
                     size=8,
-                    color=zones_df['zone_type'].map({'bull': 'blue', 'bear': 'red'}) if 'zone_type' in zones_df.columns else 'blue'
+                    color=(
+                        zones_df['zone_type'].map(self._zone_color_mpl)
+                        if 'zone_type' in zones_df.columns else 'lightblue'
+                    )
                 )
             ), row=2, col=2)
         
@@ -2817,8 +2898,8 @@ class ZoneVisualizer(ZoneChartBuilder):
         # Добавляем зоны как вертикальные полосы
         for i, zone in enumerate(zones):
             if 'start_time' in zone and 'end_time' in zone:
-                zone_type = zone.get('type', 'bull')
-                color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+                zone_type = zone.get('type')
+                color = self._zone_color_mpl(zone_type)
                 
                 ax.axvspan(zone['start_time'], zone['end_time'], 
                           alpha=self.default_config['opacity'], 
@@ -2858,8 +2939,8 @@ class ZoneVisualizer(ZoneChartBuilder):
         if zone_start_idx <= zone_end_idx:
             x0 = price_window.index[zone_start_idx]
             x1 = price_window.index[zone_end_idx]
-            zone_type = zone.get('type', 'bull')
-            color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+            zone_type = zone.get('type')
+            color = self._zone_color_mpl(zone_type)
             ax_price.axvspan(x0, x1, alpha=self.default_config['opacity'], color=color)
 
         if show_volume and ax_volume is not None:
@@ -2898,8 +2979,8 @@ class ZoneVisualizer(ZoneChartBuilder):
             if zone_start_idx <= zone_end_idx:
                 x0 = price_window.index[zone_start_idx]
                 x1 = price_window.index[zone_end_idx]
-                zone_type = zone.get('type', 'bull')
-                color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+                zone_type = zone.get('type')
+                color = self._zone_color_mpl(zone_type)
                 ax_price.axvspan(x0, x1, alpha=self.default_config['opacity'], color=color,
                                  label=f"Zone {zone.get('zone_id', idx + 1)}")
 
@@ -2941,8 +3022,8 @@ class ZoneVisualizer(ZoneChartBuilder):
         # Добавляем зоны
         for zone in zones:
             if 'start_time' in zone and 'end_time' in zone:
-                zone_type = zone.get('type', 'bull')
-                color = 'lightblue' if zone_type == 'bull' else 'lightpink'
+                zone_type = zone.get('type')
+                color = self._zone_color_mpl(zone_type)
                 
                 ax1.axvspan(zone['start_time'], zone['end_time'], 
                            alpha=self.default_config['opacity'], color=color)

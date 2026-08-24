@@ -292,11 +292,179 @@ result = (
 #### `ZoneInfo`
 Модель зоны с полным контекстом:
 - `zone_id: int` - уникальный идентификатор
-- `type: str` - тип зоны ('bull'/'bear')
+- `type: str` - метка типа зоны (`'bull'`, `'overbought'`, `'regime_a'` — открытый словарь; смысл метки объявляет стратегия, см. `ZoneType` ниже)
 - `start_time: Timestamp` - время начала
 - `end_time: Timestamp` - время окончания
 - `features: Optional[Dict]` - извлеченные характеристики
 - `indicator_context: Dict` - контекст индикатора
+
+#### `zone_types=None` означает «не фильтровать»
+
+Параметр `zone_types` в `detect_zones(...)` сужает результат до перечисленных типов.
+**Если его не передать, фильтра нет** — стратегия отдаёт все типы, которые нашла:
+
+```python
+# Все три полосы осциллятора: overbought, neutral, oversold
+result = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_col='RSI_14',
+                  upper_threshold=70, lower_threshold=30)
+    .build()
+)
+
+# Только сигнальные зоны
+signal_only = (
+    analyze_zones(data)
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_col='RSI_14',
+                  zone_types=['overbought', 'oversold'],
+                  upper_threshold=70, lower_threshold=30)
+    .build()
+)
+```
+
+На встроенном сэмпле: 44 зоны без фильтра, 18 с ним.
+
+> **Изменение поведения (2026-08-24).** Раньше не переданный `zone_types` молча
+> подменялся на `['bull', 'bear']` — словарь MACD-подобных детекторов. Каждый детектор
+> фильтрует свой вывод через этот список, поэтому `threshold` и `combined` возвращали
+> **пустой успешный результат**: зоны находились и тут же отбрасывались, а лог сообщал
+> «Detected 0 zones», неотличимо от «порогам нечего было ловить».
+>
+> **Нейтральная полоса входит в набор по умолчанию, и это важно для анализа
+> последовательностей.** Без неё зоны покрывают лишь 11% таймлайна и **ни одна пара
+> соседних зон не примыкает**, поэтому переход `overbought → oversold` означал бы
+> «перекупленность, потом неизвестно сколько ничего, потом перепроданность». С
+> нейтральными пороговый детектор мостит таймлайн так же, как MACD (97.9% против 98.9%),
+> и его последовательности сопоставимы с MACD-овскими.
+
+#### Анализ последовательностей: примыкание и состояния
+
+`result.sequence_analysis` строится **только по примыкающим зонам**. Детекторы
+мостят таймлайн, и слой последовательностей читает соседние элементы списка как
+переход — но `min_duration` (дефолт `2`) отбрасывает короткие зоны, и соседи
+отброшенной перестают примыкать. Пара, разделённая пропуском, переходом не
+является: между этими зонами было то, чего в выборке нет.
+
+```python
+summary = result.sequence_analysis['sequence_summary']
+print(summary['total_transitions'])        # засчитано переходов
+print(summary['discarded_transitions'])    # отброшено как непримыкающие
+print(summary['bars_missing'])             # сколько баров потеряно в пропусках
+print(summary['contiguous_segments'])      # на сколько сплошных отрезков распалась серия
+print(summary['adjacency_verified'])       # False, если границы зон недоступны
+```
+
+На встроенном сэмпле при дефолтном `min_duration=2`: MACD даёт 63 засчитанных
+перехода и 8 отброшенных, пороговый RSI (все три типа) — 30 и 13.
+
+**Состояния цепи Маркова берутся из наблюдённой последовательности**, а не из
+фиксированной пары:
+
+```python
+markov = result.sequence_analysis['markov_analysis']
+print(markov['states'])                 # ['neutral', 'overbought', 'oversold']
+print(markov['observed_transitions'])   # совпадает с суммой transitions
+```
+
+Если ни одна пара зон не примыкает, возвращается `markov['error']` с объяснением, а
+не нулевая матрица. Раньше на любом словаре, кроме `bull`/`bear`, функция отдавала
+нули как успех — вместе с `states: ['bull','bear']` и стационарным распределением
+`[1.0, 0.0]`, то есть уверенным утверждением о состоянии, ни разу не встретившемся
+в данных.
+
+**Runs-test бинаризуется по объявленной полярности** и считается на самом длинном
+сплошном отрезке; при отсутствии объявленных полярностей возвращает
+`not_applicable` с причиной вместо константного ряда.
+
+#### `ZoneType` и `ZoneVocabulary` — стратегия объявляет свои типы зон
+
+Тип зоны — **открытый словарь**. `zero_crossing` называет свои типы `bull`/`bear`,
+`threshold` — `overbought`/`neutral`/`oversold`, ваша собственная стратегия может
+называть их `regime_a`/`regime_b`/`regime_c`. Ядро не содержит перечня допустимых имён
+и не должно его содержать.
+
+Чтобы универсальные слои (метрики зоны, анализ последовательностей, статистика,
+визуализация) могли работать с любым словарём, стратегия объявляет **свойства** каждого
+типа, а потребитель дискриминирует по ним, а не по имени:
+
+```python
+from bquant.analysis.zones import ZoneType, ZoneVocabulary
+from bquant.analysis.zones.detection import ZoneDetectionRegistry
+
+vocab = ZoneDetectionRegistry.get_vocabulary('threshold')
+
+print(vocab.names())
+# ['overbought', 'neutral', 'oversold']
+
+print(vocab.polarity_of('overbought'), vocab.polarity_of('neutral'))
+# 1 0
+
+print(vocab.contrast_pairs())
+# [('overbought', 'oversold')]
+```
+
+**Свойства (закрытый словарь):**
+
+| Поле | Значения | Смысл |
+|---|---|---|
+| `name` | любая непустая строка | метка, попадающая в `ZoneInfo.type` |
+| `polarity` | `+1` / `-1` / `0` / `None` | положение на оси **того ряда, по которому зона выделена**: приподнят / подавлен / объявленно нейтрален / ось не упорядочена |
+| `counterpart` | имя типа или `None` | контрастная пара для тестов, сравнивающих два набора зон |
+| `label` | строка или `None` | подпись для графиков; по умолчанию `name` |
+
+`polarity` — про **индикатор, а не про цену**. «`bull` = цена растёт» — допущение MACD;
+для `overbought` по RSI оно натянуто, а для зон волатильности бессмысленно. Поэтому
+`+1` означает «ряд приподнят относительно своей нейтральной точки» (гистограмма MACD выше
+нуля, RSI выше верхнего порога, волатильность высокая).
+
+`polarity=None` — это **объявленное отсутствие направления**, а не «неизвестно».
+Потребитель обязан отреагировать явно: пропустить направленную метрику и сообщить об этом.
+
+**Регистрация собственной стратегии:**
+
+```python
+from bquant.analysis.zones.detection import ZoneDetectionRegistry
+from bquant.analysis.zones import ZoneType
+
+@ZoneDetectionRegistry.register(
+    'volatility_regime',
+    description='Split the series into high/low volatility regimes',
+    supported_zones=[
+        ZoneType('high_vol', polarity=+1, counterpart='low_vol', label='High volatility'),
+        ZoneType('low_vol', polarity=-1, counterpart='high_vol', label='Low volatility'),
+    ],
+    required_rules=['indicator_col', 'threshold'],
+)
+class VolatilityRegimeDetection:
+    def detect_zones(self, data, config):
+        ...
+```
+
+Голые строки тоже принимаются (`supported_zones=['high_vol', 'low_vol']`) — они
+поднимаются до дескрипторов без объявленных свойств. Стратегия при этом работает, но
+универсальные слои сообщат о неприменимости направленного анализа вместо того, чтобы
+угадывать направление по имени.
+
+**Пара выводится, если объявление опущено**, но только когда противоположный знак
+представлен единственным типом. При `strong_bull`/`weak_bull` (оба `+1`) однозначного
+ответа нет, и `counterpart_of()` вернёт `None` вместо того, чтобы выбрать произвольно —
+поэтому для словарей из трёх и более типов пару лучше объявлять явно.
+
+**Словарь, определяемый во время выполнения.** У `preloaded` типы приходят из
+импортируемых данных, у `combined` — из `rules['zone_type_map']` вызывающего. Такие
+стратегии передают `supported_zones=None`, и их словарь помечен `is_declared == False`:
+
+```python
+vocab = ZoneDetectionRegistry.get_vocabulary('preloaded')
+print(vocab.is_declared, vocab.names())
+# False []
+```
+
+Пустой словарь означает «определяется во время выполнения», а **не** «типов нет» —
+потребители читают `is_declared` и в этом случае не фильтруют.
+
 
 ### Legacy API (Deprecated)
 
@@ -318,7 +486,7 @@ features = extract_zone_features(zone_info)
 from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
-    .detect_zones('threshold', indicator_col='rsi', upper_threshold=70)
+    .detect_zones('threshold', indicator_col='RSI_14', upper_threshold=70)
     .analyze(clustering=True)
     .build()
 )
@@ -357,7 +525,7 @@ for zone in result.zones[:3]:
 result = (
     analyze_zones(data)
     .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='rsi', 
+    .detect_zones('threshold', indicator_col='RSI_14', 
                   upper_threshold=70, lower_threshold=30)
     .with_strategies(swing='pivot_points', volatility='combined')
     .analyze(clustering=True)

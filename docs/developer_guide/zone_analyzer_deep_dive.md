@@ -100,8 +100,8 @@ from bquant.analysis.zones import analyze_zones
 | Стратегия (`.with_strategies(...)`) | Ключевая метрика в `zone.features` | Описание |
 | :--- | :--- | :--- |
 | `swing='*'` (любая) | `num_peaks`, `num_troughs` | Количество пиков и впадин внутри зоны. |
-| | `peak_time_ratio` | Положение главного пика в зоне (0.0 - начало, 1.0 - конец). |
-| | `drawdown_from_peak` | Максимальная просадка цены от пика внутри зоны. |
+| | `peak_time_ratio` | Положение максимума в зоне (0.0 - начало, 1.0 - конец). |
+| | `drawdown_from_peak` | Экскурсия цены от максимума зоны к её концу. |
 | | `metadata['swing_metrics']` | Словарь: `rally_count`, `drop_count`, `avg_rally_pct`, `avg_drop_pct`, `num_swings`, `rally_to_drop_ratio`. |
 | `divergence='classic'` | `has_classic_divergence` | `True`, если найдена классическая дивергенция. |
 | `volatility='combined'`| `volatility_score` | Составная оценка волатильности в зоне (например, от 0 до 10). |

@@ -16,14 +16,20 @@ from typing import List
 
 from .base import ZoneDetectionStrategy, ZoneDetectionConfig
 from .registry import ZoneDetectionRegistry
-from ..models import ZoneInfo
+from ..models import ZoneInfo, ZoneType
 from bquant.core.logging_config import get_logger
 
 
 @ZoneDetectionRegistry.register(
     'zero_crossing',
     description='Detect bull/bear zones by indicator crossing zero line',
-    supported_zones=['bull', 'bear'],
+    supported_zones=[
+        # Пересечение нуля: гистограмма выше нуля — приподнятое состояние ряда,
+        # ниже — подавленное. Полярность объявляется про ось индикатора, а не
+        # про направление цены (см. ZoneType.polarity).
+        ZoneType('bull', polarity=+1, counterpart='bear', label='Bullish'),
+        ZoneType('bear', polarity=-1, counterpart='bull', label='Bearish'),
+    ],
     required_rules=['indicator_col']
 )
 class ZeroCrossingDetection:
@@ -127,7 +133,7 @@ class ZeroCrossingDetection:
             zone_type = 'bull' if zone_mean_value > 0 else 'bear'
             
             # Фильтр по типам зон
-            if zone_type not in config.zone_types:
+            if not config.accepts(zone_type):
                 continue
             
             # Создать ZoneInfo

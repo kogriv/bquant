@@ -149,6 +149,28 @@ print(sa_small.t_test(df['a'], df['b']))
 
 ## Тестирование гипотез
 
+> **Три теста требуют объявленного словаря типов зон** (с 2026-08-24):
+> `contrast_asymmetry`, `sequence_patterns` и `correlation_drawdown`. Им нужны не
+> имена типов, а свойства — **полярность** и **контрастная пара**, — и вывести их
+> из имён нельзя: именно это и было дефектом (`test_bull_bear_asymmetry` сравнивал
+> `zone_type == 'bull'` с `== 'bear'`, поэтому на любом другом словаре обе выборки
+> оказывались пустыми, а сообщение винило объём данных).
+>
+> Через пайплайн словарь резолвится автоматически — из стратегии детекции, имя
+> которой зоны несут в `indicator_context`. При прямом вызове по словарям фич его
+> нужно передать:
+>
+> ```python
+> from bquant.analysis.zones.detection import resolve_vocabulary
+>
+> vocabulary = resolve_vocabulary(result.zones)
+> tests = test_suite.run_all_tests(zones_features, vocabulary=vocabulary)
+> ```
+>
+> Без него эти три теста **откажутся считать** и назовут причину — отсутствие
+> объявления, а не нехватку данных. Отказ намеренный: угадать полярность по имени
+> значило бы вернуть снятый хардкод.
+
 Полный запуск тестов и одиночный вызов:
 
 ```python
@@ -185,19 +207,34 @@ print(f"Long zones avg return: {result.metadata['long_zones_mean_return']:.3%}")
 print(f"Short zones avg return: {result.metadata['short_zones_mean_return']:.3%}")
 ```
 
-#### H3: Гипотеза асимметрии bull/bear
+#### H3: Гипотеза асимметрии контрастной пары
+
+Сравнивает зоны двух **противоположных** типов — тех, которые объявила стратегия
+детекции (`bull`/`bear` у MACD, `overbought`/`oversold` у порогового). Если
+объявленных пар несколько, тестируется каждая, а в результат идёт наиболее
+значимая; полный список — в `metadata['pairs_tested']`.
 
 ```python
-result = test_suite.test_bull_bear_asymmetry_hypothesis(zones_features)
-print(f"Significant: {result.significant}")
-print(f"Bull duration: {result.metadata['duration_test']['bull_mean']:.1f}")
-print(f"Bear duration: {result.metadata['duration_test']['bear_mean']:.1f}")
+result = test_suite.test_contrast_asymmetry_hypothesis(
+    zones_features, vocabulary=vocabulary
+)
+first, second = result.metadata['pair_tested']
+print(f"Pair tested: {first} vs {second}, significant: {result.significant}")
+print(f"{first} duration: {result.metadata['duration_test'][f'{first}_mean']:.1f}")
+print(f"{second} duration: {result.metadata['duration_test'][f'{second}_mean']:.1f}")
 ```
 
-#### H4: Корреляция и просадка
+#### H4: Корреляция и величина экскурсии цены
+
+Какая из двух экскурсий содержательна для зоны, решает её **объявленная
+полярность**: у приподнятой — просадка от максимума, у подавленной — отскок от
+минимума. Сколько зон каждого типа вошло в выборку, видно в
+`metadata['zones_used_by_type']`.
 
 ```python
-result = test_suite.test_correlation_drawdown_hypothesis(zones_features)
+result = test_suite.test_correlation_drawdown_hypothesis(
+    zones_features, vocabulary=vocabulary
+)
 print(f"Significant: {result.significant}")
 print(f"High corr avg drawdown: {result.metadata['high_corr_mean_drawdown']:.3%}")
 print(f"Low corr avg drawdown: {result.metadata['low_corr_mean_drawdown']:.3%}")
@@ -232,9 +269,19 @@ print(f"Near level mean: {manual_result.metadata['near_level_mean_duration']:.1f
 ### Запуск полного набора
 
 ```python
-full_suite = test_suite.run_all_tests(zones_features)
-print(full_suite.results['summary'])
+full_suite = test_suite.run_all_tests(zones_features, vocabulary=vocabulary)
+summary = full_suite.results['summary']
+print(f"{summary['tests_executed']} of {summary['total_tests']} tests ran; "
+      f"significance rate {summary['significance_rate']:.2f}")
+for name, message in summary['failed_tests'].items():
+    print(f"  {name} did not run: {message}")
 ```
+
+Сводка отделяет **выполненные** тесты от **не выполнившихся**:
+`significance_rate` считается по знаменателю `tests_executed`, а не `total_tests`.
+Тест, который не выполнился, — не незначимый результат, а отсутствие результата;
+раньше такие тесты попадали в знаменатель наравне с остальными и разбавляли долю,
+ничего не сообщая о пробеле.
 
 ## Регрессионный анализ (фаза 3.8)
 

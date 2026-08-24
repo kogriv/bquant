@@ -37,7 +37,12 @@ class ZoneAnalysisCache:
     # additive), and confirmations are floored at the end of warm-up.
     # v6 (G16): the adaptive-threshold layer no longer overwrites find_peaks' prominence
     # with a relative value, so adaptive runs detect a different (smaller) swing set.
-    CACHE_VERSION = 6
+    # v7 (G20/G21): zone features carry start_idx/end_idx; sequence and hypothesis
+    # results are computed from declared zone-type properties and only between
+    # adjacent zones, so transitions, the Markov matrix, the runs test and the
+    # hypothesis summary all differ. The asymmetry test key was renamed
+    # bull_bear_asymmetry -> contrast_asymmetry.
+    CACHE_VERSION = 7
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

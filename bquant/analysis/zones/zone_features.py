@@ -42,11 +42,29 @@ class ZoneFeatures:
         correlation_price_hist: Корреляция между ценой и primary indicator (v2.1 UNIVERSAL)
         num_peaks: Количество пиков в зоне
         num_troughs: Количество впадин в зоне
-        drawdown_from_peak: Просадка от пика (для бычьих зон)
-        rally_from_trough: Отскок от минимума (для медвежьих зон)
-        peak_time_ratio: Позиция пика в зоне (0.0-1.0, для бычьих зон)
-        trough_time_ratio: Позиция впадины в зоне (0.0-1.0, для медвежьих зон)
+        drawdown_from_peak: Экскурсия цены от максимума зоны к её концу
+            (``end/max - 1``, значение ≤ 0). Считается для **любой** зоны.
+        rally_from_trough: Экскурсия цены от минимума зоны к её концу
+            (``end/min - 1``, значение ≥ 0). Считается для **любой** зоны.
+        peak_time_ratio: Положение максимума внутри зоны (0.0-1.0). Для любой зоны.
+        trough_time_ratio: Положение минимума внутри зоны (0.0-1.0). Для любой зоны.
+
+            Все четыре считаются безусловно и не зависят от имени типа зоны. Какая
+            из них содержательна — решает потребитель по объявленной полярности
+            типа (:meth:`ZoneVocabulary.polarity_of`): у приподнятой зоны говорящая
+            величина — просадка от пика, у подавленной — отскок от минимума.
+            ``None`` в этих полях означает, что зону не удалось измерить (нулевая
+            цена), а не «метрика неприменима к этому типу».
         hist_slope: Максимальный наклон primary oscillator (v2.1 UNIVERSAL - max rate of change, works with ANY indicator)
+        start_idx: Позиция первого бара зоны во входном кадре (``iloc``), если известна.
+        end_idx: Позиция последнего бара зоны во входном кадре (``iloc``), включительно.
+
+            Границы нужны потребителям, которые рассуждают о **соседстве** зон.
+            Анализ последовательностей читает соседние элементы списка как переход;
+            если между зонами есть пропуск (например, короткая зона отброшена по
+            ``min_duration``), такой «переход» произошёл не между соседями. Без этих
+            полей отличить одно от другого нельзя, и разрыв неотличим от стыка
+            (разбор: ``devref/gaps/sequence/``).
         metadata: Дополнительные метаданные
     """
     zone_id: str
@@ -67,6 +85,8 @@ class ZoneFeatures:
     peak_time_ratio: Optional[float] = None
     trough_time_ratio: Optional[float] = None
     hist_slope: Optional[float] = None
+    start_idx: Optional[int] = None
+    end_idx: Optional[int] = None
     metadata: Dict[str, Any] = None
     
     def __post_init__(self):
@@ -83,6 +103,16 @@ class ZoneFeatures:
                 result[field] = value
         return result
 
+
+
+def _as_optional_int(value: Any) -> Optional[int]:
+    """Coerce numpy/pandas integers to a plain ``int``; pass ``None`` through."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 class ZoneFeaturesAnalyzer(BaseAnalyzer):
     """
@@ -160,7 +190,9 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         Args:
             zone_info: Словарь с информацией о зоне
                 - zone_id: ID зоны
-                - type: Тип зоны ('bull'/'bear')  
+                - type: Метка типа зоны — открытый словарь, задаваемый
+                  стратегией детекции. Извлечение метрик от неё не зависит:
+                  все метрики считаются одинаково для любого типа.  
                 - duration: Длительность
                 - data: DataFrame с OHLCV + индикаторы
                 - indicator_context: (v2.1 NEW) Контекст детекции (detection_indicator, signal_line)
@@ -286,29 +318,32 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             except:
                 pass
             
-            # Специфичные для типа зоны метрики
-            drawdown_from_peak = None
-            rally_from_trough = None
-            peak_time_ratio = None
-            trough_time_ratio = None
-            
-            if zone_type == 'bull':
-                # Просадка от пика
-                drawdown_from_peak = (end_price / max_price) - 1
-                
-                # Метрика времени: где находится пик (0.0-1.0)
-                peak_idx = data['high'].idxmax()
-                peak_pos = data.index.get_loc(peak_idx)
-                peak_time_ratio = peak_pos / len(data)
-                
-            elif zone_type == 'bear':
-                # Отскок от минимума
-                rally_from_trough = (end_price / min_price) - 1
-                
-                # Метрика времени: где находится впадина (0.0-1.0)
-                trough_idx = data['low'].idxmin()
-                trough_pos = data.index.get_loc(trough_idx)
-                trough_time_ratio = trough_pos / len(data)
+            # Экскурсии от экстремумов и их положение во времени.
+            #
+            # Раньше здесь стояло `if zone_type == 'bull' ... elif == 'bear'`, и
+            # три метрики из четырёх обнулялись в зависимости от ИМЕНИ типа зоны.
+            # Ветвление не считало их по-разному — оно их отбрасывало: все четыре
+            # величины выводятся из `end_price`, `max_price`, `min_price` и позиций
+            # экстремумов, посчитанных выше безусловно, и определены для любой зоны
+            # независимо от того, как она называется.
+            #
+            # Следствия были два. Зоны с любым другим словарём (`overbought`,
+            # `regime_a`, …) не получали ни одной из четырёх метрик. А потребитель
+            # тут же пытался потерю отменить: `hypothesis_testing` брал `abs()` от
+            # обеих экскурсий «для унификации» — то есть сам возвращался к величине,
+            # которую ветвление разделило.
+            #
+            # Какая из четырёх ИНТЕРЕСНА — решает потребитель, спрашивая полярность
+            # типа зоны (`ZoneVocabulary.polarity_of`). Это знание о смысле, и его
+            # место не здесь. Разбор: devref/gaps/zone_types/.
+            drawdown_from_peak = (end_price / max_price) - 1 if max_price else None
+            rally_from_trough = (end_price / min_price) - 1 if min_price else None
+
+            peak_idx = data['high'].idxmax()
+            peak_time_ratio = data.index.get_loc(peak_idx) / len(data)
+
+            trough_idx = data['low'].idxmin()
+            trough_time_ratio = data.index.get_loc(trough_idx) / len(data)
             
             # Метаданные (универсальные)
             metadata = {
@@ -534,6 +569,11 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 peak_time_ratio=peak_time_ratio,
                 trough_time_ratio=trough_time_ratio,
                 hist_slope=hist_slope,
+                # int(), а не как есть: детекторы отдают numpy-целые, а `to_dict()`
+                # пропускает только питоновские скаляры — иначе границы молча
+                # выпали бы из сериализованных фич, там где они и нужны.
+                start_idx=_as_optional_int(zone_info.get('start_idx')),
+                end_idx=_as_optional_int(zone_info.get('end_idx')),
                 metadata=metadata
             )
             

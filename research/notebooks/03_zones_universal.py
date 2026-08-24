@@ -481,7 +481,7 @@ if hasattr(result_macd_full, 'hypothesis_tests') and result_macd_full.hypothesis
         # Образовательный комментарий (fix 21.10.2025)
         nb.info("  Hypothesis tests:")
         nb.info("    - duration_normality: Are zone durations normally distributed?")
-        nb.info("    - bull_bear_asymmetry: Is there bias toward bull/bear zones?")
+        nb.info("    - contrast_asymmetry: Is there bias toward bull/bear zones?")
         nb.info("    - sequence_randomness: Are zone sequences random or patterned?")
         nb.info("    - volatility_effects: Does volatility correlate with zones?")
         nb.info("  p < 0.05 suggests significant patterns (reject null hypothesis)")

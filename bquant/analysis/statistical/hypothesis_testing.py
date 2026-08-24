@@ -16,6 +16,7 @@ from datetime import datetime
 
 from ...core.logging_config import get_logger
 from ...core.exceptions import StatisticalAnalysisError
+from ..zones.models import ZoneVocabulary
 from .. import AnalysisResult
 
 # Получаем логгер для модуля
@@ -232,95 +233,186 @@ class HypothesisTestSuite:
             self.logger.error(f"Histogram slope hypothesis test failed: {e}")
             raise StatisticalAnalysisError(f"Histogram slope test failed: {e}")
     
-    def test_bull_bear_asymmetry_hypothesis(self, zones_features: List[Dict[str, Any]]) -> HypothesisTestResult:
+    def test_contrast_asymmetry_hypothesis(self, zones_features: List[Dict[str, Any]],
+                                           vocabulary: Optional[ZoneVocabulary] = None
+                                           ) -> HypothesisTestResult:
         """
-        Тест гипотезы об асимметрии между бычьими и медвежьими зонами.
-        
-        H0: Нет различий между бычьими и медвежьими зонами
+        Тест гипотезы об асимметрии между зонами **контрастной пары**.
+
+        H0: Нет различий между зонами двух контрастных типов
         H1: Существуют значимые различия
-        
+
+        Раньше метод назывался ``test_bull_bear_asymmetry_hypothesis`` и сравнивал
+        ``zone_type == 'bull'`` с ``zone_type == 'bear'``. На любом другом словаре
+        обе выборки оказывались пустыми, и тест падал с сообщением «Insufficient
+        data: need both bull and bear zones» — диагностика указывала на объём
+        данных, хотя причина была в словаре.
+
+        Пара берётся из объявления стратегии
+        (:meth:`ZoneVocabulary.contrast_pairs`). Если объявленных пар несколько,
+        тестируется каждая, а в результат идёт наиболее значимая; полный список —
+        в ``metadata['pairs_tested']``.
+
         Args:
             zones_features: Список словарей с характеристиками зон
-        
+            vocabulary: Объявленный словарь типов зон. Без него пара выводится из
+                полярностей, а если и это невозможно — тест сообщает о
+                неприменимости, а не о нехватке данных.
+
         Returns:
             HypothesisTestResult с результатами теста
         """
-        self.logger.info("Testing bull-bear asymmetry hypothesis")
-        
+        self.logger.info("Testing contrast asymmetry hypothesis")
+
         try:
             df_features = pd.DataFrame(zones_features)
-            
+
             required_cols = ['zone_type', 'duration', 'price_return']
             missing_cols = [col for col in required_cols if col not in df_features.columns]
             if missing_cols:
                 raise StatisticalAnalysisError(f"Missing required columns: {missing_cols}")
-            
-            bull_zones = df_features[df_features['zone_type'] == 'bull']
-            bear_zones = df_features[df_features['zone_type'] == 'bear']
-            
-            if len(bull_zones) == 0 or len(bear_zones) == 0:
-                raise StatisticalAnalysisError("Insufficient data: need both bull and bear zones")
-            
-            # Тест асимметрии по длительности
-            duration_stat, duration_p = stats.ttest_ind(
-                bull_zones['duration'].dropna(),
-                bear_zones['duration'].dropna()
-            )
-            
-            # Тест асимметрии по доходности
-            return_stat, return_p = stats.ttest_ind(
-                bull_zones['price_return'].dropna(),
-                bear_zones['price_return'].dropna()
-            )
-            
-            # Комбинированный p-value (метод Бонферрони)
-            combined_p = min(duration_p * 2, return_p * 2, 1.0)
-            
-            # Размер эффекта для длительности (Cohen's d)
-            duration_pooled_std = np.sqrt(
-                ((len(bull_zones) - 1) * bull_zones['duration'].var() +
-                 (len(bear_zones) - 1) * bear_zones['duration'].var()) /
-                (len(bull_zones) + len(bear_zones) - 2)
-            )
-            duration_effect = (bull_zones['duration'].mean() - bear_zones['duration'].mean()) / duration_pooled_std
-            
+
+            observed = sorted(set(df_features['zone_type']))
+            if vocabulary is None:
+                vocabulary = ZoneVocabulary.coerce(observed)
+
+            pairs = [
+                (a, b) for a, b in vocabulary.contrast_pairs()
+                if a in observed and b in observed
+            ]
+            if not pairs:
+                raise StatisticalAnalysisError(
+                    "No contrasting pair of zone types is available: observed types "
+                    f"{observed}, declared pairs {vocabulary.contrast_pairs()}. The "
+                    "test compares two opposed groups, so it needs a declared "
+                    "counterpart (ZoneType.counterpart) with both types present."
+                )
+
+            results = []
+            for first, second in pairs:
+                first_zones = df_features[df_features['zone_type'] == first]
+                second_zones = df_features[df_features['zone_type'] == second]
+
+                if len(first_zones) < 2 or len(second_zones) < 2:
+                    self.logger.debug(
+                        f"Skipping pair {first}/{second}: {len(first_zones)} and "
+                        f"{len(second_zones)} zones, need at least 2 of each"
+                    )
+                    continue
+
+                duration_stat, duration_p = stats.ttest_ind(
+                    first_zones['duration'].dropna(),
+                    second_zones['duration'].dropna()
+                )
+                return_stat, return_p = stats.ttest_ind(
+                    first_zones['price_return'].dropna(),
+                    second_zones['price_return'].dropna()
+                )
+
+                # Комбинированный p-value (метод Бонферрони)
+                combined_p = min(duration_p * 2, return_p * 2, 1.0)
+
+                # Размер эффекта для длительности (Cohen's d)
+                duration_pooled_std = np.sqrt(
+                    ((len(first_zones) - 1) * first_zones['duration'].var() +
+                     (len(second_zones) - 1) * second_zones['duration'].var()) /
+                    (len(first_zones) + len(second_zones) - 2)
+                )
+                duration_effect = (
+                    (first_zones['duration'].mean() - second_zones['duration'].mean())
+                    / duration_pooled_std
+                ) if duration_pooled_std else float('nan')
+
+                results.append({
+                    'pair': (first, second),
+                    'combined_p': combined_p,
+                    'duration_test': {
+                        't_statistic': duration_stat,
+                        'p_value': duration_p,
+                        'significant': duration_p < self.alpha,
+                        f'{first}_mean': first_zones['duration'].mean(),
+                        f'{second}_mean': second_zones['duration'].mean(),
+                        'effect_size': duration_effect
+                    },
+                    'return_test': {
+                        't_statistic': return_stat,
+                        'p_value': return_p,
+                        'significant': return_p < self.alpha,
+                        f'{first}_mean': first_zones['price_return'].mean(),
+                        f'{second}_mean': second_zones['price_return'].mean()
+                    },
+                    'zone_counts': {first: len(first_zones), second: len(second_zones)},
+                    'statistic': max(abs(duration_stat), abs(return_stat)),
+                    'effect_size': duration_effect,
+                    'sample_size': len(first_zones) + len(second_zones),
+                })
+
+            if not results:
+                raise StatisticalAnalysisError(
+                    "Every contrasting pair has fewer than two zones on one side: "
+                    f"pairs {pairs}, counts "
+                    f"{df_features['zone_type'].value_counts().to_dict()}"
+                )
+
+            best = min(results, key=lambda r: r['combined_p'])
+            first, second = best['pair']
+
             metadata = {
-                'duration_test': {
-                    't_statistic': duration_stat,
-                    'p_value': duration_p,
-                    'significant': duration_p < self.alpha,
-                    'bull_mean': bull_zones['duration'].mean(),
-                    'bear_mean': bear_zones['duration'].mean(),
-                    'effect_size': duration_effect
-                },
-                'return_test': {
-                    't_statistic': return_stat,
-                    'p_value': return_p,
-                    'significant': return_p < self.alpha,
-                    'bull_mean': bull_zones['price_return'].mean(),
-                    'bear_mean': bear_zones['price_return'].mean()
-                },
-                'bull_zones_count': len(bull_zones),
-                'bear_zones_count': len(bear_zones)
+                'pair_tested': [first, second],
+                'pairs_available': [list(p) for p in pairs],
+                'pairs_tested': [
+                    {'pair': list(r['pair']), 'combined_p': r['combined_p']}
+                    for r in results
+                ],
+                'duration_test': best['duration_test'],
+                'return_test': best['return_test'],
+                'zone_counts': best['zone_counts'],
             }
-            
+
             return HypothesisTestResult(
-                hypothesis="Bullish and bearish zones are asymmetric",
+                hypothesis=f"Zones of type '{first}' and '{second}' are asymmetric",
                 test_type="Multiple t-tests with Bonferroni correction",
-                statistic=max(abs(duration_stat), abs(return_stat)),
-                p_value=combined_p,
-                significant=combined_p < self.alpha,
+                statistic=best['statistic'],
+                p_value=best['combined_p'],
+                significant=best['combined_p'] < self.alpha,
                 alpha=self.alpha,
-                effect_size=duration_effect,
-                sample_size=len(bull_zones) + len(bear_zones),
+                effect_size=best['effect_size'],
+                sample_size=best['sample_size'],
                 metadata=metadata
             )
-            
+
         except Exception as e:
-            self.logger.error(f"Bull-bear asymmetry hypothesis test failed: {e}")
-            raise StatisticalAnalysisError(f"Bull-bear asymmetry test failed: {e}")
-    
-    def test_sequence_hypothesis(self, zones_features: List[Dict[str, Any]]) -> HypothesisTestResult:
+            self.logger.error(f"Contrast asymmetry hypothesis test failed: {e}")
+            raise StatisticalAnalysisError(f"Contrast asymmetry test failed: {e}")
+
+    @staticmethod
+    def _adjacent_pairs(zones_features: List[Dict[str, Any]]) -> List[tuple]:
+        """Пары соседних по списку зон, которые **примыкают** во времени.
+
+        Детекторы мостят таймлайн, но ``min_duration`` отбрасывает короткие зоны,
+        и соседи отброшенной перестают примыкать. Переход между ними произошёл не
+        между соседями, и считать его переходом нельзя (разбор:
+        ``devref/gaps/sequence/``).
+
+        Если границы зон недоступны (старый сохранённый артефакт), возвращаются
+        все последовательные пары — прежнее поведение; вызывающий сообщает об этом
+        через ``discarded_pairs == 0``.
+        """
+        bounds = [
+            (zone.get('start_idx'), zone.get('end_idx'))
+            for zone in zones_features
+        ]
+        if any(start is None or end is None for start, end in bounds):
+            return [(i, i + 1) for i in range(len(zones_features) - 1)]
+        return [
+            (i, i + 1)
+            for i in range(len(zones_features) - 1)
+            if bounds[i + 1][0] <= bounds[i][1] + 1
+        ]
+
+    def test_sequence_hypothesis(self, zones_features: List[Dict[str, Any]],
+                                 vocabulary: Optional[ZoneVocabulary] = None
+                                 ) -> HypothesisTestResult:
         """
         Тест гипотезы о неслучайности последовательностей зон.
         
@@ -345,17 +437,29 @@ class HypothesisTestSuite:
             if len(zone_types) < 3:
                 raise StatisticalAnalysisError("Need at least 3 zones for sequence analysis")
             
+            if vocabulary is None:
+                vocabulary = ZoneVocabulary.coerce(sorted(set(zone_types)))
+            
+            # Примыкание: пара зон, разделённая пропуском (например, короткой зоной,
+            # отброшенной по min_duration), переходом не является — между ними было
+            # то, чего в выборке нет. Границы приходят в фичах зоны; если их нет,
+            # последовательность считается сплошной, и это отмечается в metadata.
+            adjacent = self._adjacent_pairs(zones_features)
+            
             # Подсчитываем переходы
             transitions = {}
-            for i in range(len(zone_types) - 1):
-                transition = f"{zone_types[i]}_to_{zone_types[i+1]}"
+            for i, j in adjacent:
+                transition = f"{zone_types[i]}_to_{zone_types[j]}"
                 transitions[transition] = transitions.get(transition, 0) + 1
             
             # Тест хи-квадрат на равномерность переходов
             observed_freq = list(transitions.values())
             
             if len(observed_freq) < 2:
-                raise StatisticalAnalysisError("Need at least 2 different transition types")
+                raise StatisticalAnalysisError(
+                    f"Need at least 2 different transition types, got {len(observed_freq)} "
+                    f"from {len(adjacent)} adjacent zone pairs"
+                )
             
             # Ожидаемая частота при равномерном распределении
             total_transitions = sum(observed_freq)
@@ -363,13 +467,31 @@ class HypothesisTestSuite:
             
             chi2_stat, chi2_p = stats.chisquare(observed_freq, [expected_freq] * len(observed_freq))
             
-            # Дополнительный тест: runs test для проверки случайности
-            # Преобразуем в бинарную последовательность
-            binary_sequence = [1 if zone_type == 'bull' else 0 for zone_type in zone_types]
-            runs_stat, runs_p = self._runs_test(binary_sequence)
+            # Дополнительный тест: runs test для проверки случайности.
+            #
+            # Бинаризация идёт по ОБЪЯВЛЕННОЙ ПОЛЯРНОСТИ типа зоны. Раньше здесь
+            # стояло `1 if zone_type == 'bull' else 0`: на любом другом словаре ряд
+            # выходил константным, и тест отвечал на вопрос о величине, которая не
+            # меняется, — а его p-value входило в комбинированный результат.
+            directional = [
+                (1 if vocabulary.polarity_of(zone_type) == 1 else 0)
+                for zone_type in zone_types
+                if vocabulary.polarity_of(zone_type) in (-1, 1)
+            ]
             
-            # Комбинированный p-value
-            combined_p = min(chi2_p * 2, runs_p * 2, 1.0)
+            if len(directional) >= 2 and len(set(directional)) == 2:
+                runs_stat, runs_p = self._runs_test(directional)
+                combined_p = min(chi2_p * 2, runs_p * 2, 1.0)
+                runs_note = None
+            else:
+                runs_stat, runs_p = None, None
+                combined_p = min(chi2_p, 1.0)
+                runs_note = (
+                    "runs test skipped: fewer than two directional zone types are "
+                    f"present among {sorted(set(zone_types))}, so the binarised "
+                    "sequence would not vary"
+                )
+                self.logger.debug(runs_note)
             
             metadata = {
                 'transitions': transitions,
@@ -378,10 +500,13 @@ class HypothesisTestSuite:
                 'chi2_p_value': chi2_p,
                 'runs_statistic': runs_stat,
                 'runs_p_value': runs_p,
+                'runs_test_skipped': runs_note,
                 'sequence_length': len(zone_types),
+                'adjacent_pairs': len(adjacent),
+                'discarded_pairs': len(zone_types) - 1 - len(adjacent),
                 'unique_transitions': len(transitions)
             }
-            
+
             return HypothesisTestResult(
                 hypothesis="Zone sequences follow non-random patterns",
                 test_type="Chi-square and runs tests",
@@ -497,7 +622,9 @@ class HypothesisTestSuite:
             self.logger.error(f"Volatility hypothesis test failed: {e}")
             raise StatisticalAnalysisError(f"Volatility test failed: {e}")
     
-    def test_correlation_drawdown_hypothesis(self, zones_features: List[Dict[str, Any]]) -> HypothesisTestResult:
+    def test_correlation_drawdown_hypothesis(self, zones_features: List[Dict[str, Any]],
+                                             vocabulary: Optional[ZoneVocabulary] = None
+                                             ) -> HypothesisTestResult:
         """
         Тест гипотезы о влиянии корреляции цены-MACD на просадку.
         
@@ -520,41 +647,63 @@ class HypothesisTestSuite:
             if missing_cols:
                 raise StatisticalAnalysisError(f"Missing required columns: {missing_cols}")
             
-            # Для бычьих зон используем drawdown_from_peak
-            # Для медвежьих - rally_from_trough (инвертируем для симметрии)
-            bull_zones = df_features[df_features['zone_type'] == 'bull'].copy()
-            bear_zones = df_features[df_features['zone_type'] == 'bear'].copy()
+            observed = sorted(set(df_features['zone_type']))
+            if vocabulary is None:
+                vocabulary = ZoneVocabulary.coerce(observed)
             
-            # Проверяем наличие нужных колонок
-            if 'drawdown_from_peak' not in bull_zones.columns and len(bull_zones) > 0:
-                raise StatisticalAnalysisError("Missing 'drawdown_from_peak' for bull zones")
+            # Какая из двух экскурсий содержательна, решает ОБЪЯВЛЕННАЯ ПОЛЯРНОСТЬ
+            # типа зоны, а не его имя: у приподнятой зоны говорящая величина —
+            # просадка от максимума, у подавленной — отскок от минимума. Раньше
+            # выборки набирались по `zone_type == 'bull'` / `== 'bear'`, поэтому на
+            # любом другом словаре обе оказывались пустыми, и тест падал с
+            # сообщением про нехватку данных («got 0 zones» на прогоне из 18) —
+            # диагностика винила объём, хотя причина была в словаре.
+            excursion_by_polarity = {1: 'drawdown_from_peak', -1: 'rally_from_trough'}
             
-            if 'rally_from_trough' not in bear_zones.columns and len(bear_zones) > 0:
-                raise StatisticalAnalysisError("Missing 'rally_from_trough' for bear zones")
+            missing_metrics = [
+                column for column in excursion_by_polarity.values()
+                if column not in df_features.columns
+            ]
+            if missing_metrics:
+                raise StatisticalAnalysisError(
+                    f"Missing excursion metrics {missing_metrics}; they are computed "
+                    "for every zone, so their absence means the features were built "
+                    "by an older version"
+                )
             
-            # Объединяем данные для анализа
-            # Для bear зон используем abs(rally_from_trough) как аналог drawdown
             combined_data = []
+            used_types = {}
             
-            if len(bull_zones) > 0:
-                bull_clean = bull_zones[['correlation_price_hist', 'drawdown_from_peak']].dropna()
-                for _, row in bull_clean.iterrows():
+            for zone_type in observed:
+                polarity = vocabulary.polarity_of(zone_type)
+                column = excursion_by_polarity.get(polarity)
+                if column is None:
+                    continue
+                
+                subset = df_features[df_features['zone_type'] == zone_type]
+                clean = subset[['correlation_price_hist', column]].dropna()
+                used_types[zone_type] = len(clean)
+                
+                for _, row in clean.iterrows():
                     combined_data.append({
                         'correlation': row['correlation_price_hist'],
-                        'drawdown': abs(row['drawdown_from_peak'])  # abs для унификации
+                        # abs() приводит обе экскурсии к одной шкале: просадка
+                        # отрицательна, отскок положителен, а сравнивается величина.
+                        'drawdown': abs(row[column])
                     })
             
-            if len(bear_zones) > 0:
-                bear_clean = bear_zones[['correlation_price_hist', 'rally_from_trough']].dropna()
-                for _, row in bear_clean.iterrows():
-                    combined_data.append({
-                        'correlation': row['correlation_price_hist'],
-                        'drawdown': abs(row['rally_from_trough'])  # abs для унификации
-                    })
+            if not used_types:
+                raise StatisticalAnalysisError(
+                    "No zone type declares a polarity, so neither excursion metric "
+                    f"is meaningful here; observed types: {observed}. Declare "
+                    "ZoneType.polarity on the detection strategy to enable this test."
+                )
             
             if len(combined_data) < 10:
                 raise StatisticalAnalysisError(
-                    f"Insufficient data for correlation-drawdown test (need at least 10 zones, got {len(combined_data)})"
+                    f"Insufficient data for correlation-drawdown test (need at least "
+                    f"10 zones, got {len(combined_data)} usable of {len(df_features)}; "
+                    f"per type: {used_types})"
                 )
             
             df_combined = pd.DataFrame(combined_data)
@@ -605,12 +754,22 @@ class HypothesisTestSuite:
                 'low_corr_threshold': low_corr['correlation'].max(),
                 'overall_correlation': overall_corr,
                 'overall_correlation_p': overall_p,
-                'bull_zones_used': len(bull_zones),
-                'bear_zones_used': len(bear_zones)
+                # Сколько зон каждого типа реально вошло в выборку — вместо двух
+                # счётчиков с захардкоженными именами, которые на любом другом
+                # словаре показывали бы нули.
+                'zones_used_by_type': used_types,
+                'zones_used_total': len(combined_data),
+                'excursion_by_polarity': {
+                    str(polarity): column
+                    for polarity, column in excursion_by_polarity.items()
+                }
             }
             
             return HypothesisTestResult(
-                hypothesis="High correlation between price and MACD reduces drawdown",
+                hypothesis=(
+                    "High correlation between price and the detection indicator "
+                    "reduces the price excursion within a zone"
+                ),
                 test_type="Independent t-test",
                 statistic=t_stat,
                 p_value=p_value,
@@ -963,12 +1122,16 @@ class HypothesisTestSuite:
         
         return z, p_value
     
-    def run_all_tests(self, zones_features: List[Dict[str, Any]]) -> AnalysisResult:
+    def run_all_tests(self, zones_features: List[Dict[str, Any]],
+                      vocabulary: Optional[ZoneVocabulary] = None) -> AnalysisResult:
         """
         Выполнить все тесты гипотез.
         
         Args:
             zones_features: Список словарей с характеристиками зон
+            vocabulary: Объявленный словарь типов зон — нужен тестам, которые
+                опираются на направление или на контрастную пару. Без него они
+                сообщат о неприменимости, а не выдадут число.
         
         Returns:
             AnalysisResult с результатами всех тестов
@@ -980,20 +1143,24 @@ class HypothesisTestSuite:
         
         tests = {}
         
-        # Выполняем все тесты
+        # Выполняем все тесты. Тесты, которым нужен словарь типов зон, получают
+        # его явно — остальные о нём не знают и знать не должны.
         test_methods = [
-            ('zone_duration', self.test_zone_duration_hypothesis),
-            ('histogram_slope', self.test_histogram_slope_hypothesis),
-            ('bull_bear_asymmetry', self.test_bull_bear_asymmetry_hypothesis),
-            ('sequence_patterns', self.test_sequence_hypothesis),
-            ('volatility_effects', self.test_volatility_hypothesis),
-            ('correlation_drawdown', self.test_correlation_drawdown_hypothesis),
-            ('duration_stationarity', self.test_zone_duration_stationarity)
+            ('zone_duration', self.test_zone_duration_hypothesis, False),
+            ('histogram_slope', self.test_histogram_slope_hypothesis, False),
+            ('contrast_asymmetry', self.test_contrast_asymmetry_hypothesis, True),
+            ('sequence_patterns', self.test_sequence_hypothesis, True),
+            ('volatility_effects', self.test_volatility_hypothesis, False),
+            ('correlation_drawdown', self.test_correlation_drawdown_hypothesis, True),
+            ('duration_stationarity', self.test_zone_duration_stationarity, False)
         ]
         
-        for test_name, test_method in test_methods:
+        for test_name, test_method, needs_vocabulary in test_methods:
             try:
-                result = test_method(zones_features)
+                if needs_vocabulary:
+                    result = test_method(zones_features, vocabulary=vocabulary)
+                else:
+                    result = test_method(zones_features)
                 tests[test_name] = result.to_dict()
             except Exception as e:
                 self.logger.warning(f"Test {test_name} failed: {e}")
@@ -1003,15 +1170,31 @@ class HypothesisTestSuite:
                     'significant': False
                 }
         
-        # Подсчет значимых результатов
-        significant_count = sum(1 for test_result in tests.values() 
+        # Тест, который не выполнился, не является незначимым результатом — он не
+        # является результатом вовсе. Раньше такие тесты попадали в знаменатель
+        # `significance_rate` наравне с выполненными, разбавляя её: на пороговом
+        # прогоне два теста падали из-за словаря, а сводка показывала 3/7 = 0.429,
+        # ничего не сообщая о том, что два из семи не считались.
+        executed = {name: r for name, r in tests.items() if 'error' not in r}
+        failed = {name: r['error'] for name, r in tests.items() if 'error' in r}
+        
+        significant_count = sum(1 for test_result in executed.values() 
                               if test_result.get('significant', False))
+        
+        if failed:
+            self.logger.info(
+                "%d of %d hypothesis tests did not run: %s",
+                len(failed), len(tests), ', '.join(sorted(failed))
+            )
         
         # Сводка
         summary = {
             'total_tests': len(tests),
+            'tests_executed': len(executed),
+            'tests_failed': len(failed),
+            'failed_tests': failed,
             'significant_tests': significant_count,
-            'significance_rate': significant_count / len(tests) if tests else 0,
+            'significance_rate': significant_count / len(executed) if executed else 0,
             'alpha_level': self.alpha,
             'total_zones': len(zones_features)
         }
@@ -1036,19 +1219,24 @@ class HypothesisTestSuite:
 
 
 # Удобные функции для быстрого использования
-def run_all_hypothesis_tests(zones_features: List[Dict[str, Any]], alpha: float = 0.05) -> Dict[str, Any]:
+def run_all_hypothesis_tests(zones_features: List[Dict[str, Any]], alpha: float = 0.05,
+                             vocabulary: Optional[ZoneVocabulary] = None) -> Dict[str, Any]:
     """
     Выполнить все тесты гипотез (совместимость с оригинальным API).
     
     Args:
         zones_features: Список словарей с характеристиками зон
         alpha: Уровень значимости
+        vocabulary: Объявленный словарь типов зон. Тесты, опирающиеся на
+            направление или контрастную пару, без него сообщат о неприменимости —
+            вывести эти свойства из имён нельзя, и попытка была бы тем самым
+            хардкодом, ради снятия которого словарь и заведён.
     
     Returns:
         Словарь с результатами всех тестов
     """
     test_suite = HypothesisTestSuite(alpha=alpha)
-    analysis_result = test_suite.run_all_tests(zones_features)
+    analysis_result = test_suite.run_all_tests(zones_features, vocabulary=vocabulary)
     return analysis_result.results
 
 
@@ -1056,7 +1244,8 @@ def run_single_hypothesis_test(zones_features: List[Dict[str, Any]],
                           test_type: str, 
                           alpha: float = 0.05,
                           price_levels: Optional[List[float]] = None,
-                          tolerance_pct: float = 0.5) -> HypothesisTestResult:
+                          tolerance_pct: float = 0.5,
+                          vocabulary: Optional[ZoneVocabulary] = None) -> HypothesisTestResult:
     """
     Выполнить один конкретный тест гипотезы.
     
@@ -1067,6 +1256,8 @@ def run_single_hypothesis_test(zones_features: List[Dict[str, Any]],
         alpha: Уровень значимости
         price_levels: Список уровней для теста 'support_resistance' (опционально)
         tolerance_pct: Допуск для теста 'support_resistance' (% от цены)
+        vocabulary: Объявленный словарь типов зон — нужен тестам 'asymmetry',
+            'sequence' и 'correlation_drawdown'
     
     Returns:
         HypothesisTestResult с результатами теста
@@ -1082,19 +1273,22 @@ def run_single_hypothesis_test(zones_features: List[Dict[str, Any]],
         )
     
     test_mapping = {
-        'duration': test_suite.test_zone_duration_hypothesis,
-        'slope': test_suite.test_histogram_slope_hypothesis,
-        'asymmetry': test_suite.test_bull_bear_asymmetry_hypothesis,
-        'sequence': test_suite.test_sequence_hypothesis,
-        'volatility': test_suite.test_volatility_hypothesis,
-        'correlation_drawdown': test_suite.test_correlation_drawdown_hypothesis,
-        'stationarity': test_suite.test_zone_duration_stationarity
+        'duration': (test_suite.test_zone_duration_hypothesis, False),
+        'slope': (test_suite.test_histogram_slope_hypothesis, False),
+        'asymmetry': (test_suite.test_contrast_asymmetry_hypothesis, True),
+        'sequence': (test_suite.test_sequence_hypothesis, True),
+        'volatility': (test_suite.test_volatility_hypothesis, False),
+        'correlation_drawdown': (test_suite.test_correlation_drawdown_hypothesis, True),
+        'stationarity': (test_suite.test_zone_duration_stationarity, False)
     }
     
     if test_type not in test_mapping:
         raise ValueError(f"Unknown test type: {test_type}. Available: {list(test_mapping.keys()) + ['support_resistance']}")
     
-    return test_mapping[test_type](zones_features)
+    test_method, needs_vocabulary = test_mapping[test_type]
+    if needs_vocabulary:
+        return test_method(zones_features, vocabulary=vocabulary)
+    return test_method(zones_features)
 
 
 # Экспорт

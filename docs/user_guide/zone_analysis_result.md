@@ -139,9 +139,9 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 | atr_normalized_return | float, optional | Доходность, нормализованная на ATR (если есть колонка atr). |
 | correlation_price_hist | float, optional | Корреляция цены и основного индикатора. |
 | num_peaks, num_troughs | int, optional | Количество пиков/впадин (find_peaks по high/low). |
-| drawdown_from_peak | float, optional | Просадка от пика (для бычьих зон). |
-| rally_from_trough | float, optional | Отскок от минимума (для медвежьих зон). |
-| peak_time_ratio, trough_time_ratio | float, optional | Позиция пика/впадины в зоне (0.0–1.0). |
+| drawdown_from_peak | float, optional | Экскурсия цены от максимума зоны к её концу (`end/max - 1`, ≤ 0). Считается для **любой** зоны. |
+| rally_from_trough | float, optional | Экскурсия цены от минимума зоны к её концу (`end/min - 1`, ≥ 0). Считается для **любой** зоны. |
+| peak_time_ratio, trough_time_ratio | float, optional | Позиция максимума/минимума в зоне (0.0–1.0). Считаются для **любой** зоны. |
 | hist_slope | float, optional | Максимальный наклон осциллятора в зоне. |
 | **metadata** | **dict** | Вложенный словарь (см. ниже). |
 
@@ -440,3 +440,23 @@ result = ZoneAnalysisResult.load('results/XAUUSD_1h/full_analysis.json', format=
 ```
 
 После загрузки из JSON или parquet у зон в `zone.data` будет пустой DataFrame; при необходимости его можно восстановить по `result.data` и `zone.start_idx`/`zone.end_idx`, если сохраняли 01_indicator_data.parquet отдельно.
+
+> **Важно (с 2026-08-24).** Четыре метрики — `drawdown_from_peak`, `rally_from_trough`,
+> `peak_time_ratio`, `trough_time_ratio` — считаются для **каждой** зоны, независимо от её
+> типа. Раньше они были привязаны к имени типа: у `bull`-зоны заполнялись две из четырёх,
+> у `bear` — другие две, а у зоны с любым другим именем (`overbought`, `regime_a`, …) —
+> ни одной. Ветвление не считало их по-разному, оно их отбрасывало: все четыре выводятся
+> из цены закрытия зоны и её экстремумов и определены всегда.
+>
+> Какая из четырёх содержательна — решает потребитель по объявленной **полярности** типа
+> зоны (`ZoneVocabulary.polarity_of`, см. [zones.md](../api/analysis/zones.md)): у
+> приподнятой зоны говорящая величина — просадка от пика, у подавленной — отскок от
+> минимума.
+>
+> **Побочное следствие, о котором стоит знать при сравнении со старыми результатами.**
+> `ZoneRegressionAnalyzer.predict_price_return` включает `drawdown_from_peak` в набор
+> предикторов по умолчанию и отбрасывает строки с пропусками. Пока метрика была только у
+> `bull`-зон, модель молча обучалась **на половине выборки**: 33 зоны из 72 на встроенном
+> сэмпле, с R² = 0.863. Теперь обучается на 66 из 72, и R² = 0.699. Прежнее число было
+> завышено не потому, что модель была лучше, а потому, что описывало половину данных,
+> выдавая это за описание всех зон.

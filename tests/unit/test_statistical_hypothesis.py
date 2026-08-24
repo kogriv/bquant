@@ -152,6 +152,22 @@ class TestHypothesisTestResult:
         assert result_dict['metadata'] == {'sample_mean': 10.5}
 
 
+
+@pytest.fixture
+def bull_bear_vocabulary():
+    """Словарь bull/bear для фикстур с синтетическими зонами.
+
+    Синтетические словари фич приходят без контекста детекции, поэтому свойства
+    типов взять неоткуда — вывести их из имён нельзя, это и был снятый хардкод.
+    Тесты, опирающиеся на направление или контрастную пару, объявляют словарь сами.
+    """
+    from bquant.analysis.zones import ZoneType, ZoneVocabulary
+
+    return ZoneVocabulary.coerce([
+        ZoneType('bull', polarity=+1, counterpart='bear'),
+        ZoneType('bear', polarity=-1, counterpart='bull'),
+    ])
+
 class TestHypothesisTestSuite:
     """Тесты класса HypothesisTestSuite."""
     
@@ -205,19 +221,22 @@ class TestHypothesisTestSuite:
         assert 'sample_size' in result.metadata
         assert result.metadata['sample_size'] == result.sample_size
     
-    def test_bull_bear_asymmetry_hypothesis(self, test_suite, test_zones):
-        """Тест гипотезы об асимметрии бычьих и медвежьих зон."""
-        result = test_suite.test_bull_bear_asymmetry_hypothesis(test_zones)
+    def test_contrast_asymmetry_hypothesis(self, test_suite, test_zones, bull_bear_vocabulary):
+        """Тест гипотезы об асимметрии зон контрастной пары."""
+        result = test_suite.test_contrast_asymmetry_hypothesis(
+            test_zones, vocabulary=bull_bear_vocabulary
+        )
         
         assert isinstance(result, HypothesisTestResult)
-        assert result.hypothesis == "Bullish and bearish zones are asymmetric"
+        assert result.hypothesis == "Zones of type 'bear' and 'bull' are asymmetric"
         assert result.test_type == "Multiple t-tests with Bonferroni correction"
         
         # Проверяем метаданные
         assert 'duration_test' in result.metadata
         assert 'return_test' in result.metadata
-        assert 'bull_zones_count' in result.metadata
-        assert 'bear_zones_count' in result.metadata
+        assert 'zone_counts' in result.metadata
+        assert set(result.metadata['zone_counts']) == {'bull', 'bear'}
+        assert result.metadata['pair_tested'] == ['bear', 'bull']
         
         duration_test = result.metadata['duration_test']
         assert 't_statistic' in duration_test
@@ -253,12 +272,17 @@ class TestHypothesisTestSuite:
         assert 'significant_correlations' in result.metadata
         assert 'volatility_mean' in result.metadata
     
-    def test_correlation_drawdown_hypothesis(self, test_suite, test_zones):
-        """Тест гипотезы о корреляции и просадке."""
-        result = test_suite.test_correlation_drawdown_hypothesis(test_zones)
+    def test_correlation_drawdown_hypothesis(self, test_suite, test_zones, bull_bear_vocabulary):
+        """Тест гипотезы о корреляции и величине экскурсии цены."""
+        result = test_suite.test_correlation_drawdown_hypothesis(
+            test_zones, vocabulary=bull_bear_vocabulary
+        )
         
         assert isinstance(result, HypothesisTestResult)
-        assert result.hypothesis == "High correlation between price and MACD reduces drawdown"
+        assert result.hypothesis == (
+            "High correlation between price and the detection indicator "
+            "reduces the price excursion within a zone"
+        )
         assert result.test_type == "Independent t-test"
         assert isinstance(result.statistic, float)
         assert isinstance(result.p_value, float)
@@ -272,8 +296,9 @@ class TestHypothesisTestSuite:
         assert 'low_corr_mean_drawdown' in result.metadata
         assert 'overall_correlation' in result.metadata
         assert 'overall_correlation_p' in result.metadata
-        assert 'bull_zones_used' in result.metadata
-        assert 'bear_zones_used' in result.metadata
+        assert 'zones_used_by_type' in result.metadata
+        assert set(result.metadata['zones_used_by_type']) == {'bull', 'bear'}
+        assert result.metadata['zones_used_total'] > 0
     
     def test_zone_duration_stationarity(self, test_suite, test_zones):
         """Тест стационарности длительности зон (ADF)."""
@@ -393,7 +418,7 @@ class TestHypothesisTestSuite:
         summary = analysis_result.results['summary']
         
         # Проверяем, что все тесты выполнены (обновлено для Phase 3.7)
-        expected_tests = ['zone_duration', 'histogram_slope', 'bull_bear_asymmetry', 
+        expected_tests = ['zone_duration', 'histogram_slope', 'contrast_asymmetry', 
                          'sequence_patterns', 'volatility_effects',
                          'correlation_drawdown', 'duration_stationarity']
         
@@ -437,7 +462,7 @@ class TestErrorHandling:
         ]
         
         with pytest.raises(StatisticalAnalysisError):
-            test_suite.test_bull_bear_asymmetry_hypothesis(minimal_zones)
+            test_suite.test_contrast_asymmetry_hypothesis(minimal_zones)
     
     def test_single_zone_type(self, test_suite):
         """Тест с зонами только одного типа."""
@@ -447,7 +472,7 @@ class TestErrorHandling:
         ]
         
         with pytest.raises(StatisticalAnalysisError):
-            test_suite.test_bull_bear_asymmetry_hypothesis(single_type_zones)
+            test_suite.test_contrast_asymmetry_hypothesis(single_type_zones)
 
 
 class TestConvenienceFunctions:
@@ -480,16 +505,35 @@ class TestConvenienceFunctions:
         assert 'tests' in results
         assert 'summary' in results
     
-    def test_test_single_hypothesis_function(self, test_zones):
+    def test_test_single_hypothesis_function(self, test_zones, bull_bear_vocabulary):
         """Тест функции test_single_hypothesis."""
         # Тест каждого типа гипотезы (обновлено для Phase 3.7 + H5)
         test_types = ['duration', 'slope', 'asymmetry', 'sequence', 'volatility',
                      'correlation_drawdown', 'stationarity']
         
         for test_type in test_types:
-            result = run_single_hypothesis_test(test_zones, test_type, alpha=0.05)
+            result = run_single_hypothesis_test(
+                test_zones, test_type, alpha=0.05, vocabulary=bull_bear_vocabulary
+            )
             assert isinstance(result, HypothesisTestResult)
             assert result.alpha == 0.05
+
+    def test_vocabulary_bound_tests_decline_without_a_declaration(self, test_zones):
+        """Без объявленного словаря направленные тесты отказываются, а не гадают.
+
+        Это и есть проектная деградация: имена `bull`/`bear` выглядят очевидной
+        парой для человека, но вывести из них полярность значило бы вернуть тот
+        самый хардкод. Отказ должен называть настоящую причину — отсутствие
+        объявления, а не нехватку данных.
+        """
+        for test_type in ('asymmetry', 'correlation_drawdown'):
+            with pytest.raises(StatisticalAnalysisError) as excinfo:
+                run_single_hypothesis_test(test_zones, test_type, alpha=0.05)
+            message = str(excinfo.value)
+            assert 'declare' in message.lower() or 'declared' in message.lower(), message
+            assert 'insufficient data' not in message.lower(), (
+                f"the message blames the data instead of the missing declaration: {message}"
+            )
         
         # Тест H5 (support_resistance) отдельно с параметрами
         result_h5 = run_single_hypothesis_test(
@@ -543,7 +587,7 @@ class TestCompatibilityWithOriginal:
         expected_tests = [
             'zone_duration',
             'histogram_slope', 
-            'bull_bear_asymmetry',
+            'contrast_asymmetry',
             'sequence_patterns',
             'volatility_effects'
         ]

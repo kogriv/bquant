@@ -158,14 +158,25 @@ class UniversalZoneAnalyzer:
         # 2. Статистический анализ
         statistics = self.features.analyze_zones_distribution([f.to_dict() for f in zones_features])
         
+        # Словарь типов зон резолвится из самих зон: его знает стратегия детекции,
+        # и её имя лежит в indicator_context. Всё, что ниже, спрашивает объявленные
+        # свойства типа (полярность, контрастную пару), а не сравнивает его имя со
+        # строковым литералом — дефект G20.
+        from .detection import resolve_vocabulary
+        vocabulary = resolve_vocabulary(zones)
+        
         # 3. Тестирование гипотез
-        hypothesis_tests = self.hypotheses.run_all_tests([f.to_dict() for f in zones_features])
+        hypothesis_tests = self.hypotheses.run_all_tests(
+            [f.to_dict() for f in zones_features], vocabulary=vocabulary
+        )
         
         # 4. Анализ последовательностей (требует минимум 3 зоны)
         sequence_analysis = None
         if len(zones_features) >= 3:
             try:
-                sequence_analysis = self.sequences.analyze_zone_transitions(zones_features)
+                sequence_analysis = self.sequences.analyze_zone_transitions(
+                    zones_features, vocabulary=vocabulary
+                )
             except Exception as e:
                 self.logger.error(f"Failed to perform sequence analysis: {e}")
                 sequence_analysis = {'error': str(e)}
@@ -173,7 +184,9 @@ class UniversalZoneAnalyzer:
         # 5. Кластеризация (опционально)
         clustering = None
         if perform_clustering and len(zones) >= n_clusters:
-            clustering = self.sequences.cluster_zones(zones_features, n_clusters=n_clusters)
+            clustering = self.sequences.cluster_zones(
+                zones_features, n_clusters=n_clusters, vocabulary=vocabulary
+            )
             self.logger.info(f"Performed clustering: {n_clusters} clusters")
         
         # 6. Регрессия (опционально)

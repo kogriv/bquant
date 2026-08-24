@@ -16,7 +16,7 @@ Universal Zone Analysis Pipeline v2.1 - это современная архит
 result = (
     analyze_zones(df)
     .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='rsi', 
+    .detect_zones('threshold', indicator_col='RSI_14', 
                   upper_threshold=70, lower_threshold=30)
     .with_strategies(swing='find_peaks', shape='statistical')
     .analyze(clustering=True, n_clusters=3)
@@ -70,7 +70,7 @@ result = (
 .detect_zones('zero_crossing', indicator_col='macd_hist')
 
 # Threshold для RSI
-.detect_zones('threshold', indicator_col='rsi', 
+.detect_zones('threshold', indicator_col='RSI_14', 
               upper_threshold=70, lower_threshold=30)
 
 # Line crossing для MA
@@ -267,7 +267,7 @@ for i, zone in enumerate(result.zones[:3]):
 result = (
     analyze_zones(data)
     .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='rsi', 
+    .detect_zones('threshold', indicator_col='RSI_14', 
                   upper_threshold=70, lower_threshold=30)
     .with_strategies(swing='pivot_points', volatility='combined')
     .analyze(clustering=True)

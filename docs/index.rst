@@ -122,7 +122,7 @@ BQuant Documentation
    result = (
        analyze_zones(data)
        .with_indicator('pandas_ta', 'rsi', length=14)
-       .detect_zones('threshold', indicator_col='rsi', 
+       .detect_zones('threshold', indicator_col='RSI_14', 
                      upper_threshold=70, lower_threshold=30)
        .analyze(clustering=True)
        .build()

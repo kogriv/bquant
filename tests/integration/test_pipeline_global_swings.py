@@ -41,7 +41,7 @@ def test_pipeline_global_swing_scope(monkeypatch):
         .with_cache(enable=False)
         .with_strategies(swing="zigzag")
         .with_swing_scope("global")
-        .detect_zones("preloaded", zones_data=zones_df, zone_types=["any"])
+        .detect_zones("preloaded", zones_data=zones_df)
         .build()
     )
 
@@ -74,7 +74,7 @@ def test_fallback_to_per_zone(monkeypatch):
             .with_cache(enable=False)
             .with_strategies(swing="zigzag")
             .with_swing_scope("global")
-            .detect_zones("preloaded", zones_data=zones_df, zone_types=["any"])
+            .detect_zones("preloaded", zones_data=zones_df)
             .build()
         )
 

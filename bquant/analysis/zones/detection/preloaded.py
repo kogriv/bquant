@@ -22,7 +22,9 @@ from bquant.core.logging_config import get_logger
 @ZoneDetectionRegistry.register(
     'preloaded',
     description='Import zones from external data source (CSV, DataFrame)',
-    supported_zones=['any'],
+    # Словарь определяется во время выполнения — типы приходят из импортируемых
+    # данных. Потребители читают ZoneVocabulary.is_declared и не фильтруют.
+    supported_zones=None,
     required_rules=['zones_data']
 )
 class PreloadedZonesDetection:
@@ -49,7 +51,6 @@ class PreloadedZonesDetection:
         strategy = PreloadedZonesDetection()
         config = ZoneDetectionConfig(
             min_duration=2,
-            zone_types=['any'],
             rules={'zones_data': 'expert_zones.csv'}
         )
         zones = strategy.detect_zones(ohlcv_data, config)
@@ -96,7 +97,11 @@ class PreloadedZonesDetection:
             )
             
             if zone_info and zone_info.duration >= config.min_duration:
-                if zone_info.type in config.zone_types or 'any' in config.zone_types:
+                # `'any'` больше не нужен: словарь этой стратегии определяется
+                # импортируемыми данными, и `zone_types=None` означает «не
+                # фильтровать» напрямую, без имени-заглушки, которым ни одна зона
+                # в действительности не помечена.
+                if config.accepts(zone_info.type):
                     zones.append(zone_info)
         
         self.logger.info(f"Loaded {len(zones)} preloaded zones")
@@ -186,7 +191,8 @@ def load_preloaded_zones(zones_path: Union[str, Path],
     detector = PreloadedZonesDetection()
     config = ZoneDetectionConfig(
         min_duration=min_duration,
-        zone_types=['any'],
+        # Фильтра нет: словарь типов приходит из импортируемых данных.
+        zone_types=None,
         rules={
             'zones_data': zones_path,
             'time_tolerance': time_tolerance

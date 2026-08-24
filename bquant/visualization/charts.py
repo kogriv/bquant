@@ -471,6 +471,22 @@ class FinancialCharts(ChartBuilder):
         
         # Добавляем зоны если есть
         if zones_data:
+            # Цвет зоны следует ОБЪЯВЛЕННОЙ ПОЛЯРНОСТИ её типа, а не имени: раньше
+            # здесь стояло `'lightblue' if zone_type == 'bull' else 'lightpink'`, и
+            # зона любого другого словаря (`overbought`, `regime_a`, …) молча
+            # окрашивалась как медвежья — график сообщал направление, которого никто
+            # не объявлял.
+            from ..analysis.zones.detection import resolve_vocabulary
+
+            try:
+                vocabulary = resolve_vocabulary(zones_data)
+            except Exception as exc:  # pragma: no cover - защита от чужой формы входа
+                self.logger.debug(f"Could not resolve zone vocabulary: {exc}")
+                vocabulary = None
+            
+            polarity_colors = {1: 'lightgreen', -1: 'lightpink',
+                               0: 'lightgrey', None: 'lightblue'}
+            
             for i, zone in enumerate(zones_data):
                 # Поддержка как словарей, так и dataclass объектов ZoneInfo
                 if isinstance(zone, dict):
@@ -487,7 +503,10 @@ class FinancialCharts(ChartBuilder):
                     fig.add_vrect(
                         x0=start_time,
                         x1=end_time,
-                        fillcolor='lightblue' if zone_type == 'bull' else 'lightpink',
+                        fillcolor=polarity_colors.get(
+                            vocabulary.polarity_of(zone_type) if vocabulary else None,
+                            polarity_colors[None],
+                        ),
                         opacity=0.3,
                         layer="below",
                         line_width=0,

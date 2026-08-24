@@ -6,7 +6,7 @@ Zone Detection - Base Protocol and Configuration
 - ZoneDetectionConfig: Универсальная конфигурация правил
 """
 
-from typing import Protocol, runtime_checkable, List, Dict, Any
+from typing import Protocol, runtime_checkable, List, Dict, Any, Optional
 from dataclasses import dataclass, field
 import pandas as pd
 
@@ -102,7 +102,16 @@ class ZoneDetectionConfig:
     
     Attributes:
         min_duration: Минимальная длительность зоны в барах
-        zone_types: Типы зон для поиска (None = все возможные для стратегии)
+        zone_types: Типы зон для поиска. ``None`` = **не фильтровать**: стратегия
+            отдаёт все типы, которые находит.
+
+            Раньше ``None`` молча подменялся на ``['bull', 'bear']`` — словарь
+            MACD-подобных детекторов. Каждый детектор фильтрует свой вывод через
+            этот список, поэтому ``threshold`` (``overbought``/``neutral``/
+            ``oversold``) и ``combined`` (типы задаёт вызывающий) возвращали
+            **пустой успешный результат**: зоны находились и тут же отбрасывались,
+            а лог сообщал «Detected 0 zones», неотличимо от «порогам нечего было
+            ловить». Разбор: ``devref/gaps/detection/``.
         rules: Специфичные правила для стратегии (Dict[str, Any])
         strategy_name: Имя стратегии для registry
         metadata: Дополнительная информация (для логирования, отладки)
@@ -129,14 +138,20 @@ class ZoneDetectionConfig:
         )
     """
     min_duration: int = 2
-    zone_types: List[str] = None
+    zone_types: Optional[List[str]] = None
     rules: Dict[str, Any] = field(default_factory=dict)
     strategy_name: str = None
     metadata: Dict[str, Any] = field(default_factory=dict)
     
-    def __post_init__(self):
+    def accepts(self, zone_type: str) -> bool:
+        """Проходит ли зона этого типа фильтр конфигурации.
+        
+        ``zone_types is None`` означает отсутствие фильтра, а не пустой белый
+        список: стратегия отдаёт всё, что нашла.
+        """
         if self.zone_types is None:
-            self.zone_types = ['bull', 'bear']
+            return True
+        return zone_type in self.zone_types
     
     def validate(self, required_rules: List[str]) -> None:
         """

@@ -2,6 +2,9 @@
 Zone Analysis Models - shared data structures for the zone-analysis pipeline.
 
 The module exposes the core entities used across zone detection and analytics:
+* ``ZoneType`` / ``ZoneVocabulary`` – declared meaning of the zone types a
+  detection strategy emits, so that universal layers can discriminate on
+  properties instead of on hardcoded names.
 * ``ZoneInfo`` – generic container describing a detected zone.
 * ``ZoneAnalysisResult`` – aggregate result of running the analysis pipeline.
 
@@ -12,7 +15,7 @@ Responsibilities:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List, Union, Tuple
+from typing import Optional, Dict, Any, List, Union, Tuple, Iterable
 from datetime import datetime
 from pathlib import Path
 from importlib import import_module
@@ -187,13 +190,193 @@ class SwingContext:
         }
 
 
+@dataclass(frozen=True)
+class ZoneType:
+    """Declared description of one kind of zone a detection strategy can emit.
+
+    A zone type used to be a bare string, and every universal layer downstream
+    discriminated on that string: ``if zone_type == 'bull'``. Three independent
+    assumptions were fused into that single comparison — that there are exactly
+    two types, that they are mutually opposite, and that they are spelled
+    ``bull``/``bear``. A threshold or regime detector therefore produced zones
+    correctly and then lost its direction metrics, its Markov chain and its
+    hypothesis tests (analysis: ``devref/gaps/zone_types/``).
+
+    The rule this type exists to enforce: **a consumer needs the declared
+    properties of a zone type, not its name.** Names are an open vocabulary —
+    ``bull``, ``overbought``, ``regime_a``, whatever the domain invents.
+    Properties are a closed one, and that is exactly what lets universal code
+    work without knowing any names.
+
+    Attributes:
+        name: The label carried by :attr:`ZoneInfo.type`. Open vocabulary.
+        polarity: Where the zone sits on the axis of **the series it was detected
+            on** — ``+1`` elevated (MACD histogram above zero, RSI above the upper
+            threshold, volatility high), ``-1`` depressed, ``0`` a declared neutral
+            band, ``None`` the axis is not ordered and directional maths does not
+            apply to this type.
+
+            Deliberately *not* "price direction": ``bull`` = "price rises" is a
+            MACD assumption, false for RSI ``overbought`` and meaningless for a
+            volatility regime.
+
+            ``None`` means *declared absence of direction*, not "unknown". A
+            consumer must react to it explicitly — skip the metric and say so.
+            Silently returning ``None`` is the same defect, only quieter.
+        counterpart: Name of the contrasting type, when one exists. Hypothesis
+            tests compare a **pair**, and which type pairs with which is knowledge
+            the producer has. Left unset it can be derived (see
+            :meth:`ZoneVocabulary.counterpart_of`), but derivation is ambiguous as
+            soon as a sign is represented by more than one type
+            (``strong_bull``/``weak_bull``), which is precisely the case this
+            abstraction exists to support.
+        label: Human-readable caption for charts. Defaults to :attr:`name`.
+
+    Example:
+        >>> ZoneType('overbought', polarity=+1, counterpart='oversold')
+        ZoneType(name='overbought', polarity=1, counterpart='oversold', label=None)
+    """
+
+    name: str
+    polarity: Optional[int] = None
+    counterpart: Optional[str] = None
+    label: Optional[str] = None
+
+    _VALID_POLARITIES = (None, -1, 0, 1)
+
+    def __post_init__(self):
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise ValueError(f"ZoneType.name must be a non-empty string, got {self.name!r}")
+        # Проверка по типу, а не только по значению: `True == 1` и `1.0 == 1`,
+        # поэтому одного `in` мало — булев флаг или float молча прошли бы за
+        # объявленную полярность.
+        valid = (
+            self.polarity is None
+            or (type(self.polarity) is int and self.polarity in (-1, 0, 1))
+        )
+        if not valid:
+            raise ValueError(
+                f"ZoneType({self.name!r}).polarity must be one of "
+                f"{self._VALID_POLARITIES} as an int, got {self.polarity!r} "
+                f"({type(self.polarity).__name__}). The vocabulary of properties is "
+                "closed on purpose: it is what universal layers discriminate on."
+            )
+
+    @property
+    def display_label(self) -> str:
+        """Caption for charts and reports."""
+        return self.label or self.name
+
+    @property
+    def is_directional(self) -> bool:
+        """True when directional maths (drawdown vs rally, runs test) applies."""
+        return self.polarity in (-1, 1)
+
+    @classmethod
+    def coerce(cls, value: Union[str, "ZoneType"]) -> "ZoneType":
+        """Accept a plain name or a descriptor.
+
+        A bare string is lifted to a descriptor with no declared properties. Such
+        a type still detects zones, but universal layers will report directional
+        analyses as not applicable rather than guessing — degradation is explicit,
+        not silent.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            return cls(name=value)
+        raise TypeError(
+            f"zone type must be a str or ZoneType, got {type(value).__name__}: {value!r}"
+        )
+
+
+@dataclass(frozen=True)
+class ZoneVocabulary:
+    """The set of zone types a strategy declares, with lookups for consumers.
+
+    An **empty** vocabulary is not "no zones"; it means the strategy does not
+    declare its types statically because they are determined at runtime — from
+    the imported data (``preloaded``) or from the caller's rules (``combined``).
+    Consumers must read :attr:`is_declared` and refrain from filtering, rather
+    than treating emptiness as an empty allow-list.
+    """
+
+    types: Tuple[ZoneType, ...] = ()
+
+    def __post_init__(self):
+        seen = [t.name for t in self.types]
+        duplicates = {n for n in seen if seen.count(n) > 1}
+        if duplicates:
+            raise ValueError(f"duplicate zone type names in vocabulary: {sorted(duplicates)}")
+
+    @classmethod
+    def coerce(cls, values: Optional[Iterable[Union[str, ZoneType]]]) -> "ZoneVocabulary":
+        """Build from a list of names and/or descriptors; ``None`` yields empty."""
+        if values is None:
+            return cls()
+        if isinstance(values, cls):
+            return values
+        return cls(types=tuple(ZoneType.coerce(v) for v in values))
+
+    @property
+    def is_declared(self) -> bool:
+        """False when the vocabulary is determined at runtime, not statically."""
+        return bool(self.types)
+
+    def names(self) -> List[str]:
+        """Declared type names, in declaration order."""
+        return [t.name for t in self.types]
+
+    def get(self, name: str) -> Optional[ZoneType]:
+        """Descriptor for ``name``, or ``None`` if this vocabulary does not declare it."""
+        for zone_type in self.types:
+            if zone_type.name == name:
+                return zone_type
+        return None
+
+    def polarity_of(self, name: str) -> Optional[int]:
+        """Declared polarity of ``name``; ``None`` if undeclared or non-directional."""
+        zone_type = self.get(name)
+        return zone_type.polarity if zone_type else None
+
+    def counterpart_of(self, name: str) -> Optional[str]:
+        """Contrasting type for ``name`` — declared, else derived.
+
+        Derivation is the fallback and applies only when the opposite polarity is
+        represented by exactly one type. With ``strong_bull``/``weak_bull`` both at
+        ``+1`` there is no single answer, and this returns ``None`` instead of
+        picking one.
+        """
+        zone_type = self.get(name)
+        if zone_type is None:
+            return None
+        if zone_type.counterpart is not None:
+            return zone_type.counterpart
+        if not zone_type.is_directional:
+            return None
+        opposite = [t.name for t in self.types if t.polarity == -zone_type.polarity]
+        return opposite[0] if len(opposite) == 1 else None
+
+    def contrast_pairs(self) -> List[Tuple[str, str]]:
+        """Mutually contrasting pairs, each listed once, deterministically ordered."""
+        pairs = set()
+        for zone_type in self.types:
+            other = self.counterpart_of(zone_type.name)
+            if other and self.counterpart_of(other) == zone_type.name:
+                pairs.add(tuple(sorted((zone_type.name, other))))
+        return sorted(pairs)
+
+
 @dataclass
 class ZoneInfo:
     """Normalized representation of a detected zone.
 
     Attributes:
         zone_id: Unique identifier of the zone within the analysis batch.
-        type: Zone type label (``"bull"``, ``"bear"``, ``"oversold"``, etc.).
+        type: Zone type label (``"bull"``, ``"bear"``, ``"oversold"``, etc.). An open
+            vocabulary: the detection strategy names its own types and declares what
+            they mean via :class:`ZoneType`. Consumers must discriminate on the
+            declared properties, never on this string.
         start_idx: Inclusive positional index (``iloc``) at which the zone begins.
         end_idx: Inclusive positional index (``iloc``) at which the zone ends.
         start_time: Timestamp of the first bar belonging to the zone.
@@ -658,6 +841,8 @@ __all__ = [
     'ZoneInfo',
     'ZoneAnalysisResult',
     'SwingPoint',
-    'SwingContext'
+    'SwingContext',
+    'ZoneType',
+    'ZoneVocabulary'
 ]
 
