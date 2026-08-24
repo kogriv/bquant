@@ -181,7 +181,7 @@ result = (
 
 ```
 1. analyze_zones(df) создает ZoneAnalysisBuilder
-2. .with_indicator() → сохраняет IndicatorConfig
+2. .with_indicator() → сохраняет IndicatorSpec
 3. .detect_zones() → сохраняет ZoneDetectionConfig
 4. .analyze() → настраивает параметры анализа
 5. .build() → запускает pipeline!

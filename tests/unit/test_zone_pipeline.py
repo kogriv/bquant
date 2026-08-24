@@ -11,7 +11,7 @@ import numpy as np
 from bquant.analysis.zones import (
     ZoneAnalysisPipeline,
     ZoneAnalysisBuilder,
-    IndicatorConfig,
+    IndicatorSpec,
     ZoneAnalysisConfig,
     ZoneDetectionConfig,
     ZoneAnalysisResult,
@@ -19,20 +19,20 @@ from bquant.analysis.zones import (
 )
 
 
-class TestIndicatorConfig:
-    """Tests for IndicatorConfig dataclass."""
+class TestIndicatorSpec:
+    """Tests for the IndicatorSpec dataclass."""
     
     def test_indicator_config_creation(self):
-        """Test IndicatorConfig creation."""
-        config = IndicatorConfig(
+        """Test IndicatorSpec creation."""
+        config = IndicatorSpec(
             source='custom',
             name='macd',
-            params={'fast': 12, 'slow': 26, 'signal': 9}
+            parameters={'fast': 12, 'slow': 26, 'signal': 9}
         )
         
         assert config.source == 'custom'
         assert config.name == 'macd'
-        assert config.params['fast'] == 12
+        assert config.parameters['fast'] == 12
 
 
 class TestZoneAnalysisConfig:
@@ -108,10 +108,10 @@ class TestZoneAnalysisPipeline:
         }, index=dates)
         
         config = ZoneAnalysisConfig(
-            indicator=IndicatorConfig(
+            indicator=IndicatorSpec(
                 source='custom',
                 name='macd',
-                params={'fast_period': 12, 'slow_period': 26, 'signal_period': 9}
+                parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9}
             ),
             zone_detection=ZoneDetectionConfig(
                 strategy_name='zero_crossing',

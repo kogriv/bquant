@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from bquant.analysis.zones.pipeline import (
-    IndicatorConfig,
+    IndicatorSpec,
     ZoneAnalysisConfig,
     ZoneAnalysisPipeline,
 )
@@ -18,10 +18,10 @@ from bquant.data.samples import get_sample_data
 
 def _make_test_config() -> ZoneAnalysisConfig:
     return ZoneAnalysisConfig(
-        indicator=IndicatorConfig(
+        indicator=IndicatorSpec(
             source="custom",
             name="macd",
-            params={"fast_period": 12, "slow_period": 26, "signal_period": 9},
+            parameters={"fast_period": 12, "slow_period": 26, "signal_period": 9},
         ),
         zone_detection=ZoneDetectionConfig(
             min_duration=2,

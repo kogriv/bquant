@@ -5,7 +5,7 @@ from statistics import mean
 import pytest
 
 from bquant.analysis.zones.pipeline import (
-    IndicatorConfig,
+    IndicatorSpec,
     ZoneAnalysisConfig,
     ZoneAnalysisPipeline,
 )
@@ -19,10 +19,10 @@ def test_narrow_zone_applies_parameters():
     df = get_sample_data("tv_xauusd_1h").set_index("time")
 
     config = ZoneAnalysisConfig(
-        indicator=IndicatorConfig(
+        indicator=IndicatorSpec(
             source="custom",
             name="macd",
-            params={"fast_period": 12, "slow_period": 26, "signal_period": 9},
+            parameters={"fast_period": 12, "slow_period": 26, "signal_period": 9},
         ),
         zone_detection=ZoneDetectionConfig(
             min_duration=2,

@@ -161,6 +161,26 @@ result = (
 ### Configuration-driven подход
 Pipeline работает через `ZoneAnalysisConfig` без hardcode, обеспечивая максимальную гибкость.
 
+Поле `indicator` в нём — это **`IndicatorSpec`**: какой индикатор посчитать и с какими
+параметрами.
+
+```python
+from bquant.analysis.zones import IndicatorSpec
+
+spec = IndicatorSpec(
+    source='custom',                 # 'preloaded' | 'custom' | 'pandas_ta' | 'talib'
+    name='macd',
+    parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
+)
+```
+
+> **Переименовано 2026-08-24.** Класс назывался `IndicatorConfig` и был **полным тёзкой**
+> другого публичного класса — `bquant.indicators.IndicatorConfig`, который описывает
+> *посчитанный* индикатор (`name/parameters/source/columns/description`), а не заявку на
+> расчёт. Читателю приходилось выводить из контекста, о каком из двух идёт речь. Поле
+> `params` заодно приведено к `parameters` — так оно называется во втором классе.
+> Алиасов нет: старое имя из `bquant.analysis.zones` убрано.
+
 ### Dependency Injection
 Все компоненты настраиваются через DI:
 - ZoneFeaturesAnalyzer

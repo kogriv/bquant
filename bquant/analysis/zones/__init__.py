@@ -530,7 +530,7 @@ except ImportError as e:
 # Импорт Pipeline и Builder (новая архитектура - Stage 1.3)
 try:
     from .pipeline import (
-        IndicatorConfig,
+        IndicatorSpec,
         ZoneAnalysisConfig,
         ZoneAnalysisPipeline,
         ZoneAnalysisBuilder,
@@ -626,7 +626,7 @@ if _analyzer_available:
 # Добавляем pipeline если доступен
 if _pipeline_available:
     __all__.extend([
-        'IndicatorConfig',
+        'IndicatorSpec',
         'ZoneAnalysisConfig',
         'ZoneAnalysisPipeline',
         'ZoneAnalysisBuilder',

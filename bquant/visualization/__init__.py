@@ -127,9 +127,15 @@ else:
     _themes_available = False
 
 
-class VisualizationError(Exception):
-    """Исключение для ошибок визуализации."""
-    pass
+# Исключение берётся из общей иерархии, а не заводится своё.
+#
+# Здесь стоял собственный `class VisualizationError(Exception)`, тёзка класса из
+# `bquant.core.exceptions` и НЕ его подкласс. Последствие было практическим, а не
+# косметическим: `except bquant.core.exceptions.VisualizationError` не ловил то,
+# что бросал этот модуль, и `except BQuantError` — тоже, потому что локальный
+# класс наследовался от голого `Exception`. Документация при этом описывала
+# правильный вариант (`VisualizationError(BQuantError)`), то есть врал код.
+from ..core.exceptions import VisualizationError
 
 
 def create_financial_chart(chart_type: str = 'candlestick', **kwargs):

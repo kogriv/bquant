@@ -9,7 +9,7 @@
 | Компонент | Что делает | Где описан |
 |-----------|------------|------------|
 | **DataFrame с OHLCV** | Исходные котировки и готовые индикаторы | [Data Management](../api/data/README.md) |
-| **IndicatorConfig** | Описание источника и параметров индикатора | [Indicators](../api/indicators/README.md) |
+| **IndicatorSpec** | Какой индикатор посчитать и с какими параметрами (заявка на расчёт) | [Analysis / pipeline](../api/analysis/pipeline.md) |
 | **ZoneDetectionConfig** | Стратегия поиска зон и её правила | [Analysis / Zones](../api/analysis/zones.md) |
 | **UniversalZoneAnalyzer** | Извлекает признаки, гипотезы, последовательности | [Analysis / pipeline](../api/analysis/pipeline.md) |
 | **ZoneAnalysisResult** | Итоговый объект с зонами, метриками и сервисными данными | [Analysis / base](../api/analysis/base.md) |
@@ -29,13 +29,13 @@
 Следующий пример повторяет структуру документации и показывает, из каких элементов собирается pipeline.
 
 ```python
-from bquant.analysis.zones.pipeline import IndicatorConfig, ZoneDetectionConfig, ZoneAnalysisConfig
+from bquant.analysis.zones.pipeline import IndicatorSpec, ZoneDetectionConfig, ZoneAnalysisConfig
 
 config = ZoneAnalysisConfig(
-    indicator=IndicatorConfig(
+    indicator=IndicatorSpec(
         source='custom',
         name='macd',
-        params={'fast': 12, 'slow': 26, 'signal': 9}
+        parameters={'fast': 12, 'slow': 26, 'signal': 9}
     ),
     zone_detection=ZoneDetectionConfig(
         strategy_name='zero_crossing',

@@ -5,7 +5,7 @@ This module implements the orchestration layer for zone analytics and exposes a
 fluent builder API.
 
 Components:
-* ``IndicatorConfig`` – indicator calculation settings.
+* ``IndicatorSpec`` – which indicator to compute, and with what parameters.
 * ``ZoneAnalysisConfig`` – full pipeline configuration container.
 * ``ZoneAnalysisPipeline`` – executes the workflow (optionally with caching).
 * ``ZoneAnalysisBuilder`` – fluent API entry point used by ``analyze_zones``.
@@ -63,18 +63,29 @@ CACHE_SCHEMA_VERSION = 7
 
 
 @dataclass
-class IndicatorConfig:
-    """Indicator calculation configuration."""
+class IndicatorSpec:
+    """Which indicator to compute, and with what parameters.
+
+    Named `IndicatorConfig` until 2026-08-24, which collided with an unrelated
+    public class of the same name in ``bquant.indicators.base`` — a different
+    dataclass, with different fields, describing a *computed* indicator rather
+    than a request to compute one. Two public classes sharing a name in one
+    package is the same defect the column contract is about: the label carried
+    no identity, and the reader had to guess which one was meant from context.
+
+    The field was called ``params`` here and ``parameters`` there; it is
+    ``parameters`` in both now.
+    """
     source: Literal['preloaded', 'custom', 'pandas_ta', 'talib']
     name: str
-    params: Dict[str, Any] = field(default_factory=dict)
+    parameters: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class ZoneAnalysisConfig:
     """Complete configuration for the zone-analysis pipeline."""
     # Индикатор (None если уже в данных)
-    indicator: Optional[IndicatorConfig] = None
+    indicator: Optional[IndicatorSpec] = None
     
     # Детекция зон (обязательно)
     zone_detection: ZoneDetectionConfig = None
@@ -127,7 +138,7 @@ class ZoneAnalysisPipeline:
     
     Example:
         config = ZoneAnalysisConfig(
-            indicator=IndicatorConfig('custom', 'macd', {'fast': 12}),
+            indicator=IndicatorSpec('custom', 'macd', {'fast': 12}),
             zone_detection=ZoneDetectionConfig(
                 strategy_name='zero_crossing',
                 rules={'indicator_col': 'macd_hist'}
@@ -289,7 +300,7 @@ class ZoneAnalysisPipeline:
         indicator = IndicatorFactory.create(
             source=ind.source,
             indicator=ind.name,
-            **ind.params,
+            **ind.parameters,
         )
 
         result: IndicatorResult = indicator.calculate(df)
@@ -534,7 +545,7 @@ class ZoneAnalysisBuilder:
     def __init__(self, data: pd.DataFrame):
         """Initialize the builder with the source dataframe."""
         self.data = data
-        self._indicator_config: Optional[IndicatorConfig] = None
+        self._indicator_config: Optional[IndicatorSpec] = None
         self._zone_detection_config: Optional[ZoneDetectionConfig] = None
         self._perform_clustering = True
         self._n_clusters = 3
@@ -558,10 +569,10 @@ class ZoneAnalysisBuilder:
                       name: str, 
                       **params) -> 'ZoneAnalysisBuilder':
         """Schedule indicator calculation as part of the pipeline."""
-        self._indicator_config = IndicatorConfig(
+        self._indicator_config = IndicatorSpec(
             source=source,
             name=name,
-            params=params
+            parameters=params
         )
         return self
     
@@ -793,7 +804,7 @@ def analyze_zones(df: pd.DataFrame) -> ZoneAnalysisBuilder:
 
 # Экспорт
 __all__ = [
-    'IndicatorConfig',
+    'IndicatorSpec',
     'ZoneAnalysisConfig',
     'ZoneAnalysisPipeline',
     'ZoneAnalysisBuilder',
