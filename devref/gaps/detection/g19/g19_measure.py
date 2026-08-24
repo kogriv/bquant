@@ -56,20 +56,33 @@ def _rsi(data: pd.DataFrame, length: int = 14) -> pd.Series:
 
 
 def measure_default_vocabulary() -> None:
-    """What each detector emits, versus what the default lets through."""
+    """What each detector emits, versus what an unset `zone_types` lets through.
+
+    The old default filled an unset `zone_types` with ``['bull', 'bear']``, so the
+    two detectors whose vocabulary is anything else lost every zone they found.
+    """
+    from bquant.analysis.zones.detection.base import ZoneDetectionConfig
+
     emitted = {
         "zero_crossing": ["bull", "bear"],
         "line_crossing": ["bull", "bear"],
-        "preloaded": ["bull", "bear"],
+        "preloaded": ["<from the imported data>"],
         "threshold": ["overbought", "neutral", "oversold"],
-        "combined": ["active", "inactive"],  # default zone_type_map
+        "combined": ["<from the caller's zone_type_map>"],
     }
-    default = ["bull", "bear"]
-    print("detector        emits                                  survives default?")
+    old_default = ["bull", "bear"]
+    unset = ZoneDetectionConfig()
+
+    print(f"unset zone_types is now {unset.zone_types!r} "
+          f"(was implicitly {old_default})")
+    print("detector        emits                                  "
+          "old default / now")
     for name, types in emitted.items():
-        survivors = [t for t in types if t in default]
-        verdict = "ok" if survivors else "NOTHING SURVIVES"
-        print(f"  {name:14s} {str(types):38s} {verdict}")
+        concrete = [t for t in types if not t.startswith("<")]
+        survived_old = bool([t for t in concrete if t in old_default])
+        old_verdict = "ok" if survived_old else "NOTHING SURVIVED"
+        now_verdict = "all pass" if all(unset.accepts(t) for t in concrete) else "filtered"
+        print(f"  {name:14s} {str(types):38s} {old_verdict:16s} / {now_verdict}")
 
 
 def measure_threshold(data: pd.DataFrame) -> None:
