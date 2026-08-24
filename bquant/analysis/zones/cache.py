@@ -42,7 +42,9 @@ class ZoneAnalysisCache:
     # adjacent zones, so transitions, the Markov matrix, the runs test and the
     # hypothesis summary all differ. The asymmetry test key was renamed
     # bull_bear_asymmetry -> contrast_asymmetry.
-    CACHE_VERSION = 7
+    # v8 (G8 stage C): the result carries a `column_schema` side-car recording
+    # (indicator, role) -> column, so a cached result from v7 lacks it.
+    CACHE_VERSION = 8
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

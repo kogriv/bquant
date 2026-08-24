@@ -6,6 +6,7 @@ This module contains the base classes for all indicators in BQuant.
 
 import pandas as pd
 import numpy as np
+import inspect
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List, Type, Callable
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from enum import Enum
 
 from bquant.core.logging_config import get_logger
 from bquant.core.exceptions import IndicatorCalculationError
+from .schema import IndicatorId
 
 logger = get_logger(__name__)
 
@@ -127,6 +129,51 @@ class BaseIndicator(ABC):
         """
         return 0
     
+    def get_output_roles(self) -> Dict[str, str]:
+        """Map each declared output **role** to the column this instance emits.
+
+        The point of the map is that a consumer asks for a *role* — "the
+        histogram" — instead of guessing the string ``'macd_hist'``. Until now
+        the two were fused in one literal and the mapping lived nowhere, so every
+        producer invented a name and every consumer guessed one
+        (``devref/gaps/columns/``).
+
+        The default covers the single-output case, which is unambiguous. An
+        indicator with several outputs must override this; returning ``{}`` is
+        honest — it says the roles are not declared — and a consumer will then
+        report role addressing as unavailable rather than guess.
+        """
+        columns = self.get_output_columns()
+        if len(columns) == 1:
+            return {"value": columns[0]}
+        return {}
+
+    def get_indicator_id(self) -> IndicatorId:
+        """Identity of this instance: name plus normalized parameters.
+
+        Parameter order is taken from the constructor signature, i.e. **fixed by
+        the declaration** rather than by the order a caller happened to pass
+        keywords in — otherwise the same indicator would slug two ways.
+        """
+        try:
+            signature = inspect.signature(type(self).__init__)
+            order = tuple(
+                name for name in signature.parameters
+                if name not in ("self", "args", "kwargs")
+            )
+        except (TypeError, ValueError):  # pragma: no cover - exotic callables
+            order = ()
+
+        source = getattr(self.config, "source", None)
+        source_name = getattr(source, "value", None) or str(source or "custom")
+
+        return IndicatorId(
+            source=source_name,
+            name=self.name,
+            parameters=dict(getattr(self.config, "parameters", {}) or {}),
+            parameter_order=order,
+        )
+
     def get_output_columns(self) -> List[str]:
         """
         Получить список выходных колонок.

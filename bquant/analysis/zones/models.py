@@ -452,6 +452,19 @@ class ZoneInfo:
         }
 
 
+
+def _schema_from(payload):
+    """Rebuild a :class:`ColumnSchema` from a serialized result.
+
+    Imported lazily: ``bquant.indicators`` pulls in the whole indicator stack, and
+    the zone models are imported by it in turn.
+    """
+    if not payload:
+        return None
+    from ...indicators.schema import ColumnSchema
+
+    return ColumnSchema.from_dict(payload)
+
 @dataclass
 class ZoneAnalysisResult:
     """
@@ -477,6 +490,13 @@ class ZoneAnalysisResult:
     validation_results: Optional[Dict[str, Any]] = None
     data: Optional[pd.DataFrame] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    #: ``(indicator, role) -> column`` for the indicators this analysis computed.
+    #: Survives the merge into :attr:`data`, where the objects are gone and only
+    #: strings remain — which is exactly where the meaning of a column used to be
+    #: lost. Lets a consumer ask for "the histogram" instead of guessing
+    #: ``'macd_hist'``. Empty when the caller supplied the indicator columns
+    #: themselves, since nothing then declared what they mean.
+    column_schema: Optional[Any] = None
     
     def save(
         self,
@@ -559,6 +579,7 @@ class ZoneAnalysisResult:
             'hypothesis_tests': self.hypothesis_tests,
             'clustering': self.clustering,
             'sequence_analysis': self.sequence_analysis,
+            'column_schema': self.column_schema.to_dict() if self.column_schema else None,
             'regression_results': self.regression_results,
             'validation_results': self.validation_results,
             'metadata': self.metadata
@@ -632,6 +653,7 @@ class ZoneAnalysisResult:
             hypothesis_tests=metadata['hypothesis_tests'],
             clustering=metadata.get('clustering'),
             sequence_analysis=metadata.get('sequence_analysis'),
+            column_schema=_schema_from(metadata.get('column_schema')),
             regression_results=metadata.get('regression_results'),
             validation_results=metadata.get('validation_results'),
             data=data,
@@ -646,6 +668,7 @@ class ZoneAnalysisResult:
             'hypothesis_tests': self.hypothesis_tests,
             'clustering': self.clustering,
             'sequence_analysis': self.sequence_analysis,
+            'column_schema': self.column_schema.to_dict() if self.column_schema else None,
             'regression_results': self.regression_results,
             'validation_results': self.validation_results,
             'metadata': self.metadata
@@ -673,6 +696,7 @@ class ZoneAnalysisResult:
             hypothesis_tests=data_dict['hypothesis_tests'],
             clustering=data_dict.get('clustering'),
             sequence_analysis=data_dict.get('sequence_analysis'),
+            column_schema=_schema_from(data_dict.get('column_schema')),
             regression_results=data_dict.get('regression_results'),
             validation_results=data_dict.get('validation_results'),
             data=data,

@@ -38,6 +38,17 @@ class BollingerBands(CustomIndicator):
         """Returns output columns."""
         return ['bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'bb_percent']
     
+    def get_output_roles(self) -> Dict[str, str]:
+        """Роль → колонка (имена пока прежние, см. комментарий в macd.py)."""
+        upper, middle, lower, width, percent = self.get_output_columns()
+        return {
+            "upper": upper,
+            "middle": middle,
+            "lower": lower,
+            "width": width,
+            "percent": percent,
+        }
+
     def get_description(self) -> str:
         """Returns indicator description."""
         return f"Bollinger Bands ({self.period}, {self.std_dev})"

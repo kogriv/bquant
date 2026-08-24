@@ -17,6 +17,7 @@ import pandas as pd
 import json
 
 from bquant.indicators import IndicatorFactory
+from bquant.indicators.schema import ColumnSchema
 from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
 from bquant.core.cache import get_cache_manager
@@ -59,7 +60,9 @@ _SWING_CLASS_TO_NAME = {
 #                 results derive from declared zone-type properties and count
 #                 only transitions between adjacent zones (G20/G21); the
 #                 asymmetry test key is now `contrast_asymmetry`.
-CACHE_SCHEMA_VERSION = 7
+#   v8 (2026-08): results carry a `column_schema` side-car mapping
+#                 (indicator, role) -> column name (G8 stage C).
+CACHE_SCHEMA_VERSION = 8
 
 
 @dataclass
@@ -171,6 +174,9 @@ class ZoneAnalysisPipeline:
         self._auto_threshold_base_deviation = auto_threshold_base_deviation
         self._adaptive_swing_wrappers: Dict[str, _AdaptiveSwingStrategy] = {}
         self._swing_preset_params: Dict[str, Dict[str, Any]] = {}
+        # Накапливается при расчёте индикаторов; переживает слияние в кадр и
+        # уезжает в результат, чтобы потребитель спрашивал роль, а не строку.
+        self.column_schema = ColumnSchema()
         self._apply_swing_preset(DEFAULT_SWING_PRESET, update_active=False)
 
     def run(self, df: pd.DataFrame) -> ZoneAnalysisResult:
@@ -233,7 +239,12 @@ class ZoneAnalysisPipeline:
             self._inject_swing_context(zones, global_swing_context)
 
         # Step 5: run feature analysis
-        return self._analyze_zones(zones, df_prepared)
+        result = self._analyze_zones(zones, df_prepared)
+        # Схема уезжает вместе с результатом: визуализатору и прочим потребителям
+        # передают именно его, и они смогут спросить роль вместо строки.
+        if self.column_schema:
+            result.column_schema = self.column_schema
+        return result
 
     def _get_active_swing_strategy(self) -> Optional[Any]:
         """Возвратить активную стратегию свингов, используемую анализатором зон."""
@@ -305,6 +316,22 @@ class ZoneAnalysisPipeline:
 
         result: IndicatorResult = indicator.calculate(df)
 
+        # Схема-спутник: (индикатор, роль) -> фактическое имя колонки. После
+        # слияния в кадр объекты исчезают и остаются строки — именно здесь знание
+        # о том, что означает колонка, раньше и терялось. Схема переживает слияние
+        # и позволяет потребителю спросить роль вместо того, чтобы угадывать имя.
+        try:
+            roles = indicator.get_output_roles()
+            if roles:
+                self.column_schema.register(indicator.get_indicator_id(), roles)
+            else:
+                self.logger.debug(
+                    "Indicator %s.%s declares no output roles; role addressing "
+                    "will be unavailable for it.", ind.source, ind.name,
+                )
+        except Exception as exc:  # pragma: no cover - чужой индикатор может не уметь
+            self.logger.debug("Could not record the column schema: %s", exc)
+
         df_with_indicator = df.copy()
         # An indicator column whose name is already taken REPLACES the caller's data
         # (G17). This is easy to miss: the bundled TradingView sample ships its own
@@ -341,8 +368,38 @@ class ZoneAnalysisPipeline:
 
         return df_with_indicator
     
+    def _resolve_indicator_role(self) -> None:
+        """Turn ``indicator_role='hist'`` into the column that actually holds it.
+
+        The pipeline knows the identity of the indicator because it created it,
+        so a role is enough. Resolution happens here rather than in the builder
+        because the schema is only populated once the indicator has run.
+        """
+        rules = self.config.zone_detection.rules
+        role = rules.pop("_indicator_role", None)
+        if role is None:
+            return
+
+        column = self.column_schema.column(role)
+        if column is None:
+            available = self.column_schema.roles()
+            raise ValueError(
+                f"cannot resolve indicator_role={role!r}: "
+                + (
+                    f"the indicator in this analysis provides {list(available)}"
+                    if available
+                    else "no indicator in this analysis declares its output roles"
+                )
+                + ". Address the column by name with indicator_col= instead, or "
+                "declare the roles on the indicator."
+            )
+
+        self.logger.debug("Resolved indicator_role=%r to column %r", role, column)
+        rules["indicator_col"] = column
+
     def _detect_zones(self, df: pd.DataFrame) -> List[ZoneInfo]:
         """Run the configured detection strategy and return zones."""
+        self._resolve_indicator_role()
         detector = ZoneDetectionRegistry.get(
             self.config.zone_detection.strategy_name
         )
@@ -581,9 +638,35 @@ class ZoneAnalysisBuilder:
         strategy: str,
         min_duration: int = 2,
         zone_types: List[str] = None,
+        indicator_role: Optional[str] = None,
         **rules,
     ) -> 'ZoneAnalysisBuilder':
-        """Configure zone detection rules."""
+        """Configure zone detection rules.
+
+        Args:
+            strategy: Registered detection strategy name.
+            min_duration: Minimum zone length in bars.
+            zone_types: Restrict the result to these types; ``None`` = no filter.
+            indicator_role: Address the series by **role** instead of by column
+                name — ``indicator_role='hist'`` rather than
+                ``indicator_col='macd_hist'``. The pipeline knows the identity of
+                the indicator because it created it, so the role is enough to
+                resolve the column. This is the point of the abstraction: the
+                caller stops being obliged to know the string.
+
+                Resolved at build time against the column schema; passing both
+                this and ``indicator_col`` is an error, since they could disagree.
+            **rules: Strategy-specific rules (``indicator_col``, thresholds, ...).
+        """
+        if indicator_role is not None:
+            if "indicator_col" in rules:
+                raise ValueError(
+                    "pass either indicator_role or indicator_col, not both: they "
+                    "address the same series and could disagree"
+                )
+            rules = dict(rules)
+            rules["_indicator_role"] = indicator_role
+
         self._zone_detection_config = ZoneDetectionConfig(
             min_duration=min_duration,
             zone_types=zone_types,

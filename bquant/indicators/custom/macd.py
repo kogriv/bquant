@@ -45,6 +45,17 @@ class MACD(CustomIndicator):
         """Returns output columns."""
         return ['macd', 'macd_signal', 'macd_hist']
     
+    def get_output_roles(self) -> Dict[str, str]:
+        """Роль → колонка, которую этот экземпляр действительно выдаёт.
+
+        Имена колонок здесь пока прежние: этап C вводит адресацию по ролям, не
+        меняя ни одного имени, чтобы каждый шаг оставался проверяемым против
+        прежнего поведения. Смена имён на слаги — следующий шаг, вместе с
+        переводом потребителей.
+        """
+        line, signal, hist = self.get_output_columns()
+        return {"line": line, "signal": signal, "hist": hist}
+
     def get_description(self) -> str:
         """Returns indicator description."""
         return f"MACD ({self.fast_period}, {self.slow_period}, {self.signal_period})"
