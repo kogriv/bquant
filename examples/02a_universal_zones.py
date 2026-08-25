@@ -87,7 +87,10 @@ def _safe_volatility_test(self, zones_features):
         )
 
 
-def _safe_run_all_tests(self, zones_features):
+def _safe_run_all_tests(self, zones_features, *args, **kwargs):
+    # `*args, **kwargs` — не украшение: обёртка подменяет метод библиотеки, а у
+    # того с версии 2.1 появился параметр `vocabulary`. Жёсткая сигнатура молча
+    # расходится с подменяемым методом и роняет пример при первом же вызове.
     self.logger.warning(
         "Hypothesis tests skipped for demo data (stability mode). Zones: %s",
         len(zones_features)

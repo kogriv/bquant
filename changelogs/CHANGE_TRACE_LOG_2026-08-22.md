@@ -375,3 +375,17 @@
 [included] [Changed] devref/gaps/columns/g8_column_contract_design_2026-08-23.md — §6.3; devref/gaps/gap_inventory_2026-07.md — **G8 закрыт**, открытых записей в реестре не осталось
 [not_included] [Technical] Сьют **1366 passed, 3 skipped**, doc-parity 436
 [not_included] [Technical] Не сделано в этом коммите: 4 примера из 11 не запускаются, и это **не следствие C2b** — сверено запуском на `HEAD`. Два из них (`02_macd_zone_analysis.py`, `02a_universal_zones.py`) сломал я сам в G20: они монкипатчат `HypothesisTestSuite.run_all_tests`, а G20 добавил туда параметр `vocabulary`. Ещё два (`01_basic_indicators.py`, `03_data_processing.py`) импортируют имена, которых нет в публичных `__init__`. Чиню отдельным коммитом
+
+==================== COMMIT DIVIDER ====================
+
+[Примеры и рисёрч-скрипты: семь из них не запускались, и это никто не проверял]
+
+[not_included] [Technical] Обнаружено при финальной сверке C2b: я прогнал все примеры целиком и увидел, что четыре из одиннадцати падают. Проверил запуском на `HEAD` — падали и до C2b, то есть это не следствие правки. Потом такой же прогон рисёрча нашёл ещё три
+[included] [Fixed] examples/02_macd_zone_analysis.py, examples/02a_universal_zones.py — **сломал я сам в G20**. Оба монкипатчат `HypothesisTestSuite.run_all_tests` жёсткой сигнатурой `(self, zones_features)`, а G20 добавил в метод параметр `vocabulary`. Обёртка молча разошлась с подменяемым методом и роняла пример при первом же вызове. Сигнатуры расширены до `(self, zones_features, *args, **kwargs)` с оговоркой, почему
+[included] [Fixed] examples/01_basic_indicators.py — импортировал шесть `calculate_*` из `bquant.indicators`, где их нет: они живут в `bquant.indicators.calculators` и намеренно не подняты в `__all__` пакета. Плюс висел импорт `create_sample_data` из `data.loader`, которым скрипт не пользовался, а функции такой нет вовсе
+[included] [Fixed] examples/03_data_processing.py — импортировал **шесть имён, которых нет ни под каким модулем**: API данных переименовали, а пример остался. `load_ohlcv_csv`→`load_ohlcv_data`, `clean_data`→`clean_ohlcv_data`, `remove_outliers`→`remove_price_outliers`, `resample_data`→`resample_ohlcv`, `normalize_data`→`normalize_prices`; `create_sample_data` заменён локальным хелпером поверх встроенного сэмпла — по правилу `AGENTS.md` примеры работают на встроенных данных
+[included] [Fixed] research/notebooks/00_logging/*.py (3 файла) — импортировали `calculate_macd` из `bquant.indicators.macd`, модуля, **удалённого** вместе с `MACDZoneAnalyzer` в 0.0.5
+[included] [Added] tests/unit/test_scripts_parity.py — 153 теста. Тот же приём, что `test_docs_parity`, но по исполняемым скриптам: каждый `from bquant... import` в `examples/` и `research/notebooks/` обязан резолвиться, каждый файл — разбираться как Python. Разбор через `ast`, а не гребом: скрипт — настоящий Python, гадать о синтаксисе незачем, и упоминание старого имени в комментарии не должно засчитываться за импорт. Сканер защищён от «молча ничего не нашёл»
+[not_included] [Technical] Проверка импортов дешёвая и идёт на каждом коммите — в отличие от фактического запуска (минуты) или того, что кто-то однажды попробует. Она поймала бы 01 и 03 в момент переименования API
+[not_included] [Technical] Проверено запуском: **все 11 примеров** и **все 24 скрипта** в `research/notebooks/` (включая `00_logging/`) отрабатывают с кодом 0. `zone_analysis_global_swings.py` требует ~7 минут — не падение, а долгий счёт
+[not_included] [Technical] Сьют **1519 passed, 3 skipped** (+153)

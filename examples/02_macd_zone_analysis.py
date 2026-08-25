@@ -75,7 +75,11 @@ def _safe_volatility_test(self, zones_features):
 HypothesisTestSuite.test_volatility_hypothesis = _safe_volatility_test
 
 
-def _safe_run_all_tests(self, zones_features):
+def _safe_run_all_tests(self, zones_features, *args, **kwargs):
+    # `*args, **kwargs` — не украшение: обёртка подменяет метод библиотеки, а у
+    # того с версии 2.1 появился параметр `vocabulary` (словарь типов зон). Жёсткая
+    # сигнатура молча расходится с подменяемым методом и роняет пример при первом
+    # же вызове — так и вышло, пример пролежал сломанным.
     if len(zones_features) < 6:
         self.logger.warning(
             "Hypothesis tests skipped for demo data: only %s zones", len(zones_features)
@@ -93,7 +97,7 @@ def _safe_run_all_tests(self, zones_features):
             data_size=len(zones_features),
             metadata={'skipped': True, 'reason': 'insufficient_zones'}
         )
-    return _original_run_all_tests(self, zones_features)
+    return _original_run_all_tests(self, zones_features, *args, **kwargs)
 
 
 HypothesisTestSuite.run_all_tests = _safe_run_all_tests
@@ -243,14 +247,19 @@ def main():
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('line_crossing',
-                     line1_col='macd',
-                     line2_col='macd_signal')
+                     line1_role='line',
+                     line2_role='signal')
         .with_strategies(**STRATEGY_PROFILE)
         .analyze(clustering=False)
         .build()
     )
     print(f"   Зон: {len(result_line.zones)}")
     
+    from bquant.indicators import IndicatorFactory
+    HIST_COLUMN = IndicatorFactory.create(
+        'custom', 'macd', fast_period=12, slow_period=26, signal_period=9
+    ).get_output_roles()['hist']
+
     print("\nСтратегия 3: Combined Rules (комбинация условий)")
     print("-" * 40)
     
@@ -260,9 +269,12 @@ def main():
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('combined',
+                     # Условие получает кадр с уже посчитанным индикатором.
+                     # Имя колонки не пишем строкой — спрашиваем у индикатора,
+                     # иначе оно разойдётся с ним при смене параметров.
                      conditions=[
-                         lambda d: d['macd_hist'] > 0,  # Условие 1: гистограмма положительная
-                         lambda d: d['macd_hist'].abs() > 0.0005  # NOTE: смягчён порог для демонстрации
+                         lambda d: d[HIST_COLUMN] > 0,  # гистограмма положительная
+                         lambda d: d[HIST_COLUMN].abs() > 0.0005  # смягчённый порог для демонстрации
                      ],
                      logic='AND',
                      zone_types=['active'],
@@ -294,10 +306,13 @@ def main():
         df_with_macd[col] = macd_result.data[col]
     
     # Шаг 2: Детекция зон
+    # Детектор зовётся напрямую, минуя пайплайн, поэтому колонку называем по
+    # имени — а имя спрашиваем у индикатора: роль в имя превращает пайплайн,
+    # у которого есть схема.
     detector = ZoneDetectionRegistry.get('zero_crossing')
     config = ZoneDetectionConfig(
         min_duration=2,
-        rules={'indicator_role': 'hist'},
+        rules={'indicator_col': macd_indicator.get_output_roles()['hist']},
         strategy_name='zero_crossing'
     )
     zones = detector.detect_zones(df_with_macd, config)

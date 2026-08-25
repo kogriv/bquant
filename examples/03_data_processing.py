@@ -24,12 +24,40 @@ from typing import Dict, List, Any, Optional
 # Добавляем путь к BQuant для импорта
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# Пример импортировал шесть имён, которых в пакете нет ни под каким модулем —
+# API переименовали, а пример остался и не запускался вовсе. Актуальные имена:
+#   create_sample_data -> встроенные сэмплы (`bquant.data.samples`)
+#   load_ohlcv_csv     -> load_ohlcv_data
+#   clean_data         -> clean_ohlcv_data
+#   remove_outliers    -> remove_price_outliers
+#   resample_data      -> resample_ohlcv
+#   normalize_data     -> normalize_prices
 from bquant.data import (
-    create_sample_data, load_ohlcv_csv, get_available_timeframes,
-    validate_ohlcv_data, clean_data, remove_outliers,
-    resample_data, calculate_derived_indicators,
-    create_lagged_features, normalize_data
+    load_ohlcv_data, get_available_timeframes,
+    validate_ohlcv_data, clean_ohlcv_data, remove_price_outliers,
+    resample_ohlcv, calculate_derived_indicators,
+    create_lagged_features, normalize_prices
 )
+from bquant.data.samples import get_sample_data
+
+
+def create_sample_data(symbol: str, start_date: str, end_date: str,
+                       timeframe: str = "1h") -> pd.DataFrame:
+    """Кадр для демонстрации, нарезанный из встроенного сэмпла.
+
+    Синтетическую генерацию здесь заменяет правило проекта: примеры работают на
+    встроенных данных, а не на выдуманных (`AGENTS.md`). Символ и таймфрейм
+    используются как подписи — данные одни и те же.
+    """
+    data = get_sample_data('tv_xauusd_1h').copy()
+    if 'time' in data.columns:
+        data = data.set_index(pd.to_datetime(data['time'])).drop(columns=['time'])
+    span = pd.Timestamp(end_date) - pd.Timestamp(start_date)
+    bars = max(int(span / pd.Timedelta('1h')), 24)
+    data = data.head(bars)
+    data.attrs['symbol'] = symbol
+    data.attrs['timeframe'] = timeframe
+    return data
 from bquant.data.schemas import OHLCVRecord, DataSourceConfig, ValidationResult
 from bquant.core.config import get_data_path, SUPPORTED_TIMEFRAMES
 
@@ -223,7 +251,7 @@ def demonstrate_data_cleaning():
     print(f"\n2️⃣ Применение очистки данных:")
     
     try:
-        cleaned_data = clean_data(dirty_data)
+        cleaned_data = clean_ohlcv_data(dirty_data)
         print(f"   ✅ Данные очищены")
         print(f"   📊 Количество строк после очистки: {len(cleaned_data)}")
         
@@ -243,7 +271,7 @@ def demonstrate_data_cleaning():
     print(f"\n3️⃣ Удаление выбросов:")
     
     try:
-        outlier_free_data = remove_outliers(cleaned_data, method='iqr', columns=['close', 'high', 'low'])
+        outlier_free_data = remove_price_outliers(cleaned_data, columns=['close', 'high', 'low'], method='z_score')
         print(f"   ✅ Выбросы удалены")
         print(f"   📊 Количество строк: {len(cleaned_data)} → {len(outlier_free_data)}")
         
@@ -279,11 +307,11 @@ def demonstrate_data_transformations():
     
     try:
         # Преобразуем в 4-часовые данные
-        resampled_4h = resample_data(base_data, target_timeframe='4h')
+        resampled_4h = resample_ohlcv(base_data, target_timeframe='4h')
         print(f"   ✅ Ресэмплинг в 4h: {len(base_data)} → {len(resampled_4h)} баров")
         
         # Преобразуем в дневные данные
-        resampled_1d = resample_data(base_data, target_timeframe='1d')
+        resampled_1d = resample_ohlcv(base_data, target_timeframe='1d')
         print(f"   ✅ Ресэмплинг в 1d: {len(base_data)} → {len(resampled_1d)} баров")
         
     except Exception as e:
@@ -331,7 +359,7 @@ def demonstrate_data_transformations():
         numeric_columns = ['close', 'high', 'low', 'open', 'volume']
         available_columns = [col for col in numeric_columns if col in lagged_data.columns]
         
-        normalized_data = normalize_data(lagged_data, columns=available_columns, method='minmax')
+        normalized_data = normalize_prices(lagged_data, base_column='close', method='first_value')
         
         print(f"   ✅ Нормализованы колонки: {', '.join(available_columns)}")
         

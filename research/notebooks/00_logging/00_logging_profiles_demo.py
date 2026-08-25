@@ -33,7 +33,9 @@ def demo_profile(profile_name, description):
     
     # Импортируем модули для демонстрации технических логов
     from bquant.data.loader import load_ohlcv_data
-    from bquant.indicators.macd import calculate_macd
+    # Модуль `indicators/macd.py` удалён вместе с MACDZoneAnalyzer (0.0.5);
+    # функция живёт в `calculators`.
+    from bquant.indicators.calculators import calculate_macd
     from bquant.analysis.zones import find_support_resistance
     
     # Демонстрация загрузки данных

@@ -21,13 +21,16 @@ from datetime import datetime, timedelta
 # Добавляем путь к BQuant для импорта
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from bquant.indicators import (
+from bquant.indicators import LibraryManager
+# Функции-обёртки живут в подмодуле `calculators` и намеренно не поднимаются в
+# `__all__` пакета: наверху — классы и фабрика. Пример импортировал их из
+# `bquant.indicators` и не запускался вовсе.
+from bquant.indicators.calculators import (
     calculate_indicator, calculate_macd, calculate_rsi,
     calculate_bollinger_bands, calculate_moving_averages,
-    get_available_indicators, LibraryManager
+    get_available_indicators,
 )
 from bquant.core.config import get_indicator_params
-from bquant.data.loader import create_sample_data
 
 
 def create_sample_ohlcv_data(rows: int = 100, symbol: str = "XAUUSD") -> pd.DataFrame:
