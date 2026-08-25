@@ -26,7 +26,7 @@ def _make_test_config() -> ZoneAnalysisConfig:
         zone_detection=ZoneDetectionConfig(
             min_duration=2,
             zone_types=["bull"],
-            rules={"indicator_col": "macd_hist"},
+            rules={"indicator_role": "hist"},
             strategy_name="zero_crossing",
         ),
         perform_clustering=False,

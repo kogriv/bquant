@@ -98,7 +98,7 @@ result = (
     .with_indicator('custom', 'macd', 
                    fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', 
-                 indicator_col='macd_hist', min_duration=2)
+                 indicator_role='hist', min_duration=2)
     .analyze()
     .build()
 )
@@ -186,7 +186,7 @@ nb.log("")
 nb.log("Стало (вариант A - builder):")
 nb.log("  result = (")
 nb.log("      builder")
-nb.log("      .detect_zones('zero_crossing', indicator_col='macd_hist')")
+nb.log("      .detect_zones('zero_crossing', indicator_role='hist')")
 nb.log("      .analyze()")
 nb.log("      .build()")
 nb.log("  )")
@@ -219,7 +219,7 @@ nb.log("""
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .build()
 )
 
@@ -268,7 +268,7 @@ result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('combined', rules=[
-        {'type': 'zero_crossing', 'indicator_col': 'macd_hist'},
+        {'type': 'zero_crossing', 'indicator_role': 'hist'},
         {'type': 'line_crossing', 'line1_col': 'macd', 'line2_col': 'signal'}
     ])
     .build()
@@ -303,7 +303,7 @@ nb.log("""
 zones_only = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .build()  # БЕЗ .analyze() - только детекция!
 )
 

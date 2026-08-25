@@ -10,7 +10,7 @@ UNIVERSAL (v2.1):
 - NO hardcoded indicator names
 
 Examples:
-    strategy.calculate(data, indicator_col='macd_hist')  # MACD
+    strategy.calculate(data, indicator_col='macd_12_26_9__hist')  # MACD
     strategy.calculate(data, indicator_col='RSI_14')     # RSI
     strategy.calculate(data, indicator_col='AO_5_34')    # AO
 """
@@ -57,7 +57,7 @@ class StatisticalShapeStrategy:
         
         Args:
             zone_data: DataFrame with oscillator column
-            indicator_col: Name of column to analyze (e.g., 'macd_hist', 'RSI_14', 'AO_5_34')
+            indicator_col: Name of column to analyze (e.g., 'macd_12_26_9__hist', 'RSI_14', 'AO_5_34')
         
         Returns:
             ShapeMetrics with skewness, kurtosis, and optionally smoothness
@@ -67,7 +67,7 @@ class StatisticalShapeStrategy:
         
         Examples:
             # MACD histogram
-            metrics = strategy.calculate(zone_data, indicator_col='macd_hist')
+            metrics = strategy.calculate(zone_data, indicator_col='macd_12_26_9__hist')
             
             # RSI
             metrics = strategy.calculate(zone_data, indicator_col='RSI_14')

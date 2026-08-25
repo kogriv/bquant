@@ -207,7 +207,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )

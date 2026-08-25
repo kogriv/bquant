@@ -207,7 +207,7 @@ def main() -> None:
     result = (
         analyze_zones(data)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_col="macd_hist")
+        .detect_zones("zero_crossing", indicator_role="hist")
         .with_strategies(swing="find_peaks", shape="statistical")
         .analyze(clustering=False)
         .build()
@@ -297,7 +297,7 @@ def main() -> None:
         {
             "label": "MACD (8,21,5)", "source": "custom", "name": "macd",
             "indicator_kwargs": {"fast_period": 8, "slow_period": 21, "signal_period": 5},
-            "detection": {"strategy": "zero_crossing", "kwargs": {"indicator_col": "macd_hist"}},
+            "detection": {"strategy": "zero_crossing", "kwargs": {"indicator_role": "hist"}},
         },
     ]
 

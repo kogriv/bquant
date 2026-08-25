@@ -53,7 +53,7 @@ print(context['signal_line'])          # → None (single-line indicator)
 ```
 
 **Стандартные поля (заполняются стратегией детекции):**
-- `detection_indicator`: Имя основного столбца индикатора (например, 'RSI_14', 'macd_hist')
+- `detection_indicator`: Имя основного столбца индикатора (например, 'RSI_14', 'macd_12_26_9__hist')
 - `detection_strategy`: Используемая стратегия (например, 'zero_crossing', 'threshold', 'line_crossing')
 - `signal_line`: Вторичный индикатор для 2-линейных стратегий (например, 'STOCH_D')
 - `detection_rules`: Полный словарь правил для справки
@@ -74,12 +74,12 @@ signal = zone.get_signal_line_column()  # → 'STOCH_D' or None
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze()
     .build()
 )
 
-# Context: {'detection_indicator': 'macd_hist', 'detection_strategy': 'zero_crossing'}
+# Context: {'detection_indicator': 'macd_12_26_9__hist', 'detection_strategy': 'zero_crossing'}
 ```
 
 #### RSI (ограниченный индикатор на основе порогов)
@@ -190,7 +190,7 @@ from bquant.analysis.zones import analyze_zones
 
 result = (
     analyze_zones(df)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks')  # ✅ NEW!
     .analyze(clustering=True)
     .build()
@@ -207,7 +207,7 @@ print(f"Drawdown: {zone.features['drawdown_from_peak']}")
 ```python
 result = (
     analyze_zones(df)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(
         swing='find_peaks',       # Swing detection
         shape='statistical',      # Shape analysis
@@ -508,7 +508,7 @@ data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', divergence='classic')
     .analyze(clustering=True, n_clusters=3)
     .build()

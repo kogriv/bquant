@@ -191,7 +191,7 @@ def main():
     result_new = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=2)
+        .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
         .with_strategies(**STRATEGY_PROFILE)
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -229,7 +229,7 @@ def main():
     result_zero = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(**STRATEGY_PROFILE)
         .analyze(clustering=False)
         .build()
@@ -297,7 +297,7 @@ def main():
     detector = ZoneDetectionRegistry.get('zero_crossing')
     config = ZoneDetectionConfig(
         min_duration=2,
-        rules={'indicator_col': 'macd_hist'},
+        rules={'indicator_role': 'hist'},
         strategy_name='zero_crossing'
     )
     zones = detector.detect_zones(df_with_macd, config)

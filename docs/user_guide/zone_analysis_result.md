@@ -25,7 +25,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='zigzag', shape='statistical', divergence='classic', volume='standard', volatility='combined')
     .analyze(clustering=True, n_clusters=3, regression=False, validation=False)
     .build()
@@ -50,7 +50,7 @@ result = (
 from bquant.analysis.zones import ZoneDetectionRegistry, ZoneDetectionConfig, UniversalZoneAnalyzer
 
 detector = ZoneDetectionRegistry.get('zero_crossing')
-config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': 'macd_hist'}, min_duration=2)
+config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_role': 'hist'}, min_duration=2)
 zones = detector.detect_zones(df_prepared, config)
 
 analyzer = UniversalZoneAnalyzer()

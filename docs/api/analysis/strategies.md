@@ -138,7 +138,7 @@ from bquant.analysis.zones.strategies.shape import StatisticalShapeStrategy
 strategy = StatisticalShapeStrategy()
 
 # MACD
-shape = strategy.calculate(zone_data, indicator_col='macd_hist')
+shape = strategy.calculate(zone_data, indicator_role='hist')
 
 # RSI
 shape = strategy.calculate(zone_data, indicator_col='RSI_14')
@@ -199,12 +199,12 @@ strategy = ClassicDivergenceStrategy()
 div = strategy.calculate_divergence(data, indicator_col='RSI_14')
 
 # MACD histogram divergence
-div = strategy.calculate_divergence(data, indicator_col='macd_hist')
+div = strategy.calculate_divergence(data, indicator_role='hist')
 
 # MACD with signal line (2-line divergence)
 div = strategy.calculate_divergence(data, 
-                                    indicator_col='macd',
-                                    indicator_line_col='macd_signal')
+                                    indicator_role='line',
+                                    indicator_line_col='macd_12_26_9__signal')
 
 # Awesome Oscillator divergence
 div = strategy.calculate_divergence(data, indicator_col='AO_5_34')
@@ -296,7 +296,7 @@ from bquant.analysis.zones.strategies.volume import StandardVolumeStrategy
 strategy = StandardVolumeStrategy()
 
 # MACD correlation
-vol = strategy.calculate_volume(zone_data, baseline_volume=1000, indicator_col='macd_hist')
+vol = strategy.calculate_volume(zone_data, baseline_volume=1000, indicator_role='hist')
 
 # RSI correlation
 vol = strategy.calculate_volume(zone_data, baseline_volume=1000, indicator_col='RSI_14')
@@ -640,7 +640,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='zigzag', volatility='combined')
     .analyze(clustering=True)
     .build()
@@ -666,7 +666,7 @@ for strategy_name in strategies:
     result = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing=strategy_name)
         .analyze(clustering=True)
         .build()
@@ -692,7 +692,7 @@ results = []
 base_result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -703,7 +703,7 @@ for zone in base_result.zones[:10]:  # First 10 zones
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .detect_zones('zero_crossing', indicator_role='hist')
             .with_strategies(swing=strategy_name)
             .analyze(clustering=True)
             .build()
@@ -775,7 +775,7 @@ analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(
         swing='zigzag',         # For trend analysis
         shape='statistical',    # For clustering

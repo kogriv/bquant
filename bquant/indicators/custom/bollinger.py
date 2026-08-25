@@ -34,15 +34,18 @@ class BollingerBands(CustomIndicator):
         self.std_dev = std_dev
         super().__init__('bbands', {'period': period, 'std_dev': std_dev})
     
+    #: Роли, которые объявляет этот индикатор, в порядке выдачи колонок.
+    _ROLES = ("upper", "middle", "lower", "width", "percent")
+
     def get_output_roles(self) -> Dict[str, str]:
-        """Роль → колонка. Объявление; колонки выводятся отсюда (см. macd.py)."""
-        return {
-            "upper": "bb_upper",
-            "middle": "bb_middle",
-            "lower": "bb_lower",
-            "width": "bb_width",
-            "percent": "bb_percent",
-        }
+        """Роль → каноническое имя колонки (`bbands_20_2__upper`).
+
+        Слаг берётся от `bbands`, а не от сокращения `bb`: сокращение не
+        совпадало ни с именем индикатора в фабрике, ни с тем, как его зовёт
+        pandas-ta, — третье написание одного и того же (§4.2 дизайна).
+        """
+        iid = self.get_indicator_id()
+        return {role: iid.column(role) for role in self._ROLES}
 
     def get_output_columns(self) -> List[str]:
         """Колонки в порядке объявления ролей."""
@@ -89,12 +92,14 @@ class BollingerBands(CustomIndicator):
             bb_width = (upper_band - lower_band) / middle_band * 100
             bb_percent = (data['close'] - lower_band) / (upper_band - lower_band) * 100
             
+            # Имена — от идентичности по фактическим параметрам вызова (см. macd.py).
+            columns = self.get_indicator_id(period=period, std_dev=std_dev)
             result_data = pd.DataFrame({
-                'bb_upper': upper_band,
-                'bb_middle': middle_band,
-                'bb_lower': lower_band,
-                'bb_width': bb_width,
-                'bb_percent': bb_percent
+                columns.column('upper'): upper_band,
+                columns.column('middle'): middle_band,
+                columns.column('lower'): lower_band,
+                columns.column('width'): bb_width,
+                columns.column('percent'): bb_percent,
             }, index=data.index)
             
             return IndicatorResult(
@@ -118,8 +123,8 @@ class BollingerBands(CustomIndicator):
     
     @classmethod
     def get_default_columns(cls) -> List[str]:
-        """Returns default output columns."""
-        return ['bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'bb_percent']
+        """Колонки экземпляра с параметрами по умолчанию (выводятся, см. macd.py)."""
+        return cls().get_output_columns()
     
     @classmethod
     def get_info(cls) -> Dict[str, Any]:
@@ -161,8 +166,8 @@ class BollingerBands(CustomIndicator):
                 'upper_band': 'Upper volatility boundary',
                 'middle_band': 'Simple moving average (trend)',
                 'lower_band': 'Lower volatility boundary',
-                'bb_width': 'Band width as percentage of middle band',
-                'bb_percent': 'Price position within bands (0-100%)',
+                'width': 'Band width as percentage of middle band',
+                'percent': 'Price position within bands (0-100%)',
                 'squeeze': 'Narrow bands indicate low volatility',
                 'expansion': 'Wide bands indicate high volatility'
             }

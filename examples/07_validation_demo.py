@@ -106,7 +106,7 @@ INDICATOR_VARIANTS: Tuple[Dict[str, object], ...] = (
         "source": "custom",
         "name": "macd",
         "params": {"fast_period": 12, "slow_period": 26, "signal_period": 9},
-        "detection": {"strategy": "zero_crossing", "kwargs": {"indicator_col": "macd_hist"}},
+        "detection": {"strategy": "zero_crossing", "kwargs": {"indicator_role": "hist"}},
     },
     {
         "label": "EMA (20) vs Close",
@@ -446,7 +446,7 @@ def main() -> None:
         name="macd",
         params={"fast_period": 12, "slow_period": 26, "signal_period": 9},
         detection_strategy="zero_crossing",
-        detection_kwargs={"indicator_col": "macd_hist"},
+        detection_kwargs={"indicator_role": "hist"},
     )
     zones = list(base_result.zones)
     print(f"   Найдено зон: {len(zones)}")

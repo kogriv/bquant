@@ -355,3 +355,23 @@
 [included] [Changed] devref/gaps/columns/g8_column_contract_design_2026-08-23.md — §6.2
 [not_included] [Technical] Записано на будущее: имя поля `macd_amplitude` в `ZoneFeatures` — та же форма дефекта слоем выше (универсальная метрика с именем одного индикатора). Оно в предикторах регрессии, колонках гипотез и анализе последовательностей, поэтому переименование — отдельная работа, а не довесок к C2b. То же у ключей `max_macd`/`max_hist`
 [not_included] [Technical] Сьют **1365 passed, 3 skipped** (+19), doc-parity 436
+
+==================== COMMIT DIVIDER ====================
+
+[G8 этап C2b-2: переворот имён колонок — гэп закрыт]
+
+[included] [Changed] bquant/indicators/custom/{macd,bollinger}.py — вычисленные колонки называются канонически: `macd_12_26_9__line/__signal/__hist`, `bbands_20_2__upper/__middle/__lower/__width/__percent`. `rsi_14`, `sma_20`, `ema_20` не менялись — их имена и так совпадали со слагами
+[included] [Fixed] **Коллизия с чужой колонкой снята.** Встроенный сэмпл несёт собственную `macd` из выгрузки TradingView, и вычисленный MACD её **затирал** — этап A сделал затирание слышным (предупреждение), но оно происходило. Теперь оба ряда живут в кадре одновременно. Тест утверждает и это, и то, что **предупреждения больше нет**: предупреждение о проблеме, которой нет, учит игнорировать предупреждения
+[included] [Fixed] bquant/indicators/custom/{macd,bollinger}.py — `calculate()` перечислял имена **вторым** литералом, `get_default_columns()` — **третьим**. Оба теперь выводятся из объявления ролей
+[included] [Fixed] bquant/indicators/base.py — `get_indicator_id(**переопределения)`. Имена колонок строятся по **фактическим** параметрам вызова: `calculate(data, fast_period=5)` считает не то, что задавал конструктор, и колонка обязана это сказать. Это дефект D3 плана, закрытый теперь и на стороне собственных индикаторов, а не только библиотечных
+[included] [Changed] bquant/analysis/zones/pipeline.py — резолв роли обобщён: **любое** правило детекции с именем `<x>_role` превращается в `<x>_col`. Поэтому `line_crossing` получил `line1_role='line'`/`line2_role='signal'` без отдельной поддержки, и новая стратегия получит её тем же способом. Ключ `indicator_role` стал **публичным** ключом правил, а не приватным каналом билдера: конфиг детекции собирают и напрямую
+[not_included] [Technical] Где адресация по роли не работает — и это правильно: прямой вызов детектора, минуя пайплайн, схемы не имеет (её заполняет пайплайн). Такие места в доках и примерах адресуются именем колонки, причём имя **спрашивается у индикатора** (`indicator.get_output_roles()['hist']`), а не пишется строкой
+[included] [Changed] tests/ — 20 файлов. Девять содержали одинаковую строку `zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']` с комментарием «гистограммы нет в сэмпле» — неверным ещё до правки: пайплайн её считал. Теперь они спрашивают роль у схемы результата
+[included] [Changed] tests/unit/test_indicator_output_columns.py — тест «пайплайн предупреждает о затирании» переписан в «затирания больше нет»: проверяет, что колонка сэмпла осталась нетронутой, что вычисленная линия называется иначе, и что ряды различны
+[included] [Changed] docs/, examples/, research/notebooks/, AGENTS.md — 72 замены адресации на роли плюс точечные правки прозы (значения `detection_indicator`, примеры `indicator_chart_types`, поля `get_info`, докстринги стратегий)
+[not_included] [Technical] Проверено **исполнением, а не чтением**: все **20** рисёрч-скриптов проходят (`--no-trap`), заглавные примеры из `README.md` (44 зоны), `AGENTS.md` (72 зоны) и пресет (31 зона) прогнаны дословно, как и примеры из `docs/api/indicators/README.md` и `docs/tutorials/combined_rules_detection.md`
+[included] [Fixed] research/notebooks/03_zones_universal.py — `z.start_index`/`z.end_index`, которых у `ZoneInfo` нет (поля `start_idx`/`end_idx`). Скрипт падал на этом и **до** C2b — сверено запуском на `HEAD`
+[included] [Changed] bquant/analysis/zones/{cache,pipeline}.py — `CACHE_VERSION`/`CACHE_SCHEMA_VERSION` 11 → 12
+[included] [Changed] devref/gaps/columns/g8_column_contract_design_2026-08-23.md — §6.3; devref/gaps/gap_inventory_2026-07.md — **G8 закрыт**, открытых записей в реестре не осталось
+[not_included] [Technical] Сьют **1366 passed, 3 skipped**, doc-parity 436
+[not_included] [Technical] Не сделано в этом коммите: 4 примера из 11 не запускаются, и это **не следствие C2b** — сверено запуском на `HEAD`. Два из них (`02_macd_zone_analysis.py`, `02a_universal_zones.py`) сломал я сам в G20: они монкипатчат `HypothesisTestSuite.run_all_tests`, а G20 добавил туда параметр `vocabulary`. Ещё два (`01_basic_indicators.py`, `03_data_processing.py`) импортируют имена, которых нет в публичных `__init__`. Чиню отдельным коммитом

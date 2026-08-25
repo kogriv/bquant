@@ -287,7 +287,9 @@ class DivergenceCalculationStrategy(Protocol):
         Calculate divergence metrics.
         
         Args:
-            zone_data: DataFrame with columns: close, high, low, macd, macd_hist
+            zone_data: DataFrame with columns: close, high, low, and the
+                indicator series named by ``indicator_col`` (e.g.
+                ``macd_12_26_9__line``, ``macd_12_26_9__hist``)
         
         Returns:
             DivergenceMetrics with validated data
@@ -350,7 +352,7 @@ class ShapeCalculationStrategy(Protocol):
         Calculate shape metrics.
         
         Args:
-            zone_data: DataFrame with column: macd_hist
+            zone_data: DataFrame carrying the series named by ``indicator_col``
         
         Returns:
             ShapeMetrics with validated data

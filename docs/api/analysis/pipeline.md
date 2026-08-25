@@ -67,7 +67,7 @@ result = (
 **Примеры:**
 ```python
 # Zero crossing для MACD
-.detect_zones('zero_crossing', indicator_col='macd_hist')
+.detect_zones('zero_crossing', indicator_role='hist')
 
 # Threshold для RSI
 .detect_zones('threshold', indicator_col='RSI_14', 
@@ -220,7 +220,7 @@ spec = IndicatorSpec(
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)  # Автоматически включает hypothesis tests
     .build()
 )
@@ -262,8 +262,8 @@ UniversalZoneAnalyzer НЕ ЗНАЕТ откуда зоны (MACD, AO, preloaded
 ```python
 indicator_context = {
     'detection_strategy': 'zero_crossing',   # Стратегия детекции
-    'detection_indicator': 'macd_hist',      # Основная колонка
-    'signal_line': 'macd_signal',            # Вторичная линия (если есть)
+    'detection_indicator': 'macd_12_26_9__hist',   # Основная колонка
+    'signal_line': 'macd_12_26_9__signal',         # Вторичная линия (если есть)
     'detection_rules': {...}                 # Правила детекции
 }
 ```
@@ -293,7 +293,7 @@ data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', divergence='classic')
     .analyze(clustering=True, n_clusters=3)
     .build()
@@ -340,7 +340,7 @@ result = (
     analyze_zones(data)
     .with_cache(enable=True, ttl=7200)  # Кэш на 2 часа
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -366,7 +366,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )

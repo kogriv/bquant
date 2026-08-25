@@ -85,7 +85,7 @@ def main() -> None:
             "source": "custom",
             "name": "macd",
             "params": {"fast_period": 12, "slow_period": 26, "signal_period": 9},
-            "detection": {"strategy": "zero_crossing", "indicator_col": "macd_hist"},
+            "detection": {"strategy": "zero_crossing", "indicator_role": "hist"},
         },
         {
             "source": "custom",
@@ -136,7 +136,7 @@ def main() -> None:
     result_macd = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing='find_peaks')
         .analyze(clustering=False)
         .build()
@@ -217,7 +217,7 @@ def main() -> None:
         result_strategy = (
             analyze_zones(data)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .detect_zones('zero_crossing', indicator_role='hist')
             .with_strategies(swing=strat)
             .analyze(clustering=False)
             .build()
@@ -290,7 +290,7 @@ def main() -> None:
     result_shape = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(shape='statistical')
         .analyze(clustering=False)
         .build()
@@ -308,7 +308,7 @@ def main() -> None:
     result_div = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(divergence='classic')
         .analyze(clustering=False)
         .build()
@@ -330,7 +330,7 @@ def main() -> None:
     result_vol = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(volatility='combined')
         .analyze(clustering=False)
         .build()
@@ -348,7 +348,7 @@ def main() -> None:
     result_volume = (
         analyze_zones(data)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(volume='standard')
         .analyze(clustering=False)
         .build()

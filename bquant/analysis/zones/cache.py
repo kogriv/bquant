@@ -55,7 +55,10 @@ class ZoneAnalysisCache:
     # v11 (G8 stage C2b-1): consumers resolve columns by role. Zone feature
     # metadata no longer carries the dead `hist_max`/`rsi_*`/`ao_*` aliases, so
     # a v10 result has keys a v11 result does not.
-    CACHE_VERSION = 11
+    # v12 (G8 stage C2b-2): computed columns are named canonically
+    # (`macd_12_26_9__hist`), so a v11 result carries the old names throughout —
+    # in `data`, in the schema and in every zone's frame.
+    CACHE_VERSION = 12
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

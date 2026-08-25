@@ -426,7 +426,7 @@ class MyShapeStrategy:
         Examples:
             # Works with ANY oscillator
             metrics = strategy.calculate_shape(data, indicator_col='RSI_14')
-            metrics = strategy.calculate_shape(data, indicator_col='macd_hist')
+            metrics = strategy.calculate_shape(data, indicator_col='macd_12_26_9__hist')
             metrics = strategy.calculate_shape(data, indicator_col='CUSTOM_OSC')
         """
         if indicator_col is None or indicator_col not in data.columns:
@@ -481,8 +481,8 @@ class MyDivergenceStrategy:
         
         Args:
             data: Zone data with OHLCV + oscillator columns
-            indicator_col: Primary oscillator column (e.g., 'RSI_14', 'macd_hist')
-            indicator_line_col: Secondary line for 2-line indicators (e.g., 'macd_signal')
+            indicator_col: Primary oscillator column (e.g., 'RSI_14', 'macd_12_26_9__hist')
+            indicator_line_col: Secondary line for 2-line indicators (e.g., 'macd_12_26_9__signal')
         
         Returns:
             DivergenceMetrics with divergence information
@@ -494,7 +494,7 @@ class MyDivergenceStrategy:
             # 2-line indicator (MACD with signal)
             metrics = strategy.calculate_divergence(data, 
                                                    indicator_col='macd',
-                                                   indicator_line_col='macd_signal')
+                                                   indicator_line_col='macd_12_26_9__signal')
         """
         if indicator_col is None or indicator_col not in data.columns:
             raise ValueError(f"indicator_col required and must exist in data")

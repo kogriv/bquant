@@ -25,7 +25,9 @@ Example:
     config = ZoneDetectionConfig(
         min_duration=2,
         zone_types=['bull', 'bear'],
-        rules={'indicator_col': 'macd_hist'}
+        # Детектор зовут напрямую, минуя пайплайн, поэтому колонка называется
+        # именем: роль резолвит пайплайн, у которого есть схема.
+        rules={'indicator_col': 'macd_12_26_9__hist'}
     )
     
     # Detect zones

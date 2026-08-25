@@ -63,7 +63,7 @@ def test_pipeline_produces_regression_when_asked(data):
     result = (
         analyze_zones(data)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_col="macd_hist")
+        .detect_zones("zero_crossing", indicator_role="hist")
         .with_cache(enable=False)
         .analyze(regression=True)
         .build()
@@ -81,7 +81,7 @@ def test_regression_is_absent_only_when_not_requested(data):
     result = (
         analyze_zones(data)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_col="macd_hist")
+        .detect_zones("zero_crossing", indicator_role="hist")
         .with_cache(enable=False)
         .build()
     )
@@ -173,7 +173,7 @@ def test_a_refused_regression_does_not_kill_the_analysis(data):
     zones = (
         analyze_zones(data)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_col="macd_hist")
+        .detect_zones("zero_crossing", indicator_role="hist")
         .with_cache(enable=False)
         .build()
     ).zones

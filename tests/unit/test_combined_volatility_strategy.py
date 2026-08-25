@@ -23,9 +23,13 @@ class TestCombinedVolatilityStrategy:
         result = analyze_macd_zones(df)
         zones = result.zones
         
-        # Add macd_hist to each zone
+        # Гистограмму пайплайн уже посчитал; вопрос лишь в том, как она
+        # называется. Тест не угадывает имя, а спрашивает роль у схемы, и
+        # заводит себе привычный псевдоним `macd_hist` — этим же именем ниже
+        # адресуются стратегии, которым кадр передают напрямую.
+        hist_column = result.column_schema.column('hist')
         for zone in zones:
-            zone.data['macd_hist'] = zone.data['macd'] - zone.data['macd_signal']
+            zone.data['macd_hist'] = zone.data[hist_column]
         
         # Filter zones with enough data for Bollinger Bands calculation (need > bb_length)
         return [z for z in zones if len(z.data) >= 30]  # BB default length is 20, use 30 for safety

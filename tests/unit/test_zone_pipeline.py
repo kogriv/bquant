@@ -85,6 +85,9 @@ class TestZoneAnalysisPipeline:
             indicator=None,  # Already in data
             zone_detection=ZoneDetectionConfig(
                 strategy_name='zero_crossing',
+                # Индикатор не считается, схемы взяться неоткуда — колонка
+                # называется по имени. Роль здесь была бы нечестной: никто не
+                # объявлял, что означает `macd_hist` в этом кадре.
                 rules={'indicator_col': 'macd_hist'}
             ),
             perform_clustering=False
@@ -115,7 +118,7 @@ class TestZoneAnalysisPipeline:
             ),
             zone_detection=ZoneDetectionConfig(
                 strategy_name='zero_crossing',
-                rules={'indicator_col': 'macd_hist'}
+                rules={'indicator_role': 'hist'}
             ),
             perform_clustering=False
         )
@@ -194,7 +197,7 @@ class TestZoneAnalysisBuilder:
         result = (
             ZoneAnalysisBuilder(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .detect_zones('zero_crossing', indicator_role='hist')
             .with_cache(enable=False)
             .build()
         )

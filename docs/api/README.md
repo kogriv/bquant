@@ -136,7 +136,7 @@ data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', shape='statistical')
     .analyze(clustering=True, n_clusters=3)
     .build()
@@ -159,7 +159,7 @@ macd_data = macd_indicator.calculate(data)
 result = (
     analyze_zones(data)
     .with_indicator('preloaded', 'macd_preloaded')
-    .detect_zones('zero_crossing', indicator_col='macd')
+    .detect_zones('zero_crossing', indicator_role='line')
     .analyze(clustering=False)
     .build()
 )
@@ -185,7 +185,7 @@ class MACD(CustomIndicator):
         >>> macd = MACD(fast_period=12, slow_period=26, signal_period=9)
         >>> result = macd.calculate(data)
         >>> print(result.data.columns.tolist())
-        ['macd', 'macd_signal', 'macd_hist']
+        ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']
     """
 
     def __init__(self, fast_period: int = 12, slow_period: int = 26,
@@ -207,7 +207,8 @@ class MACD(CustomIndicator):
             data (pd.DataFrame): OHLCV данные
 
         Returns:
-            IndicatorResult: Результат с колонками macd/macd_signal/macd_hist
+            IndicatorResult: Результат с колонками ролей line/signal/hist
+                (имена канонические: `{слаг}__{роль}`)
 
         Raises:
             DataError: Если данные некорректны

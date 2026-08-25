@@ -190,9 +190,14 @@ class TestCustomIndicators:
         # Проверяем расчет
         result = macd.calculate(test_data)
         assert hasattr(result, 'data'), "Результат должен иметь атрибут data"
-        assert 'macd' in result.data.columns, "Результат должен содержать колонку macd"
-        assert 'macd_signal' in result.data.columns, "Результат должен содержать колонку macd_signal"
-        assert 'macd_hist' in result.data.columns, "Результат должен содержать колонку macd_hist"
+        # Имена не перечисляются литералами: их объявляет сам индикатор, и
+        # сверяться надо с объявлением. Литерал здесь был бы четвёртым местом,
+        # где живут имена выходов, — тем самым, из-за чего заведён G8.
+        roles = macd.get_output_roles()
+        assert set(roles) == {'line', 'signal', 'hist'}
+        for role, column in roles.items():
+            assert column in result.data.columns, f"нет колонки роли '{role}': {column}"
+            assert column.startswith('macd_12_26_9__'), column
         
         # Проверяем статистику
         stats = macd.get_statistics(test_data)
@@ -223,9 +228,11 @@ class TestCustomIndicators:
         # Проверяем расчет
         result = bbands.calculate(test_data)
         assert hasattr(result, 'data'), "Результат должен иметь атрибут data"
-        assert 'bb_upper' in result.data.columns, "Результат должен содержать колонку bb_upper"
-        assert 'bb_middle' in result.data.columns, "Результат должен содержать колонку bb_middle"
-        assert 'bb_lower' in result.data.columns, "Результат должен содержать колонку bb_lower"
+        roles = bbands.get_output_roles()
+        assert {'upper', 'middle', 'lower'} <= set(roles)
+        for role, column in roles.items():
+            assert column in result.data.columns, f"нет колонки роли '{role}': {column}"
+            assert column.startswith('bbands_20_2__'), column
         
         # Проверяем статистику
         stats = bbands.get_statistics(test_data)

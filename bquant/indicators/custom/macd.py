@@ -49,13 +49,15 @@ class MACD(CustomIndicator):
         литерала — это два места, где можно разойтись, и этап A плана G8
         заводил тест-пин ровно на такое расхождение; теперь расходиться нечему.
 
-        Имена колонок пока прежние: этап C1 вводил адресацию по ролям, не меняя
-        ни одного имени, чтобы каждый шаг оставался проверяемым против прежнего
-        поведения. Смена имён на слаги — этап C2b, вместе с переводом
-        потребителей. Когда он настанет, менять придётся только правую часть
-        этого словаря.
+        Имена — канонические (`macd_12_26_9__line`): слаг идентичности плюс роль.
+        Так они несут параметры, с которыми ряд посчитан, и два экземпляра одного
+        индикатора с разными настройками больше не претендуют на одну колонку.
+        Раньше здесь стояли литералы `macd`/`macd_signal`/`macd_hist`, и первый
+        из них **затирал** колонку `macd`, которую встроенный сэмпл несёт из
+        выгрузки TradingView.
         """
-        return {"line": "macd", "signal": "macd_signal", "hist": "macd_hist"}
+        iid = self.get_indicator_id()
+        return {role: iid.column(role) for role in ("line", "signal", "hist")}
 
     def get_output_columns(self) -> List[str]:
         """Колонки в порядке объявления ролей."""
@@ -106,10 +108,18 @@ class MACD(CustomIndicator):
             # Вычисляем гистограмму
             histogram = macd_line - signal_line
             
+            # Имена берутся у идентичности, посчитанной по **фактическим**
+            # параметрам этого вызова: `calculate(data, fast_period=5)` считает
+            # не то, что объявлял конструктор, и колонка обязана это сказать.
+            columns = self.get_indicator_id(
+                fast_period=fast_period,
+                slow_period=slow_period,
+                signal_period=signal_period,
+            )
             result_data = pd.DataFrame({
-                'macd': macd_line,
-                'macd_signal': signal_line,
-                'macd_hist': histogram
+                columns.column('line'): macd_line,
+                columns.column('signal'): signal_line,
+                columns.column('hist'): histogram,
             }, index=data.index)
             
             return IndicatorResult(
@@ -143,8 +153,14 @@ class MACD(CustomIndicator):
     
     @classmethod
     def get_default_columns(cls) -> List[str]:
-        """Returns default output columns."""
-        return ['macd', 'macd_signal', 'macd_hist']
+        """Колонки экземпляра с параметрами по умолчанию.
+
+        Выводятся из объявления, а не перечисляются литералом: это метод класса,
+        поэтому параметры он берёт из дефолтов конструктора. Список литералом был
+        бы ещё одним местом, где живут имена выходов, — тем самым, из-за которого
+        заведён G8.
+        """
+        return cls().get_output_columns()
     
     @classmethod
     def get_info(cls) -> Dict[str, Any]:

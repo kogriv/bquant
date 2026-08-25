@@ -141,7 +141,7 @@ data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', divergence='classic')
     .analyze(clustering=True)  # Автоматически включает hypothesis tests
     .build()
@@ -193,7 +193,7 @@ if len(bull_volatility) > 0 and len(bear_volatility) > 0:
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', volatility='combined')
     .analyze(clustering=True)
     .build()
@@ -216,7 +216,7 @@ for i, zone in enumerate(result.zones[:3]):
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)  # sequence analysis включен автоматически
     .build()
 )

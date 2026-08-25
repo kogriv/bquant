@@ -79,7 +79,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(price_df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='zigzag')
     .with_swing_preset('narrow_zone')
     .with_swing_scope('global')  # по умолчанию, можно опустить
@@ -106,7 +106,7 @@ for zone in result.zones:
 per_zone_result = (
     analyze_zones(price_df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks')
     .with_swing_preset('narrow_zone')
     .with_swing_scope('per_zone')
@@ -116,7 +116,7 @@ per_zone_result = (
 global_result = (
     analyze_zones(price_df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks')
     .with_swing_preset('narrow_zone')
     .with_swing_scope('global')
@@ -171,7 +171,7 @@ plt.show()
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
@@ -363,7 +363,7 @@ class ZoneInfo:
     swing_context: Optional[SwingContext]  # При глобальном режиме (по умолчанию)
 
     # indicator_context содержит:
-    # {'detection_strategy': 'zero_crossing', 'detection_indicator': 'macd_hist', ...}
+    # {'detection_strategy': 'zero_crossing', 'detection_indicator': 'macd_12_26_9__hist', ...}
 
     def get_zone_swings(self) -> List[SwingPoint]:  # Свинги зоны (из swing_context)
 ```
@@ -403,7 +403,9 @@ loaded = ZoneAnalysisResult.load('results/zones.pkl', format='pickle')
 config = ZoneDetectionConfig(
     min_duration=2,
     zone_types=['bull', 'bear'],
-    rules={'indicator_col': 'macd_hist'},  # custom MACD создаёт колонку macd_hist
+    # Конфиг собирается напрямую, без пайплайна, поэтому колонка называется
+    # именем. Через билдер то же самое пишется как `indicator_role='hist'`.
+    rules={'indicator_col': 'macd_12_26_9__hist'},
     strategy_name='zero_crossing'
 )
 ```
@@ -543,7 +545,7 @@ df = get_sample_data('mt_xauusd_m15')
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .build()
 )
 
@@ -556,7 +558,7 @@ print(f"Найдено зон: {len(result.zones)}")
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=5)
+    .detect_zones('zero_crossing', indicator_role='hist', min_duration=5)
     .with_strategies(
         swing='zigzag',
         shape='statistical',
@@ -615,7 +617,7 @@ from bquant.analysis.zones.detection import ZoneDetectionRegistry, ZoneDetection
 detector = ZoneDetectionRegistry.get('zero_crossing')
 config = ZoneDetectionConfig(
     min_duration=2,
-    rules={'indicator_col': 'macd_hist'}
+    rules={'indicator_role': 'hist'}
 )
 
 zones = detector.detect_zones(df, config)
@@ -632,7 +634,7 @@ zones = detector.detect_zones(df, config)
 zone = result.zones[0]
 ctx = zone.indicator_context
 
-print(f"Индикатор: {ctx['detection_indicator']}")  # 'macd_hist'
+print(f"Индикатор: {ctx['detection_indicator']}")  # 'macd_12_26_9__hist'
 print(f"Стратегия: {ctx['detection_strategy']}")   # 'zero_crossing'
 print(f"Signal line: {ctx['signal_line']}")        # None или колонка
 
@@ -663,7 +665,7 @@ result = (
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd')
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_cache(enable=True, ttl=3600)  # 1 час TTL
     .build()
 )

@@ -156,7 +156,7 @@ from bquant.visualization import ZoneVisualizer
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -184,7 +184,7 @@ from bquant.visualization import ZoneVisualizer
 zone_viz = ZoneVisualizer()
 
 # Детальный просмотр зоны с индикаторами.
-# Используем result.data — датафрейм с вычисленными индикаторами (macd_hist и т.п.);
+# Используем result.data — датафрейм с вычисленными индикаторами (`macd_12_26_9__hist` и т.п.);
 # исходный `data` их не содержит, поэтому show_indicators=True требует именно result.data.
 fig = zone_viz.plot_zone_detail(
     result.data,
@@ -220,7 +220,7 @@ from bquant.visualization import StatisticalPlots
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)  # Автоматически включает hypothesis tests
     .build()
 )
@@ -332,7 +332,7 @@ from bquant.visualization import FinancialCharts, ZoneVisualizer, StatisticalPlo
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -345,7 +345,7 @@ def create_comprehensive_analysis(data, result):
     zone_viz = ZoneVisualizer()
     stat_plots = StatisticalPlots()
     
-    # result.data содержит вычисленные индикаторы (macd_hist и т.п.);
+    # result.data содержит вычисленные индикаторы (`macd_12_26_9__hist` и т.п.);
     # передаём его, а не исходный data, чтобы панели индикаторов строились.
     # 1. Ценовой график с зонами
     price_fig = zone_viz.plot_zones_on_price_chart(

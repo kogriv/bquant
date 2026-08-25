@@ -95,7 +95,7 @@ def main():
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('zero_crossing', 
-                     indicator_col='macd',
+                     indicator_role='line',
                      min_duration=3)
         .analyze(
             clustering=True,
@@ -191,11 +191,13 @@ def main():
     for col in macd_data.data.columns:
         df_with_macd[col] = macd_data.data[col]
     
-    # Детектируем зоны
+    # Детектируем зоны. Детектор зовётся напрямую, минуя пайплайн, поэтому
+    # колонку называем по имени — а имя спрашиваем у самого индикатора, а не
+    # пишем строкой: строка разошлась бы с ним при смене параметров.
     detector = ZoneDetectionRegistry.get('zero_crossing')
     config = ZoneDetectionConfig(
         min_duration=5,
-        rules={'indicator_col': 'macd_hist'},
+        rules={'indicator_col': macd_ind.get_output_roles()['hist']},
         strategy_name='zero_crossing'
     )
     zones_only = detector.detect_zones(df_with_macd, config)

@@ -65,7 +65,7 @@ def test_pipeline_auto_thresholds_matches_kpi() -> None:
         zone_detection=ZoneDetectionConfig(
             min_duration=2,
             zone_types=["bull"],
-            rules={"indicator_col": "macd_hist"},
+            rules={"indicator_role": "hist"},
             strategy_name="zero_crossing",
         ),
         perform_clustering=False,

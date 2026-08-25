@@ -180,9 +180,8 @@ class TestBuiltinIndicatorsMigration:
         assert len(result.data) == len(test_data)
         
         # Проверяем наличие колонок MACD
-        assert 'macd' in result.data.columns
-        assert 'macd_signal' in result.data.columns
-        assert 'macd_hist' in result.data.columns
+        # Сверка с объявлением индикатора, а не с литералом (см. G8).
+        assert set(result.data.columns) == set(macd.get_output_roles().values())
     
     def test_bbands_calculation(self):
         """Тест расчета Bollinger Bands."""
@@ -203,9 +202,7 @@ class TestBuiltinIndicatorsMigration:
         assert len(result.data) == len(test_data)
         
         # Проверяем наличие колонок Bollinger Bands
-        assert 'bb_upper' in result.data.columns
-        assert 'bb_middle' in result.data.columns
-        assert 'bb_lower' in result.data.columns
+        assert set(result.data.columns) == set(bbands.get_output_roles().values())
     
     def test_indicator_factory_registration(self):
         """Тест регистрации индикаторов в фабрике."""

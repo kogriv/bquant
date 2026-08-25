@@ -11,7 +11,7 @@ Example:
     result = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .analyze(clustering=True)
         .build()
     )
@@ -65,9 +65,9 @@ def analyze_macd_zones(df: pd.DataFrame,
         smooth_window: Окно сглаживания для детекции (optional)
         zone_basis: На чём детектировать зону (default: 'line'):
             'line' — по знаку линии MACD (MACD>0/<0), длинные стабильные зоны,
-                     как в методологии проекта (indicator_col='macd');
+                     как в методологии проекта (indicator_role='line');
             'histogram' — по знаку гистограммы (MACD−signal), более короткие
-                     волатильные зоны (indicator_col='macd_hist', legacy).
+                     волатильные зоны (indicator_role='hist', legacy).
         clustering: Выполнять кластеризацию (default: True)
         n_clusters: Количество кластеров (default: 3)
         regression: Запустить регрессионный анализ (default: False)

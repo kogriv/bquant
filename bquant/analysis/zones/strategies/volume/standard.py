@@ -11,7 +11,7 @@ UNIVERSAL (v2.1):
 - Requires explicit indicator_col parameter for correlation analysis
 
 Examples:
-    strategy.calculate_volume(data, baseline_volume=1000, indicator_col='macd_hist')  # MACD
+    strategy.calculate_volume(data, baseline_volume=1000, indicator_col='macd_12_26_9__hist')  # MACD
     strategy.calculate_volume(data, baseline_volume=1000, indicator_col='RSI_14')     # RSI
     strategy.calculate_volume(data, baseline_volume=1000, indicator_col='AO_5_34')    # AO
 """
@@ -67,7 +67,7 @@ class StandardVolumeStrategy:
             zone_data: DataFrame with column: volume (and optionally oscillator column)
             baseline_volume: Pre-calculated baseline volume (if None, will attempt to estimate)
             indicator_col: Optional oscillator column for volume-indicator correlation
-                          Examples: 'macd_hist', 'RSI_14', 'AO_5_34', 'CCI_20'
+                          Examples: 'macd_12_26_9__hist', 'RSI_14', 'AO_5_34', 'CCI_20'
         
         Returns:
             VolumeMetrics with validated data
@@ -80,7 +80,7 @@ class StandardVolumeStrategy:
             metrics = strategy.calculate_volume(zone_data, baseline_volume=1500)
             
             # With MACD correlation (legacy)
-            metrics = strategy.calculate_volume(zone_data, baseline_volume=1500, indicator_col='macd_hist')
+            metrics = strategy.calculate_volume(zone_data, baseline_volume=1500, indicator_col='macd_12_26_9__hist')
             
             # With RSI correlation (v2.1)
             metrics = strategy.calculate_volume(zone_data, baseline_volume=1500, indicator_col='RSI_14')

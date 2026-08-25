@@ -92,7 +92,7 @@ with nb.error_handling("Universal API basics"):
     result_builder = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=2)
+        .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
         .build()
     )
     time_builder = time.time() - start
@@ -137,7 +137,7 @@ with nb.error_handling("Detection strategies"):
     result_zero = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .build()
     )
     strategies_results['ZeroCross_Hist'] = len(result_zero.zones)
@@ -148,7 +148,7 @@ with nb.error_handling("Detection strategies"):
     result_line = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('line_crossing', line1_col='macd', line2_col='macd_signal')
+        .detect_zones('line_crossing', line1_role='line', line2_role='signal')
         .build()
     )
     strategies_results['LineCross_MACD'] = len(result_line.zones)
@@ -234,7 +234,7 @@ with nb.error_handling("MACD full analysis"):
     result_macd_full = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=2)
+        .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
         .with_strategies(swing='find_peaks', shape='statistical')  # v2.1 (fix 21.10.2025)
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -551,7 +551,7 @@ with nb.error_handling("Detection-only"):
     detection_only = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .build()
     )
     
@@ -607,7 +607,7 @@ with nb.error_handling("Caching"):
     r1 = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_cache(ttl=3600)
         .build()
     )
@@ -618,7 +618,7 @@ with nb.error_handling("Caching"):
     r2 = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_cache(ttl=3600)
         .build()
     )
@@ -692,7 +692,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .build()
 )
 """)
@@ -739,8 +739,8 @@ if result_macd_full and result_rsi_full and result_ao_full:
     
     nb.substep("9.1: Zone Overlap (MACD vs RSI)")
     if result_macd_full.zones and result_rsi_full.zones:
-        macd_periods = [(z.start_index, z.end_index) for z in result_macd_full.zones]
-        rsi_periods = [(z.start_index, z.end_index) for z in result_rsi_full.zones]
+        macd_periods = [(z.start_idx, z.end_idx) for z in result_macd_full.zones]
+        rsi_periods = [(z.start_idx, z.end_idx) for z in result_rsi_full.zones]
         overlaps = 0
         for m_start, m_end in macd_periods:
             for r_start, r_end in rsi_periods:
@@ -758,7 +758,7 @@ if result_macd_full and result_rsi_full and result_ao_full:
         consensus = 0
         for mz in result_macd_full.zones:
             for rz in result_rsi_full.zones:
-                if not (mz.end_index < rz.start_index or rz.end_index < mz.start_index) and mz.type == rz.type:
+                if not (mz.end_idx < rz.start_idx or rz.end_idx < mz.start_idx) and mz.type == rz.type:
                     consensus += 1
                     break
         nb.log(f"  Consensus signals: {consensus}")
@@ -858,7 +858,7 @@ with nb.error_handling("Small dataset"):
     res_small = (
         analyze_zones(small_df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .analyze(clustering=False)
         .build()
     )
@@ -870,7 +870,7 @@ with nb.error_handling("No zones"):
     res_none = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('threshold', indicator_col='macd_hist', upper_threshold=100, lower_threshold=-100, min_duration=999)
+        .detect_zones('threshold', indicator_role='hist', upper_threshold=100, lower_threshold=-100, min_duration=999)
         .analyze(clustering=False)
         .build()
     )
@@ -896,7 +896,7 @@ with nb.error_handling("Invalid params", critical=False):
         res_invalid = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=-5)
+            .detect_zones('zero_crossing', indicator_role='hist', min_duration=-5)
             .build()
         )
         nb.log(f"  Invalid params zones: {len(res_invalid.zones)}")

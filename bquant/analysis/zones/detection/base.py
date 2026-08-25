@@ -121,7 +121,9 @@ class ZoneDetectionConfig:
         config = ZoneDetectionConfig(
             min_duration=2,
             zone_types=['bull', 'bear'],
-            rules={'indicator_col': 'macd_hist'},
+            # Прямой вызов детектора адресуется именем колонки; роль
+            # (`rules={'indicator_role': 'hist'}`) резолвит пайплайн по схеме.
+            rules={'indicator_col': 'macd_12_26_9__hist'},
             strategy_name='zero_crossing'
         )
         

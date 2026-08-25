@@ -85,7 +85,7 @@ with nb.error_handling("Building and running pipeline"):
             slow_period=26,
             signal_period=9,
         )
-        .detect_zones("zero_crossing", indicator_col="macd")
+        .detect_zones("zero_crossing", indicator_role="line")
         .with_strategies(swing="zigzag")
         .with_auto_swing_thresholds(True)
         .with_swing_scope("global")

@@ -215,7 +215,9 @@ class TestIndicatorsDeclare:
         macd = IndicatorFactory.create("custom", "macd", fast_period=12,
                                        slow_period=26, signal_period=9)
         assert macd.get_output_roles() == {
-            "line": "macd", "signal": "macd_signal", "hist": "macd_hist",
+            "line": "macd_12_26_9__line",
+            "signal": "macd_12_26_9__signal",
+            "hist": "macd_12_26_9__hist",
         }
         bbands = IndicatorFactory.create("custom", "bbands", period=20)
         assert set(bbands.get_output_roles()) == {
@@ -253,10 +255,16 @@ class TestRoleAddressing:
             .with_cache(False)
             .build()
         )
+        # То же самое, но адресуясь именем колонки. Имя берётся у индикатора, а
+        # не пишется литералом: литерал в тесте протухает ровно так же, как
+        # протухали литералы в коде.
+        hist_column = IndicatorFactory.create(
+            "custom", "macd", fast_period=12, slow_period=26, signal_period=9
+        ).get_output_roles()["hist"]
         by_name = (
             analyze_zones(data)
             .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones("zero_crossing", indicator_col="macd_hist")
+            .detect_zones("zero_crossing", indicator_col=hist_column)
             .with_cache(False)
             .build()
         )
@@ -273,8 +281,11 @@ class TestRoleAddressing:
             .build()
         )
         assert result.column_schema
-        assert result.column_schema.column("hist") == "macd_hist"
-        indicator, role = result.column_schema.roles_of("macd_signal")
+        # Имя колонки теперь **несёт параметры**, с которыми ряд посчитан: до
+        # C2b и `macd(12,26,9)`, и `macd(5,35,5)` претендовали на одну строку
+        # `macd_hist`, то есть имя не различало то, что различается.
+        assert result.column_schema.column("hist") == "macd_5_35_5__hist"
+        indicator, role = result.column_schema.roles_of("macd_5_35_5__signal")
         assert (indicator.slug, role) == ("macd_5_35_5", "signal")
 
     def test_a_role_the_indicator_does_not_provide_is_refused_clearly(self, data):

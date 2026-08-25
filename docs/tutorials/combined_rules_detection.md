@@ -21,7 +21,9 @@ df = get_sample_data('tv_xauusd_1h')
 
 ```python
 def macd_positive(frame):
-    return frame['macd_hist'] > 0
+    # Условие получает кадр уже с посчитанным индикатором, поэтому колонка
+    # называется канонически: слаг идентичности плюс роль.
+    return frame['macd_12_26_9__hist'] > 0
 
 def price_above_sma(frame):
     sma_50 = frame['close'].rolling(50, min_periods=1).mean()

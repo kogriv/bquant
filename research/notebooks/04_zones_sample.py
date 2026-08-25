@@ -75,7 +75,7 @@ with nb.error_handling("Building and running pipeline"):
     result = (
         analyze_zones(df)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_col="macd")
+        .detect_zones("zero_crossing", indicator_role="line")
         .with_strategies(swing="zigzag")
         .with_auto_swing_thresholds(True)
         .with_swing_scope("global")

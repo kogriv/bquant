@@ -11,8 +11,8 @@ UNIVERSAL (v2.1):
 
 Examples:
     strategy.calculate_divergence(data, indicator_col='RSI_14')  # RSI
-    strategy.calculate_divergence(data, indicator_col='macd_hist')  # MACD
-    strategy.calculate_divergence(data, indicator_col='macd', indicator_line_col='macd_signal')  # 2-line
+    strategy.calculate_divergence(data, indicator_col='macd_12_26_9__hist')  # MACD
+    strategy.calculate_divergence(data, indicator_col='macd_12_26_9__line', indicator_line_col='macd_12_26_9__signal')  # 2-line
 """
 
 from dataclasses import dataclass
@@ -66,7 +66,7 @@ class ClassicDivergenceStrategy:
         
         Args:
             zone_data: DataFrame with columns: close, high, low, and oscillator column(s)
-            indicator_col: Name of oscillator column (e.g., 'macd_hist', 'RSI_14', 'AO_5_34')
+            indicator_col: Name of oscillator column (e.g., 'macd_12_26_9__hist', 'RSI_14', 'AO_5_34')
             indicator_line_col: Optional signal line column (e.g., 'macd' for 2-line divergence,
                                'STOCHd_14_3_3' for Stochastic)
         
@@ -78,12 +78,12 @@ class ClassicDivergenceStrategy:
         
         Examples:
             # MACD histogram (single line)
-            metrics = strategy.calculate_divergence(zone_data, indicator_col='macd_hist')
+            metrics = strategy.calculate_divergence(zone_data, indicator_col='macd_12_26_9__hist')
             
             # MACD with signal line (two lines)
             metrics = strategy.calculate_divergence(
                 zone_data, 
-                indicator_col='macd_hist',
+                indicator_col='macd_12_26_9__hist',
                 indicator_line_col='macd'
             )
             

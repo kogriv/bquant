@@ -178,35 +178,50 @@ class _Capture(logging.Handler):
         self.records.append(record)
 
 
-def test_pipeline_warns_when_indicator_overwrites_input_column(data):
-    """The bundled sample already has a `macd` column; computing MACD replaces it."""
+def test_the_sample_column_is_no_longer_overwritten(data):
+    """Computing MACD used to destroy the sample's own `macd` column.
+
+    The bundled TradingView export ships a column called `macd`, and the
+    flagship example computes MACD over that same frame. Until stage C2b the
+    computed line claimed the same name and replaced it: the original values
+    were gone from the result and could not be recovered. Stage A made the
+    replacement *audible* — a warning naming the column — but it still happened.
+
+    Canonical names end the collision rather than announce it: both series now
+    live in the frame at once. This asserts the collision is gone, and that the
+    warning it used to produce is gone with it — a warning that keeps firing for
+    a problem that no longer exists is how users learn to ignore warnings.
+    """
     from bquant.analysis.zones import analyze_macd_zones
     from bquant.analysis.zones.pipeline import ZoneAnalysisPipeline
 
     assert "macd" in data.columns, (
-        "fixture assumption broken: this sample used to ship its own 'macd' column, "
-        "which is what makes the overwrite observable"
+        "fixture assumption broken: this sample ships its own 'macd' column, "
+        "which is what made the overwrite observable"
     )
+    original = data["macd"].copy()
 
     logger = logging.getLogger(ZoneAnalysisPipeline.__module__)
     handler = _Capture()
     logger.addHandler(handler)
     try:
-        # Cache disabled deliberately: a cached result short-circuits _prepare_data,
-        # so the warning is a cold-run signal. The overwrite is baked into the cached
-        # result either way — the caller simply saw the warning on the run that
-        # produced it.
-        analyze_macd_zones(data, enable_cache=False)
+        result = analyze_macd_zones(data, enable_cache=False)
     finally:
         logger.removeHandler(handler)
 
-    messages = [r.getMessage() for r in handler.records]
-    overwrite_warnings = [m for m in messages if "overwrites" in m]
-    assert overwrite_warnings, (
-        f"no overwrite warning emitted; captured warnings were {messages}"
+    overwrite_warnings = [m for m in (r.getMessage() for r in handler.records)
+                          if "overwrites" in m]
+    assert not overwrite_warnings, (
+        f"nothing is overwritten any more, yet it warned: {overwrite_warnings}"
     )
-    assert "'macd'" in overwrite_warnings[0], (
-        f"the warning must name the column it replaced: {overwrite_warnings[0]}"
+
+    pd.testing.assert_series_equal(result.data["macd"], original)
+
+    computed = result.column_schema.column("line")
+    assert computed != "macd", "the computed line must not claim the source's name"
+    assert computed in result.data.columns
+    assert not result.data[computed].equals(original), (
+        "both series must be present and distinct — that is the point"
     )
 
 
@@ -223,7 +238,6 @@ def test_pipeline_is_quiet_when_nothing_is_overwritten():
 
     raw = get_sample_data("tv_xauusd_1h")
     clean = raw[["open", "high", "low", "close", "volume"]].copy()
-    assert not {"macd", "macd_signal", "macd_hist"} & set(clean.columns)
 
     logger = logging.getLogger(ZoneAnalysisPipeline.__module__)
     handler = _Capture()
@@ -233,7 +247,7 @@ def test_pipeline_is_quiet_when_nothing_is_overwritten():
             analyze_zones(clean)
             .with_indicator("custom", "macd", fast_period=12, slow_period=26,
                             signal_period=9)
-            .detect_zones("zero_crossing", indicator_col="macd_hist")
+            .detect_zones("zero_crossing", indicator_role="hist")
             .analyze(clustering=False)
             .with_cache(False)
             .build()

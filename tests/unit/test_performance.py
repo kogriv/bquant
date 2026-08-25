@@ -36,6 +36,18 @@ from bquant.core.logging_config import get_logger
 warnings.filterwarnings('ignore')
 logger = get_logger(__name__)
 
+# Имена колонок берутся у индикаторов, а не перечисляются здесь литералами:
+# литерал в тесте — ещё одно место, где живут имена выходов, и оно протухает
+# ровно так же, как протухали остальные (см. devref/gaps/columns/).
+def _columns_of(name, **params):
+    from bquant.indicators import IndicatorFactory
+    return IndicatorFactory.create('custom', name, **params).get_output_columns()
+
+
+MACD_COLUMNS = _columns_of('macd', fast_period=12, slow_period=26, signal_period=9)
+BBANDS_COLUMNS = _columns_of('bbands', period=20, std_dev=2.0)
+
+
 
 def performance_test(func):
     """Декоратор для измерения производительности тестов."""
@@ -158,9 +170,7 @@ class TestIndicatorPerformance:
         macd_data = calculate_macd(small_data, fast=12, slow=26, signal=9)
         
         assert isinstance(macd_data, pd.DataFrame)
-        assert 'macd' in macd_data.columns
-        assert 'macd_signal' in macd_data.columns
-        assert 'macd_hist' in macd_data.columns
+        assert set(macd_data.columns) == set(MACD_COLUMNS)
         assert len(macd_data) == len(small_data)
         
         logger.info(f"MACD calculation completed for {len(small_data)} bars")
@@ -171,9 +181,7 @@ class TestIndicatorPerformance:
         macd_data = calculate_macd(medium_data, fast=12, slow=26, signal=9)
         
         assert isinstance(macd_data, pd.DataFrame)
-        assert 'macd' in macd_data.columns
-        assert 'macd_signal' in macd_data.columns
-        assert 'macd_hist' in macd_data.columns
+        assert set(macd_data.columns) == set(MACD_COLUMNS)
         assert len(macd_data) == len(medium_data)
         
         logger.info(f"MACD calculation completed for {len(medium_data)} bars")
@@ -184,9 +192,7 @@ class TestIndicatorPerformance:
         macd_data = calculate_macd(large_data, fast=12, slow=26, signal=9)
         
         assert isinstance(macd_data, pd.DataFrame)
-        assert 'macd' in macd_data.columns
-        assert 'macd_signal' in macd_data.columns
-        assert 'macd_hist' in macd_data.columns
+        assert set(macd_data.columns) == set(MACD_COLUMNS)
         assert len(macd_data) == len(large_data)
         
         logger.info(f"MACD calculation completed for {len(large_data)} bars")
@@ -208,9 +214,7 @@ class TestIndicatorPerformance:
         bb_data = calculate_bollinger_bands(large_data, period=20, std_dev=2.0)
         
         assert isinstance(bb_data, pd.DataFrame)
-        assert 'bb_upper' in bb_data.columns
-        assert 'bb_middle' in bb_data.columns  
-        assert 'bb_lower' in bb_data.columns
+        assert set(bb_data.columns) == set(BBANDS_COLUMNS)
         assert len(bb_data) == len(large_data)
         
         logger.info(f"Bollinger Bands calculation completed for {len(large_data)} bars")

@@ -209,16 +209,33 @@ class TestVisualizersAskForRoles:
         )
         assert figure is not None
 
+    def test_canonical_names_alone_are_enough(self, macd_result):
+        """Since C2b the emitted names carry the role, so the parse path works.
+
+        This is the degraded path doing its job: a frame whose schema was lost
+        still plots. It is not a licence to stop passing the schema — with two
+        MACDs in one frame the parse is ambiguous and refuses, which the next
+        test covers.
+        """
+        from bquant.visualization import FinancialCharts
+
+        figure = FinancialCharts().plot_macd_with_zones(
+            macd_result.data, macd_result.zones
+        )
+        assert figure is not None
+
     def test_plot_refuses_rather_than_guessing(self, macd_result):
-        """Without a schema and without canonical names, it must not pick.
+        """With nothing to go on, it must not pick a column.
 
         Plotting the wrong column is how a chart comes to assert something
         nobody computed.
         """
         from bquant.visualization import FinancialCharts
 
+        # Только исходные колонки сэмпла: ни схемы, ни канонических имён.
+        raw = macd_result.data[["open", "high", "low", "close", "macd", "signal"]]
         with pytest.raises(ValueError, match="cannot locate"):
-            FinancialCharts().plot_macd_with_zones(macd_result.data, macd_result.zones)
+            FinancialCharts().plot_macd_with_zones(raw, macd_result.zones)
 
     def test_zone_visualizer_takes_the_same_route(self, macd_result):
         from bquant.visualization.zones import ZoneVisualizer

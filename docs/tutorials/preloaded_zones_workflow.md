@@ -74,7 +74,10 @@ analyzer = UniversalZoneAnalyzer()
 expert_analysis = analyzer.analyze_zones(zones, df)
 
 auto_detector = ZoneDetectionRegistry.get('zero_crossing')
-auto_config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': 'macd_hist'}, min_duration=2)
+# Детектор зовётся напрямую, минуя пайплайн, поэтому адресуемся именем колонки:
+# роль в имя колонки превращает пайплайн, у которого есть схема индикатора.
+hist_column = indicator.get_output_roles()['hist']
+auto_config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': hist_column}, min_duration=2)
 auto_zones = auto_detector.detect_zones(df_with_macd, auto_config)
 auto_analysis = analyzer.analyze_zones(auto_zones, df_with_macd)
 

@@ -181,15 +181,16 @@ class TestBuiltinIndicators:
         assert isinstance(result, IndicatorResult)
         assert result.name == 'macd'
         
-        # Проверяем наличие всех необходимых колонок
-        expected_columns = ['macd', 'macd_signal', 'macd_hist']
-        for col in expected_columns:
-            assert col in result.data.columns
+        # Колонки сверяются с объявлением индикатора, а не с литералом.
+        roles = macd.get_output_roles()
+        assert set(roles) == {'line', 'signal', 'hist'}
+        for column in roles.values():
+            assert column in result.data.columns
         
         # Проверяем, что гистограмма = MACD - Signal
-        hist_calculated = result.data['macd'] - result.data['macd_signal']
+        hist_calculated = result.data[roles['line']] - result.data[roles['signal']]
         pd.testing.assert_series_equal(
-            result.data['macd_hist'],
+            result.data[roles['hist']],
             hist_calculated,
             check_names=False
         )

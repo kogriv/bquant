@@ -55,7 +55,7 @@ class ZeroCrossingDetection:
         config = ZoneDetectionConfig(
             min_duration=2,
             zone_types=['bull', 'bear'],
-            rules={'indicator_col': 'macd_hist'}
+            rules={'indicator_col': 'macd_12_26_9__hist'}
         )
         zones = strategy.detect_zones(data, config)
     """

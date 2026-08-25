@@ -38,7 +38,7 @@ def _macd(data, min_duration=2):
     return (
         analyze_zones(data)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_col="macd_hist", min_duration=min_duration)
+        .detect_zones("zero_crossing", indicator_role="hist", min_duration=min_duration)
         .analyze(clustering=False)
         .with_cache(False)
         .build()

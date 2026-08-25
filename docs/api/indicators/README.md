@@ -45,7 +45,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -208,13 +208,13 @@ from bquant.data.samples import get_sample_data
 
 # Загрузка данных
 data = get_sample_data('tv_xauusd_1h')
-data['macd_hist'] = data['macd'] - data['signal']
 
-# Universal Pipeline - MACD
+# Universal Pipeline - MACD. Гистограмму считать вручную не нужно: её выдаёт
+# сам индикатор, а адресуемся мы к ней ролью, а не именем колонки.
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', divergence='classic')
     .analyze(clustering=True, n_clusters=3)
     .build()
@@ -346,7 +346,7 @@ macd_result = macd_preloaded.calculate(data)
 macd_zones_result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -374,7 +374,7 @@ print(f"Combined analysis: {combined_analysis}")
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='find_peaks', volatility='combined')
     .analyze(clustering=True)
     .build()
@@ -398,7 +398,7 @@ for zone in result.zones:
 result_custom = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=8, slow_period=21, signal_period=5)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
@@ -407,7 +407,7 @@ result_custom = (
 result_default = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
@@ -426,7 +426,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
@@ -522,7 +522,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')   # вместо indicator_col='macd_hist'
+    .detect_zones('zero_crossing', indicator_role='hist')   # вместо indicator_role='hist'
     .build()
 )
 ```
@@ -581,9 +581,9 @@ print(indicator.get_output_roles())          # {'line': 'macd', 'signal': ..., '
 ```python
 schema = result.column_schema
 
-schema.column('hist')            # 'macd_hist' — какая колонка держит роль
-schema.roles_of('macd_signal')   # (IndicatorId('custom.macd_5_35_5'), 'signal')
-schema.roles()                   # ('line', 'signal', 'hist')
+schema.column('hist')                        # 'macd_5_35_5__hist'
+schema.roles_of('macd_5_35_5__signal')       # (IndicatorId('custom.macd_5_35_5'), 'signal')
+schema.roles()                               # ('line', 'signal', 'hist')
 ```
 
 `roles_of()` возвращает и **параметры** посчитавшего индикатора — то, чего имя колонки
@@ -628,13 +628,16 @@ result.column_schema.roles_of('signal')    # (IndicatorId(...), 'signal')
 class MACD(CustomIndicator):
 
     def get_output_roles(self) -> Dict[str, str]:
-        return {"line": "macd", "signal": "macd_signal", "hist": "macd_hist"}
+        iid = self.get_indicator_id()
+        return {role: iid.column(role) for role in ("line", "signal", "hist")}
 
     def get_output_columns(self) -> List[str]:
         return list(self.get_output_roles().values())
 ```
 
-Два литерала — это два места, где можно разойтись; здесь расходиться нечему. Индикатор с
+Имена не пишутся вовсе: индикатор объявляет **какие у него роли**, а имя каждой колонки
+строит идентичность — `macd_12_26_9__line` и так далее. Индикатор с единственным выходом
+ничего объявлять не обязан: базовый класс сам сопоставит его роли `value`. Индикатор с
 единственным выходом ничего объявлять не обязан: базовый класс сам сопоставит его роли
 `value`.
 
@@ -679,8 +682,28 @@ histogram = result.data[columns['hist']]
 Не нашлось — `ValueError`, называющий недостающие роли и что передать. Отказ здесь
 существеннее удобства: молча взять не ту колонку значит посчитать не то.
 
-> **Имена колонок пока прежние.** Этапы C1 и C2a вводят адресацию по ролям и приводят в
-> порядок идентичность, не меняя ни одного имени, чтобы каждый шаг оставался проверяемым
-> против прежнего поведения. Перевод имён на слаги (`macd_12_26_9__hist`) — этап C2b,
-> вместе с переводом потребителей и документации.
+### Имена колонок теперь канонические
+
+С этапа C2b вычисленная колонка называется `{слаг}__{роль}`:
+
+| индикатор | колонки |
+|---|---|
+| `macd(12, 26, 9)` | `macd_12_26_9__line`, `macd_12_26_9__signal`, `macd_12_26_9__hist` |
+| `macd(5, 35, 5)` | `macd_5_35_5__line`, `macd_5_35_5__signal`, `macd_5_35_5__hist` |
+| `bbands(20, 2)` | `bbands_20_2__upper`, `__middle`, `__lower`, `__width`, `__percent` |
+| `rsi(14)`, `sma(20)`, `ema(20)` | `rsi_14`, `sma_20`, `ema_20` — единственный выход, слаг без роли |
+
+Что это меняет на практике:
+
+- **два экземпляра одного индикатора сосуществуют.** До этого `macd(12,26,9)` и
+  `macd(5,35,5)` претендовали на одну строку `macd_hist` — имя не различало то, что
+  различается;
+- **чужие колонки не затираются.** Встроенный сэмпл несёт собственную `macd` из выгрузки
+  TradingView, и вычисленный MACD её **заменял** (этап A сделал это заметным — было
+  предупреждение, — но замена происходила). Теперь оба ряда живут в кадре одновременно;
+- **имя описывает вызов, а не объявление.** `macd.calculate(data, fast_period=5)` считает
+  не то, что задавал конструктор, и колонка это говорит.
+
+Вывод `preloaded`-индикаторов **не переименовывается**: он читает колонки, пришедшие с
+данными, и претендовать на их имена не может.
 

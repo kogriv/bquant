@@ -84,7 +84,7 @@ with nb.error_handling("Data preparation"):
     result = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing='find_peaks', shape='statistical')  # v2.1: NEW!
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -175,7 +175,7 @@ with nb.error_handling("Swing strategies comparison"):
     result_findpeaks = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing='find_peaks')  # v2.1: String name!
         .analyze(clustering=False)
         .build()
@@ -196,7 +196,7 @@ with nb.error_handling("Swing strategies comparison"):
     result_pivot = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing='pivot_points')  # v2.1: String name!
         .analyze(clustering=False)
         .build()
@@ -216,7 +216,7 @@ with nb.error_handling("Swing strategies comparison"):
     result_zigzag = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing='zigzag')  # v2.1: Works!
         .analyze(clustering=False)
         .build()
@@ -265,7 +265,7 @@ with nb.error_handling("Divergence detection testing"):
     result_with_divergence = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(divergence='classic')  # v2.1: String name!
         .analyze(clustering=False)
         .build()
@@ -314,7 +314,7 @@ with nb.error_handling("Volatility analysis testing"):
     result_with_volatility = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(volatility='combined')  # v2.1: Uses CombinedVolatilityStrategy
         .analyze(clustering=False)
         .build()
@@ -393,7 +393,7 @@ with nb.error_handling("Volume analysis testing"):
         result_with_volume = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .detect_zones('zero_crossing', indicator_role='hist')
             .with_strategies(volume='standard')  # v2.1: Uses StandardVolumeStrategy
             .analyze(clustering=False)
             .build()
@@ -442,7 +442,7 @@ with nb.error_handling("Hypothesis tests"):
     result_with_tests = (
         analyze_zones(df_with_returns)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_cache(enable=False)
         .analyze(clustering=True, n_clusters=3)  # Hypothesis tests run automatically
         .build()
@@ -553,7 +553,7 @@ with nb.error_handling("Regression & Validation"):
                 return (
                     analyze_zones(data)
                     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-                    .detect_zones('zero_crossing', indicator_col='macd_hist')
+                    .detect_zones('zero_crossing', indicator_role='hist')
                     .build()
                 )
             

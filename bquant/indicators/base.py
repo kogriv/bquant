@@ -148,12 +148,19 @@ class BaseIndicator(ABC):
             return {"value": columns[0]}
         return {}
 
-    def get_indicator_id(self) -> IndicatorId:
+    def get_indicator_id(self, **parameter_overrides: Any) -> IndicatorId:
         """Identity of this instance: name plus normalized parameters.
 
         Parameter order is taken from the constructor signature, i.e. **fixed by
         the declaration** rather than by the order a caller happened to pass
         keywords in — otherwise the same indicator would slug two ways.
+
+        ``parameter_overrides`` exists because ``calculate(data, **kwargs)`` may
+        be called with different periods than the instance was built with. The
+        emitted column names have to describe **the series actually computed**;
+        naming it after the instance would put the wrong parameters on the
+        column, which is defect D3 of this gap (library outputs labelled with
+        the parameters of registration rather than of the call).
         """
         try:
             signature = inspect.signature(type(self).__init__)
@@ -167,10 +174,13 @@ class BaseIndicator(ABC):
         source = getattr(self.config, "source", None)
         source_name = getattr(source, "value", None) or str(source or "custom")
 
+        parameters = dict(getattr(self.config, "parameters", {}) or {})
+        parameters.update(parameter_overrides)
+
         return IndicatorId(
             source=source_name,
             name=self.name,
-            parameters=dict(getattr(self.config, "parameters", {}) or {}),
+            parameters=parameters,
             parameter_order=order,
         )
 

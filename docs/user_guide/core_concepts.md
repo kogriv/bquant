@@ -19,7 +19,7 @@
 ## 🔄 Поток данных и контрольные точки
 
 1. **Подготовка данных** — убедитесь, что DataFrame содержит столбцы `time`, `open`, `high`, `low`, `close`, `volume` и дополнительные индикаторы.
-2. **Настройка индикатора** — либо рассчитываем индикатор в пайплайне, либо подаем готовые значения (например, `macd_hist`).
+2. **Настройка индикатора** — либо рассчитываем индикатор в пайплайне (тогда колонка называется канонически, `macd_12_26_9__hist`, и адресоваться к ней можно ролью), либо подаём готовые значения под своими именами.
 3. **Выбор стратегии детекции** — `zero_crossing`, `threshold`, `line_crossing`, `preloaded` или `combined`.
 4. **Анализ зон** — UniversalZoneAnalyzer рассчитывает признаки, гипотезы и (по необходимости) регрессию, валидацию и кластеризацию.
 5. **Интерпретация результата** — объект `ZoneAnalysisResult` содержит списки зон, статистику, отчеты по стратегиям и вспомогательные данные для визуализации.
@@ -39,7 +39,7 @@ config = ZoneAnalysisConfig(
     ),
     zone_detection=ZoneDetectionConfig(
         strategy_name='zero_crossing',
-        rules={'indicator_col': 'macd_hist'},
+        rules={'indicator_role': 'hist'},
         min_duration=3
     ),
     perform_clustering=True,
@@ -61,10 +61,13 @@ from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_zones
 
 df = get_sample_data('tv_xauusd_1h').head(200).copy()
-df['macd_hist'] = df['macd'] - df['signal']  # В документации делаем явную оговорку
+df['macd_hist'] = df['macd'] - df['signal']  # своя колонка, своё имя
 
 result = (
     analyze_zones(df)
+    # Индикатор здесь не считается, схемы взяться неоткуда — адресуемся именем
+    # колонки. Роль (`indicator_role='hist'`) резолвит пайплайн, и только когда
+    # индикатор посчитал он сам.
     .detect_zones('zero_crossing', indicator_col='macd_hist')
     .with_strategies(swing='find_peaks', shape='statistical')
     .analyze(clustering=True, n_clusters=3)

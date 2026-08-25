@@ -27,7 +27,7 @@
     result = (
         analyze_zones(get_sample_data('tv_xauusd_1h'))
         .with_indicator('custom', 'macd')
-        .detect_zones('zero_crossing', indicator_col='macd_hist')
+        .detect_zones('zero_crossing', indicator_role='hist')
         .analyze()
         .build()
     )
@@ -69,7 +69,7 @@ fig = result.visualize(
 
 **Ключевые параметры `overview`:**
 - `show_indicators` (bool, default=`False`): Отобразить панель с индикаторами.
-- `indicator_chart_types` (dict, optional): Явно задать тип графика для индикатора. Пример: `{'macd_hist': 'bar'}`.
+- `indicator_chart_types` (dict, optional): Явно задать тип графика для индикатора. Пример: `{'macd_12_26_9__hist': 'bar'}`.
 - `time_axis_mode` (str, default=`'dense'`): Режим оси времени.
   - `'dense'`: Убирает разрывы (выходные), отображая только торговые дни. Быстро и компактно.
   - `'timeseries'`: Сохраняет временную шкалу, показывая разрывы. Идеально для анализа пропорций.
@@ -309,7 +309,7 @@ fig_detail = visualizer.plot_zone_detail(
     zone=median_zone,
     context_bars=15,
     show_indicators=True,
-    indicator_chart_types={'macd_hist': 'bar'}, # Явно задаем гистограмму
+    indicator_chart_types={'macd_12_26_9__hist': 'bar'}, # Явно задаем гистограмму
     time_axis_mode='dense',
     title="Detail from ZoneVisualizer"
 )
@@ -432,7 +432,7 @@ data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=3)
+    .detect_zones('zero_crossing', indicator_role='hist', min_duration=3)
     .analyze(clustering=True)
     .build()
 )
@@ -459,7 +459,7 @@ fig_detail = result.visualize(
     zone_id=median_zone.zone_id,
     context_bars=25,
     show_indicators=True,
-    indicator_chart_types={'macd_hist': 'bar'}, # Явное указание типа графика
+    indicator_chart_types={'macd_12_26_9__hist': 'bar'}, # Явное указание типа графика
     time_axis_mode='dense', # Компактный вид
     xaxis_num_ticks=20,
     title=f"Детализация зоны #{median_zone.zone_id}"

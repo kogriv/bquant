@@ -70,7 +70,9 @@ _SWING_CLASS_TO_NAME = {
 #                 swallowed, so v9 results have regression_results=None (G23).
 #   v11 (2026-08): consumers address columns by role; zone feature metadata
 #                 dropped the dead backward-compatibility aliases (G8 C2b-1).
-CACHE_SCHEMA_VERSION = 11
+#   v12 (2026-08): computed columns carry canonical names, slug + role
+#                 (G8 stage C2b-2).
+CACHE_SCHEMA_VERSION = 12
 
 
 @dataclass
@@ -152,7 +154,7 @@ class ZoneAnalysisPipeline:
             indicator=IndicatorSpec('custom', 'macd', {'fast': 12}),
             zone_detection=ZoneDetectionConfig(
                 strategy_name='zero_crossing',
-                rules={'indicator_col': 'macd_hist'}
+                rules={'indicator_role': 'hist'}
             )
         )
         pipeline = ZoneAnalysisPipeline(config, enable_cache=True)
@@ -377,33 +379,49 @@ class ZoneAnalysisPipeline:
         return df_with_indicator
     
     def _resolve_indicator_role(self) -> None:
-        """Turn ``indicator_role='hist'`` into the column that actually holds it.
+        """Turn every ``*_role`` detection rule into the column that holds it.
+
+        ``indicator_role='hist'`` becomes ``indicator_col='macd_12_26_9__hist'``;
+        ``line1_role``/``line2_role`` become ``line1_col``/``line2_col``. The
+        pairing is by name rather than by a hardcoded list, so a new strategy
+        gets role addressing for free by naming its rules ``<something>_col``.
 
         The pipeline knows the identity of the indicator because it created it,
         so a role is enough. Resolution happens here rather than in the builder
         because the schema is only populated once the indicator has run.
         """
         rules = self.config.zone_detection.rules
-        role = rules.pop("_indicator_role", None)
-        if role is None:
-            return
-
-        column = self.column_schema.column(role)
-        if column is None:
-            available = self.column_schema.roles()
-            raise ValueError(
-                f"cannot resolve indicator_role={role!r}: "
-                + (
-                    f"the indicator in this analysis provides {list(available)}"
-                    if available
-                    else "no indicator in this analysis declares its output roles"
+        # `*_role` — обычные публичные ключи правил, а не приватный канал
+        # билдера: конфиг детекции собирают и напрямую, и такой код тоже вправе
+        # адресоваться по роли, а не по имени колонки.
+        role_keys = [key for key in list(rules) if key.endswith("_role")]
+        for role_key in role_keys:
+            role = rules.pop(role_key)
+            if role is None:
+                continue
+            column_key = role_key[: -len("_role")] + "_col"
+            if rules.get(column_key):
+                raise ValueError(
+                    f"pass either {role_key}= or {column_key}=, not both: they "
+                    "address one series and can disagree."
                 )
-                + ". Address the column by name with indicator_col= instead, or "
-                "declare the roles on the indicator."
-            )
 
-        self.logger.debug("Resolved indicator_role=%r to column %r", role, column)
-        rules["indicator_col"] = column
+            column = self.column_schema.column(role)
+            if column is None:
+                available = self.column_schema.roles()
+                raise ValueError(
+                    f"cannot resolve {role_key}={role!r}: "
+                    + (
+                        f"the indicator in this analysis provides {list(available)}"
+                        if available
+                        else "no indicator in this analysis declares its output roles"
+                    )
+                    + f". Address the column by name with {column_key}= instead, or "
+                    "declare the roles on the indicator."
+                )
+
+            self.logger.debug("Resolved %s=%r to column %r", role_key, role, column)
+            rules[column_key] = column
 
     def _detect_zones(self, df: pd.DataFrame) -> List[ZoneInfo]:
         """Run the configured detection strategy and return zones."""
@@ -602,7 +620,7 @@ class ZoneAnalysisBuilder:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast=12, slow=26, signal=9)
-            .detect_zones('zero_crossing', indicator_col='macd')
+            .detect_zones('zero_crossing', indicator_role='line')
             .analyze(clustering=True, n_clusters=3)
             .build()
         )
@@ -658,14 +676,17 @@ class ZoneAnalysisBuilder:
             zone_types: Restrict the result to these types; ``None`` = no filter.
             indicator_role: Address the series by **role** instead of by column
                 name — ``indicator_role='hist'`` rather than
-                ``indicator_col='macd_hist'``. The pipeline knows the identity of
-                the indicator because it created it, so the role is enough to
-                resolve the column. This is the point of the abstraction: the
-                caller stops being obliged to know the string.
+                ``indicator_col='macd_12_26_9__hist'``. The pipeline knows the
+                identity of the indicator because it created it, so the role is
+                enough to resolve the column. This is the point of the
+                abstraction: the caller stops being obliged to know the string.
 
                 Resolved at build time against the column schema; passing both
                 this and ``indicator_col`` is an error, since they could disagree.
             **rules: Strategy-specific rules (``indicator_col``, thresholds, ...).
+                Any rule named ``<x>_role`` is resolved the same way into
+                ``<x>_col`` — so ``line_crossing`` takes ``line1_role='line'``
+                and ``line2_role='signal'``.
         """
         if indicator_role is not None:
             if "indicator_col" in rules:
@@ -674,7 +695,7 @@ class ZoneAnalysisBuilder:
                     "address the same series and could disagree"
                 )
             rules = dict(rules)
-            rules["_indicator_role"] = indicator_role
+            rules["indicator_role"] = indicator_role
 
         self._zone_detection_config = ZoneDetectionConfig(
             min_duration=min_duration,
@@ -866,7 +887,7 @@ def analyze_zones(df: pd.DataFrame) -> ZoneAnalysisBuilder:
         # Минимальный пример
         result = (
             analyze_zones(df)
-            .detect_zones('zero_crossing', indicator_col='macd')
+            .detect_zones('zero_crossing', indicator_role='line')
             .build()
         )
         
@@ -874,7 +895,7 @@ def analyze_zones(df: pd.DataFrame) -> ZoneAnalysisBuilder:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast=12, slow=26, signal=9)
-            .detect_zones('zero_crossing', indicator_col='macd')
+            .detect_zones('zero_crossing', indicator_role='line')
             .analyze(clustering=True, n_clusters=3, regression=True)
             .with_cache(enable=True, ttl=7200)
             .build()

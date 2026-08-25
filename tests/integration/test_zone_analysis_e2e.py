@@ -40,7 +40,7 @@ class TestMACDFullPipeline:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist', min_duration=2)
+            .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
             .with_strategies(swing='find_peaks', shape='statistical')
             .analyze(clustering=True, n_clusters=3)
             .build()
@@ -51,7 +51,8 @@ class TestMACDFullPipeline:
         assert len(result.zones) > 0, "Should detect some zones"
         assert result.data is not None, "Should return enhanced DataFrame"
         assert 'macd' in result.data.columns, "Should have MACD indicator"
-        assert 'macd_hist' in result.data.columns, "Should have MACD histogram"
+        assert result.column_schema.column('hist') in result.data.columns, \
+            "Should have MACD histogram"
         
         # Проверка зон
         for zone in result.zones[:5]:  # Check first 5 zones
@@ -267,7 +268,7 @@ class TestPipelinePerformance:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .detect_zones('zero_crossing', indicator_role='hist')
             .analyze(clustering=True, n_clusters=3)
             .build()
         )
@@ -323,7 +324,7 @@ class TestPipelineEdgeCases:
         result = (
             analyze_zones(df_small)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_col='macd_hist')
+            .detect_zones('zero_crossing', indicator_role='hist')
             .analyze(clustering=False)
             .build()
         )
