@@ -49,7 +49,10 @@ class ZoneAnalysisCache:
     # parameter — and it now declares roles, so results computed over
     # pre-calculated data carry schema entries where v8 had none. Column names
     # themselves are unchanged.
-    CACHE_VERSION = 9
+    # v10 (G23): regression actually runs — the analyzer used to import the
+    # regression class from a module that does not export it, so
+    # `run_regression=True` produced None. Cached v9 results carry that None.
+    CACHE_VERSION = 10
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

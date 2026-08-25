@@ -65,7 +65,10 @@ _SWING_CLASS_TO_NAME = {
 #   v9 (2026-08): identity slugs changed for the preloaded indicator, which also
 #                 declares roles now, so schema entries appear where v8 had none
 #                 (G8 stage C2a). Column names themselves are unchanged.
-CACHE_SCHEMA_VERSION = 9
+#   v10 (2026-08): `run_regression=True` now yields regression results; the
+#                 analyzer's import of ZoneRegressionAnalyzer was broken and
+#                 swallowed, so v9 results have regression_results=None (G23).
+CACHE_SCHEMA_VERSION = 10
 
 
 @dataclass

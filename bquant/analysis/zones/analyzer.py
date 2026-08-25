@@ -96,10 +96,19 @@ class UniversalZoneAnalyzer:
         
         if regression_analyzer is None:
             try:
-                from bquant.analysis.timeseries import ZoneRegressionAnalyzer
+                # The class lives in `analysis.statistical.regression`. This used
+                # to import it from `analysis.timeseries`, which does not export
+                # it — and `except ImportError` swallowed the miss, so
+                # `.analyze(regression=True)` quietly produced no regression at
+                # all while logging a line that read like an optional dependency
+                # was absent. statsmodels was installed the whole time.
+                from bquant.analysis.statistical.regression import ZoneRegressionAnalyzer
                 regression_analyzer = ZoneRegressionAnalyzer()
-            except ImportError:
-                self.logger.warning("ZoneRegressionAnalyzer not available")
+            except ImportError as exc:
+                self.logger.warning(
+                    "ZoneRegressionAnalyzer unavailable (%s); "
+                    "regression will be skipped", exc
+                )
                 regression_analyzer = None
         
         if validation_suite is None:
@@ -192,10 +201,20 @@ class UniversalZoneAnalyzer:
         # 6. Регрессия (опционально)
         regression_results = None
         if run_regression and self.regression and len(zones) > 10:
-            regression_results = {
-                'duration': self.regression.predict_zone_duration([f.to_dict() for f in zones_features]),
-                'return': self.regression.predict_price_return([f.to_dict() for f in zones_features])
-            }
+            # Регрессия — необязательный шаг, и её отказ не повод убивать весь
+            # анализ: остальные разделы результата от неё не зависят. Но и молчать
+            # нельзя — иначе `regression_results is None` неотличимо от «не
+            # просили». Причина едет в результат, как это уже сделано для анализа
+            # последовательностей.
+            features_dicts = [f.to_dict() for f in zones_features]
+            regression_results = {}
+            for key, method in (('duration', self.regression.predict_zone_duration),
+                                ('return', self.regression.predict_price_return)):
+                try:
+                    regression_results[key] = method(features_dicts)
+                except Exception as e:
+                    self.logger.warning("Regression '%s' could not be fitted: %s", key, e)
+                    regression_results[key] = {'error': str(e)}
             self.logger.info("Performed regression analysis")
         
         # 7. Валидация (опционально)

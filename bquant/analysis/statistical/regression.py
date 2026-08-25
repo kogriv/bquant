@@ -7,7 +7,7 @@ such as duration and price returns based on zone features.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -74,6 +74,81 @@ class RegressionResult:
                 if self.p_values.get(k, 1.0) < alpha}
 
 
+def _usable_predictors(
+    df: pd.DataFrame,
+    requested: List[str],
+    logger,
+) -> Tuple[List[str], List[str]]:
+    """Split requested predictors into usable ones and empty ones.
+
+    A predictor that is ``NaN`` in every row carries no information, but it is
+    not harmless: the model frame is built with ``dropna()``, so one such column
+    takes **every** observation with it. The failure then surfaced as
+
+        Insufficient data for regression: need at least 8 observations, got 0
+
+    which points at the amount of data when the cause is a column empty by
+    construction. `macd_amplitude` is exactly that for any non-MACD zone set: it
+    is the amplitude of the indicator's *line*, and an RSI zone has no line, so
+    `.analyze(regression=True)` over RSI zones raised and killed the whole build.
+
+    Dropping such a column is what a person would do — but it has to be said out
+    loud, in the log and in the result metadata. A silently narrowed model is the
+    defect this project keeps finding (``devref/gaps/``), and swapping a loud
+    wrong answer for a quiet one would not be an improvement.
+    """
+    usable, empty = [], []
+    for name in requested:
+        if df[name].notna().any():
+            usable.append(name)
+        else:
+            empty.append(name)
+    if empty:
+        logger.warning(
+            "Dropping predictor(s) with no observations at all: %s. They are NaN "
+            "in every zone, so keeping them would empty the model frame instead "
+            "of adding information.",
+            ", ".join(empty),
+        )
+    return usable, empty
+
+
+def _reject_degenerate_design(
+    X_with_const: pd.DataFrame,
+    predictors: List[str],
+) -> None:
+    """Refuse to fit a design matrix that cannot support the model.
+
+    Two failures used to hide here, both worse than an error.
+
+    When every observation carries the same predictor values, ``add_constant``
+    finds a constant column already present and silently **does not add**
+    ``const``; the next line then read ``model.params['const']`` and the whole
+    thing surfaced as ``regression failed: 'const'`` — a leaked KeyError naming
+    nothing a caller could act on.
+
+    Force the constant in and the second failure takes over: the matrix is rank
+    deficient, ``OLS`` falls back to a pseudo-inverse and returns a well-formed
+    set of coefficients that means nothing. A fabricated answer is the failure
+    mode this project keeps digging out (``devref/gaps/``); an explicit refusal
+    is the cheaper outcome.
+    """
+    rank = int(np.linalg.matrix_rank(X_with_const.values))
+    needed = X_with_const.shape[1]
+    if rank < needed:
+        constant_cols = [c for c in predictors if X_with_const[c].nunique(dropna=False) <= 1]
+        detail = (
+            f" Predictor(s) constant across all observations: {constant_cols}."
+            if constant_cols else
+            " The predictors are linearly dependent."
+        )
+        raise StatisticalAnalysisError(
+            f"Design matrix is rank deficient (rank {rank} of {needed} columns), "
+            f"so the coefficients would not be identified.{detail} "
+            "Refusing to fit rather than returning numbers the data does not support."
+        )
+
+
 class ZoneRegressionAnalyzer(BaseAnalyzer):
     """
     OLS regression analyzer for modeling zone dependencies.
@@ -135,6 +210,14 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             if not available_predictors:
                 raise StatisticalAnalysisError(
                     f"No predictors available. Requested: {predictors}, Available columns: {df.columns.tolist()}"
+                )            
+            available_predictors, empty_predictors = _usable_predictors(
+                df, available_predictors, self.logger
+            )
+            if not available_predictors:
+                raise StatisticalAnalysisError(
+                    f"Every requested predictor is empty for this zone set: "
+                    f"{empty_predictors}. Nothing to regress on."
                 )
             
             self.logger.info(f"Using predictors: {available_predictors}")
@@ -152,8 +235,12 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             y = model_data['duration']
             X = model_data[available_predictors]
             
-            # Add constant for intercept
-            X_with_const = add_constant(X)
+            # Add constant for intercept. `has_constant='add'` is deliberate:
+            # with the default, a design whose columns are already constant gets
+            # no `const` column, and the coefficient lookup below then failed
+            # with a bare KeyError.
+            X_with_const = add_constant(X, has_constant='add')
+            _reject_degenerate_design(X_with_const, available_predictors)
             
             # Fit OLS model
             model = OLS(y, X_with_const).fit()
@@ -187,6 +274,7 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
                 'available_predictors': available_predictors,
                 'requested_predictors': predictors,
                 'missing_predictors': [p for p in predictors if p not in df.columns],
+                'empty_predictors': empty_predictors,
                 'n_dropped_na': len(df) - len(model_data),
                 'f_statistic': float(model.fvalue),
                 'f_pvalue': float(model.f_pvalue),
@@ -274,6 +362,14 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             if not available_predictors:
                 raise StatisticalAnalysisError(
                     f"No predictors available. Requested: {predictors}, Available columns: {df.columns.tolist()}"
+                )            
+            available_predictors, empty_predictors = _usable_predictors(
+                df, available_predictors, self.logger
+            )
+            if not available_predictors:
+                raise StatisticalAnalysisError(
+                    f"Every requested predictor is empty for this zone set: "
+                    f"{empty_predictors}. Nothing to regress on."
                 )
             
             self.logger.info(f"Using predictors: {available_predictors}")
@@ -291,8 +387,12 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             y = model_data['price_return']
             X = model_data[available_predictors]
             
-            # Add constant for intercept
-            X_with_const = add_constant(X)
+            # Add constant for intercept. `has_constant='add'` is deliberate:
+            # with the default, a design whose columns are already constant gets
+            # no `const` column, and the coefficient lookup below then failed
+            # with a bare KeyError.
+            X_with_const = add_constant(X, has_constant='add')
+            _reject_degenerate_design(X_with_const, available_predictors)
             
             # Fit OLS model
             model = OLS(y, X_with_const).fit()
@@ -326,6 +426,7 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
                 'available_predictors': available_predictors,
                 'requested_predictors': predictors,
                 'missing_predictors': [p for p in predictors if p not in df.columns],
+                'empty_predictors': empty_predictors,
                 'n_dropped_na': len(df) - len(model_data),
                 'f_statistic': float(model.fvalue),
                 'f_pvalue': float(model.f_pvalue),

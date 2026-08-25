@@ -107,21 +107,42 @@ class TestUniversalZoneAnalyzer:
         assert result.clustering is not None
     
     def test_analyze_zones_with_regression(self, sample_data, sample_zones):
-        """Test zone analysis with regression."""
+        """Regression on duplicated zones must refuse, and say why.
+
+        This test used to assert only "it doesn't crash", and it passed for a
+        reason that had nothing to do with the assertion: `UniversalZoneAnalyzer`
+        imported `ZoneRegressionAnalyzer` from a module that does not export it,
+        `except ImportError` swallowed the miss, and the regression block never
+        ran at all. With the import fixed the block runs — and the fixture feeds
+        it the same four zones three times over, so the design matrix is rank
+        deficient and no coefficients are identified.
+
+        The right outcome is neither a crash nor a plausible-looking fit: the
+        analysis completes, and the reason the regression is absent is stated.
+        """
         analyzer = UniversalZoneAnalyzer()
-        
-        # Need more zones for regression (>10)
-        extra_zones = sample_zones * 3  # 12 zones
-        
+
+        # 4 distinct zones repeated 3 times: 12 rows, but only 4 distinct ones.
+        extra_zones = sample_zones * 3
+
         result = analyzer.analyze_zones(
             extra_zones,
             sample_data,
             run_regression=True
         )
-        
-        # Regression may or may not run depending on data quality
-        # Just check it doesn't crash
+
         assert isinstance(result, ZoneAnalysisResult)
+        assert result.regression_results is not None, (
+            "the regression was requested, so its outcome must be reported"
+        )
+        for key in ('duration', 'return'):
+            outcome = result.regression_results[key]
+            assert isinstance(outcome, dict) and 'error' in outcome, (
+                f"a rank-deficient design must be refused, not fitted; got {outcome!r}"
+            )
+            assert 'rank deficient' in outcome['error'], (
+                f"the refusal must name the cause; got {outcome['error']!r}"
+            )
     
     def test_analyze_empty_zones(self, sample_data):
         """Test handling empty zones list."""
