@@ -96,12 +96,16 @@ def analyze_macd_zones(df: pd.DataFrame,
         # Визуализация
         result.visualize('overview')
     """
-    _basis_to_col = {'line': 'macd', 'histogram': 'macd_hist'}
-    if zone_basis not in _basis_to_col:
+    # `zone_basis` — это роль, а не имя колонки. Раньше здесь стояло
+    # `{'line': 'macd', 'histogram': 'macd_hist'}`: пресет держал собственную
+    # копию имён выходов MACD и разошёлся бы с индикатором при любой правке.
+    # Теперь он называет роль, а имя колонки резолвит пайплайн по схеме.
+    _basis_to_role = {'line': 'line', 'histogram': 'hist'}
+    if zone_basis not in _basis_to_role:
         raise ValueError(
             f"zone_basis must be 'line' or 'histogram', got {zone_basis!r}"
         )
-    indicator_col = _basis_to_col[zone_basis]
+    indicator_role = _basis_to_role[zone_basis]
 
     builder = (
         analyze_zones(df)
@@ -110,7 +114,7 @@ def analyze_macd_zones(df: pd.DataFrame,
                        slow_period=slow,
                        signal_period=signal)
         .detect_zones('zero_crossing',
-                     indicator_col=indicator_col,
+                     indicator_role=indicator_role,
                      min_duration=min_duration,
                      zone_types=zone_types,
                      smooth_window=smooth_window)

@@ -202,21 +202,45 @@ class IndicatorSchema(DataSchema):
         # Define schemas for different indicators
         self._setup_indicator_schema()
     
+    #: Имя схемы → имя индикатора в фабрике. Схема больше не перечисляет колонки
+    #: литералами: это было **третье** место, где живут имена выходов (после
+    #: самого индикатора и его потребителей), и оно расходилось бы с ними при
+    #: любой правке. Теперь колонки спрашиваются у индикатора, который их и
+    #: производит. Разбор: ``devref/gaps/columns/``.
+    _INDICATOR_ALIASES = {
+        'macd': 'macd',
+        'rsi': 'rsi',
+        'bollinger_bands': 'bbands',
+    }
+
     def _setup_indicator_schema(self):
-        """Setup schema based on indicator type."""
-        if self.indicator_name == 'macd':
-            self.add_required_field('macd', float)
-            self.add_required_field('macd_signal', float)
-            self.add_required_field('macd_hist', float)
-        
-        elif self.indicator_name == 'rsi':
-            self.add_required_field('rsi', float)
-            self.add_validation_rule('rsi', lambda x: 0 <= x <= 100)
-        
-        elif self.indicator_name == 'bollinger_bands':
-            self.add_required_field('bb_upper', float)
-            self.add_required_field('bb_middle', float)
-            self.add_required_field('bb_lower', float)
+        """Setup schema from the indicator's own declared output columns."""
+        factory_name = self._INDICATOR_ALIASES.get(self.indicator_name)
+        if factory_name is None:
+            self.logger.debug(
+                "No schema known for indicator '%s'; leaving it unconstrained",
+                self.indicator_name,
+            )
+            return
+
+        try:
+            from ..indicators import IndicatorFactory
+            indicator = IndicatorFactory.create('custom', factory_name)
+            columns = indicator.get_output_columns()
+        except Exception as exc:  # pragma: no cover - factory unavailable
+            self.logger.warning(
+                "Could not read output columns of '%s' (%s); schema left "
+                "unconstrained rather than restating names that may be stale",
+                factory_name, exc,
+            )
+            return
+
+        for column in columns:
+            self.add_required_field(column, float)
+
+        if self.indicator_name == 'rsi':
+            for column in columns:
+                self.add_validation_rule(column, lambda x: 0 <= x <= 100)
 
 
 # Предопределенные схемы

@@ -98,6 +98,12 @@ def create_test_ohlcv_data(n_periods: int = 100, seed: int = 42) -> pd.DataFrame
     return data
 
 
+#: Кадр здесь собран руками, а не посчитан индикатором, поэтому схемы у него нет
+#: и взяться ей неоткуда. Именно для такого случая у графиков есть явное
+#: сопоставление ролей: угадывать имена по подстроке — тот самый дефект G8.
+MACD_TEST_COLUMNS = {'line': 'macd', 'signal': 'macd_signal', 'hist': 'macd_hist'}
+
+
 def create_test_macd_data(n_periods: int = 100, seed: int = 42) -> pd.DataFrame:
     """
     Создает тестовые данные MACD.
@@ -267,7 +273,10 @@ class TestFinancialCharts:
         """Тест графика MACD с зонами."""
         zones_data = create_test_zones_data()
         
-        fig = charts.plot_macd_with_zones(macd_data, zones_data, title="Test MACD with Zones")
+        fig = charts.plot_macd_with_zones(
+            macd_data, zones_data, title="Test MACD with Zones",
+            columns=MACD_TEST_COLUMNS,
+        )
         assert fig is not None
     
     def test_invalid_data_handling(self, charts):
@@ -486,7 +495,9 @@ class TestIntegrationVisualization:
             line_fig = charts.create_line_chart(ohlcv_data, ['close'])
             assert line_fig is not None
             
-            macd_fig = charts.plot_macd_with_zones(macd_data, zones_data)
+            macd_fig = charts.plot_macd_with_zones(
+                macd_data, zones_data, columns=MACD_TEST_COLUMNS
+            )
             assert macd_fig is not None
         
         # Тест тем если доступны

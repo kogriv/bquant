@@ -68,7 +68,9 @@ _SWING_CLASS_TO_NAME = {
 #   v10 (2026-08): `run_regression=True` now yields regression results; the
 #                 analyzer's import of ZoneRegressionAnalyzer was broken and
 #                 swallowed, so v9 results have regression_results=None (G23).
-CACHE_SCHEMA_VERSION = 10
+#   v11 (2026-08): consumers address columns by role; zone feature metadata
+#                 dropped the dead backward-compatibility aliases (G8 C2b-1).
+CACHE_SCHEMA_VERSION = 11
 
 
 @dataclass
@@ -418,7 +420,8 @@ class ZoneAnalysisPipeline:
             perform_clustering=self.config.perform_clustering,
             n_clusters=self.config.n_clusters,
             run_regression=self.config.run_regression,
-            run_validation=self.config.run_validation
+            run_validation=self.config.run_validation,
+            column_schema=self.column_schema or None,
         )
 
     def _get_cache_wrapper(self) -> Optional[ZoneAnalysisCache]:

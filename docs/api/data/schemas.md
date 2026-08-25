@@ -11,7 +11,12 @@
 - `ValidationResult` — результат валидации (is_valid, issues, warnings, stats, recommendations)
 - `DataSchema` — базовый класс схем: поля, типы, правила, `validate_dataframe(df)`
 - `OHLCVSchema(DataSchema)` — схема для OHLCV
-- `IndicatorSchema(DataSchema)` — схема для индикаторов (поддерживаются варианты `macd`, `rsi`)
+- `IndicatorSchema(DataSchema)` — схема для индикаторов (`macd`, `rsi`, `bollinger_bands`).
+  Обязательные поля **берутся у самого индикатора** (`get_output_columns()`), а не
+  перечисляются в схеме: собственный список был третьим местом, где живут имена выходов,
+  и он успел разойтись с реальностью — схема `rsi` требовала колонку `rsi`, которой
+  индикатор не производит (он выдаёт `rsi_14`), а выглядело это верным лишь потому, что
+  встроенный сэмпл несёт свою колонку `rsi` из выгрузки TradingView
 
 ## Предопределённые схемы
 

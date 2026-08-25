@@ -394,8 +394,85 @@ class ColumnSchema:
         return bool(self.entries)
 
 
+# --------------------------------------------------------------------------- #
+# Resolving roles against a frame
+# --------------------------------------------------------------------------- #
+def resolve_role_columns(
+    data: Any,
+    roles: Iterable[str],
+    schema: Optional["ColumnSchema"] = None,
+    overrides: Optional[Mapping[str, str]] = None,
+) -> Dict[str, str]:
+    """Find the column holding each requested role in ``data``.
+
+    A consumer that needs "the histogram" used to write ``data['macd_hist']``
+    and be wrong the moment the indicator was configured differently, or came
+    from a library, or was one of two MACDs in the same frame. This is what it
+    writes instead.
+
+    Resolution order, most authoritative first:
+
+    1. **``overrides``** — the caller names the column outright. The escape
+       hatch for frames that came from somewhere else entirely.
+    2. **``schema``** — the mapping recorded when the indicator was computed.
+       This is the intended path.
+    3. **parsing the column names** — the degraded path (:func:`parse_column`).
+       It is a guess, and it is here only for frames whose schema was lost, e.g.
+       saved to CSV and read back.
+
+    Raises:
+        ValueError: naming the roles it could not place and how to supply them.
+            Refusing is the point: silently plotting the wrong column is how a
+            chart comes to assert something nobody computed.
+    """
+    roles = tuple(roles)
+    for role in roles:
+        validate_role(role)
+
+    overrides = dict(overrides or {})
+    columns = list(getattr(data, "columns", []))
+    resolved: Dict[str, str] = {}
+    missing = []
+
+    # The degraded path, computed once: role -> columns whose *name* claims it.
+    by_parsed_role: Dict[str, list] = {}
+    for column in columns:
+        parsed = parse_column(str(column))
+        if parsed:
+            by_parsed_role.setdefault(parsed[1], []).append(column)
+
+    for role in roles:
+        column = overrides.get(role)
+        if column is None and schema is not None:
+            column = schema.column(role)
+        if column is None:
+            candidates = by_parsed_role.get(role, [])
+            if len(candidates) == 1:
+                column = candidates[0]
+            elif len(candidates) > 1:
+                logger.debug(
+                    "Role '%s' is claimed by %d column names (%s); name one "
+                    "explicitly rather than letting the guess pick.",
+                    role, len(candidates), candidates,
+                )
+        if column is not None and column in columns:
+            resolved[role] = column
+        else:
+            missing.append(role)
+
+    if missing:
+        raise ValueError(
+            f"cannot locate column(s) for role(s) {missing} in this frame. "
+            f"Columns present: {columns}. Pass the schema recorded when the "
+            f"indicator was computed (result.column_schema), or name the "
+            f"columns directly."
+        )
+    return resolved
+
+
 __all__ = [
     "IndicatorId",
+    "resolve_role_columns",
     "UnrenderableParameter",
     "ColumnSchema",
     "register_role",

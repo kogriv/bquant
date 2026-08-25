@@ -209,6 +209,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             indicator_context = zone_info.get('indicator_context', {})
             primary_indicator = indicator_context.get('detection_indicator')
             signal_line = indicator_context.get('signal_line')
+            column_schema = zone_info.get('column_schema')
             
             if len(data) < self.min_duration:
                 raise AnalysisError(f"Zone duration {len(data)} is less than minimum {self.min_duration}")
@@ -243,17 +244,18 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     f"amplitude={hist_amplitude:.4f}, slope={slope_str}"
                 )
                 
-                # Legacy MACD-specific fields (for backward compatibility)
-                # Only populated if primary_indicator is MACD-related
-                if primary_indicator.lower() in ['macd', 'macd_hist'] or 'macd' in primary_indicator.lower():
-                    # For MACD zones, also populate legacy macd_amplitude field
-                    if 'macd' in data.columns:
-                        max_macd = float(data['macd'].max())
-                        min_macd = float(data['macd'].min())
-                        macd_amplitude = max_macd - min_macd
-                    else:
-                        # If only macd_hist available, alias it
-                        macd_amplitude = hist_amplitude
+                # Амплитуда **линии** индикатора — там, где линия вообще есть.
+                # Раньше здесь стояло `if 'macd' in primary_indicator.lower()` и
+                # `if 'macd' in data.columns`: угадывание по подстроке в имени
+                # колонки, то самое, из-за чего заведён G8. Оно ломалось молча —
+                # у осциллятора без линии (RSI) поле оставалось `None` во всех
+                # зонах, и регрессия, где оно предиктор по умолчанию, оставалась
+                # без единого наблюдения (см. G23).
+                line_col = column_schema.column('line') if column_schema else None
+                if line_col and line_col in data.columns:
+                    max_macd = float(data[line_col].max())
+                    min_macd = float(data[line_col].min())
+                    macd_amplitude = max_macd - min_macd
             else:
                 # Fallback: try to find ANY oscillator (if context missing)
                 fallback_col = self._find_any_oscillator(data)
@@ -355,18 +357,24 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 'price_range': max_price - min_price
             }
             
-            # Добавляем MACD метрики только если колонки есть
-            if 'macd' in data.columns and 'macd_hist' in data.columns:
-                metadata.update({
-                    'max_macd': max_macd if max_macd is not None else float(data['macd'].max()),
-                    'min_macd': min_macd if min_macd is not None else float(data['macd'].min()),
-                    'avg_macd': float(data['macd'].mean()),
-                    'macd_std': float(data['macd'].std()),
-                    'max_hist': float(data['macd_hist'].max()),  # Direct calculation
-                    'min_hist': float(data['macd_hist'].min()),  # Direct calculation
-                    'avg_hist': float(data['macd_hist'].mean()),
-                    'hist_std': float(data['macd_hist'].std()),
-                })
+            # Статистика по объявленным ролям индикатора — только по тем, которые
+            # он действительно объявил и которые есть в кадре. Раньше блок
+            # включался по наличию колонок с именами `macd` и `macd_hist`, то
+            # есть по угадыванию строки: с любым другим индикатором он молча не
+            # срабатывал, а с чужой колонкой по имени `macd` (её несёт выгрузка
+            # TradingView) срабатывал на данных, которые считал не он.
+            if column_schema:
+                for role, prefix in (('line', 'macd'), ('hist', 'hist')):
+                    column = column_schema.column(role)
+                    if not column or column not in data.columns:
+                        continue
+                    series = data[column]
+                    metadata.update({
+                        f'max_{prefix}': float(series.max()),
+                        f'min_{prefix}': float(series.min()),
+                        f'avg_{prefix}': float(series.mean()),
+                        f'{prefix}_std': float(series.std()),
+                    })
             
             # v2.1: Generic oscillator metadata (UNIVERSAL - use primary_indicator)
             if primary_indicator and primary_indicator in data.columns:
@@ -379,30 +387,17 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     'oscillator_std': float(data[primary_indicator].std()),
                 })
                 
-                # Legacy metadata (for backward compatibility with MACD zones)
-                # Keep MACD-specific metadata keys if primary_indicator is MACD-related
-                if 'macd_hist' in primary_indicator.lower() or primary_indicator == 'macd_hist':
-                    metadata.update({
-                        'hist_max': metadata['oscillator_max'],  # Alias for BC
-                        'hist_min': metadata['oscillator_min'],  # Alias for BC
-                        'hist_avg': metadata['oscillator_avg'],  # Alias for BC
-                        'hist_std': metadata['oscillator_std'],  # Alias for BC
-                    })
-                elif 'rsi' in primary_indicator.lower():
-                    metadata.update({
-                        'rsi_max': metadata['oscillator_max'],  # Alias for BC
-                        'rsi_min': metadata['oscillator_min'],  # Alias for BC
-                        'rsi_avg': metadata['oscillator_avg'],  # Alias for BC
-                        'rsi_std': metadata['oscillator_std'],  # Alias for BC
-                    })
-                elif 'ao' in primary_indicator.lower() or primary_indicator.startswith('AO_'):
-                    metadata.update({
-                        'ao_max': metadata['oscillator_max'],  # Alias for BC
-                        'ao_min': metadata['oscillator_min'],  # Alias for BC
-                        'ao_avg': metadata['oscillator_avg'],  # Alias for BC
-                        'ao_std': metadata['oscillator_std'],  # Alias for BC
-                    })
-            
+                # Здесь стояли алиасы «для обратной совместимости»: те же четыре
+                # числа под именами `hist_max`/`rsi_max`/`ao_max` рядом с
+                # `oscillator_max`, выбираемые по подстроке в имени колонки.
+                # Убраны. Во-первых, их не читал никто — проверено по всему
+                # дереву, кроме истории. Во-вторых, выбор по подстроке ошибочен
+                # сам по себе: `'ao' in name.lower()` истинно для любой колонки,
+                # где встречается эта пара букв. В-третьих, совместимость не с
+                # кем обеспечивать — внешних пользователей у проекта нет, и это
+                # зафиксированное решение, а не недосмотр. Универсальные
+                # `oscillator_*` остаются и говорят то же самое без угадывания.
+
             if 'atr' in data.columns:
                 metadata.update({
                     'atr_start': float(data['atr'].iloc[0]),
@@ -581,12 +576,20 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             self.logger.error(f"Failed to extract zone features: {e}")
             raise AnalysisError(f"Failed to extract zone features: {e}")
     
-    def extract_all_zones_features(self, zones: List) -> List[ZoneFeatures]:
+    def extract_all_zones_features(
+        self,
+        zones: List,
+        column_schema: Optional["ColumnSchema"] = None,
+    ) -> List[ZoneFeatures]:
         """
         Извлечение признаков для списка зон (новая архитектура).
         
         Args:
             zones: Список ZoneInfo объектов
+            column_schema: Отображение ``(индикатор, роль) → колонка``, если оно
+                известно. Метрики, которым нужен конкретный выход индикатора
+                (например амплитуда его **линии**), спрашивают роль, а не
+                угадывают имя колонки по подстроке.
         
         Returns:
             List[ZoneFeatures]: Список признаков для каждой зоны
@@ -604,6 +607,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             try:
                 # Конвертируем ZoneInfo в формат для extract_zone_features
                 zone_dict = zone.to_analyzer_format()
+                if column_schema is not None:
+                    zone_dict['column_schema'] = column_schema
                 features = self.extract_zone_features(zone_dict)
                 features_list.append(features)
             except Exception as e:

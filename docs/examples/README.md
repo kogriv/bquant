@@ -215,7 +215,12 @@ def main():
     print("Создаем визуализацию...")
     charts = FinancialCharts()
     try:
-        fig = charts.plot_macd_with_zones(data, result.zones)
+        # result.data — кадр с посчитанным индикатором (не исходный `data`),
+        # column_schema — чем график узнаёт, какая колонка какую роль держит.
+        fig = charts.plot_macd_with_zones(
+            result.data, result.zones,
+            column_schema=result.column_schema,
+        )
         fig.show()
     except Exception as exc:
         print(f"⚠️ Визуализация недоступна: {exc}")

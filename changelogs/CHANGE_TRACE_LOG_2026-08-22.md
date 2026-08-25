@@ -334,3 +334,24 @@
 [included] [Changed] docs/api/analysis/pipeline.md — описано, что регрессия возвращает и как читать отказ; пример прогнан дословно
 [included] [Changed] devref/gaps/gap_inventory_2026-07.md — заведён G23
 [not_included] [Technical] Сьют **1346 passed, 3 skipped** (+10)
+
+==================== COMMIT DIVIDER ====================
+
+[G8 этап C2b-1: потребители спрашивают роль — переименований по-прежнему ноль]
+
+[not_included] [Technical] **C2b разделён на C2b-1/C2b-2** по той же причине, что C на C1/C2a: пока имена колонок прежние, сьют остаётся оракулом прежнего поведения, и перевод потребителей можно сверить с ним. Переименование — C2b-2
+[included] [Changed] bquant/analysis/zones/zone_features.py — `macd_amplitude` считается по роли `line`, а не по `'macd' in primary_indicator.lower()` плюс `'macd' in data.columns`. Угадывание по подстроке ломалось молча: у осциллятора без линии поле оставалось `None` во всех зонах, а это предиктор регрессии по умолчанию — отсюда и G23
+[included] [Removed] bquant/analysis/zones/zone_features.py — алиасы «для обратной совместимости» `hist_max`/`hist_min`/`hist_avg`, `rsi_*`, `ao_*`. Это те же числа, что `oscillator_*`, под вторым набором имён, выбираемым по подстроке в имени колонки. **Их не читал никто** — проверено по всему дереву, кроме истории. Сам выбор при этом ошибочен: `'ao' in name.lower()` истинно для любой колонки, где встречается эта пара букв. Обеспечивать совместимость не с кем — внешних пользователей у проекта нет, и это зафиксированное решение
+[included] [Added] bquant/indicators/schema.py — `resolve_role_columns(data, roles, schema=, overrides=)`. Порядок разрешения: явное указание вызывающего → схема → разбор имён (деградированный путь). При двух колонках, заявляющих одну роль, функция **отказывается выбирать**
+[included] [Changed] bquant/visualization/{charts,zones}.py — оба графика MACD брали колонки литералами `['macd', 'macd_signal', 'macd_hist']`. Теперь спрашивают роли и принимают `column_schema=` (из результата) или `columns=` (явно). Не разрешилось — отказ с перечнем недостающих ролей, а не догадка: нарисовать не ту колонку значит утверждать графиком то, чего никто не считал
+[not_included] [Technical] Побочное следствие для эргономики, принятое сознательно: `plot_macd_with_zones(result.data, result.zones)` без схемы теперь отказывает. Сообщение называет и причину, и лекарство (`result.column_schema`), проверено прогоном. Интеграционный тест и пример в доках переведены
+[included] [Changed] bquant/analysis/zones/presets.py — `analyze_macd_zones` держал собственную копию имён выходов MACD (`{'line': 'macd', 'histogram': 'macd_hist'}`). Теперь `zone_basis` резолвится в **роль**, а имя колонки находит пайплайн
+[included] [Fixed] bquant/data/schemas.py — `IndicatorSchema` перечислял имена колонок **третьим** местом (после индикатора и потребителей) и успел разойтись с реальностью: схема `rsi` требовала колонку `rsi`, которой индикатор не производит — он выдаёт `rsi_14`. Выглядело верным только потому, что встроенный сэмпл несёт собственную `rsi` из выгрузки TradingView. Схема `bollinger_bands` при этом была неполной (не хватало `bb_width`, `bb_percent`). Теперь поля берутся у самого индикатора
+[included] [Changed] bquant/analysis/zones/{analyzer,pipeline}.py — схема протянута от пайплайна до извлечения признаков (`analyze_zones(column_schema=)` → `extract_all_zones_features(column_schema=)` → `zone_info['column_schema']`)
+[included] [Added] tests/unit/test_consumers_address_by_role.py — 18 тестов
+[not_included] [Technical] Правка сверена дифференциально: тот же зонд (`macd_amplitude`, `hist_amplitude`, `hist_slope` и ключи метаданных на трёх сценариях — MACD по гистограмме, MACD по линии, RSI по порогу) прогнан до и после. **Все числа совпали до знака**; изменились только ключи метаданных, и ровно на удалённые алиасы
+[included] [Changed] bquant/analysis/zones/{cache,pipeline}.py — `CACHE_VERSION`/`CACHE_SCHEMA_VERSION` 10 → 11
+[included] [Changed] docs/api/indicators/README.md, docs/api/visualization/README.md, docs/api/data/schemas.md, docs/examples/README.md — адресация по ролям у потребителей; примеры прогнаны дословно
+[included] [Changed] devref/gaps/columns/g8_column_contract_design_2026-08-23.md — §6.2
+[not_included] [Technical] Записано на будущее: имя поля `macd_amplitude` в `ZoneFeatures` — та же форма дефекта слоем выше (универсальная метрика с именем одного индикатора). Оно в предикторах регрессии, колонках гипотез и анализе последовательностей, поэтому переименование — отдельная работа, а не довесок к C2b. То же у ключей `max_macd`/`max_hist`
+[not_included] [Technical] Сьют **1365 passed, 3 skipped** (+19), doc-parity 436

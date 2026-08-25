@@ -131,8 +131,12 @@ class TestVisualizationPipeline:
         try:
             charts = FinancialCharts()
             
-            # Создаем базовый MACD график с данными, содержащими MACD индикаторы
-            fig = charts.plot_macd_with_zones(data_with_macd, zones)
+            # Схема из результата — то, чем график узнаёт, какая колонка какую
+            # роль держит. Без неё он отказывается рисовать, а не угадывает.
+            fig = charts.plot_macd_with_zones(
+                data_with_macd, zones,
+                column_schema=analysis_result.column_schema,
+            )
             assert fig is not None, "MACD with zones chart should be created"
             
             macd_viz_success = True
@@ -367,7 +371,10 @@ class TestVisualizationIntegration:
         
         try:
             # График MACD с зонами (используем данные с MACD индикаторами из анализа)
-            macd_chart = charts.plot_macd_with_zones(analysis_result.data, analysis_result.zones)
+            macd_chart = charts.plot_macd_with_zones(
+                analysis_result.data, analysis_result.zones,
+                column_schema=analysis_result.column_schema,
+            )
             visualization_results['macd_chart'] = macd_chart is not None
             
         except Exception as e:

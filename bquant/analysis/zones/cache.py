@@ -52,7 +52,10 @@ class ZoneAnalysisCache:
     # v10 (G23): regression actually runs — the analyzer used to import the
     # regression class from a module that does not export it, so
     # `run_regression=True` produced None. Cached v9 results carry that None.
-    CACHE_VERSION = 10
+    # v11 (G8 stage C2b-1): consumers resolve columns by role. Zone feature
+    # metadata no longer carries the dead `hist_max`/`rsi_*`/`ao_*` aliases, so
+    # a v10 result has keys a v11 result does not.
+    CACHE_VERSION = 11
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

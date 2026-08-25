@@ -134,7 +134,8 @@ class UniversalZoneAnalyzer:
                       perform_clustering: bool = True,
                       n_clusters: int = 3,
                       run_regression: bool = False,
-                      run_validation: bool = False) -> ZoneAnalysisResult:
+                      run_validation: bool = False,
+                      column_schema: Optional[Any] = None) -> ZoneAnalysisResult:
         """
         Анализ готовых зон.
         
@@ -147,6 +148,9 @@ class UniversalZoneAnalyzer:
             n_clusters: Количество кластеров
             run_regression: Выполнять ли регрессионный анализ
             run_validation: Выполнять ли валидацию
+            column_schema: Отображение ``(индикатор, роль) → колонка``, если оно
+                известно. Извлечение признаков спрашивает по нему роль вместо
+                того, чтобы угадывать имя колонки.
             
         Returns:
             ZoneAnalysisResult с полными результатами анализа
@@ -157,7 +161,9 @@ class UniversalZoneAnalyzer:
         self.logger.info(f"Starting analysis of {len(zones)} zones")
         
         # 1. Извлечение признаков (БЕЗ адаптеров!)
-        zones_features = self.features.extract_all_zones_features(zones)
+        zones_features = self.features.extract_all_zones_features(
+            zones, column_schema=column_schema
+        )
         
         # ✅ v2.1 FIX: Write features back to ZoneInfo for convenient access
         # This makes features immediately available in zone.features dict

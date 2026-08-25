@@ -61,7 +61,13 @@ Visualization модули предоставляют инструменты д�
 - `FinancialCharts.create_area_chart()` - Площадной график
 
 #### Визуализация зон
-- `ZoneVisualizer.plot_macd_with_zones()` - MACD с зонами
+- `ZoneVisualizer.plot_macd_zones()` / `FinancialCharts.plot_macd_with_zones()` — MACD с зонами.
+  **Имена колонок графики не угадывают**: они спрашивают роли (`line`, `signal`, `hist`).
+  Передайте `column_schema=result.column_schema` — или, для кадра, собранного не
+  пайплайном, явное `columns={'line': ..., 'signal': ..., 'hist': ...}`. Если ни того,
+  ни другого нет и имена колонок не каноничны, график **отказывается рисовать** и
+  называет недостающие роли: нарисовать не ту колонку значит утверждать графиком то,
+  чего никто не считал.
 - `ZoneVisualizer.highlight_zones()` - Подсветка зон
 - `ZoneVisualizer.create_zone_chart()` - График зон
 - `ZoneVisualizer.plot_zone_statistics()` - Статистика зон

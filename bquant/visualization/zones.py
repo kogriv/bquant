@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ..core.logging_config import get_logger
+from ..indicators.schema import resolve_role_columns
 from ..core.exceptions import AnalysisError
 from ..analysis.zones.models import ZoneInfo, SwingContext, SwingPoint, ZoneVocabulary
 from .themes import ChartThemes
@@ -1695,6 +1696,8 @@ class ZoneVisualizer(ZoneChartBuilder):
     def plot_macd_zones(self, macd_data: pd.DataFrame,
                        zones_data: Union[List[Dict], pd.DataFrame],
                        title: str = "MACD with Zones",
+                       column_schema=None,
+                       columns: Optional[Dict[str, str]] = None,
                        **kwargs) -> Union[go.Figure, plt.Figure]:
         """
         Отображение зон на графике MACD.
@@ -1703,17 +1706,27 @@ class ZoneVisualizer(ZoneChartBuilder):
             macd_data: DataFrame с данными MACD
             zones_data: Данные зон
             title: Заголовок графика
+            column_schema: Схема ``(индикатор, роль) → колонка`` из результата
+                анализа (``result.column_schema``) — предпочтительный способ.
+            columns: Явное сопоставление ролей ``line``/``signal``/``hist``
+                колонкам, для кадров, собранных не пайплайном.
             **kwargs: Дополнительные параметры
         
         Returns:
             Объект графика
         """
+        # Имена колонок больше не зашиты: график спрашивает роли. См. комментарий
+        # в `charts.plot_macd_with_zones` и `devref/gaps/columns/`.
+        resolved = resolve_role_columns(
+            macd_data, ('line', 'signal', 'hist'),
+            schema=column_schema, overrides=columns,
+        )
         zones = self._prepare_zone_data(zones_data)
         
         if self.backend == 'plotly':
-            return self._create_plotly_macd_zones(macd_data, zones, title, **kwargs)
+            return self._create_plotly_macd_zones(macd_data, zones, title, resolved, **kwargs)
         else:
-            return self._create_matplotlib_macd_zones(macd_data, zones, title, **kwargs)
+            return self._create_matplotlib_macd_zones(macd_data, zones, title, resolved, **kwargs)
     
     def plot_zones_analysis(self, zones_data: Union[List[Dict], pd.DataFrame],
                            analysis_data: Dict[str, Any] = None,
@@ -2641,6 +2654,7 @@ class ZoneVisualizer(ZoneChartBuilder):
 
     def _create_plotly_macd_zones(self, macd_data: pd.DataFrame, 
                                  zones: List[Dict], title: str, 
+                                 columns: Dict[str, str],
                                  **kwargs) -> go.Figure:
         """Создание графика MACD с зонами с помощью Plotly."""
         fig = make_subplots(
@@ -2654,7 +2668,7 @@ class ZoneVisualizer(ZoneChartBuilder):
         # MACD линии
         fig.add_trace(go.Scatter(
             x=macd_data.index,
-            y=macd_data['macd'],
+            y=macd_data[columns['line']],
             mode='lines',
             name='MACD',
             line=dict(color='blue', width=2)
@@ -2662,17 +2676,17 @@ class ZoneVisualizer(ZoneChartBuilder):
         
         fig.add_trace(go.Scatter(
             x=macd_data.index,
-            y=macd_data['macd_signal'],
+            y=macd_data[columns['signal']],
             mode='lines',
             name='Signal',
             line=dict(color='red', width=2)
         ), row=1, col=1)
         
         # Гистограмма
-        colors = ['green' if val >= 0 else 'red' for val in macd_data['macd_hist']]
+        colors = ['green' if val >= 0 else 'red' for val in macd_data[columns['hist']]]
         fig.add_trace(go.Bar(
             x=macd_data.index,
-            y=macd_data['macd_hist'],
+            y=macd_data[columns['hist']],
             name='Histogram',
             marker_color=colors,
             opacity=0.7
@@ -3002,20 +3016,21 @@ class ZoneVisualizer(ZoneChartBuilder):
 
     def _create_matplotlib_macd_zones(self, macd_data: pd.DataFrame,
                                      zones: List[Dict], title: str,
+                                     columns: Dict[str, str],
                                      **kwargs) -> plt.Figure:
         """Создание графика MACD с зонами с помощью Matplotlib."""
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
         
         # MACD
-        ax1.plot(macd_data.index, macd_data['macd'], label='MACD', color='blue')
-        ax1.plot(macd_data.index, macd_data['macd_signal'], label='Signal', color='red')
+        ax1.plot(macd_data.index, macd_data[columns['line']], label='MACD', color='blue')
+        ax1.plot(macd_data.index, macd_data[columns['signal']], label='Signal', color='red')
         ax1.set_title('MACD with Zones')
         ax1.legend()
         ax1.grid(True, alpha=0.3)
         
         # Гистограмма
-        colors = ['green' if val >= 0 else 'red' for val in macd_data['macd_hist']]
-        ax2.bar(macd_data.index, macd_data['macd_hist'], color=colors, alpha=0.7)
+        colors = ['green' if val >= 0 else 'red' for val in macd_data[columns['hist']]]
+        ax2.bar(macd_data.index, macd_data[columns['hist']], color=colors, alpha=0.7)
         ax2.set_title('Histogram')
         ax2.grid(True, alpha=0.3)
         
@@ -3166,7 +3181,8 @@ def plot_macd_zones_chart(macd_data: pd.DataFrame, zones_data, **kwargs):
     Args:
         macd_data: DataFrame с данными MACD
         zones_data: Данные зон
-        **kwargs: Дополнительные параметры
+        **kwargs: Дополнительные параметры, включая ``column_schema=`` или
+            ``columns=`` — как колонки сопоставляются ролям
     
     Returns:
         Объект графика
