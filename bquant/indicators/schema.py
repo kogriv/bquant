@@ -40,6 +40,7 @@ right. Roles are closed, because they are what a consumer asks for.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Mapping, Optional, Tuple
 
@@ -109,13 +110,43 @@ def validate_role(role: str) -> str:
 # --------------------------------------------------------------------------- #
 # Identity
 # --------------------------------------------------------------------------- #
+#: Characters a rendered parameter may consist of. The slug becomes a column
+#: name, so anything that is not addressable as a name is not admissible here:
+#: no whitespace, no quotes, no brackets. ``.`` and ``-`` are kept because
+#: numbers need them (``2.5``, ``-1``); ``_`` is kept because it is harmless
+#: inside a token, but a **doubled** underscore is rejected separately — that is
+#: the separator :meth:`IndicatorId.column` uses, and a value containing it
+#: would make the reverse parse ambiguous.
+_TOKEN_RE = re.compile(r"[A-Za-z0-9._+-]+")
+
+
+class UnrenderableParameter(ValueError):
+    """A parameter value cannot be rendered into an identity.
+
+    Raised instead of falling back to ``str()``. The fallback is what produced
+    ``macd_preloaded_['macd', 'signal']_12_close_26_9`` — a "name" carrying
+    brackets, quotes and a space. It did not fail; it produced something
+    unusable and said nothing, which is the failure mode this whole gap is
+    about.
+    """
+
+
 def _canonical_value(value: Any) -> str:
     """Render a parameter value so equal values render identically.
 
     ``2`` and ``2.0`` are the same period and must not produce two different
     slugs; pandas-ta's own ``BBL_5_2.0_2.0`` shows where the inconsistency ends
     up. Floats that are whole numbers collapse to the integer form.
+
+    Sequences render element-wise joined by ``-`` and stay **order-sensitive**,
+    because for a positional parameter (which column holds which output) order
+    is meaning, not presentation.
+
+    Anything that has no such rendering raises :class:`UnrenderableParameter`
+    rather than degrading to ``str()``.
     """
+    if value is None:
+        return "none"
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int):
@@ -123,8 +154,37 @@ def _canonical_value(value: Any) -> str:
     if isinstance(value, float):
         if value.is_integer():
             return str(int(value))
-        return repr(round(value, 10)).rstrip("0").rstrip(".")
-    return str(value)
+        rendered = repr(round(value, 10)).rstrip("0").rstrip(".")
+        return _validated_token(rendered, value)
+    if isinstance(value, str):
+        return _validated_token(value, value)
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return "empty"
+        return "-".join(_canonical_value(item) for item in value)
+    raise UnrenderableParameter(
+        f"cannot render {type(value).__name__} {value!r} into an indicator "
+        "identity. Identity has to be reproducible and usable as a column "
+        "name; pass a scalar or a sequence of scalars, or keep this out of the "
+        "indicator's parameters."
+    )
+
+
+def _validated_token(rendered: str, original: Any) -> str:
+    """Return ``rendered`` if it is usable inside a name; raise otherwise."""
+    if not _TOKEN_RE.fullmatch(rendered):
+        raise UnrenderableParameter(
+            f"parameter value {original!r} renders as {rendered!r}, which "
+            "cannot be part of a column name. Allowed characters: letters, "
+            "digits, '.', '_', '+', '-'."
+        )
+    if "__" in rendered:
+        raise UnrenderableParameter(
+            f"parameter value {original!r} contains a double underscore, which "
+            "IndicatorId.column() uses to separate the slug from the role; a "
+            "value carrying it would make the reverse parse ambiguous."
+        )
+    return rendered
 
 
 @dataclass(frozen=True)
@@ -162,6 +222,17 @@ class IndicatorId:
         # caller who keeps a reference to the dict they passed in.
         object.__setattr__(self, "parameters", dict(self.parameters))
         object.__setattr__(self, "parameter_order", tuple(self.parameter_order))
+        _validated_token(self.name, self.name)
+        # Render every parameter now, so an identity that cannot be rendered
+        # fails **here**, naming the offending parameter, instead of surfacing
+        # much later as an unusable column name.
+        for key, value in self.parameters.items():
+            try:
+                _canonical_value(value)
+            except UnrenderableParameter as exc:
+                raise UnrenderableParameter(
+                    f"indicator '{self.name}': parameter '{key}' — {exc}"
+                ) from None
 
     def _ordered_parameters(self) -> Tuple[Tuple[str, Any], ...]:
         declared = [p for p in self.parameter_order if p in self.parameters]
@@ -325,6 +396,7 @@ class ColumnSchema:
 
 __all__ = [
     "IndicatorId",
+    "UnrenderableParameter",
     "ColumnSchema",
     "register_role",
     "known_roles",

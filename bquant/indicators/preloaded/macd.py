@@ -67,10 +67,14 @@ class MACDPreloadedIndicator(PreloadedIndicator):
             name=name,
             parameters={
                 'fast': 12,
-                'slow': 26, 
+                'slow': 26,
                 'smoothing': 9,
                 'price': 'close',
-                'source': 'preloaded',
+                # 'source' deliberately absent: it duplicated
+                # `IndicatorSource.PRELOADED` already carried by the config, and
+                # a duplicated fact is a fact that can disagree with itself. It
+                # also leaked into the identity slug, where it said nothing the
+                # slug's own `source` field did not already say.
                 'required_columns': required_columns
             },
             source=IndicatorSource.PRELOADED,
@@ -79,6 +83,13 @@ class MACDPreloadedIndicator(PreloadedIndicator):
         )
         super().__init__(name, config)
     
+    #: Роли выходов в том порядке, в каком класс их документирует
+    #: (`get_info`: обязательные `macd`, `signal`, необязательный `histogram`).
+    #: `required_columns` говорит, **в каких колонках кадра** они лежат, поэтому
+    #: сопоставление позиционное — это и есть контракт класса, а не догадка по
+    #: именам.
+    _ROLE_ORDER = ("line", "signal", "hist")
+
     def get_output_columns(self) -> List[str]:
         """
         Возвращает выходные колонки индикатора.
@@ -87,6 +98,26 @@ class MACDPreloadedIndicator(PreloadedIndicator):
             Список колонок, переданных при инициализации
         """
         return self._required_columns.copy()
+
+    def get_output_roles(self) -> Dict[str, str]:
+        """Роль → колонка, в которой лежит уже посчитанное значение.
+
+        Имена здесь **чужие**: колонки пришли с данными (выгрузка TradingView
+        зовёт их `macd` и `signal`), и переименовывать их нечего — индикатор
+        ничего не вычисляет, он читает. Ровно этот случай и разделяет
+        идентичность и роль: адресация по роли работает, а имена остаются теми,
+        какими их дал источник.
+
+        Если запрошено больше колонок, чем класс документирует ролей, честный
+        ответ — пустой словарь: контракт исчерпан, и угадывать, чем является
+        четвёртая колонка, значит вернуться к тому, из-за чего затевался G8.
+        """
+        if len(self._required_columns) > len(self._ROLE_ORDER):
+            return {}
+        return {
+            role: column
+            for role, column in zip(self._ROLE_ORDER, self._required_columns)
+        }
     
     def get_required_columns(self) -> List[str]:
         """

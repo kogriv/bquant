@@ -61,8 +61,11 @@ _SWING_CLASS_TO_NAME = {
 #                 only transitions between adjacent zones (G20/G21); the
 #                 asymmetry test key is now `contrast_asymmetry`.
 #   v8 (2026-08): results carry a `column_schema` side-car mapping
-#                 (indicator, role) -> column name (G8 stage C).
-CACHE_SCHEMA_VERSION = 8
+#                 (indicator, role) -> column name (G8 stage C1).
+#   v9 (2026-08): identity slugs changed for the preloaded indicator, which also
+#                 declares roles now, so schema entries appear where v8 had none
+#                 (G8 stage C2a). Column names themselves are unchanged.
+CACHE_SCHEMA_VERSION = 9
 
 
 @dataclass

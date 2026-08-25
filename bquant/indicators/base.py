@@ -455,10 +455,18 @@ class CustomIndicator(BaseIndicator):
             name=name,
             parameters=parameters or {},
             source=IndicatorSource.CUSTOM,
-            columns=self.get_output_columns(),
+            columns=[],
             description=self.get_description()
         )
         super().__init__(name, config)
+        # Колонки заполняются ПОСЛЕ того, как конфиг привязан к экземпляру.
+        # Раньше `get_output_columns()` звался до `super().__init__`, то есть до
+        # существования `self.config` — пока колонки были голым литералом, это
+        # сходило с рук. Как только они выводятся из объявления ролей (а роль на
+        # этапе C2b будет спрашивать имя у `get_indicator_id()`, а тот — у
+        # конфига), тот же вызов упирался бы в AttributeError. Порядок починен
+        # здесь, отдельно от переименования, чтобы C2b не начинался с красного.
+        self.config.columns = self.get_output_columns()
     
     @abstractmethod
     def get_output_columns(self) -> List[str]:

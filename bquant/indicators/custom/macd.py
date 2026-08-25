@@ -41,20 +41,25 @@ class MACD(CustomIndicator):
             'signal_period': signal_period
         })
     
-    def get_output_columns(self) -> List[str]:
-        """Returns output columns."""
-        return ['macd', 'macd_signal', 'macd_hist']
-    
     def get_output_roles(self) -> Dict[str, str]:
         """Роль → колонка, которую этот экземпляр действительно выдаёт.
 
-        Имена колонок здесь пока прежние: этап C вводит адресацию по ролям, не
-        меняя ни одного имени, чтобы каждый шаг оставался проверяемым против
-        прежнего поведения. Смена имён на слаги — следующий шаг, вместе с
-        переводом потребителей.
+        **Это объявление**, а не производная: список колонок выводится отсюда
+        (:meth:`get_output_columns`), а не пишется рядом вторым литералом. Два
+        литерала — это два места, где можно разойтись, и этап A плана G8
+        заводил тест-пин ровно на такое расхождение; теперь расходиться нечему.
+
+        Имена колонок пока прежние: этап C1 вводил адресацию по ролям, не меняя
+        ни одного имени, чтобы каждый шаг оставался проверяемым против прежнего
+        поведения. Смена имён на слаги — этап C2b, вместе с переводом
+        потребителей. Когда он настанет, менять придётся только правую часть
+        этого словаря.
         """
-        line, signal, hist = self.get_output_columns()
-        return {"line": line, "signal": signal, "hist": hist}
+        return {"line": "macd", "signal": "macd_signal", "hist": "macd_hist"}
+
+    def get_output_columns(self) -> List[str]:
+        """Колонки в порядке объявления ролей."""
+        return list(self.get_output_roles().values())
 
     def get_description(self) -> str:
         """Returns indicator description."""

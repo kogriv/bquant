@@ -34,20 +34,19 @@ class BollingerBands(CustomIndicator):
         self.std_dev = std_dev
         super().__init__('bbands', {'period': period, 'std_dev': std_dev})
     
-    def get_output_columns(self) -> List[str]:
-        """Returns output columns."""
-        return ['bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'bb_percent']
-    
     def get_output_roles(self) -> Dict[str, str]:
-        """Роль → колонка (имена пока прежние, см. комментарий в macd.py)."""
-        upper, middle, lower, width, percent = self.get_output_columns()
+        """Роль → колонка. Объявление; колонки выводятся отсюда (см. macd.py)."""
         return {
-            "upper": upper,
-            "middle": middle,
-            "lower": lower,
-            "width": width,
-            "percent": percent,
+            "upper": "bb_upper",
+            "middle": "bb_middle",
+            "lower": "bb_lower",
+            "width": "bb_width",
+            "percent": "bb_percent",
         }
+
+    def get_output_columns(self) -> List[str]:
+        """Колонки в порядке объявления ролей."""
+        return list(self.get_output_roles().values())
 
     def get_description(self) -> str:
         """Returns indicator description."""
