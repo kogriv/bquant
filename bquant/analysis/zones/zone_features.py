@@ -35,11 +35,23 @@ class ZoneFeatures:
         start_price: Цена в начале зоны
         end_price: Цена в конце зоны
         price_return: Доходность за зону
-        macd_amplitude: Амплитуда MACD линии (legacy - only for MACD zones, use hist_amplitude for universal)
-        hist_amplitude: Амплитуда primary oscillator (v2.1 UNIVERSAL - works with ANY indicator: MACD, RSI, AO, custom, etc.)
+        line_amplitude: Размах роли ``line`` индикатора внутри зоны
+            (``max − min``). ``None``, если индикатор линии не объявляет — у RSI
+            её нет, и это не «нет данных», а «такой роли не существует».
+
+            Поле называлось ``macd_amplitude``: универсальная метрика носила имя
+            одного индикатора. Читателю приходилось знать, что на зонах RSI это
+            поле пусто по устройству, а не по недостатку данных, — и именно эта
+            путаница стоила проекту G23, где пустой предиктор с MACD-овским
+            именем уносил всю выборку регрессии.
+        oscillator_amplitude: Размах **того ряда, по которому детектировались
+            зоны** (``max − min``) — какой бы индикатор его ни дал. Поле
+            называлось ``hist_amplitude``, и это было неверно на любом наборе,
+            кроме MACD по гистограмме: на зонах RSI там лежал размах RSI.
         price_range_pct: Ценовой диапазон в процентах
         atr_normalized_return: Доходность, нормализованная на ATR
-        correlation_price_hist: Корреляция между ценой и primary indicator (v2.1 UNIVERSAL)
+        correlation_price_oscillator: Корреляция цены с рядом детекции
+            (бывшее ``correlation_price_hist``)
         num_peaks: Количество пиков в зоне
         num_troughs: Количество впадин в зоне
         drawdown_from_peak: Экскурсия цены от максимума зоны к её концу
@@ -55,7 +67,8 @@ class ZoneFeatures:
             величина — просадка от пика, у подавленной — отскок от минимума.
             ``None`` в этих полях означает, что зону не удалось измерить (нулевая
             цена), а не «метрика неприменима к этому типу».
-        hist_slope: Максимальный наклон primary oscillator (v2.1 UNIVERSAL - max rate of change, works with ANY indicator)
+        oscillator_slope: Максимальная скорость изменения ряда детекции
+            (бывшее ``hist_slope``)
         start_idx: Позиция первого бара зоны во входном кадре (``iloc``), если известна.
         end_idx: Позиция последнего бара зоны во входном кадре (``iloc``), включительно.
 
@@ -73,18 +86,18 @@ class ZoneFeatures:
     start_price: float
     end_price: float
     price_return: float
-    macd_amplitude: Optional[float] = None  # Optional - для универсальности
-    hist_amplitude: Optional[float] = None  # Optional - для универсальности
+    line_amplitude: Optional[float] = None  # Optional - для универсальности
+    oscillator_amplitude: Optional[float] = None  # Optional - для универсальности
     price_range_pct: float = 0.0
     atr_normalized_return: Optional[float] = None
-    correlation_price_hist: Optional[float] = None
+    correlation_price_oscillator: Optional[float] = None
     num_peaks: Optional[int] = None
     num_troughs: Optional[int] = None
     drawdown_from_peak: Optional[float] = None
     rally_from_trough: Optional[float] = None
     peak_time_ratio: Optional[float] = None
     trough_time_ratio: Optional[float] = None
-    hist_slope: Optional[float] = None
+    oscillator_slope: Optional[float] = None
     start_idx: Optional[int] = None
     end_idx: Optional[int] = None
     metadata: Dict[str, Any] = None
@@ -222,28 +235,28 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             price_return = (end_price / start_price) - 1
             
             # v2.1: Generic oscillator metrics (UNIVERSAL - use context)
-            # Fields hist_amplitude, hist_slope are now UNIVERSAL (not MACD-specific)
-            hist_amplitude = None
-            hist_slope = None
-            max_macd = None
-            min_macd = None
-            macd_amplitude = None
+            # Fields oscillator_amplitude, oscillator_slope are now UNIVERSAL (not MACD-specific)
+            oscillator_amplitude = None
+            oscillator_slope = None
+            max_line = None
+            min_line = None
+            line_amplitude = None
             
             if primary_indicator and primary_indicator in data.columns:
                 # Calculate from primary indicator (ANY oscillator)
                 osc_values = data[primary_indicator]
                 max_osc = float(osc_values.max())
                 min_osc = float(osc_values.min())
-                hist_amplitude = max_osc - min_osc  # Reusing field for universal amplitude
+                oscillator_amplitude = max_osc - min_osc  # Reusing field for universal amplitude
                 
                 # Calculate max rate of change (universal slope)
                 if len(data) >= 2:
-                    hist_slope = float(osc_values.diff().abs().max())
+                    oscillator_slope = float(osc_values.diff().abs().max())
                 
-                slope_str = f"{hist_slope:.4f}" if hist_slope is not None else "0.0000"
+                slope_str = f"{oscillator_slope:.4f}" if oscillator_slope is not None else "0.0000"
                 self.logger.debug(
                     f"Oscillator metrics for '{primary_indicator}': "
-                    f"amplitude={hist_amplitude:.4f}, slope={slope_str}"
+                    f"amplitude={oscillator_amplitude:.4f}, slope={slope_str}"
                 )
                 
                 # Амплитуда **линии** индикатора — там, где линия вообще есть.
@@ -255,9 +268,9 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 # без единого наблюдения (см. G23).
                 line_col = column_schema.column('line') if column_schema else None
                 if line_col and line_col in data.columns:
-                    max_macd = float(data[line_col].max())
-                    min_macd = float(data[line_col].min())
-                    macd_amplitude = max_macd - min_macd
+                    max_line = float(data[line_col].max())
+                    min_line = float(data[line_col].min())
+                    line_amplitude = max_line - min_line
             else:
                 # Fallback: try to find ANY oscillator (if context missing)
                 fallback_col = self._find_any_oscillator(data)
@@ -265,14 +278,14 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     osc_values = data[fallback_col]
                     max_osc = float(osc_values.max())
                     min_osc = float(osc_values.min())
-                    hist_amplitude = max_osc - min_osc
+                    oscillator_amplitude = max_osc - min_osc
                     
                     if len(data) >= 2:
-                        hist_slope = float(osc_values.diff().abs().max())
+                        oscillator_slope = float(osc_values.diff().abs().max())
                     
                     self.logger.debug(
                         f"Oscillator metrics (fallback to '{fallback_col}'): "
-                        f"amplitude={hist_amplitude:.4f}"
+                        f"amplitude={oscillator_amplitude:.4f}"
                     )
             
             # Ценовые характеристики
@@ -286,30 +299,30 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 atr_normalized_return = price_return / float(data['atr'].iloc[0])
             
             # v2.1: Price-indicator correlation (UNIVERSAL - use context)
-            correlation_price_hist = None
+            correlation_price_oscillator = None
             if len(data) >= 3:
                 # Use primary_indicator from context (already available from line 177)
                 if primary_indicator and primary_indicator in data.columns:
                     try:
-                        correlation_price_hist = float(data['close'].corr(data[primary_indicator]))
+                        correlation_price_oscillator = float(data['close'].corr(data[primary_indicator]))
                         self.logger.debug(
-                            f"Price-{primary_indicator} correlation: {correlation_price_hist:.3f}"
+                            f"Price-{primary_indicator} correlation: {correlation_price_oscillator:.3f}"
                         )
                     except Exception as e:
                         self.logger.debug(f"Failed to calculate price-{primary_indicator} correlation: {e}")
-                        correlation_price_hist = None
+                        correlation_price_oscillator = None
                 else:
                     # Fallback: use generic oscillator detection (if context missing)
                     fallback_col = self._find_any_oscillator(data)
                     if fallback_col:
                         try:
-                            correlation_price_hist = float(data['close'].corr(data[fallback_col]))
+                            correlation_price_oscillator = float(data['close'].corr(data[fallback_col]))
                             self.logger.debug(
-                                f"Price-{fallback_col} correlation (fallback): {correlation_price_hist:.3f}"
+                                f"Price-{fallback_col} correlation (fallback): {correlation_price_oscillator:.3f}"
                             )
                         except Exception as e:
                             self.logger.debug(f"Correlation calculation failed: {e}")
-                            correlation_price_hist = None
+                            correlation_price_oscillator = None
             
             # Анализ пиков и впадин
             num_peaks = None
@@ -366,16 +379,20 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             # срабатывал, а с чужой колонкой по имени `macd` (её несёт выгрузка
             # TradingView) срабатывал на данных, которые считал не он.
             if column_schema:
-                for role, prefix in (('line', 'macd'), ('hist', 'hist')):
+                for role in ('line', 'hist'):
                     column = column_schema.column(role)
                     if not column or column not in data.columns:
                         continue
                     series = data[column]
+                    # Ключ — **роль**, а не имя одного индикатора: `max_macd` на
+                    # зонах RSI означал бы то же самое, что и на MACD, но врал бы
+                    # именем. Форма единая с `oscillator_*` ниже: раньше три ключа
+                    # шли как `max_X`/`min_X`/`avg_X`, а четвёртый — как `X_std`.
                     metadata.update({
-                        f'max_{prefix}': float(series.max()),
-                        f'min_{prefix}': float(series.min()),
-                        f'avg_{prefix}': float(series.mean()),
-                        f'{prefix}_std': float(series.std()),
+                        f'{role}_max': float(series.max()),
+                        f'{role}_min': float(series.min()),
+                        f'{role}_avg': float(series.mean()),
+                        f'{role}_std': float(series.std()),
                     })
             
             # v2.1: Generic oscillator metadata (UNIVERSAL - use primary_indicator)
@@ -554,18 +571,18 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 start_price=start_price,
                 end_price=end_price,
                 price_return=price_return,
-                macd_amplitude=macd_amplitude,
-                hist_amplitude=hist_amplitude,
+                line_amplitude=line_amplitude,
+                oscillator_amplitude=oscillator_amplitude,
                 price_range_pct=price_range_pct,
                 atr_normalized_return=atr_normalized_return,
-                correlation_price_hist=correlation_price_hist,
+                correlation_price_oscillator=correlation_price_oscillator,
                 num_peaks=num_peaks,
                 num_troughs=num_troughs,
                 drawdown_from_peak=drawdown_from_peak,
                 rally_from_trough=rally_from_trough,
                 peak_time_ratio=peak_time_ratio,
                 trough_time_ratio=trough_time_ratio,
-                hist_slope=hist_slope,
+                oscillator_slope=oscillator_slope,
                 # int(), а не как есть: детекторы отдают numpy-целые, а `to_dict()`
                 # пропускает только питоновские скаляры — иначе границы молча
                 # выпали бы из сериализованных фич, там где они и нужны.
@@ -690,21 +707,21 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             return_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'price_return')
             
             # Статистика по амплитуде MACD (только если колонка есть)
-            macd_amplitude_stats = None
-            if 'macd_amplitude' in df_features.columns and df_features['macd_amplitude'].notna().any():
-                macd_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'macd_amplitude')
+            line_amplitude_stats = None
+            if 'line_amplitude' in df_features.columns and df_features['line_amplitude'].notna().any():
+                line_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'line_amplitude')
             
             # Статистика по амплитуде гистограммы (только если колонка есть)
-            hist_amplitude_stats = None
-            if 'hist_amplitude' in df_features.columns and df_features['hist_amplitude'].notna().any():
-                hist_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'hist_amplitude')
+            oscillator_amplitude_stats = None
+            if 'oscillator_amplitude' in df_features.columns and df_features['oscillator_amplitude'].notna().any():
+                oscillator_amplitude_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'oscillator_amplitude')
             
             # Дополнительные метрики
             additional_stats = {}
             
             # Корреляции
-            if 'correlation_price_hist' in df_features.columns:
-                correlation_data = df_features['correlation_price_hist'].dropna()
+            if 'correlation_price_oscillator' in df_features.columns:
+                correlation_data = df_features['correlation_price_oscillator'].dropna()
                 if len(correlation_data) > 0:
                     additional_stats['price_hist_correlation'] = {
                         'mean': float(correlation_data.mean()),
@@ -732,8 +749,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 'total_statistics': total_stats,
                 'duration_distribution': duration_stats,
                 'return_distribution': return_stats,
-                'macd_amplitude_distribution': macd_amplitude_stats,
-                'hist_amplitude_distribution': hist_amplitude_stats,
+                'line_amplitude_distribution': line_amplitude_stats,
+                'oscillator_amplitude_distribution': oscillator_amplitude_stats,
                 'additional_metrics': additional_stats
             }
             

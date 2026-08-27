@@ -42,16 +42,16 @@ from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
 NUMERIC_FEATURES: Tuple[str, ...] = (
-    "macd_amplitude",
-    "hist_amplitude",
+    "line_amplitude",
+    "oscillator_amplitude",
     "price_range_pct",
     "num_peaks",
     "num_troughs",
     "atr_normalized_return",
-    "correlation_price_hist",
+    "correlation_price_oscillator",
     "drawdown_from_peak",
     "rally_from_trough",
-    "hist_slope",
+    "oscillator_slope",
 )
 
 
@@ -91,8 +91,8 @@ def collect_zone_features(zones: Iterable[object]) -> pd.DataFrame:
             if _is_number(value)
         }
 
-        numeric.setdefault("macd_amplitude", 0.0)
-        numeric.setdefault("hist_amplitude", 0.0)
+        numeric.setdefault("line_amplitude", 0.0)
+        numeric.setdefault("oscillator_amplitude", 0.0)
         numeric.setdefault("price_range_pct", 0.0)
         numeric.setdefault("num_peaks", 0.0)
         numeric.setdefault("num_troughs", 0.0)
@@ -232,8 +232,8 @@ def main() -> None:
         features,
         target="duration_seconds",
         predictors=[
-            "macd_amplitude",
-            "hist_amplitude",
+            "line_amplitude",
+            "oscillator_amplitude",
             "price_range_pct",
             "num_peaks",
             "num_troughs",
@@ -245,7 +245,7 @@ def main() -> None:
     print("   " + "-" * 55)
     describe_regression(duration_regression)
 
-    price_regressors = ["duration_seconds", "macd_amplitude", "num_peaks"]
+    price_regressors = ["duration_seconds", "line_amplitude", "num_peaks"]
     try:
         price_regression = build_regression(
             features,

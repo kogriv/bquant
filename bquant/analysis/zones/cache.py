@@ -61,7 +61,12 @@ class ZoneAnalysisCache:
     # v13 (G21 variant c): detection no longer drops short zones, so a v12
     # result is missing them — and its aggregates were computed over a zone
     # sequence with gaps in it.
-    CACHE_VERSION = 13
+    # v14 (2026-08): zone feature names follow the role vocabulary instead of one
+    # indicator's name — `macd_amplitude` -> `line_amplitude`,
+    # `hist_amplitude`/`hist_slope` -> `oscillator_*`, `correlation_price_hist` ->
+    # `correlation_price_oscillator` — and the per-role metadata keys changed
+    # shape (`max_macd` -> `line_max`). A v13 result carries the old keys.
+    CACHE_VERSION = 14
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

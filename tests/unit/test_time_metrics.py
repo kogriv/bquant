@@ -24,8 +24,8 @@ class TestTimeMetrics:
             start_price=3000.0,
             end_price=3050.0,
             price_return=0.0167,
-            macd_amplitude=5.0,
-            hist_amplitude=3.0,
+            line_amplitude=5.0,
+            oscillator_amplitude=3.0,
             price_range_pct=0.02,
             peak_time_ratio=0.25,  # NEW: time metric for bull zones
             trough_time_ratio=None  # Should be None for bull zones
@@ -45,8 +45,8 @@ class TestTimeMetrics:
             start_price=3000.0,
             end_price=3050.0,
             price_return=0.0167,
-            macd_amplitude=5.0,
-            hist_amplitude=3.0,
+            line_amplitude=5.0,
+            oscillator_amplitude=3.0,
             price_range_pct=0.02,
             peak_time_ratio=0.80,  # Late peak
             trough_time_ratio=None
@@ -64,8 +64,8 @@ class TestTimeMetrics:
             start_price=3000.0,
             end_price=2950.0,
             price_return=-0.0167,
-            macd_amplitude=5.0,
-            hist_amplitude=3.0,
+            line_amplitude=5.0,
+            oscillator_amplitude=3.0,
             price_range_pct=0.02,
             peak_time_ratio=None,
             trough_time_ratio=0.35  # Early trough
@@ -86,8 +86,8 @@ class TestTimeMetrics:
                 start_price=3000.0,
                 end_price=3050.0,
                 price_return=0.0167,
-                macd_amplitude=5.0,
-                hist_amplitude=3.0,
+                line_amplitude=5.0,
+                oscillator_amplitude=3.0,
                 price_range_pct=0.02,
                 peak_time_ratio=ratio
             )
@@ -104,8 +104,8 @@ class TestTimeMetrics:
             start_price=3000.0,
             end_price=3050.0,
             price_return=0.0167,
-            macd_amplitude=5.0,
-            hist_amplitude=3.0,
+            line_amplitude=5.0,
+            oscillator_amplitude=3.0,
             price_range_pct=0.02,
             peak_time_ratio=0.20
         )
@@ -118,8 +118,8 @@ class TestTimeMetrics:
             start_price=3000.0,
             end_price=3050.0,
             price_return=0.0167,
-            macd_amplitude=5.0,
-            hist_amplitude=3.0,
+            line_amplitude=5.0,
+            oscillator_amplitude=3.0,
             price_range_pct=0.02,
             peak_time_ratio=0.85
         )

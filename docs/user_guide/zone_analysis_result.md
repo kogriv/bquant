@@ -69,7 +69,7 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 | Поле | Тип | Обязательность | Источник (этап/компонент) | Описание |
 |------|-----|----------------|----------------------------|----------|
 | **zones** | `List[ZoneInfo]` | да | Детекция + анализ | Список зон; после анализа у каждой заполнены `data`, `features`, `indicator_context`, при global — `swing_context`. |
-| **statistics** | `Dict[str, Any]` | да | `ZoneFeaturesAnalyzer.analyze_zones_distribution()` → `AnalysisResult.results` | Агрегированная статистика по зонам: total_statistics, duration_distribution, return_distribution, hist_amplitude_distribution (или macd_amplitude_distribution), additional_metrics. |
+| **statistics** | `Dict[str, Any]` | да | `ZoneFeaturesAnalyzer.analyze_zones_distribution()` → `AnalysisResult.results` | Агрегированная статистика по зонам: total_statistics, duration_distribution, return_distribution, oscillator_amplitude_distribution, line_amplitude_distribution, additional_metrics. |
 | **hypothesis_tests** | `Dict[str, Any]` или объект с атрибутом `.results` | да | `HypothesisTestSuite.run_all_tests()` | Результаты тестов гипотез. Если объект — у него есть `.results` с ключами `tests` (словарь тестов по имени) и `summary`. В коде часто: `getattr(result.hypothesis_tests, 'results', result.hypothesis_tests)`. |
 | **clustering** | `Optional[Dict[str, Any]]` | нет | `ZoneSequenceAnalyzer.cluster_zones()` → `AnalysisResult.results` | Есть только при `analyze(clustering=True)` и при числе зон ≥ n_clusters. Ключи: clustering_summary, cluster_labels, clusters_analysis, feature_importance. |
 | **sequence_analysis** | `Optional[Dict[str, Any]]` | нет | `ZoneSequenceAnalyzer.analyze_zone_transitions()` → `AnalysisResult.results` | Есть при числе зон ≥ 3. Переходы между типами зон (bull_to_bear и т.д.), вероятности, детали переходов. |
@@ -133,16 +133,16 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 | duration | int | Длительность в барах. |
 | start_price, end_price | float | Цена на первом и последнем баре зоны. |
 | price_return | float | Доходность за зону (end/start - 1). |
-| macd_amplitude | float, optional | Амплитуда MACD (для MACD-зон, legacy). |
-| hist_amplitude | float, optional | Амплитуда основного осциллятора (универсально для любого индикатора). |
+| line_amplitude | float, optional | Амплитуда MACD (для MACD-зон, legacy). |
+| oscillator_amplitude | float, optional | Амплитуда основного осциллятора (универсально для любого индикатора). |
 | price_range_pct | float | Ценовой диапазон в процентах. |
 | atr_normalized_return | float, optional | Доходность, нормализованная на ATR (если есть колонка atr). |
-| correlation_price_hist | float, optional | Корреляция цены и основного индикатора. |
+| correlation_price_oscillator | float, optional | Корреляция цены и основного индикатора. |
 | num_peaks, num_troughs | int, optional | Количество пиков/впадин (find_peaks по high/low). |
 | drawdown_from_peak | float, optional | Экскурсия цены от максимума зоны к её концу (`end/max - 1`, ≤ 0). Считается для **любой** зоны. |
 | rally_from_trough | float, optional | Экскурсия цены от минимума зоны к её концу (`end/min - 1`, ≥ 0). Считается для **любой** зоны. |
 | peak_time_ratio, trough_time_ratio | float, optional | Позиция максимума/минимума в зоне (0.0–1.0). Считаются для **любой** зоны. |
-| hist_slope | float, optional | Максимальный наклон осциллятора в зоне. |
+| oscillator_slope | float, optional | Максимальный наклон осциллятора в зоне. |
 | **metadata** | **dict** | Вложенный словарь (см. ниже). |
 
 ### 4.2. Вложенный словарь `zone.features['metadata']`
@@ -155,7 +155,7 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 | start_timestamp, end_timestamp | Строковое представление времени начала/конца. |
 | max_price, min_price, price_range | Ценовые экстремумы в зоне. |
 | oscillator_name, oscillator_max/min/avg/std | Имя колонки осциллятора и его статистики (универсально). |
-| max_macd, min_macd, macd_amplitude, avg_hist, hist_std и т.д. | При наличии колонок MACD — доп. метрики. |
+| line_max, line_min, line_avg, line_std, hist_max, hist_min, hist_avg, hist_std | Статистика по **ролям**, которые объявил индикатор и которые есть в кадре. Ключ — роль, а не имя индикатора: раньше здесь стояло `max_macd`, и на зонах RSI это означало бы то же самое, но врало бы именем. |
 | atr_start, atr_end, avg_atr | При наличии atr. |
 | **swing_calculation_mode** | `'global'` или `'per_zone'`. |
 | **swing_metrics** | Словарь метрик свингов (если включена стратегия свингов). См. ниже. |

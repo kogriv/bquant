@@ -14,7 +14,7 @@ the other half — the consumers. Until now they wrote the string:
   is what made the mistake invisible.
 
 Guessing by substring is not merely inelegant. ``'macd' in name`` was silently
-false for every non-MACD oscillator, so `macd_amplitude` stayed None across
+false for every non-MACD oscillator, so `line_amplitude` stayed None across
 every RSI zone — and that field is a default regression predictor, which is how
 the regression came to have no observations at all (G23).
 
@@ -107,7 +107,7 @@ class TestResolveRoleColumns:
 class TestZoneFeaturesUsesRoles:
 
     def test_line_amplitude_comes_from_the_declared_line(self, macd_result):
-        """`macd_amplitude` is the amplitude of the indicator's *line* role."""
+        """`line_amplitude` is the amplitude of the indicator's *line* role."""
         line_col = macd_result.column_schema.column("line")
         assert line_col, "MACD must declare a line role"
 
@@ -115,17 +115,21 @@ class TestZoneFeaturesUsesRoles:
         series = macd_result.data[line_col].iloc[zone.start_idx:zone.end_idx + 1]
         expected = float(series.max()) - float(series.min())
 
-        assert zone.features["macd_amplitude"] == pytest.approx(expected)
+        assert zone.features["line_amplitude"] == pytest.approx(expected)
 
-    def test_dead_backward_compatibility_aliases_are_gone(self, macd_result):
+    def test_aliases_picked_by_substring_are_gone(self, macd_result):
         """The same four numbers under a second set of names, chosen by substring.
 
         `'ao' in name.lower()` is true for any column carrying those two letters,
         so the alias block was not only redundant but wrong. Nothing read them.
+
+        `hist_*` is deliberately absent from this list: those keys exist again,
+        but they now come from the **declared role** rather than from a substring
+        match on a column name — see the next test. The name is the same; what
+        chooses it is not.
         """
         metadata = macd_result.zones[0].features["metadata"]
-        for dead in ("hist_max", "hist_min", "hist_avg",
-                     "rsi_max", "rsi_min", "rsi_avg", "rsi_std",
+        for dead in ("rsi_max", "rsi_min", "rsi_avg", "rsi_std",
                      "ao_max", "ao_min", "ao_avg", "ao_std"):
             assert dead not in metadata, f"{dead} is a removed alias"
 
@@ -134,12 +138,23 @@ class TestZoneFeaturesUsesRoles:
                      "oscillator_avg", "oscillator_std"):
             assert kept in metadata
 
-    def test_indicator_statistics_follow_roles_not_names(self, macd_result):
-        """`max_macd` is the maximum of the *line* role, whatever it is called."""
-        line_col = macd_result.column_schema.column("line")
+    def test_indicator_statistics_are_keyed_by_role(self, macd_result):
+        """`line_max` is the maximum of the *line* role, whatever it is called.
+
+        The key used to be `max_macd` — a universal statistic wearing one
+        indicator's name, which on RSI zones would have meant the same thing and
+        said something false.
+        """
         zone = macd_result.zones[0]
-        series = macd_result.data[line_col].iloc[zone.start_idx:zone.end_idx + 1]
-        assert zone.features["metadata"]["max_macd"] == pytest.approx(float(series.max()))
+        metadata = zone.features["metadata"]
+
+        for role in ("line", "hist"):
+            column = macd_result.column_schema.column(role)
+            series = macd_result.data[column].iloc[zone.start_idx:zone.end_idx + 1]
+            assert metadata[f"{role}_max"] == pytest.approx(float(series.max()))
+            assert metadata[f"{role}_min"] == pytest.approx(float(series.min()))
+
+        assert "max_macd" not in metadata
 
 
 # --------------------------------------------------------------------------- #

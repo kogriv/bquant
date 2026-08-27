@@ -273,8 +273,8 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             # Выбираем признаки для кластеризации
             if features_to_use is None:
                 features_to_use = [
-                    'duration', 'macd_amplitude', 'hist_amplitude', 
-                    'price_range_pct', 'correlation_price_hist'
+                    'duration', 'line_amplitude', 'oscillator_amplitude', 
+                    'price_range_pct', 'correlation_price_oscillator'
                 ]
                 # Добавляем дополнительные признаки если они доступны
                 if 'num_peaks' in df_features.columns:

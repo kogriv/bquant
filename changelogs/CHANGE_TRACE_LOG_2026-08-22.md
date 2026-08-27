@@ -427,3 +427,19 @@
 [not_included] [Technical] Проверено запуском: все 11 примеров и все 24 рисёрч-скрипта отрабатывают с кодом 0
 [not_included] [Technical] Сьют **1536 passed, 3 skipped**
 [not_included] [Technical] Найдено попутно, **не чинилось**: `tests/performance/test_swing_performance.py::test_benchmark_global_vs_perzone` утверждает отношение времён (`ratio <= 1.5`) и под нагрузкой полного прогона падает через раз — на этой правке упал один раз из двух прогонов подряд, при одиночном запуске проходит всегда. Ни к G21, ни к G22 отношения не имеет (свинг-стратегий правка не касалась), но тест, падающий случайно, приучает игнорировать падения. Отдельная работа
+
+==================== COMMIT DIVIDER ====================
+
+[Признаки зоны названы по ролям, а не по имени одного индикатора]
+
+[not_included] [Technical] Записано как отдельная работа при закрытии G8 C2b-1: имя поля `macd_amplitude` в `ZoneFeatures` — та же форма дефекта слоем выше. Универсальная метрика носила имя одного индикатора, и это не косметика: именно из-за неё пустой предиктор с MACD-овским именем унёс всю выборку регрессии на зонах RSI (G23)
+[included] [Changed] `ZoneFeatures.macd_amplitude` → **`line_amplitude`**. Это размах роли `line`; у RSI её нет, и `None` там означает «такой роли не существует», а не «нет данных»
+[included] [Changed] `ZoneFeatures.hist_amplitude` → **`oscillator_amplitude`**, `hist_slope` → **`oscillator_slope`**. Имя было неверным на любом наборе, кроме MACD по гистограмме: поле хранит размах и скорость **того ряда, по которому детектировались зоны**, и на зонах RSI там лежал размах RSI. В коде это и было написано прямым текстом — `hist_amplitude = max_osc - min_osc  # Reusing field for universal amplitude`
+[included] [Changed] `ZoneFeatures.correlation_price_hist` → **`correlation_price_oscillator`** — по той же причине
+[included] [Changed] Метаданные зоны: ключи по **ролям** вместо имени индикатора — `max_macd`/`min_macd`/`avg_macd`/`macd_std` → `line_max`/`line_min`/`line_avg`/`line_std`, `max_hist`/… → `hist_max`/…. Заодно выправлена форма: три ключа шли как `max_X`, а четвёртый как `X_std`; теперь все четыре как `{роль}_{статистика}`, единообразно с `oscillator_*`
+[included] [Changed] Ключи статистики: `macd_amplitude_distribution` → `line_amplitude_distribution`, `hist_amplitude_distribution` → `oscillator_amplitude_distribution`
+[included] [Changed] bquant/analysis/statistical/{regression,hypothesis_testing}.py, bquant/analysis/zones/sequence_analysis.py — предикторы регрессии, колонки гипотез и признаки кластеризации; docs/, examples/, tests/ — 18 файлов
+[not_included] [Technical] **Сверено: изменились имена, не числа.** Зонд снимает значения по позициям зон, а не по именам, и прогнан до и после на двух сценариях (MACD по гистограмме, RSI по порогу). Метрики совпали у **всех** зон (83 и 64), метаданные совпали под переименованными ключами, регрессия — R² 0.9373424 и 0.69899729 на MACD, 0.99168779 и 0.87327576 на RSI, n=66 и n=34 — совпала до восьмого знака в обоих
+[included] [Changed] tests/unit/test_consumers_address_by_role.py — тест про снятые алиасы уточнён: `hist_*` из списка «удалённых» убран, потому что эти ключи существуют снова, но выбираются **объявленной ролью**, а не подстрокой в имени колонки. Имя то же, механизм другой, и это стоит различать явно
+[included] [Changed] bquant/analysis/zones/{cache,pipeline}.py — `CACHE_VERSION`/`CACHE_SCHEMA_VERSION` 13 → 14
+[not_included] [Technical] Проверено запуском: все 11 примеров и все 24 рисёрч-скрипта отрабатывают с кодом 0. Сьют **1536 passed, 3 skipped**

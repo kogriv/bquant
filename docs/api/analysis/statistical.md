@@ -45,9 +45,9 @@ def generate_sample_zones(seed: int = 42, count: int = 120):
         zone_type = 'bull' if idx % 2 == 0 else 'bear'
         duration = int(rng.integers(5, 45))
         price_return = float(rng.normal(0.018 if zone_type == 'bull' else -0.012, 0.015))
-        hist_slope = float(rng.normal(0.35 if zone_type == 'bull' else -0.30, 0.10))
-        macd_amplitude = float(rng.normal(1.20, 0.25))
-        hist_amplitude = float(abs(rng.normal(0.90, 0.20)))
+        oscillator_slope = float(rng.normal(0.35 if zone_type == 'bull' else -0.30, 0.10))
+        line_amplitude = float(rng.normal(1.20, 0.25))
+        oscillator_amplitude = float(abs(rng.normal(0.90, 0.20)))
         price_range_pct = float(abs(rng.normal(0.025, 0.010)))
         num_peaks = int(rng.integers(1, 5))
         num_troughs = int(rng.integers(1, 5))
@@ -55,7 +55,7 @@ def generate_sample_zones(seed: int = 42, count: int = 120):
         hist_skewness = float(rng.normal(0.0, 0.4))
         volatility_score = float(rng.normal(0.6, 0.15))
         divergence_strength = float(rng.normal(0.5, 0.2))
-        correlation_price_hist = float(rng.uniform(-0.2, 0.95))
+        correlation_price_oscillator = float(rng.uniform(-0.2, 0.95))
         price_return_atr = float(abs(price_return) + rng.uniform(0.004, 0.020))
         atr = float(rng.uniform(0.3, 1.5))
         start_price = float(base_price + rng.normal(0, 45) + idx * rng.normal(0.5, 0.3))
@@ -65,9 +65,9 @@ def generate_sample_zones(seed: int = 42, count: int = 120):
             'zone_type': zone_type,
             'duration': duration,
             'price_return': price_return,
-            'hist_slope': hist_slope,
-            'macd_amplitude': macd_amplitude,
-            'hist_amplitude': hist_amplitude,
+            'oscillator_slope': oscillator_slope,
+            'line_amplitude': line_amplitude,
+            'oscillator_amplitude': oscillator_amplitude,
             'price_range_pct': price_range_pct,
             'num_peaks': num_peaks,
             'num_troughs': num_troughs,
@@ -75,7 +75,7 @@ def generate_sample_zones(seed: int = 42, count: int = 120):
             'hist_skewness': hist_skewness,
             'volatility_score': volatility_score,
             'divergence_strength': divergence_strength,
-            'correlation_price_hist': correlation_price_hist,
+            'correlation_price_oscillator': correlation_price_oscillator,
             'price_return_atr': price_return_atr,
             'atr': atr,
             'drawdown_from_peak': float(abs(rng.normal(0.03, 0.01))),
@@ -320,7 +320,7 @@ print(custom_model.coefficients)
 ```python
 return_model = regressor.predict_price_return(
     zones_features,
-    predictors=['duration', 'macd_amplitude', 'correlation_price_hist', 'hist_slope', 'num_peaks']
+    predictors=['duration', 'line_amplitude', 'correlation_price_oscillator', 'oscillator_slope', 'num_peaks']
 )
 print(f"Return model R²: {return_model.r_squared:.3f}")
 print(f"Coefficients: {return_model.coefficients}")

@@ -75,7 +75,11 @@ _SWING_CLASS_TO_NAME = {
 #   v13 (2026-08): detection returns the complete tiling — the length threshold
 #                 moved out of detection into the aggregates (G21 variant c),
 #                 so v12 results are missing the short zones entirely.
-CACHE_SCHEMA_VERSION = 13
+#   v14 (2026-08): zone feature names follow the role vocabulary rather than
+#                 one indicator's name (`macd_amplitude` -> `line_amplitude`,
+#                 `hist_*` -> `oscillator_*`), and the per-role metadata keys
+#                 changed shape (`max_macd` -> `line_max`).
+CACHE_SCHEMA_VERSION = 14
 
 
 @dataclass

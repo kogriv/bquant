@@ -389,7 +389,7 @@ class TestMACDAnalyzerPerformance:
         for features in all_features:
             # features is now ZoneFeatures object, not dict
             assert hasattr(features, 'duration')
-            assert hasattr(features, 'macd_amplitude') or hasattr(features, 'hist_amplitude')
+            assert hasattr(features, 'line_amplitude') or hasattr(features, 'oscillator_amplitude')
         
         logger.info(f"Zone features calculation completed for {len(zones)} zones")
     

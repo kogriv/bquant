@@ -88,7 +88,7 @@ def _usable_predictors(
         Insufficient data for regression: need at least 8 observations, got 0
 
     which points at the amount of data when the cause is a column empty by
-    construction. `macd_amplitude` is exactly that for any non-MACD zone set: it
+    construction. `line_amplitude` is exactly that for any non-MACD zone set: it
     is the amplitude of the indicator's *line*, and an RSI zone has no line, so
     `.analyze(regression=True)` over RSI zones raised and killed the whole build.
 
@@ -178,7 +178,7 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
         """
         Build regression model to predict zone duration.
         
-        Model: duration ~ macd_amplitude + hist_amplitude + correlation_price_hist + ...
+        Model: duration ~ line_amplitude + oscillator_amplitude + correlation_price_oscillator + ...
         
         Args:
             zones_features: List of zone feature dictionaries
@@ -197,7 +197,7 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             
             # Default predictors
             if predictors is None:
-                predictors = ['macd_amplitude', 'hist_amplitude', 'correlation_price_hist', 
+                predictors = ['line_amplitude', 'oscillator_amplitude', 'correlation_price_oscillator', 
                             'price_range_pct', 'num_peaks', 'num_troughs']
             
             # Validate target variable
@@ -330,7 +330,7 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
         """
         Build regression model to predict price return.
         
-        Model: price_return ~ duration + macd_amplitude + correlation_price_hist + ...
+        Model: price_return ~ duration + line_amplitude + correlation_price_oscillator + ...
         
         Args:
             zones_features: List of zone feature dictionaries
@@ -349,8 +349,8 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             
             # Default predictors
             if predictors is None:
-                predictors = ['duration', 'macd_amplitude', 'correlation_price_hist',
-                            'drawdown_from_peak', 'hist_slope', 'num_peaks']
+                predictors = ['duration', 'line_amplitude', 'correlation_price_oscillator',
+                            'drawdown_from_peak', 'oscillator_slope', 'num_peaks']
             
             # Validate target variable
             if 'price_return' not in df.columns:

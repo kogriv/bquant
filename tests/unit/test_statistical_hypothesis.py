@@ -53,17 +53,17 @@ def create_test_zones_features(n_zones: int = 50, seed: int = 42) -> List[Dict[s
             price_return = np.random.normal(-0.01, 0.12)  # Слегка отрицательная
         
         # Наклон гистограммы (коррелирован с длительностью)
-        hist_slope = np.random.normal(0, 0.1) + duration * 0.001
+        oscillator_slope = np.random.normal(0, 0.1) + duration * 0.001
         
         # MACD амплитуда
-        macd_amplitude = np.random.exponential(2) + 0.5
+        line_amplitude = np.random.exponential(2) + 0.5
         
         # ATR-нормализованная доходность
         atr = np.random.exponential(1) + 0.1
         price_return_atr = price_return / atr
         
         # Корреляция цены и гистограммы MACD
-        correlation_price_hist = np.random.uniform(-1, 1)
+        correlation_price_oscillator = np.random.uniform(-1, 1)
         
         # Специфичные для типа метрики
         drawdown_from_peak = None
@@ -86,11 +86,11 @@ def create_test_zones_features(n_zones: int = 50, seed: int = 42) -> List[Dict[s
             'zone_type': zone_type,  # Changed from 'type' to 'zone_type'
             'duration': duration,
             'price_return': price_return,
-            'hist_slope': hist_slope,
-            'macd_amplitude': macd_amplitude,
+            'oscillator_slope': oscillator_slope,
+            'line_amplitude': line_amplitude,
             'atr': atr,
             'price_return_atr': price_return_atr,
-            'correlation_price_hist': correlation_price_hist,
+            'correlation_price_oscillator': correlation_price_oscillator,
             'drawdown_from_peak': drawdown_from_peak,
             'rally_from_trough': rally_from_trough,
             'start_price': start_price,
@@ -458,7 +458,7 @@ class TestErrorHandling:
     def test_insufficient_data(self, test_suite):
         """Тест с недостаточным количеством данных."""
         minimal_zones = [
-            {'type': 'bull', 'duration': 10, 'price_return': 0.05, 'hist_slope': 0.1}
+            {'type': 'bull', 'duration': 10, 'price_return': 0.05, 'oscillator_slope': 0.1}
         ]
         
         with pytest.raises(StatisticalAnalysisError):
@@ -619,8 +619,8 @@ class TestIntegrationWithMACDAnalyzer:
                 'type': zone_type,
                 'duration': np.random.exponential(10) + 2,
                 'price_return': np.random.normal(0, 0.1),
-                'hist_slope': np.random.normal(0, 0.05),
-                'macd_amplitude': np.random.exponential(1),
+                'oscillator_slope': np.random.normal(0, 0.05),
+                'line_amplitude': np.random.exponential(1),
                 'atr': np.random.exponential(0.5) + 0.1
             }
             

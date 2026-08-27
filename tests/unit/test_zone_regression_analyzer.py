@@ -33,19 +33,19 @@ def create_test_zones_for_regression(n_zones: int = 50, seed: int = 42) -> List[
     
     for i in range(n_zones):
         # Generate correlated features
-        macd_amplitude = np.random.exponential(2) + 0.5
-        hist_amplitude = macd_amplitude * np.random.uniform(0.5, 1.5)
+        line_amplitude = np.random.exponential(2) + 0.5
+        oscillator_amplitude = line_amplitude * np.random.uniform(0.5, 1.5)
         
         # Duration correlated with amplitude
-        duration = 10 + macd_amplitude * 5 + np.random.normal(0, 3)
+        duration = 10 + line_amplitude * 5 + np.random.normal(0, 3)
         duration = max(2, int(duration))
         
         # Price return correlated with duration and correlation
-        correlation_price_hist = np.random.uniform(-0.5, 0.9)
+        correlation_price_oscillator = np.random.uniform(-0.5, 0.9)
         price_return = (
             0.01 * duration + 
-            0.02 * correlation_price_hist + 
-            0.005 * macd_amplitude +
+            0.02 * correlation_price_oscillator + 
+            0.005 * line_amplitude +
             np.random.normal(0, 0.02)
         )
         
@@ -54,14 +54,14 @@ def create_test_zones_for_regression(n_zones: int = 50, seed: int = 42) -> List[
             'type': 'bull' if np.random.random() > 0.5 else 'bear',
             'duration': duration,
             'price_return': price_return,
-            'macd_amplitude': macd_amplitude,
-            'hist_amplitude': hist_amplitude,
-            'correlation_price_hist': correlation_price_hist,
+            'line_amplitude': line_amplitude,
+            'oscillator_amplitude': oscillator_amplitude,
+            'correlation_price_oscillator': correlation_price_oscillator,
             'price_range_pct': np.random.exponential(0.05),
             'num_peaks': np.random.poisson(2),
             'num_troughs': np.random.poisson(2),
             'drawdown_from_peak': np.random.uniform(-0.3, -0.01) if np.random.random() > 0.5 else None,
-            'hist_slope': np.random.exponential(0.1),
+            'oscillator_slope': np.random.exponential(0.1),
             'start_price': 2000 + np.random.normal(0, 50),
             'end_price': 2000 + np.random.normal(0, 50)
         }
@@ -80,8 +80,8 @@ class TestRegressionResult:
             target_variable='duration',
             r_squared=0.75,
             adjusted_r_squared=0.72,
-            coefficients={'intercept': 5.0, 'macd_amplitude': 1.5},
-            p_values={'intercept': 0.001, 'macd_amplitude': 0.01},
+            coefficients={'intercept': 5.0, 'line_amplitude': 1.5},
+            p_values={'intercept': 0.001, 'line_amplitude': 0.01},
             predictions=np.array([10, 12, 15]),
             residuals=np.array([0.5, -0.3, 0.1]),
             n_observations=100,
@@ -169,7 +169,7 @@ class TestZoneRegressionAnalyzer:
     
     def test_predict_zone_duration_custom_predictors(self, analyzer, test_zones):
         """Test duration prediction with custom predictors."""
-        custom_predictors = ['macd_amplitude', 'hist_amplitude']
+        custom_predictors = ['line_amplitude', 'oscillator_amplitude']
         
         result = analyzer.predict_zone_duration(test_zones, predictors=custom_predictors)
         
@@ -212,7 +212,7 @@ class TestZoneRegressionAnalyzer:
     
     def test_predict_price_return_custom_predictors(self, analyzer, test_zones):
         """Test price return prediction with custom predictors."""
-        custom_predictors = ['duration', 'correlation_price_hist']
+        custom_predictors = ['duration', 'correlation_price_oscillator']
         
         result = analyzer.predict_price_return(test_zones, predictors=custom_predictors)
         

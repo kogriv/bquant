@@ -11,7 +11,7 @@ Four defects sat on top of each other in this path, and each hid the next.
    silently, for every caller.
 
 2. With the import fixed, the default predictor list starts with
-   `macd_amplitude`, which is `None` for every non-MACD zone. The model frame is
+   `line_amplitude`, which is `None` for every non-MACD zone. The model frame is
    built with `dropna()`, so one all-NaN column takes every observation with it,
    and the refusal read "Insufficient data for regression: need at least 8
    observations, got 0" — blaming the amount of data for a column that was empty
@@ -92,7 +92,7 @@ def test_regression_is_absent_only_when_not_requested(data):
 # 2. An empty predictor must not empty the sample
 # --------------------------------------------------------------------------- #
 def test_all_nan_predictor_is_dropped_and_named(data):
-    """RSI zones have no indicator *line*, so `macd_amplitude` is empty.
+    """RSI zones have no indicator *line*, so `line_amplitude` is empty.
 
     Before the fix this emptied the model frame and the build died with a
     message about the number of observations.
@@ -112,18 +112,18 @@ def test_all_nan_predictor_is_dropped_and_named(data):
     assert model.n_observations > 0
 
     metadata = model.metadata
-    assert "macd_amplitude" in metadata["empty_predictors"], (
+    assert "line_amplitude" in metadata["empty_predictors"], (
         "an empty predictor must be reported, not silently absent"
     )
-    assert "macd_amplitude" not in metadata["available_predictors"]
+    assert "line_amplitude" not in metadata["available_predictors"]
     assert metadata["available_predictors"], "the usable predictors must survive"
 
 
 def test_every_predictor_empty_is_refused():
     """If nothing is left, say that — do not report 'insufficient data'."""
     features = [
-        {"duration": 5 + i, "macd_amplitude": None, "hist_amplitude": None,
-         "correlation_price_hist": None, "price_range_pct": None,
+        {"duration": 5 + i, "line_amplitude": None, "oscillator_amplitude": None,
+         "correlation_price_oscillator": None, "price_range_pct": None,
          "num_peaks": None, "num_troughs": None}
         for i in range(20)
     ]
@@ -137,8 +137,8 @@ def test_every_predictor_empty_is_refused():
 def _constant_features(n=15):
     """n identical observations — the shape a duplicated fixture produces."""
     return [
-        {"duration": 10, "macd_amplitude": 1.0, "hist_amplitude": 2.0,
-         "correlation_price_hist": 0.5, "price_range_pct": 1.5,
+        {"duration": 10, "line_amplitude": 1.0, "oscillator_amplitude": 2.0,
+         "correlation_price_oscillator": 0.5, "price_range_pct": 1.5,
          "num_peaks": 2, "num_troughs": 2}
         for _ in range(n)
     ]

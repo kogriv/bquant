@@ -494,7 +494,7 @@ zone.features = {
     'start_price': 2050.0,
     'end_price': 2062.3,
     'price_return': 0.006,
-    'hist_amplitude': 0.012,
+    'oscillator_amplitude': 0.012,
     'num_peaks': 3,
     'num_troughs': 2,
     'peak_time_ratio': 0.73,

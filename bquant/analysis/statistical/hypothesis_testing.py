@@ -182,19 +182,19 @@ class HypothesisTestSuite:
         try:
             df_features = pd.DataFrame(zones_features)
             
-            required_cols = ['hist_slope', 'duration']
+            required_cols = ['oscillator_slope', 'duration']
             missing_cols = [col for col in required_cols if col not in df_features.columns]
             if missing_cols:
                 raise StatisticalAnalysisError(f"Missing required columns: {missing_cols}")
             
             # Убираем NaN значения
-            clean_data = df_features[['hist_slope', 'duration']].dropna()
+            clean_data = df_features[['oscillator_slope', 'duration']].dropna()
             
             if len(clean_data) < 3:
                 raise StatisticalAnalysisError("Insufficient data for correlation test (need at least 3 points)")
             
             # Вычисляем корреляцию Пирсона
-            correlation, p_value = stats.pearsonr(clean_data['hist_slope'], clean_data['duration'])
+            correlation, p_value = stats.pearsonr(clean_data['oscillator_slope'], clean_data['duration'])
             
             # Вычисляем t-статистику для корреляции
             n = len(clean_data)
@@ -210,8 +210,8 @@ class HypothesisTestSuite:
                 'correlation': correlation,
                 'sample_size': n,
                 'degrees_of_freedom': n - 2,
-                'hist_slope_mean': clean_data['hist_slope'].mean(),
-                'hist_slope_std': clean_data['hist_slope'].std(),
+                'oscillator_slope_mean': clean_data['oscillator_slope'].mean(),
+                'oscillator_slope_std': clean_data['oscillator_slope'].std(),
                 'duration_mean': clean_data['duration'].mean(),
                 'duration_std': clean_data['duration'].std()
             }
@@ -560,7 +560,7 @@ class HypothesisTestSuite:
             correlations = {}
             
             # Тестируем корреляции с различными характеристиками зон
-            test_columns = ['duration', 'macd_amplitude', 'price_return']
+            test_columns = ['duration', 'line_amplitude', 'price_return']
             available_columns = [col for col in test_columns if col in df_features.columns]
             
             if not available_columns:
@@ -642,7 +642,7 @@ class HypothesisTestSuite:
         try:
             df_features = pd.DataFrame(zones_features)
             
-            required_cols = ['correlation_price_hist', 'zone_type']
+            required_cols = ['correlation_price_oscillator', 'zone_type']
             missing_cols = [col for col in required_cols if col not in df_features.columns]
             if missing_cols:
                 raise StatisticalAnalysisError(f"Missing required columns: {missing_cols}")
@@ -681,12 +681,12 @@ class HypothesisTestSuite:
                     continue
                 
                 subset = df_features[df_features['zone_type'] == zone_type]
-                clean = subset[['correlation_price_hist', column]].dropna()
+                clean = subset[['correlation_price_oscillator', column]].dropna()
                 used_types[zone_type] = len(clean)
                 
                 for _, row in clean.iterrows():
                     combined_data.append({
-                        'correlation': row['correlation_price_hist'],
+                        'correlation': row['correlation_price_oscillator'],
                         # abs() приводит обе экскурсии к одной шкале: просадка
                         # отрицательна, отскок положителен, а сравнивается величина.
                         'drawdown': abs(row[column])

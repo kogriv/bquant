@@ -39,22 +39,22 @@ from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
 NUMERIC_FEATURE_KEYS: Tuple[str, ...] = (
-    "macd_amplitude",
-    "hist_amplitude",
+    "line_amplitude",
+    "oscillator_amplitude",
     "price_range_pct",
     "atr_normalized_return",
-    "correlation_price_hist",
+    "correlation_price_oscillator",
     "num_peaks",
     "num_troughs",
     "drawdown_from_peak",
     "rally_from_trough",
-    "hist_slope",
+    "oscillator_slope",
 )
 
 PREDICTORS: Tuple[str, ...] = (
     "duration_minutes",
     "num_swings",
-    "hist_amplitude",
+    "oscillator_amplitude",
     "price_range_pct",
     "abs_price_return_pct",
 )

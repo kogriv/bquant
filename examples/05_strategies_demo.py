@@ -153,7 +153,7 @@ def main() -> None:
         (
             z
             for z in result_macd.zones
-            if (z.features or {}).get('macd_amplitude') or (z.features or {}).get('num_peaks')
+            if (z.features or {}).get('line_amplitude') or (z.features or {}).get('num_peaks')
         ),
         result_macd.zones[0],
     )

@@ -214,9 +214,9 @@ class TestZoneFeaturesAnalyzer:
         assert isinstance(features.start_price, float)
         assert isinstance(features.end_price, float)
         assert isinstance(features.price_return, float)
-        # macd_amplitude can be None if not calculated
-        assert features.macd_amplitude is None or isinstance(features.macd_amplitude, float)
-        assert isinstance(features.hist_amplitude, float)
+        # line_amplitude can be None if not calculated
+        assert features.line_amplitude is None or isinstance(features.line_amplitude, float)
+        assert isinstance(features.oscillator_amplitude, float)
         assert isinstance(features.price_range_pct, float)
     
     def test_zone_features_to_dict(self, analyzer, test_zone_info):
@@ -315,8 +315,8 @@ class TestZoneSequenceAnalyzer:
                     'zone_type': zone_type,
                     'duration': 10 + i,
                     'price_return': np.random.normal(0, 0.1),
-                    'macd_amplitude': np.random.uniform(1, 10),
-                    'hist_amplitude': np.random.uniform(0.5, 5),
+                    'line_amplitude': np.random.uniform(1, 10),
+                    'oscillator_amplitude': np.random.uniform(0.5, 5),
                     'price_range_pct': np.random.uniform(0.01, 0.1)
                 }
                 zones_features.append(features_dict)
@@ -436,8 +436,8 @@ class TestIntegrationZonesAnalysis:
                 'zone_type': zone_type,
                 'duration': 10 + i,
                 'price_return': np.random.normal(0, 0.1),
-                'macd_amplitude': np.random.uniform(1, 5),
-                'hist_amplitude': np.random.uniform(0.5, 2),
+                'line_amplitude': np.random.uniform(1, 5),
+                'oscillator_amplitude': np.random.uniform(0.5, 2),
                 'price_range_pct': np.random.uniform(0.01, 0.05)
             }
             zones_features.append(features_dict)
