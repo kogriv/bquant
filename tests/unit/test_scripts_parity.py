@@ -105,3 +105,74 @@ def test_script_parses(path):
         ast.parse(path.read_text(encoding="utf-8"))
     except SyntaxError as exc:  # pragma: no cover - failure path is the assertion
         pytest.fail(f"{path.relative_to(PROJECT_ROOT)}: {exc}")
+
+
+def _pyplot_aliases(tree):
+    """Names bound to `matplotlib.pyplot` in this module."""
+    aliases = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "matplotlib.pyplot":
+                    aliases.add(alias.asname or "matplotlib")
+        elif isinstance(node, ast.ImportFrom) and node.module == "matplotlib":
+            for alias in node.names:
+                if alias.name == "pyplot":
+                    aliases.add(alias.asname or "pyplot")
+    return aliases
+
+
+def _unguarded_show_calls(tree, aliases):
+    """`plt.show()` calls that no `if` stands in front of.
+
+    Walked with an explicit stack rather than `ast.walk` because the question is
+    about ancestry: the same call is fine under a condition and fatal without one.
+    """
+    found = []
+
+    def visit(node, under_if):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "show"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id in aliases
+            and not under_if
+        ):
+            found.append(node.lineno)
+        for child in ast.iter_child_nodes(node):
+            visit(child, under_if or isinstance(node, ast.If))
+
+    visit(tree, False)
+    return found
+
+
+@pytest.mark.parametrize(
+    "path", list(_iter_scripts()),
+    ids=[str(p.relative_to(PROJECT_ROOT)) for p in _iter_scripts()],
+)
+def test_script_does_not_block_on_a_gui_window(path):
+    """`plt.show()` with an interactive backend waits for the window to be closed.
+
+    A shipped script has to be runnable without anyone at the screen — from a
+    terminal, from CI, from another script. `examples/zone_analysis_global_swings.py`
+    ended with a bare `plt.show()`, and with matplotlib's `tkagg` backend and a
+    live DISPLAY it stopped there: 4 seconds of work followed by an unbounded
+    wait, with the console output already fully printed. From the outside it read
+    as "computes for several minutes" rather than "waiting for a click", which is
+    how the note "takes ~7 minutes, not a hang" came to be written down.
+
+    The rule is not "never show a chart" — it is that showing one must be a
+    decision someone made. A call under any `if` passes; a bare one does not.
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    aliases = _pyplot_aliases(tree)
+    if not aliases:
+        pytest.skip("script does not use pyplot")
+
+    lines = _unguarded_show_calls(tree, aliases)
+    assert not lines, (
+        f"{path.relative_to(PROJECT_ROOT)}: unconditional pyplot.show() at line(s) "
+        f"{lines} — it blocks until the window is closed. Save the figure by "
+        f"default and put the call behind an explicit opt-in."
+    )

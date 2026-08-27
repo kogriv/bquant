@@ -16,9 +16,11 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
@@ -31,6 +33,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bquant.analysis.zones import analyze_zones
 from bquant.core.logging_config import setup_logging
 from bquant.data.samples import get_sample_data
+
+OUTPUT_DIR = Path("output/swings")
 
 
 @dataclass
@@ -148,14 +152,32 @@ def preview_global_swings(zones: List):
         print(f"  … всего пивотов в зоне: {len(swings)}")
 
 
-def plot_coverage_bar(reports: List[CoverageReport]):
-    """Нарисовать простую диаграмму различий (опционально)."""
+def plot_coverage_bar(reports: List[CoverageReport], show: bool = False):
+    """Нарисовать диаграмму различий и **сохранить** её.
+
+    Раньше функция заканчивалась `plt.show()`. При интерактивном бэкенде
+    matplotlib (`tkagg` при живом `DISPLAY`) это открывает окно и **блокирует
+    процесс до тех пор, пока окно не закроют**. Пример от этого переставал быть
+    исполняемым: из скрипта, из CI, из любого неинтерактивного прогона он висел
+    насмерть. Замер: 4 с работы против 376–575 с ожидания окна, причём вывод в
+    консоль успевал напечататься целиком — со стороны выглядело как «долго
+    считает», а не как «ждёт клика».
+
+    Поэтому по умолчанию график **пишется в файл**, а окно открывается только по
+    явной просьбе (`--show`). Показать картинку — решение того, кто у экрана;
+    посчитать и сохранить — то, что скрипт обязан уметь без экрана вообще.
+    """
 
     try:
+        import matplotlib
         import matplotlib.pyplot as plt
     except Exception as exc:  # pragma: no cover - только для живого запуска
         print(f"[!] Matplotlib недоступен, пропускаем график: {exc}")
         return
+
+    if not show:
+        # Бэкенд выбирается до создания фигуры; Agg не требует дисплея вовсе.
+        matplotlib.use("Agg", force=True)
 
     labels = [r.mode for r in reports]
     values = [r.coverage_pct * 100 for r in reports]
@@ -170,11 +192,27 @@ def plot_coverage_bar(reports: List[CoverageReport]):
         ax.text(bar.get_x() + bar.get_width() / 2, value + 1, f"{value:.1f}%", ha="center", va="bottom")
 
     plt.tight_layout()
-    plt.show()
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    target = OUTPUT_DIR / "global_vs_per_zone_coverage.png"
+    fig.savefig(target, dpi=150, bbox_inches="tight")
+    print(f"График сохранён: {target}")
+
+    if show:
+        plt.show()
+    plt.close(fig)
 
 
-def main():
+def main(argv: List[str] | None = None):
     """Точка входа для демонстрации."""
+
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser.add_argument(
+        "--show", action="store_true",
+        help="открыть окно с графиком (блокирует процесс до его закрытия); "
+             "без флага график только сохраняется в файл",
+    )
+    args = parser.parse_args(argv)
 
     setup_logging(console_level="WARNING", file_level="ERROR", log_to_file=False, use_colors=False, reset_loggers=True)
 
@@ -198,7 +236,7 @@ def main():
     preview_global_swings(global_result.zones)
 
     print("\nСтроим диаграмму различий ...")
-    plot_coverage_bar([per_zone_report, global_report])
+    plot_coverage_bar([per_zone_report, global_report], show=args.show)
 
 
 if __name__ == "__main__":
