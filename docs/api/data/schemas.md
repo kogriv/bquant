@@ -8,7 +8,7 @@
 
 - `OHLCVRecord` — запись OHLCV (timestamp, open, high, low, close, volume) с методом `validate()`
 - `DataSourceConfig` — описание источника данных (паттерн файлов, маппинги таймфреймов, провайдеры котировок)
-- `ValidationResult` — результат валидации (is_valid, issues, warnings, stats, recommendations)
+- `DataValidationResult` — результат валидации (is_valid, issues, warnings, stats, recommendations)
 - `DataSchema` — базовый класс схем: поля, типы, правила, `validate_dataframe(df)`
 - `OHLCVSchema(DataSchema)` — схема для OHLCV
 - `IndicatorSchema(DataSchema)` — схема для индикаторов (`macd`, `rsi`, `bollinger_bands`).
@@ -26,7 +26,7 @@
 ## Функции
 
 - `get_schema(name) -> Optional[DataSchema]`
-- `validate_with_schema(df, schema_name) -> ValidationResult`
+- `validate_with_schema(df, schema_name) -> DataValidationResult`
 
 ## Пример
 

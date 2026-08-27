@@ -54,7 +54,7 @@ from .utils import (
     convert_to_list_of_dicts,
     validate_data_integrity,
     get_data_sample,
-    get_data_info,
+    get_records_statistics,
     compare_datasets
 )
 from .generator import SampleDataGenerator
@@ -276,7 +276,7 @@ def get_data_statistics(dataset_name: str) -> Dict[str, Any]:
     
     try:
         embedded_data = load_embedded_data(dataset_name)
-        stats = get_data_info(embedded_data['DATA'], dataset_name)
+        stats = get_records_statistics(embedded_data['DATA'], dataset_name)
         
         logger.debug(f"Retrieved statistics for {dataset_name}")
         return stats

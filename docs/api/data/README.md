@@ -48,7 +48,7 @@ Data модули обеспечивают работу с финансовым�
 ### 📋 [bquant.data.schemas](schemas.md) — Схемы данных
 - `OHLCVRecord` — Dataclass для OHLCV записи с валидацией
 - `DataSourceConfig` — конфигурация источника данных
-- `ValidationResult` — результат валидации (как структура данных)
+- `DataValidationResult` — результат валидации (как структура данных)
 - `DataSchema` / `OHLCVSchema` / `IndicatorSchema` — базовые схемы
 - Предопределенные схемы: `OHLCV_SCHEMA`, `MACD_SCHEMA`, `RSI_SCHEMA`
 - `get_schema()` / `validate_with_schema()` — функции работы со схемами (пока stub)
@@ -91,7 +91,7 @@ Data модули обеспечивают работу с финансовым�
 ### По типу
 
 #### 🏗️ Классы/структуры
-- `OHLCVRecord`, `DataSourceConfig`, `ValidationResult`, `SampleDataGenerator`
+- `OHLCVRecord`, `DataSourceConfig`, `DataValidationResult`, `SampleDataGenerator`
 
 #### 🔧 Функции
 - `load_ohlcv_data()`, `clean_ohlcv_data()`, `validate_ohlcv_data()`, `get_sample_data()`

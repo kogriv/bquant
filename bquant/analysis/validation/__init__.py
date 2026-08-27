@@ -9,12 +9,12 @@ Provides tools for validating trading strategies and models:
 """
 
 from .suite import (
-    ValidationResult,
+    ModelValidationResult,
     ValidationSuite
 )
 
 __all__ = [
-    'ValidationResult',
+    'ModelValidationResult',
     'ValidationSuite'
 ]
 

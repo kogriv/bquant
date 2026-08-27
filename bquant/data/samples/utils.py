@@ -270,7 +270,7 @@ def get_data_sample(data: List[Dict[str, Any]], n: int = 5) -> List[Dict[str, An
     return data[:n] if data else []
 
 
-def get_data_info(data: List[Dict[str, Any]], dataset_name: str) -> Dict[str, Any]:
+def get_records_statistics(data: List[Dict[str, Any]], dataset_name: str) -> Dict[str, Any]:
     """
     Получить статистическую информацию о данных.
     
@@ -399,6 +399,6 @@ __all__ = [
     'convert_to_list_of_dicts',
     'validate_data_integrity',
     'get_data_sample',
-    'get_data_info',
+    'get_records_statistics',
     'compare_datasets'
 ]

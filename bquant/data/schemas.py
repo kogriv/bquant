@@ -77,7 +77,7 @@ class DataSourceConfig:
 
 
 @dataclass
-class ValidationResult:
+class DataValidationResult:
     """
     Result of data validation.
     
@@ -115,7 +115,7 @@ class DataSchema:
         self.field_types = {}
         self.validation_rules = {}
     
-    def validate_dataframe(self, df: pd.DataFrame) -> ValidationResult:
+    def validate_dataframe(self, df: pd.DataFrame) -> DataValidationResult:
         """
         Validate DataFrame against schema.
         
@@ -123,13 +123,13 @@ class DataSchema:
             df: DataFrame to validate
         
         Returns:
-            ValidationResult object
+            DataValidationResult object
             
         Note:
             This is a placeholder implementation.
         """
         # Placeholder implementation
-        return ValidationResult(
+        return DataValidationResult(
             is_valid=True,
             issues=[],
             warnings=[],
@@ -269,7 +269,7 @@ def get_schema(schema_name: str) -> Optional[DataSchema]:
     return AVAILABLE_SCHEMAS.get(schema_name)
 
 
-def validate_with_schema(df: pd.DataFrame, schema_name: str) -> ValidationResult:
+def validate_with_schema(df: pd.DataFrame, schema_name: str) -> DataValidationResult:
     """
     Validate DataFrame with predefined schema.
     
@@ -278,11 +278,11 @@ def validate_with_schema(df: pd.DataFrame, schema_name: str) -> ValidationResult
         schema_name: Name of the schema to use
     
     Returns:
-        ValidationResult object
+        DataValidationResult object
     """
     schema = get_schema(schema_name)
     if schema is None:
-        return ValidationResult(
+        return DataValidationResult(
             is_valid=False,
             issues=[f"Schema '{schema_name}' not found"],
             warnings=[],
@@ -297,7 +297,7 @@ def validate_with_schema(df: pd.DataFrame, schema_name: str) -> ValidationResult
 __all__ = [
     'OHLCVRecord',
     'DataSourceConfig',
-    'ValidationResult',
+    'DataValidationResult',
     'DataSchema',
     'OHLCVSchema',
     'IndicatorSchema',

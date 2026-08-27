@@ -25,7 +25,7 @@ from bquant.data.validator import (
     validate_time_series_continuity, validate_statistical_properties
 )
 from bquant.data.schemas import (
-    OHLCVRecord, DataSourceConfig, ValidationResult, DataSchema
+    OHLCVRecord, DataSourceConfig, DataValidationResult, DataSchema
 )
 
 
@@ -245,8 +245,8 @@ def test_data_schemas_module():
     
     print("[OK] DataSourceConfig создается корректно")
     
-    # Тест ValidationResult
-    result = ValidationResult(
+    # Тест DataValidationResult
+    result = DataValidationResult(
         is_valid=True,
         issues=[],
         warnings=["Test warning"],
@@ -256,7 +256,7 @@ def test_data_schemas_module():
     assert result.is_valid is True
     assert len(result.warnings) == 1
     
-    print("[OK] ValidationResult создается корректно")
+    print("[OK] DataValidationResult создается корректно")
     
     # Тест DataSchema
     schema = DataSchema("ohlcv")

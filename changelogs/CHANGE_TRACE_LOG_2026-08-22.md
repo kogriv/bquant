@@ -412,3 +412,18 @@
 [not_included] [Technical] Проверено исполнением: **все 11 примеров** и **все 24 скрипта** в `research/notebooks/` отрабатывают с кодом 0
 [not_included] [Technical] Замечание про кэш: `CACHE_VERSION` защищает между версиями, но не внутри одной — правка детектора, сделанная после прогона сьюта на том же номере версии, читалась из кэша и дала ложное падение. Лечится `get_cache_manager().clear()`; на релизном пути не проявляется
 [not_included] [Technical] Сьют **1520 passed, 3 skipped** (+1: разделённый тест примыкания и +14 новых минус 13 снятых утверждений о снятых параметрах)
+
+==================== COMMIT DIVIDER ====================
+
+[G22: последние три тёзки разведены, гэп закрыт]
+
+[not_included] [Technical] Остаток от правки 2026-08-24: `IndicatorConfig`/`IndicatorSpec` и `VisualizationError` были разведены тогда, три настоящие тёзки остались в `KNOWN_COLLISIONS` с причиной
+[included] [Changed] bquant/analysis/validation/{suite,__init__}.py, bquant/data/{schemas,__init__}.py — `ValidationResult` был **двумя несвязанными dataclass'ами**: результат валидации модели (`validation_type`, `train_metrics`, `test_metrics`, `degradation_pct`) и результат валидации данных (`is_valid`, `issues`, `warnings`, `stats`, `recommendations`). Переименованы **оба** → `ModelValidationResult` / `DataValidationResult`. Ни один не имел прав на голое имя; оставить его за одним значило бы пригласить ту же путаницу при появлении третьего — в отличие от `IndicatorConfig`, где владелец имени был очевиден
+[included] [Changed] bquant/data/samples/{utils,__init__}.py — `get_data_info` описывал то кадр (`data.loader`, аргумент `pd.DataFrame`), то встроенный набор записей (`data.samples.utils`, аргументы `List[Dict]` + имя датасета). Версия из `samples` стала `get_records_statistics`; за `data.loader` имя осталось
+[included] [Removed] **bquant/ml/ удалён целиком.** Пакет экспортировал две публичные функции, `extract_zone_features` (тёзка настоящей) и `classify_zones`, каждая из которых немедленно бросала `NotImplementedError`. Это обещание API без покрытия: импорт проходит, ошибка приходит в момент вызова. Отсутствующий модуль честнее — `ImportError` приходит сразу. Ни одна строка репозитория его не импортировала
+[included] [Changed] tests/, examples/, research/notebooks/, docs/ — 8 файлов; какое из двух имён имелось в виду, определялось тем, из какого модуля оно импортировалось
+[included] [Added] tests/unit/test_public_name_collisions.py — `RESOLVED_COLLISIONS` и два теста: разведённое имя не должно снова начать означать разное (сравниваются **объекты**, а не число модулей: ре-экспорт того же объекта из пакета коллизией не является), и `bquant.ml` не должен вернуться. `KNOWN_COLLISIONS` сократился до двух легитимных обёрток с мягкой деградацией
+[included] [Changed] devref/gaps/gap_inventory_2026-07.md — **G22 закрыт**
+[not_included] [Technical] Проверено запуском: все 11 примеров и все 24 рисёрч-скрипта отрабатывают с кодом 0
+[not_included] [Technical] Сьют **1536 passed, 3 skipped**
+[not_included] [Technical] Найдено попутно, **не чинилось**: `tests/performance/test_swing_performance.py::test_benchmark_global_vs_perzone` утверждает отношение времён (`ratio <= 1.5`) и под нагрузкой полного прогона падает через раз — на этой правке упал один раз из двух прогонов подряд, при одиночном запуске проходит всегда. Ни к G21, ни к G22 отношения не имеет (свинг-стратегий правка не касалась), но тест, падающий случайно, приучает игнорировать падения. Отдельная работа

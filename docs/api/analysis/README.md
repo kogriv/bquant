@@ -32,7 +32,7 @@ Analysis модули содержат инструменты для стати�
 - **ZoneRegressionAnalyzer** - OLS regression for duration and return prediction
 - **RegressionResult** - Regression model results with diagnostics
 - **ValidationSuite** - 4 validation methods (out-of-sample, walk-forward, sensitivity, monte-carlo)
-- **ValidationResult** - Validation test results
+- **ModelValidationResult** - Validation test results
 
 ### 📊 [bquant.analysis.zones](zones.md) - Universal Zone Analysis Pipeline v2.1
 

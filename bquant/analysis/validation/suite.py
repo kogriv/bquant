@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class ValidationResult:
+class ModelValidationResult:
     """
     Result of a validation test.
     
@@ -82,7 +82,7 @@ class ValidationSuite:
                           analyze_func: Callable,
                           data: pd.DataFrame,
                           train_ratio: float = 0.7,
-                          metric_key: str = 'total_zones') -> ValidationResult:
+                          metric_key: str = 'total_zones') -> ModelValidationResult:
         """
         Out-of-sample validation using train/test split.
         
@@ -93,7 +93,7 @@ class ValidationSuite:
             metric_key: Key metric to track for degradation
         
         Returns:
-            ValidationResult with train/test comparison
+            ModelValidationResult with train/test comparison
         """
         self.logger.info(f"Running out-of-sample test with train_ratio={train_ratio}")
         
@@ -139,7 +139,7 @@ class ValidationSuite:
                 'timestamp': datetime.now().isoformat()
             }
             
-            result = ValidationResult(
+            result = ModelValidationResult(
                 validation_type='out_of_sample',
                 success=success,
                 train_metrics=train_metrics,
@@ -166,7 +166,7 @@ class ValidationSuite:
                          train_window: int = 1000,
                          test_window: int = 200,
                          step_size: int = 100,
-                         metric_key: str = 'total_zones') -> ValidationResult:
+                         metric_key: str = 'total_zones') -> ModelValidationResult:
         """
         Walk-forward validation using rolling windows.
         
@@ -182,7 +182,7 @@ class ValidationSuite:
             metric_key: Key metric to track
         
         Returns:
-            ValidationResult with results across all iterations
+            ModelValidationResult with results across all iterations
         """
         self.logger.info(
             f"Running walk-forward test: train_window={train_window}, "
@@ -258,7 +258,7 @@ class ValidationSuite:
                 'timestamp': datetime.now().isoformat()
             }
             
-            result = ValidationResult(
+            result = ModelValidationResult(
                 validation_type='walk_forward',
                 success=success,
                 train_metrics={'average': avg_train_metric, 'all': train_results},
@@ -283,7 +283,7 @@ class ValidationSuite:
                            analyze_func: Callable,
                            data: pd.DataFrame,
                            param_ranges: Dict[str, List[Any]],
-                           metric_key: str = 'total_zones') -> ValidationResult:
+                           metric_key: str = 'total_zones') -> ModelValidationResult:
         """
         Sensitivity analysis for parameter variations.
         
@@ -297,7 +297,7 @@ class ValidationSuite:
             metric_key: Key metric to track
         
         Returns:
-            ValidationResult with results for all parameter combinations
+            ModelValidationResult with results for all parameter combinations
         """
         self.logger.info(f"Running sensitivity analysis for {len(param_ranges)} parameters")
         
@@ -375,7 +375,7 @@ class ValidationSuite:
                 'timestamp': datetime.now().isoformat()
             }
             
-            result = ValidationResult(
+            result = ModelValidationResult(
                 validation_type='sensitivity_analysis',
                 success=success,
                 train_metrics={'best': best_result['metrics'], 'worst': worst_result['metrics']},
@@ -401,7 +401,7 @@ class ValidationSuite:
                         data: pd.DataFrame,
                         n_simulations: int = 1000,
                         metric_key: str = 'total_zones',
-                        shuffle_method: str = 'returns') -> ValidationResult:
+                        shuffle_method: str = 'returns') -> ModelValidationResult:
         """
         Monte Carlo test using random data simulations.
         
@@ -419,7 +419,7 @@ class ValidationSuite:
                           'full' - completely random walk
         
         Returns:
-            ValidationResult comparing real vs random data performance
+            ModelValidationResult comparing real vs random data performance
         """
         self.logger.info(f"Running Monte Carlo test with {n_simulations} simulations")
         
@@ -484,7 +484,7 @@ class ValidationSuite:
                 'timestamp': datetime.now().isoformat()
             }
             
-            result = ValidationResult(
+            result = ModelValidationResult(
                 validation_type='monte_carlo',
                 success=success,
                 train_metrics=real_metrics,
@@ -622,12 +622,12 @@ class ValidationSuite:
         
         return synthetic
     
-    def _validate_result(self, result: ValidationResult) -> bool:
+    def _validate_result(self, result: ModelValidationResult) -> bool:
         """
         Validate that result meets success criteria.
         
         Args:
-            result: ValidationResult to check
+            result: ModelValidationResult to check
         
         Returns:
             True if validation successful
@@ -637,7 +637,7 @@ class ValidationSuite:
 
 # Export
 __all__ = [
-    'ValidationResult',
+    'ModelValidationResult',
     'ValidationSuite'
 ]
 

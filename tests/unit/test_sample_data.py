@@ -42,7 +42,7 @@ from bquant.data.samples.utils import (
     convert_to_list_of_dicts,
     validate_data_integrity,
     get_data_sample,
-    get_data_info
+    get_records_statistics
 )
 
 
@@ -338,7 +338,7 @@ class TestSampleDataUtils:
         embedded = load_embedded_data('tv_xauusd_1h')
         data = embedded['DATA']
         
-        info = get_data_info(data, 'tv_xauusd_1h')
+        info = get_records_statistics(data, 'tv_xauusd_1h')
         assert isinstance(info, dict)
         assert 'dataset_name' in info
         assert 'total_records' in info

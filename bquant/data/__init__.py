@@ -37,7 +37,7 @@ from .validator import (
 from .schemas import (
     OHLCVRecord,
     DataSourceConfig,
-    ValidationResult,
+    DataValidationResult,
     DataSchema,
     OHLCVSchema,
     IndicatorSchema,
@@ -76,7 +76,7 @@ __all__ = [
     # Schema classes and functions
     "OHLCVRecord",
     "DataSourceConfig",
-    "ValidationResult",
+    "DataValidationResult",
     "DataSchema",
     "OHLCVSchema",
     "IndicatorSchema",

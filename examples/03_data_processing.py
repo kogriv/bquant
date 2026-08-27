@@ -58,7 +58,7 @@ def create_sample_data(symbol: str, start_date: str, end_date: str,
     data.attrs['symbol'] = symbol
     data.attrs['timeframe'] = timeframe
     return data
-from bquant.data.schemas import OHLCVRecord, DataSourceConfig, ValidationResult
+from bquant.data.schemas import OHLCVRecord, DataSourceConfig, DataValidationResult
 from bquant.core.config import get_data_path, SUPPORTED_TIMEFRAMES
 
 
@@ -429,7 +429,7 @@ def demonstrate_data_schemas():
     print(f"\n3️⃣ Результат валидации:")
     
     try:
-        validation_result = ValidationResult(
+        validation_result = DataValidationResult(
             issues=["Missing data in close column", "Price gaps detected"],
             stats={'total_rows': 1000, 'missing_values': 5, 'outliers': 2},
             recommendations=["Fill missing values", "Review price gaps"]

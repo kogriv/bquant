@@ -11,7 +11,7 @@ import numpy as np
 from typing import Dict, Any
 
 from bquant.analysis.validation import (
-    ValidationResult,
+    ModelValidationResult,
     ValidationSuite
 )
 from bquant.core.exceptions import AnalysisError
@@ -73,11 +73,11 @@ def simple_analyze_func(data: pd.DataFrame) -> Dict[str, Any]:
 
 
 class TestValidationResult:
-    """Tests for ValidationResult dataclass."""
+    """Tests for ModelValidationResult dataclass."""
     
     def test_validation_result_creation(self):
-        """Test creation of ValidationResult."""
-        result = ValidationResult(
+        """Test creation of ModelValidationResult."""
+        result = ModelValidationResult(
             validation_type='out_of_sample',
             success=True,
             train_metrics={'metric': 100},
@@ -92,7 +92,7 @@ class TestValidationResult:
     
     def test_validation_result_to_dict(self):
         """Test conversion to dictionary."""
-        result = ValidationResult(
+        result = ModelValidationResult(
             validation_type='walk_forward',
             success=False,
             train_metrics={'a': 1},
@@ -134,7 +134,7 @@ class TestValidationSuite:
             train_ratio=0.7
         )
         
-        assert isinstance(result, ValidationResult)
+        assert isinstance(result, ModelValidationResult)
         assert result.validation_type == 'out_of_sample'
         assert isinstance(result.success, bool)
         assert result.train_metrics is not None
@@ -178,7 +178,7 @@ class TestValidationSuite:
             step_size=100
         )
         
-        assert isinstance(result, ValidationResult)
+        assert isinstance(result, ModelValidationResult)
         assert result.validation_type == 'walk_forward'
         assert result.iterations > 0
         assert 'iterations_count' in result.metadata
@@ -238,7 +238,7 @@ class TestValidationSuite:
             param_ranges=param_ranges
         )
         
-        assert isinstance(result, ValidationResult)
+        assert isinstance(result, ModelValidationResult)
         assert result.validation_type == 'sensitivity_analysis'
         assert result.iterations == 9  # 3 x 3 combinations
     
@@ -288,7 +288,7 @@ class TestValidationSuite:
             metric_key='total_zones'
         )
         
-        assert isinstance(result, ValidationResult)
+        assert isinstance(result, ModelValidationResult)
         assert result.validation_type == 'monte_carlo'
         assert result.iterations > 0
         assert result.iterations <= 50
@@ -405,7 +405,7 @@ class TestValidationIntegration:
         """Test that all validation methods can run successfully."""
         # Out-of-sample
         oos_result = suite.out_of_sample_test(simple_analyze_func, large_data)
-        assert isinstance(oos_result, ValidationResult)
+        assert isinstance(oos_result, ModelValidationResult)
         
         # Walk-forward
         wf_result = suite.walk_forward_test(
@@ -415,7 +415,7 @@ class TestValidationIntegration:
             test_window=200,
             step_size=200
         )
-        assert isinstance(wf_result, ValidationResult)
+        assert isinstance(wf_result, ModelValidationResult)
         
         # Sensitivity
         def param_func(data, window=10):
@@ -426,7 +426,7 @@ class TestValidationIntegration:
             large_data,
             {'window': [8, 10, 12]}
         )
-        assert isinstance(sens_result, ValidationResult)
+        assert isinstance(sens_result, ModelValidationResult)
         
         # Monte Carlo
         mc_result = suite.monte_carlo_test(
@@ -434,7 +434,7 @@ class TestValidationIntegration:
             large_data.iloc[:500],  # Subset for speed
             n_simulations=20
         )
-        assert isinstance(mc_result, ValidationResult)
+        assert isinstance(mc_result, ModelValidationResult)
         
         # All should have different validation types
         validation_types = {oos_result.validation_type, wf_result.validation_type,

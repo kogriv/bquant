@@ -40,19 +40,30 @@ def _public_modules():
     return modules
 
 
-# Коллизии, известные на 2026-08-24. Список существует, чтобы падать на НОВЫХ,
-# а не чтобы прятать эти: каждая записана с причиной, по которой пока оставлена.
-# Разбор — G22 в devref/gaps/gap_inventory_2026-07.md.
+# Коллизии, известные на 2026-08-27. Список существует, чтобы падать на НОВЫХ,
+# а не чтобы прятать эти: каждая записана с причиной, по которой оставлена.
+# Настоящих тёзок в нём больше нет — остались две легитимные обёртки с мягкой
+# деградацией. Разбор — G22 в devref/gaps/gap_inventory_2026-07.md.
 KNOWN_COLLISIONS = {
     # Обёртки с мягкой деградацией: родительский пакет отдаёт заглушку, если
     # подмодуль недоступен, и делегирует ему, если доступен. Нормальный приём,
     # в сканер попадают лишь потому, что обёртка — отдельный объект функции.
     "get_available_themes": "wrapper in bquant.visualization delegates to .themes",
     "get_dataset_info": "wrapper in bquant.data.samples delegates to .datasets",
-    # Настоящие тёзки — разные функции/классы под одним публичным именем.
-    "ValidationResult": "two unrelated dataclasses: analysis.validation.suite and data.schemas",
-    "get_data_info": "different signatures: data.loader (a frame) vs data.samples.utils (a dataset)",
-    "extract_zone_features": "bquant.ml exports a stub that always raises NotImplementedError",
+}
+
+#: Тёзки, которых больше нет — оставлено, чтобы старое имя не вернулось молча.
+#: ``ValidationResult`` был двумя несвязанными dataclass'ами: результат валидации
+#: **модели** (train/test, walk-forward) и результат валидации **данных** (схема).
+#: Переименованы оба: ни один не имел прав на голое имя, и оставить его за одним
+#: значило бы пригласить ту же путаницу при появлении третьего.
+#: ``get_data_info`` описывал то кадр, то встроенный набор записей.
+#: ``extract_zone_features`` дублировался заглушкой из ``bquant.ml`` — пакет
+#: удалён целиком (обе его функции всегда бросали ``NotImplementedError``).
+RESOLVED_COLLISIONS = {
+    "ValidationResult": ("ModelValidationResult", "DataValidationResult"),
+    "get_data_info": ("get_records_statistics",),
+    "extract_zone_features": (),
 }
 
 
@@ -140,3 +151,40 @@ def test_both_call_their_parameter_dict_parameters():
         assert "params" not in names, (
             f"{cls.__name__} still carries the short spelling alongside the long one"
         )
+
+
+def test_resolved_collisions_do_not_come_back():
+    """Разведённые тёзки не должны снова сойтись под одним именем.
+
+    Список выше — не история ради истории: имя, освобождённое переименованием,
+    легко занять снова, и тогда коллизия вернётся, а `KNOWN_COLLISIONS` будет
+    пуст и спокоен.
+    """
+    exported = {}
+    for module in _public_modules():
+        for name in getattr(module, "__all__", []):
+            exported.setdefault(name, []).append((module.__name__, getattr(module, name, None)))
+
+    for old_name, replacements in RESOLVED_COLLISIONS.items():
+        # Ре-экспорт того же объекта из пакета — не коллизия: имя по-прежнему
+        # означает одно. Считаем **различные** объекты за именем.
+        distinct = {id(obj) for _, obj in exported.get(old_name, [])}
+        assert len(distinct) <= 1, (
+            f"'{old_name}' снова означает разное в "
+            f"{[where for where, _ in exported[old_name]]}; "
+            f"его развели на {replacements or '(имя снято совсем)'}"
+        )
+
+
+def test_the_ml_placeholder_package_is_gone():
+    """Публичный модуль, где всё бросает NotImplementedError, — обещание без покрытия.
+
+    `bquant.ml` экспортировал две функции, каждая из которых немедленно
+    бросала `NotImplementedError`, и одна из них была тёзкой настоящей
+    `extract_zone_features`. Импортирующий узнавал об этом только в момент
+    вызова. Отсутствующий модуль честнее: `ImportError` приходит сразу.
+    """
+    import importlib
+
+    with pytest.raises(ImportError):
+        importlib.import_module("bquant.ml")

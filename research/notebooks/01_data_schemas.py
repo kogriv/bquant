@@ -26,7 +26,7 @@ from bquant.data.samples import get_sample_data
 from bquant.data.schemas import (
     OHLCVRecord,
     DataSourceConfig,
-    ValidationResult,
+    DataValidationResult,
     DataSchema,
     OHLCVSchema,
     IndicatorSchema,
