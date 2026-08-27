@@ -14,11 +14,21 @@ from bquant.indicators.base import IndicatorConfig, IndicatorResult, IndicatorSo
 
 @dataclass
 class FakeZigZagIndicator:
-    """Minimal indicator stub that mimics pandas-ta ZigZag output."""
+    """Minimal indicator stub that mimics pandas-ta ZigZag output.
+
+    ``calls`` records the length of every frame the stub was asked to process.
+    That makes the difference between the two swing scopes **countable** instead
+    of merely timeable: global scope must reach the indicator once for the whole
+    dataset, per-zone scope once per zone. A count is the same on a loaded
+    machine and an idle one, which a stopwatch is not.
+    """
 
     pivot_timestamps: Sequence[pd.Timestamp]
+    calls: list = None
 
     def __post_init__(self) -> None:
+        if self.calls is None:
+            self.calls = []
         self._pivot_set = {pd.Timestamp(ts) for ts in self.pivot_timestamps}
         self._config = IndicatorConfig(
             name="fake_zigzag",
@@ -29,6 +39,7 @@ class FakeZigZagIndicator:
         )
 
     def calculate(self, data: pd.DataFrame) -> IndicatorResult:
+        self.calls.append(len(data))
         values = pd.Series(np.nan, index=data.index, dtype=float)
         closes = data["close"]
         for ts in data.index:
@@ -38,24 +49,31 @@ class FakeZigZagIndicator:
         return IndicatorResult(name="fake_zigzag", data=df, config=self._config)
 
 
-def _make_factory(pivot_timestamps: Sequence[pd.Timestamp]):
+def _make_factory(pivot_timestamps: Sequence[pd.Timestamp], calls: list):
     def _factory(cls, library_name: str, indicator_name: str, **kwargs):  # type: ignore[override]
-        return FakeZigZagIndicator(pivot_timestamps)
+        return FakeZigZagIndicator(pivot_timestamps, calls)
 
     return classmethod(_factory)
 
 
-def use_fake_zigzag_indicator(monkeypatch, pivot_timestamps: Sequence[pd.Timestamp]) -> None:
-    """Patch LibraryManager.create_indicator to return a deterministic stub."""
+def use_fake_zigzag_indicator(monkeypatch, pivot_timestamps: Sequence[pd.Timestamp]) -> list:
+    """Patch LibraryManager.create_indicator to return a deterministic stub.
+
+    Returns the shared call log: one entry per ``calculate`` call, holding the
+    number of bars that call was given. Callers that do not need it can ignore
+    the return value.
+    """
 
     from bquant.indicators import LibraryManager
 
+    calls: list = []
     monkeypatch.setattr(
         LibraryManager,
         "create_indicator",
-        _make_factory(pivot_timestamps),
+        _make_factory(pivot_timestamps, calls),
         raising=False,
     )
+    return calls
 
 
 @contextmanager
@@ -65,7 +83,7 @@ def fake_zigzag_indicator_context(pivot_timestamps: Sequence[pd.Timestamp]):
     from bquant.indicators import LibraryManager
 
     original_create = LibraryManager.create_indicator
-    LibraryManager.create_indicator = _make_factory(pivot_timestamps)
+    LibraryManager.create_indicator = _make_factory(pivot_timestamps, [])
     try:
         yield
     finally:
