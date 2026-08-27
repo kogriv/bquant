@@ -195,7 +195,7 @@ def main():
     result_new = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(**STRATEGY_PROFILE)
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -215,7 +215,6 @@ def main():
     result_preset = analyze_macd_zones(
         df,
         fast=12, slow=26, signal=9,
-        min_duration=2,
         clustering=True
     )  # NOTE: пресет использует встроенные безопасные стратегии
     
@@ -311,7 +310,6 @@ def main():
     # у которого есть схема.
     detector = ZoneDetectionRegistry.get('zero_crossing')
     config = ZoneDetectionConfig(
-        min_duration=2,
         rules={'indicator_col': macd_indicator.get_output_roles()['hist']},
         strategy_name='zero_crossing'
     )

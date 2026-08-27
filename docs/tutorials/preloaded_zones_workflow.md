@@ -39,7 +39,7 @@ df = get_sample_data('tv_xauusd_1h')
 
 preloaded_result = (
     analyze_zones(df)
-    .detect_zones('preloaded', zones_data='expert_zones.csv', time_tolerance='5min', min_duration=2)
+    .detect_zones('preloaded', zones_data='expert_zones.csv', time_tolerance='5min')
     .analyze(clustering=False)
     .build()
 )
@@ -58,7 +58,7 @@ from bquant.analysis.zones.detection.preloaded import load_preloaded_zones
 from bquant.indicators import IndicatorFactory
 
 # 1. Загрузка preloaded зон
-zones = load_preloaded_zones('expert_zones.csv', df, time_tolerance='5min', min_duration=2)
+zones = load_preloaded_zones('expert_zones.csv', df, time_tolerance='5min')
 
 with open('expert_zones.pkl', 'wb') as f:
     pickle.dump(zones, f)
@@ -77,7 +77,7 @@ auto_detector = ZoneDetectionRegistry.get('zero_crossing')
 # Детектор зовётся напрямую, минуя пайплайн, поэтому адресуемся именем колонки:
 # роль в имя колонки превращает пайплайн, у которого есть схема индикатора.
 hist_column = indicator.get_output_roles()['hist']
-auto_config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': hist_column}, min_duration=2)
+auto_config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': hist_column})
 auto_zones = auto_detector.detect_zones(df_with_macd, auto_config)
 auto_analysis = analyzer.analyze_zones(auto_zones, df_with_macd)
 

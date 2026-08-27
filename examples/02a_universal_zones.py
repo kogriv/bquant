@@ -625,7 +625,6 @@ def main():
     # Детектировать зоны
     detector = ZoneDetectionRegistry.get('threshold')
     config = ZoneDetectionConfig(
-        min_duration=2,
         zone_types=['overbought', 'oversold'],
         rules={'indicator_col': 'RSI_14', 'upper_threshold': 55, 'lower_threshold': 45},
         strategy_name='threshold'

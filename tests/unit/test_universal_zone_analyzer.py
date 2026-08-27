@@ -71,7 +71,7 @@ class TestUniversalZoneAnalyzer:
         """Test analyzer with dependency injection."""
         from bquant.analysis.zones.zone_features import ZoneFeaturesAnalyzer
         
-        custom_features = ZoneFeaturesAnalyzer(min_duration=3)
+        custom_features = ZoneFeaturesAnalyzer()
         analyzer = UniversalZoneAnalyzer(features_analyzer=custom_features)
         
         assert analyzer.features is custom_features

@@ -548,9 +548,7 @@ class TestZoneFeaturesAnalyzerIntegration:
         shape_strategy = MockShapeStrategy()
         volume_strategy = MockVolumeStrategy()
         
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=swing_strategy,
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=swing_strategy,
             divergence_strategy=divergence_strategy,
             shape_strategy=shape_strategy,
             volume_strategy=volume_strategy
@@ -570,7 +568,7 @@ class TestZoneFeaturesAnalyzerIntegration:
         from bquant.analysis.zones import ZoneFeaturesAnalyzer
         
         # Create with defaults
-        analyzer = ZoneFeaturesAnalyzer(min_duration=2)
+        analyzer = ZoneFeaturesAnalyzer()
         
         # After Phase 3.2: swing_strategy is ZigZag, shape_strategy is Statistical
         # divergence and volume still None

@@ -34,12 +34,13 @@ def data():
     return get_sample_data("tv_xauusd_1h")
 
 
-def _macd(data, min_duration=2):
+def _macd(data, min_duration=1):
+    # Порог живёт на стадии анализа: детекция возвращает полное мощение (G21 (c)).
     return (
         analyze_zones(data)
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones("zero_crossing", indicator_role="hist", min_duration=min_duration)
-        .analyze(clustering=False)
+        .detect_zones("zero_crossing", indicator_role="hist")
+        .analyze(clustering=False, min_duration=min_duration)
         .with_cache(False)
         .build()
     )
@@ -145,15 +146,41 @@ class TestAdjacency:
             "zones of the same type are being treated as consecutive"
         )
 
-    def test_discarded_transitions_are_reported_not_hidden(self, macd_result):
+    def test_nothing_is_discarded_at_the_default(self, macd_result):
+        """At the default the zones tile the indicator exactly — no gaps at all.
+
+        This is what G21 variant (c) bought: the threshold left detection, so
+        there is nothing to bridge. It is also the stronger statement, because
+        the adjacency machinery is what proves it rather than assumes it.
+        """
         summary = macd_result.sequence_analysis["sequence_summary"]
+        assert summary["adjacency_verified"] is True
+        assert summary["discarded_transitions"] == 0
+        assert summary["bars_missing"] == 0
+        assert summary["total_transitions"] == summary["total_zones"] - 1
+
+    def test_a_requested_filter_is_reported_not_hidden(self, data):
+        """Ask for the filter and the gaps it makes are counted, not bridged."""
+        result = _macd(data, min_duration=2)
+        summary = result.sequence_analysis["sequence_summary"]
+
         assert summary["adjacency_verified"] is True
         assert summary["total_transitions"] + summary["discarded_transitions"] == (
             summary["total_zones"] - 1
         )
         assert summary["discarded_transitions"] > 0, (
-            "the bundled sample has zones dropped by the default min_duration; if "
-            "this is zero the adjacency check is not running"
+            "min_duration=2 drops zones on the bundled sample; if this is zero "
+            "the adjacency check is not running"
+        )
+
+        # И то же самое — в метаданных результата, а не только в сводке.
+        excluded = result.metadata["duration_filter"]
+        assert excluded["min_duration"] == 2
+        assert excluded["zones_excluded"] > 0
+        assert excluded["zones_analysed"] == summary["total_zones"]
+        # Исключённые зоны никуда не делись: они остаются в result.zones.
+        assert len(result.zones) == (
+            excluded["zones_analysed"] + excluded["zones_excluded"]
         )
 
     def test_markov_counts_match_the_transition_counter(self, macd_result):

@@ -92,7 +92,7 @@ with nb.error_handling("Universal API basics"):
     result_builder = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
+        .detect_zones('zero_crossing', indicator_role='hist')
         .build()
     )
     time_builder = time.time() - start
@@ -104,7 +104,7 @@ with nb.error_handling("Universal API basics"):
     nb.substep("2.2: Convenience Preset")
     
     start = time.time()
-    result_preset = analyze_macd_zones(df, fast=12, slow=26, signal=9, min_duration=2)
+    result_preset = analyze_macd_zones(df, fast=12, slow=26, signal=9)
     time_preset = time.time() - start
     
     nb.success(f"Preset: {len(result_preset.zones)} зон за {time_preset:.3f} сек")
@@ -210,10 +210,12 @@ with nb.error_handling("min_duration sensitivity"):
         nb.log(f"  min_duration={min_dur:2d}: {len(result.zones):3d} зон")
     
     nb.info("Вывод:")
-    nb.log(f"  min_duration=1: {duration_results[1]} зон (много шума)")
-    nb.log(f"  min_duration=2: {duration_results[2]} зон (оптимально)")
+    nb.log(f"  min_duration=1: {duration_results[1]} зон — точное мощение, ничего не теряется")
+    nb.log(f"  min_duration=2: {duration_results[2]} зон (прежний дефолт, ничем не обоснованный)")
     nb.log(f"  min_duration=10: {duration_results[10]} зон (только длинные)")
-    nb.log("  Правило: Больше min_duration → меньше зон, выше качество")
+    nb.log("  Правило: больше min_duration → меньше зон в агрегатах и больше")
+    nb.log("  разрывов между ними. Отсев виден в result.metadata['duration_filter'];")
+    nb.log("  сами зоны остаются в result.zones при любом пороге.")
 
 nb.wait()
 
@@ -234,7 +236,7 @@ with nb.error_handling("MACD full analysis"):
     result_macd_full = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
+        .detect_zones('zero_crossing', indicator_role='hist')
         .with_strategies(swing='find_peaks', shape='statistical')  # v2.1 (fix 21.10.2025)
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -870,8 +872,8 @@ with nb.error_handling("No zones"):
     res_none = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('threshold', indicator_role='hist', upper_threshold=100, lower_threshold=-100, min_duration=999)
-        .analyze(clustering=False)
+        .detect_zones('threshold', indicator_role='hist', upper_threshold=100, lower_threshold=-100)
+        .analyze(clustering=False, min_duration=999)
         .build()
     )
     nb.log(f"  No zones case: {len(res_none.zones)} zones")
@@ -896,7 +898,8 @@ with nb.error_handling("Invalid params", critical=False):
         res_invalid = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_role='hist', min_duration=-5)
+            .detect_zones('zero_crossing', indicator_role='hist')
+            .analyze(min_duration=-5)
             .build()
         )
         nb.log(f"  Invalid params zones: {len(res_invalid.zones)}")

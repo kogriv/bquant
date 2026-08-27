@@ -184,7 +184,7 @@ class TestZoneFeaturesAnalyzer:
     @pytest.fixture
     def analyzer(self):
         """Создание анализатора характеристик зон."""
-        return ZoneFeaturesAnalyzer(min_duration=5, min_amplitude=0.001)
+        return ZoneFeaturesAnalyzer()
     
     @pytest.fixture
     def test_zone_info(self):
@@ -192,9 +192,16 @@ class TestZoneFeaturesAnalyzer:
         return create_test_zone_info('bull', 20)
     
     def test_analyzer_initialization(self, analyzer):
-        """Тест инициализации анализатора."""
-        assert analyzer.min_duration == 5
-        assert analyzer.min_amplitude == 0.001
+        """Анализатор больше не держит порогов — только стратегии.
+
+        ``min_duration`` был вторым фильтром длительности (первый стоял в
+        детекции) и уносил зону в предупреждение лога; ``min_amplitude`` не
+        участвовал ни в одном вычислении. Порог длительности задаётся на стадии
+        анализа и сообщает о себе в ``metadata['duration_filter']``.
+        """
+        assert not hasattr(analyzer, 'min_duration')
+        assert not hasattr(analyzer, 'min_amplitude')
+        assert analyzer.swing_strategy is not None
     
     def test_extract_zone_features(self, analyzer, test_zone_info):
         """Тест извлечения характеристик зоны."""
@@ -264,12 +271,17 @@ class TestZoneFeaturesAnalyzer:
     
     def test_error_handling(self, analyzer):
         """Тест обработки ошибок."""
-        # Тест с недостаточной длительностью
-        short_zone_info = create_test_zone_info('bull', 2)  # Меньше min_duration=5
-        
+        # Короткая зона — это зона, а не ошибка: её измеряют и отдают.
+        short_zone_info = create_test_zone_info('bull', 2)
+        features = analyzer.extract_zone_features(short_zone_info)
+        assert features.duration == 2
+
+        # Зона без баров измерению не поддаётся.
+        empty_zone_info = create_test_zone_info('bull', 20)
+        empty_zone_info['data'] = empty_zone_info['data'].iloc[0:0]
         with pytest.raises(AnalysisError):
-            analyzer.extract_zone_features(short_zone_info)
-        
+            analyzer.extract_zone_features(empty_zone_info)
+
         # Тест с пустым списком зон
         with pytest.raises(AnalysisError):
             analyzer.analyze_zones_distribution([])

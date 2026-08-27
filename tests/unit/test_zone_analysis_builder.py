@@ -22,8 +22,8 @@ def _empty_dataframe() -> pd.DataFrame:
 
 def test_with_strategies_rejects_multiple_swing_strategies():
     builder = ZoneAnalysisBuilder(_empty_dataframe())
-    config = ZoneDetectionConfig(strategy_name="preloaded", rules={}, min_duration=1)
-    builder.detect_zones(config.strategy_name, min_duration=config.min_duration, **config.rules)
+    config = ZoneDetectionConfig(strategy_name="preloaded", rules={})
+    builder.detect_zones(config.strategy_name, **config.rules)
 
     with pytest.raises(ValueError, match="Only one swing strategy is supported"):
         builder.with_strategies(swing=["zigzag", "find_peaks"])

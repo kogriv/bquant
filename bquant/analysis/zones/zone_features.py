@@ -127,9 +127,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
     Поддерживает расширяемую архитектуру метрик через Strategy Pattern (Phase 3.0+).
     """
     
-    def __init__(self, 
-                 min_duration: int = 2, 
-                 min_amplitude: float = 0.001,
+    def __init__(self,
                  swing_strategy=None,
                  divergence_strategy=None,
                  shape_strategy=None,
@@ -137,24 +135,27 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                  volatility_strategy=None):
         """
         Инициализация анализатора.
-        
+
         Args:
-            min_duration: Минимальная длительность зоны
-            min_amplitude: Минимальная амплитуда для значимой зоны
             swing_strategy: Стратегия расчета свингов (по умолчанию из config)
             divergence_strategy: Стратегия расчета дивергенций (по умолчанию из config)
             shape_strategy: Стратегия расчета формы (по умолчанию из config)
             volume_strategy: Стратегия расчета объема (по умолчанию из config)
             volatility_strategy: Стратегия расчета волатильности (по умолчанию из config)
-        
+
         Note:
             Стратегии по умолчанию загружаются из ANALYSIS_CONFIG['zone_features'].
             Если стратегия не указана и не настроена в config, используется None.
+
+            Здесь больше нет ``min_duration`` и ``min_amplitude``. Первый был
+            **вторым** фильтром длительности — короткую зону он не пропускал, а
+            вызывающий узнавал об этом из предупреждения в логе; отсев коротких
+            зон стал явным параметром стадии анализа. Второй не использовался
+            нигде: он хранился, логировался и попадал в метаданные результата,
+            но ни одной величины не менял.
         """
         super().__init__("ZoneFeaturesAnalyzer")
-        self.min_duration = min_duration
-        self.min_amplitude = min_amplitude
-        
+
         # v2.1: Стратегии через фабрики (support string names from Builder API)
         # Factory converts string names to strategy instances
         self.swing_strategy = create_swing_strategy(swing_strategy)
@@ -174,8 +175,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         }
         
         self.logger.info(
-            f"Initialized zone features analyzer with min_duration={min_duration}, "
-            f"min_amplitude={min_amplitude}, strategies={strategy_info}"
+            f"Initialized zone features analyzer with strategies={strategy_info}"
         )
     
     def extract_zone_features(self, zone_info: Dict[str, Any]) -> ZoneFeatures:
@@ -211,9 +211,11 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             signal_line = indicator_context.get('signal_line')
             column_schema = zone_info.get('column_schema')
             
-            if len(data) < self.min_duration:
-                raise AnalysisError(f"Zone duration {len(data)} is less than minimum {self.min_duration}")
-            
+            if len(data) == 0:
+                raise AnalysisError(
+                    f"Zone {zone_id} carries no bars; nothing to measure"
+                )
+
             # Базовые характеристики
             start_price = float(data['close'].iloc[0])
             end_price = float(data['close'].iloc[-1])
@@ -592,31 +594,52 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 угадывают имя колонки по подстроке.
         
         Returns:
-            List[ZoneFeatures]: Список признаков для каждой зоны
-            
+            List[ZoneFeatures] длиной **ровно** ``len(zones)``: элемент ``i``
+            соответствует ``zones[i]``, а ``None`` на его месте означает, что
+            измерить зону не удалось.
+
+            Раньше метод возвращал только удачи, из-за чего вызывающий
+            (:meth:`UniversalZoneAnalyzer.analyze_zones`) сшивал зоны с
+            признаками через ``zip`` **по позиции** — и после первой же неудачи
+            каждая следующая зона получала признаки чужой. Это не гипотеза:
+            при ``min_duration=1`` на встроенном сэмпле 66 зон из 83 несли
+            чужие числа, и результат при этом выглядел совершенно нормально.
+            Выравнивание по позиции — свойство контракта, а не забота
+            вызывающего.
+
         Example:
             from bquant.analysis.zones.models import ZoneInfo
-            
+
             # zones - это List[ZoneInfo] из detection стратегии
             analyzer = ZoneFeaturesAnalyzer()
             features = analyzer.extract_all_zones_features(zones)
+            measured = [f for f in features if f is not None]
         """
-        features_list = []
-        
+        features_list: List[Optional[ZoneFeatures]] = []
+        failures: List[str] = []
+
         for zone in zones:
             try:
                 # Конвертируем ZoneInfo в формат для extract_zone_features
                 zone_dict = zone.to_analyzer_format()
                 if column_schema is not None:
                     zone_dict['column_schema'] = column_schema
-                features = self.extract_zone_features(zone_dict)
-                features_list.append(features)
+                features_list.append(self.extract_zone_features(zone_dict))
             except Exception as e:
-                self.logger.warning(f"Failed to extract features for zone {zone.zone_id}: {e}")
-                continue
-        
-        self.logger.info(f"Extracted features for {len(features_list)}/{len(zones)} zones")
-        
+                features_list.append(None)
+                failures.append(f"{zone.zone_id}: {e}")
+
+        if failures:
+            self.logger.warning(
+                "Could not measure %d of %d zones; they are reported as "
+                "unmeasured rather than dropped. First few: %s",
+                len(failures), len(zones), "; ".join(failures[:3]),
+            )
+
+        self.logger.info(
+            f"Extracted features for {len(zones) - len(failures)}/{len(zones)} zones"
+        )
+
         return features_list
     
     def analyze_zones_distribution(self, zones_features: List[Union[ZoneFeatures, Dict[str, Any]]]) -> AnalysisResult:
@@ -717,8 +740,6 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             metadata = {
                 'analyzer': 'ZoneFeaturesAnalyzer',
                 'analysis_method': 'zones_distribution',
-                'min_duration': self.min_duration,
-                'min_amplitude': self.min_amplitude,
                 'timestamp': datetime.now().isoformat()
             }
             
@@ -914,40 +935,34 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
 
 
 # Удобные функции для быстрого использования
-def analyze_zones_distribution(zones_features: List[Union[ZoneFeatures, Dict[str, Any]]], 
-                             min_duration: int = 2, 
-                             min_amplitude: float = 0.001) -> Dict[str, Any]:
+def analyze_zones_distribution(
+    zones_features: List[Union[ZoneFeatures, Dict[str, Any]]]
+) -> Dict[str, Any]:
     """
-    Анализ распределения зон (совместимость с оригинальным API).
-    
+    Анализ распределения зон.
+
     Args:
         zones_features: Список характеристик зон
-        min_duration: Минимальная длительность зоны
-        min_amplitude: Минимальная амплитуда
-    
+
     Returns:
         Словарь с результатами анализа
     """
-    analyzer = ZoneFeaturesAnalyzer(min_duration=min_duration, min_amplitude=min_amplitude)
+    analyzer = ZoneFeaturesAnalyzer()
     analysis_result = analyzer.analyze_zones_distribution(zones_features)
     return analysis_result.results
 
 
-def extract_zone_features(zone_info: Dict[str, Any], 
-                         min_duration: int = 2, 
-                         min_amplitude: float = 0.001) -> Dict[str, Any]:
+def extract_zone_features(zone_info: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Извлечение признаков зоны (совместимость с оригинальным API).
-    
+    Извлечение признаков одной зоны.
+
     Args:
         zone_info: Информация о зоне
-        min_duration: Минимальная длительность зоны
-        min_amplitude: Минимальная амплитуда
-    
+
     Returns:
         Словарь с характеристиками зоны
     """
-    analyzer = ZoneFeaturesAnalyzer(min_duration=min_duration, min_amplitude=min_amplitude)
+    analyzer = ZoneFeaturesAnalyzer()
     zone_features = analyzer.extract_zone_features(zone_info)
     return zone_features.to_dict()
 

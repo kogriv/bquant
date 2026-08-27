@@ -156,15 +156,10 @@ strategy = create_volume_strategy('standard')
 
 ```python
 ANALYSIS_CONFIG = {
-    'zone_analysis': {
-        'min_duration': 2,
-        'min_amplitude': 0.001,
-        'normalization_method': 'atr',
-        'detection_method': 'sign_change',
-    },
+    # Секции 'zone_analysis' здесь нет, как нет и ключей 'min_duration' /
+    # 'min_amplitude': их не читала ни одна строка пакета. Порог длительности
+    # задаётся явно — `.analyze(min_duration=N)`.
     'zone_features': {
-        'min_duration': 2,
-        'min_amplitude': 0.001,
         'swing_strategy': {
             'type': 'zigzag',
             'params': {'legs': 10, 'deviation': 0.05},

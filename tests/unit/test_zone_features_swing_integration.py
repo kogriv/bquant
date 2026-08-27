@@ -47,7 +47,7 @@ class TestZoneFeaturesSwingIntegration:
     
     def test_analyzer_with_default_swing_strategy(self, sample_zone_info):
         """Test analyzer uses default swing strategy from config."""
-        analyzer = ZoneFeaturesAnalyzer(min_duration=2)
+        analyzer = ZoneFeaturesAnalyzer()
         
         # Default should be ZigZagSwingStrategy
         assert analyzer.swing_strategy is not None
@@ -67,9 +67,7 @@ class TestZoneFeaturesSwingIntegration:
     def test_analyzer_with_explicit_zigzag_strategy(self, sample_zone_info):
         """Test analyzer with explicitly provided ZigZagSwingStrategy."""
         strategy = ZigZagSwingStrategy(legs=5, deviation=0.02)
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=strategy
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -86,9 +84,7 @@ class TestZoneFeaturesSwingIntegration:
     def test_analyzer_with_find_peaks_strategy(self, sample_zone_info):
         """Test analyzer with FindPeaksSwingStrategy."""
         strategy = FindPeaksSwingStrategy(distance=3, min_amplitude_pct=0.01)
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=strategy
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -103,7 +99,7 @@ class TestZoneFeaturesSwingIntegration:
     
     def test_swing_metrics_values_reasonable(self, sample_zones):
         """Test that swing metrics have reasonable values across multiple zones."""
-        analyzer = ZoneFeaturesAnalyzer(min_duration=2)
+        analyzer = ZoneFeaturesAnalyzer()
         
         for zone in sample_zones[:3]:  # Test first 3 zones
             zone_info = {
@@ -128,8 +124,8 @@ class TestZoneFeaturesSwingIntegration:
         strategy1 = ZigZagSwingStrategy(legs=5, deviation=0.02)   # Sensitive
         strategy2 = FindPeaksSwingStrategy(distance=10)  # Less sensitive
         
-        analyzer1 = ZoneFeaturesAnalyzer(min_duration=2, swing_strategy=strategy1)
-        analyzer2 = ZoneFeaturesAnalyzer(min_duration=2, swing_strategy=strategy2)
+        analyzer1 = ZoneFeaturesAnalyzer(swing_strategy=strategy1)
+        analyzer2 = ZoneFeaturesAnalyzer(swing_strategy=strategy2)
         
         features1 = analyzer1.extract_zone_features(sample_zone_info)
         features2 = analyzer2.extract_zone_features(sample_zone_info)

@@ -55,7 +55,6 @@ class ThresholdDetection:
     Example:
         strategy = ThresholdDetection()
         config = ZoneDetectionConfig(
-            min_duration=3,
             zone_types=['overbought', 'oversold'],
             rules={
                 'indicator_col': 'rsi',
@@ -107,14 +106,20 @@ class ThresholdDetection:
             end_idx = boundaries[i + 1] - 1
             duration = end_idx - start_idx + 1
             
-            if duration < config.min_duration:
-                continue
-            
             zone_type = zone_classes[start_idx]
-            
+
+            # `np.empty(dtype=object)` заполняется None, и позиции, где у
+            # индикатора нет значения, ни одному из трёх сравнений не
+            # удовлетворяют — там так и остаётся None. Это не четвёртый тип
+            # зоны, а отсутствие зоны: бар разогрева не «нейтрален», индикатора
+            # на нём просто нет. Пока порог длительности стоял в детекции,
+            # короткий разогрев отсеивался и типа-None никто не видел.
+            if zone_type is None:
+                continue
+
             if not config.accepts(zone_type):
                 continue
-            
+
             zone_data = df.iloc[start_idx:end_idx + 1].copy()
             
             zone = ZoneInfo(

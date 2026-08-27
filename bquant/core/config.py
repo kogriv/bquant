@@ -148,16 +148,15 @@ DEFAULT_INDICATORS = {
 # ============================================================================
 
 # Универсальные параметры анализа
+#
+# Здесь нет секции 'zone_analysis' и нет ключей 'min_duration'/'min_amplitude'
+# в 'zone_features'. Их не читала ни одна строка пакета: значения хранились,
+# логировались и попадали в метаданные результата, но ни одной величины не
+# определяли. Настройка, которая ничего не настраивает, хуже отсутствующей —
+# по ней принимают решения. Порог длительности теперь задаётся явно на стадии
+# анализа (`analyze(min_duration=...)`), а `min_amplitude` не существует.
 ANALYSIS_CONFIG = {
-    'zone_analysis': {
-        'min_duration': 2,
-        'min_amplitude': 0.001,
-        'normalization_method': 'atr',  # 'atr', 'price', 'none'
-        'detection_method': 'sign_change'  # 'sign_change', 'threshold', 'custom'
-    },
     'zone_features': {
-        'min_duration': 2,
-        'min_amplitude': 0.001,
         'swing_strategy': {
             'type': 'zigzag',  # ZigZagSwingStrategy (pandas-ta)
             'params': {

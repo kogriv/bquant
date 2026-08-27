@@ -49,9 +49,7 @@ class TestZoneFeaturesVolumeIntegration:
     def test_analyzer_with_volume_strategy(self, sample_zone_info):
         """Test analyzer with explicitly provided volume strategy."""
         volume_strategy = StandardVolumeStrategy()
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volume_strategy=volume_strategy
+        analyzer = ZoneFeaturesAnalyzer(volume_strategy=volume_strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -68,9 +66,7 @@ class TestZoneFeaturesVolumeIntegration:
     
     def test_volume_metrics_values_reasonable(self, sample_zones):
         """Test that volume metrics have reasonable values across multiple zones."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volume_strategy=StandardVolumeStrategy()
+        analyzer = ZoneFeaturesAnalyzer(volume_strategy=StandardVolumeStrategy()
         )
         
         for zone in sample_zones[:5]:  # Test first 5 zones
@@ -99,9 +95,7 @@ class TestZoneFeaturesVolumeIntegration:
         from bquant.analysis.zones.strategies.divergence import ClassicDivergenceStrategy
         from bquant.analysis.zones.strategies.volatility import CombinedVolatilityStrategy
         
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=ZigZagSwingStrategy(),
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=ZigZagSwingStrategy(),
             divergence_strategy=ClassicDivergenceStrategy(),
             shape_strategy=StatisticalShapeStrategy(),
             volume_strategy=StandardVolumeStrategy(),
@@ -126,9 +120,7 @@ class TestZoneFeaturesVolumeIntegration:
     
     def test_volume_without_baseline(self, sample_zone_info):
         """Test volume analysis without baseline (should still work)."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volume_strategy=StandardVolumeStrategy()
+        analyzer = ZoneFeaturesAnalyzer(volume_strategy=StandardVolumeStrategy()
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -143,9 +135,7 @@ class TestZoneFeaturesVolumeIntegration:
     
     def test_volume_macd_correlation_presence(self, sample_zones):
         """Test volume-indicator correlation is calculated when possible."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volume_strategy=StandardVolumeStrategy()
+        analyzer = ZoneFeaturesAnalyzer(volume_strategy=StandardVolumeStrategy()
         )
         
         corr_calculated = 0

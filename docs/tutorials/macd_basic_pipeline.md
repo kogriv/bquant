@@ -30,7 +30,7 @@ from bquant.analysis.zones import analyze_zones
 result = (
     analyze_zones(raw)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
+    .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
@@ -76,7 +76,12 @@ stats_fig.show()
 > ℹ️ `ZoneVisualizer` автоматически использует Plotly backend и поддерживает экспорт через `write_html()` или `write_image()`.
 
 ## ✅ Лучшие практики
-1. **Фильтрация по длительности** — увеличивайте `min_duration`, если получаете слишком много коротких зон.
+1. **Фильтрация по длительности** — по умолчанию (`min_duration=1`) зоны мостят
+   ряд точно и ничего не теряется. Если коротких зон слишком много для вашей
+   задачи, просите отсев на стадии анализа: `.analyze(min_duration=N)`. Он не
+   удаляет зоны из `result.zones`, а выводит их из агрегатов, и говорит об этом
+   в `result.metadata['duration_filter']` — иначе соседство зон в анализе
+   последовательностей перестаёт быть соседством.
 2. **Контекст индикатора** — сохраняйте `result.zones[i].indicator_context` для трассировки параметров, особенно при нескольких перезапусках pipeline.
 3. **Кэширование** — для больших данных включайте `.with_cache(enable=True, ttl=3600)` до `with_indicator`, чтобы повторные вызовы были быстрее.
 4. **Сохранение артефактов** — используйте `result.save('macd_result.pkl')`, чтобы потом строить графики без пересчёта.

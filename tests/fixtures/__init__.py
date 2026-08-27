@@ -252,11 +252,12 @@ MACD_PARAMS = {
     'signal': 9
 }
 
+# Порог длительности — параметр стадии анализа, а не «настройка зон»; остальные
+# три ключа копировали мёртвую секцию ANALYSIS_CONFIG['zone_analysis'], которую
+# не читала ни одна строка пакета. Здесь остаётся только то, что реально
+# передаётся в анализ.
 ZONE_PARAMS = {
-    'min_duration': 2,
-    'min_amplitude': 0.001,
-    'normalization_method': 'atr',
-    'detection_method': 'sign_change'
+    'min_duration': 1,
 }
 
 PERFORMANCE_THRESHOLDS = {

@@ -83,11 +83,11 @@ def run_zone_analysis(data, swing_scope: str):
             "zero_crossing",
             indicator_role="hist",
             zone_types=["bull", "bear"],
-            min_duration=8,
         )
         .with_strategies(swing="zigzag")
         .with_auto_swing_thresholds(True)
         .with_swing_scope(swing_scope)
+        .analyze(min_duration=8)
         .build()
     )
 

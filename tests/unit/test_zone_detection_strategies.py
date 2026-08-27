@@ -95,7 +95,6 @@ class TestZeroCrossingDetection:
         """Test basic zone detection."""
         strategy = ZeroCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             rules={'indicator_col': 'macd_histogram'},
             strategy_name='zero_crossing'
@@ -135,14 +134,12 @@ class TestZeroCrossingDetection:
         
         # With min_duration=2
         config1 = ZoneDetectionConfig(
-            min_duration=2,
             rules={'indicator_col': 'macd_histogram'}
         )
         zones1 = strategy.detect_zones(sample_data_macd, config1)
         
         # With min_duration=10
         config2 = ZoneDetectionConfig(
-            min_duration=10,
             rules={'indicator_col': 'macd_histogram'}
         )
         zones2 = strategy.detect_zones(sample_data_macd, config2)
@@ -156,7 +153,6 @@ class TestZeroCrossingDetection:
         
         # Only bull zones
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull'],
             rules={'indicator_col': 'macd_histogram'}
         )
@@ -168,7 +164,6 @@ class TestZeroCrossingDetection:
         """Test smoothing option."""
         strategy = ZeroCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             rules={
                 'indicator_col': 'macd_histogram',
                 'smooth_window': 3
@@ -202,7 +197,6 @@ class TestThresholdDetection:
         """Test basic threshold detection."""
         strategy = ThresholdDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['overbought', 'neutral', 'oversold'],
             rules={
                 'indicator_col': 'rsi',
@@ -272,7 +266,6 @@ class TestLineCrossingDetection:
         """Test line crossing detection."""
         strategy = LineCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             rules={
                 'line1_col': 'fast_ma',
@@ -337,7 +330,6 @@ class TestPreloadedZonesDetection:
         """Test loading zones from DataFrame."""
         strategy = PreloadedZonesDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             rules={'zones_data': sample_zones_df},
             strategy_name='preloaded'
         )
@@ -356,7 +348,6 @@ class TestPreloadedZonesDetection:
             
             strategy = PreloadedZonesDetection()
             config = ZoneDetectionConfig(
-                min_duration=2,
                 rules={'zones_data': str(csv_path)},
                 strategy_name='preloaded'
             )
@@ -427,7 +418,6 @@ class TestCombinedRulesDetection:
         ]
         
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull_confirmed'],
             rules={
                 'conditions': conditions,
@@ -450,7 +440,6 @@ class TestCombinedRulesDetection:
         ]
         
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['extreme'],
             rules={
                 'conditions': conditions,
@@ -482,8 +471,10 @@ class TestZoneDetectionConfig:
     def test_config_default_values(self):
         """Test default configuration values."""
         config = ZoneDetectionConfig()
-        
-        assert config.min_duration == 2
+
+        # Порога длительности здесь нет вовсе: детекция обязана вернуть полное
+        # мощение, а отсев коротких зон — параметр стадии анализа (G21 (c)).
+        assert not hasattr(config, 'min_duration')
         # None означает «не фильтровать»: раньше здесь подставлялся словарь
         # MACD-подобных детекторов, из-за чего threshold и combined молча
         # возвращали пустой успешный результат (G19).
@@ -495,14 +486,12 @@ class TestZoneDetectionConfig:
     def test_config_custom_values(self):
         """Test custom configuration."""
         config = ZoneDetectionConfig(
-            min_duration=5,
             zone_types=['overbought', 'oversold'],
             rules={'param1': 'value1'},
             strategy_name='test',
             metadata={'key': 'value'}
         )
         
-        assert config.min_duration == 5
         assert config.zone_types == ['overbought', 'oversold']
         assert config.rules['param1'] == 'value1'
         assert config.strategy_name == 'test'
@@ -551,7 +540,6 @@ class TestIndicatorContextInStrategies:
         """Test ZeroCrossingDetection populates indicator_context."""
         strategy = ZeroCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             rules={'indicator_col': 'macd_hist'}
         )
@@ -570,7 +558,6 @@ class TestIndicatorContextInStrategies:
         """Test ThresholdDetection populates indicator_context."""
         strategy = ThresholdDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['overbought', 'neutral', 'oversold'],
             rules={
                 'indicator_col': 'rsi',
@@ -595,7 +582,6 @@ class TestIndicatorContextInStrategies:
         """Test LineCrossingDetection populates indicator_context with correct mapping."""
         strategy = LineCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             rules={
                 'line1_col': 'ema_12',
@@ -627,7 +613,6 @@ class TestIndicatorContextInStrategies:
         try:
             strategy = PreloadedZonesDetection()
             config = ZoneDetectionConfig(
-                min_duration=2,
                 zone_types=['bull', 'bear'],
                 rules={'zones_data': zones_path}
             )
@@ -655,7 +640,6 @@ class TestIndicatorContextInStrategies:
         ]
         
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['active'],
             rules={
                 'conditions': conditions,
@@ -692,7 +676,6 @@ class TestIndicatorContextInStrategies:
         
         for strategy, rules in strategies_configs:
             config = ZoneDetectionConfig(
-                min_duration=2,
                 zone_types=['bull', 'bear', 'overbought', 'neutral', 'oversold'],
                 rules=rules
             )

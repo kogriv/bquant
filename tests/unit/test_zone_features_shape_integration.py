@@ -47,7 +47,7 @@ class TestZoneFeaturesShapeIntegration:
     
     def test_analyzer_with_default_shape_strategy(self, sample_zone_info):
         """Test analyzer uses default shape strategy from config."""
-        analyzer = ZoneFeaturesAnalyzer(min_duration=2)
+        analyzer = ZoneFeaturesAnalyzer()
         
         # Default should be 'statistical' after Phase 3.2
         assert analyzer.shape_strategy is not None
@@ -68,9 +68,7 @@ class TestZoneFeaturesShapeIntegration:
     def test_analyzer_with_explicit_strategy(self, sample_zone_info):
         """Test analyzer with explicitly provided shape strategy."""
         shape_strategy = StatisticalShapeStrategy(calculate_smoothness=False)
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            shape_strategy=shape_strategy
+        analyzer = ZoneFeaturesAnalyzer(shape_strategy=shape_strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -86,7 +84,7 @@ class TestZoneFeaturesShapeIntegration:
     
     def test_shape_metrics_values_reasonable(self, sample_zones):
         """Test that shape metrics have reasonable values across multiple zones."""
-        analyzer = ZoneFeaturesAnalyzer(min_duration=2)
+        analyzer = ZoneFeaturesAnalyzer()
         
         for zone in sample_zones[:5]:  # Test first 5 zones
             zone_info = {
@@ -114,9 +112,7 @@ class TestZoneFeaturesShapeIntegration:
         swing_strategy = FindPeaksSwingStrategy(distance=3)
         shape_strategy = StatisticalShapeStrategy()
         
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=swing_strategy,
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=swing_strategy,
             shape_strategy=shape_strategy
         )
         

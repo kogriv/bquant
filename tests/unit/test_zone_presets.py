@@ -79,7 +79,6 @@ class TestMACDPreset:
             fast=12,
             slow=26,
             signal=9,
-            min_duration=2,
             clustering=False,
             enable_cache=False
         )
@@ -88,7 +87,7 @@ class TestMACDPreset:
         result_direct = (
             analyze_zones(sample_data)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_role='line', min_duration=2)
+            .detect_zones('zero_crossing', indicator_role='line')
             .analyze(clustering=False)
             .with_cache(enable=False)
             .build()

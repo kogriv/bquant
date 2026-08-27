@@ -256,15 +256,14 @@ class ZeroCrossingDetection:
         signs = np.sign(indicator_values)
         sign_changes = np.where(np.diff(signs) != 0)[0] + 1
 
-        # 5. Создание зон
+        # 5. Создание зон — мостится вся область определения индикатора.
+        #    Порога длительности здесь нет: отсев коротких зон рвёт мощение,
+        #    и соседство зон становится выдумкой. Это фильтр отчётности
+        #    (`.analyze(min_duration=N)`), а не детекции.
         zones = []
         for i in range(len(boundaries) - 1):
             start_idx = boundaries[i]
             end_idx = boundaries[i + 1] - 1
-
-            # Фильтр по min_duration
-            if duration < config.min_duration:
-                continue
 
             # Определение типа зоны
             zone_type = 'bull' if mean_value > 0 else 'bear'
@@ -401,7 +400,6 @@ loaded = ZoneAnalysisResult.load('results/zones.pkl', format='pickle')
 
 ```python
 config = ZoneDetectionConfig(
-    min_duration=2,
     zone_types=['bull', 'bear'],
     # Конфиг собирается напрямую, без пайплайна, поэтому колонка называется
     # именем. Через билдер то же самое пишется как `indicator_role='hist'`.
@@ -421,7 +419,6 @@ config = ZoneDetectionConfig(
 
 ```python
 config = ZoneDetectionConfig(
-    min_duration=3,
     zone_types=['overbought', 'oversold'],
     rules={
         'indicator_col': 'rsi',
@@ -443,7 +440,6 @@ config = ZoneDetectionConfig(
 
 ```python
 config = ZoneDetectionConfig(
-    min_duration=2,
     zone_types=['bull', 'bear'],
     rules={
         'line1_col': 'sma_fast',
@@ -558,7 +554,7 @@ print(f"Найдено зон: {len(result.zones)}")
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist', min_duration=5)
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(
         swing='zigzag',
         shape='statistical',
@@ -616,7 +612,6 @@ from bquant.analysis.zones.detection import ZoneDetectionRegistry, ZoneDetection
 
 detector = ZoneDetectionRegistry.get('zero_crossing')
 config = ZoneDetectionConfig(
-    min_duration=2,
     rules={'indicator_role': 'hist'}
 )
 

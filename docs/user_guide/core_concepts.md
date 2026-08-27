@@ -39,9 +39,11 @@ config = ZoneAnalysisConfig(
     ),
     zone_detection=ZoneDetectionConfig(
         strategy_name='zero_crossing',
-        rules={'indicator_role': 'hist'},
-        min_duration=3
+        rules={'indicator_role': 'hist'}
     ),
+    # Порог длительности — параметр анализа, а не детекции: детекция обязана
+    # вернуть полное мощение, иначе соседство зон становится выдумкой.
+    min_duration=3,
     perform_clustering=True,
     n_clusters=3,
     run_regression=False,

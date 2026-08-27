@@ -50,7 +50,7 @@ result = (
 from bquant.analysis.zones import ZoneDetectionRegistry, ZoneDetectionConfig, UniversalZoneAnalyzer
 
 detector = ZoneDetectionRegistry.get('zero_crossing')
-config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_role': 'hist'}, min_duration=2)
+config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_role': 'hist'})
 zones = detector.detect_zones(df_prepared, config)
 
 analyzer = UniversalZoneAnalyzer()

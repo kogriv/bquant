@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 from typing import List
 
-from .base import ZoneDetectionStrategy, ZoneDetectionConfig
+from .base import ZoneDetectionStrategy, ZoneDetectionConfig, defined_segments
 from .registry import ZoneDetectionRegistry
 from ..models import ZoneInfo, ZoneType
 from bquant.core.logging_config import get_logger
@@ -53,7 +53,6 @@ class ZeroCrossingDetection:
     Example:
         strategy = ZeroCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             rules={'indicator_col': 'macd_12_26_9__hist'}
         )
@@ -74,8 +73,12 @@ class ZeroCrossingDetection:
         2. Опционально сгладить
         3. Найти знаковые переходы (+ -> -, - -> +)
         4. Создать ZoneInfo для каждой зоны
-        5. Отфильтровать по min_duration
-        
+
+        Зоны мостят **область определения** индикатора: между сменами знака нет
+        ничего, что можно было бы не отнести ни к одной зоне, а бары разогрева,
+        где значения ещё нет, не принадлежат никакой. Порог длительности здесь
+        не применяется — он фильтр отчётности, см. :class:`ZoneDetectionConfig`.
+
         Args:
             data: DataFrame с OHLCV + индикаторами
             config: Конфигурация правил детекции
@@ -105,40 +108,51 @@ class ZeroCrossingDetection:
             ).mean().values
             self.logger.debug(f"Applied smoothing: window={smooth_window}")
         
-        # Найти смены знака
-        signs = np.sign(indicator_values)
-        signs[signs == 0] = 1  # 0 считаем как положительное
-        
-        sign_changes = np.where(np.diff(signs) != 0)[0] + 1
-        
-        if len(sign_changes) == 0:
-            self.logger.warning("No zero crossings found")
+        # Мостим область определения индикатора, а не весь кадр: на разогреве
+        # значения нет, и знака у него тоже нет.
+        segments = defined_segments(indicator_values)
+        if not segments:
+            self.logger.warning(
+                "Indicator '%s' has no defined values; no zones", indicator_col
+            )
             return []
-        
-        # Добавить начало и конец
-        boundaries = np.concatenate([[0], sign_changes, [len(df)]])
-        
+
+        undefined_bars = len(df) - sum(stop - start for start, stop in segments)
+        if undefined_bars:
+            self.logger.info(
+                "%d of %d bars carry no value for '%s' (warm-up); they belong "
+                "to no zone.", undefined_bars, len(df), indicator_col
+            )
+
+        # Границы считаются **внутри** каждого сегмента: пара «конец одного —
+        # начало следующего» зоной не является, между ними индикатора нет.
+        spans = []
+        for seg_start, seg_stop in segments:
+            signs = np.sign(indicator_values[seg_start:seg_stop])
+            signs[signs == 0] = 1  # 0 считаем как положительное
+            changes = (np.where(np.diff(signs) != 0)[0] + 1 + seg_start).tolist()
+            edges = [seg_start, *changes, seg_stop]
+            spans.extend(zip(edges, edges[1:]))
+
+        if len(spans) == 1:
+            self.logger.warning("No zero crossings found")
+
         zones = []
-        for i in range(len(boundaries) - 1):
-            start_idx = boundaries[i]
-            end_idx = boundaries[i + 1] - 1
+        for start_idx, stop_idx in spans:
+            end_idx = stop_idx - 1
             duration = end_idx - start_idx + 1
-            
-            # Фильтр по минимальной длительности
-            if duration < config.min_duration:
-                continue
-            
+
             # Определить тип зоны
             zone_mean_value = indicator_values[start_idx:end_idx + 1].mean()
             zone_type = 'bull' if zone_mean_value > 0 else 'bear'
-            
+
             # Фильтр по типам зон
             if not config.accepts(zone_type):
                 continue
-            
+
             # Создать ZoneInfo
             zone_data = df.iloc[start_idx:end_idx + 1].copy()
-            
+
             zone = ZoneInfo(
                 zone_id=len(zones),
                 type=zone_type,
@@ -156,7 +170,7 @@ class ZeroCrossingDetection:
                 }
             )
             zones.append(zone)
-        
+
         self.logger.info(
             f"Detected {len(zones)} zones: "
             f"{sum(1 for z in zones if z.type == 'bull')} bull, "

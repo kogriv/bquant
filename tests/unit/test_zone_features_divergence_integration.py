@@ -48,9 +48,7 @@ class TestZoneFeaturesDivergenceIntegration:
     def test_analyzer_with_divergence_strategy(self, sample_zone_info):
         """Test analyzer with explicitly provided divergence strategy."""
         divergence_strategy = ClassicDivergenceStrategy()
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            divergence_strategy=divergence_strategy
+        analyzer = ZoneFeaturesAnalyzer(divergence_strategy=divergence_strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -67,9 +65,7 @@ class TestZoneFeaturesDivergenceIntegration:
     
     def test_divergence_metrics_values_reasonable(self, sample_zones):
         """Test that divergence metrics have reasonable values across multiple zones."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            divergence_strategy=ClassicDivergenceStrategy()
+        analyzer = ZoneFeaturesAnalyzer(divergence_strategy=ClassicDivergenceStrategy()
         )
         
         for zone in sample_zones[:5]:  # Test first 5 zones
@@ -105,9 +101,7 @@ class TestZoneFeaturesDivergenceIntegration:
         divergence_strategy = ClassicDivergenceStrategy()
         shape_strategy = StatisticalShapeStrategy()
         
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=swing_strategy,
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=swing_strategy,
             divergence_strategy=divergence_strategy,
             shape_strategy=shape_strategy
         )
@@ -126,9 +120,7 @@ class TestZoneFeaturesDivergenceIntegration:
     
     def test_divergence_consistency_across_zones(self, sample_zones):
         """Test divergence detection consistency."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            divergence_strategy=ClassicDivergenceStrategy()
+        analyzer = ZoneFeaturesAnalyzer(divergence_strategy=ClassicDivergenceStrategy()
         )
         
         div_counts = []

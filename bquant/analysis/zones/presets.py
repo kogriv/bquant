@@ -37,7 +37,7 @@ def analyze_macd_zones(df: pd.DataFrame,
                        fast: int = 12,
                        slow: int = 26,
                        signal: int = 9,
-                       min_duration: int = 2,
+                       min_duration: int = 1,
                        zone_types: Optional[list] = None,
                        smooth_window: Optional[int] = None,
                        zone_basis: str = 'line',
@@ -60,7 +60,10 @@ def analyze_macd_zones(df: pd.DataFrame,
         fast: Быстрый период MACD (default: 12)
         slow: Медленный период MACD (default: 26)
         signal: Период сигнальной линии (default: 9)
-        min_duration: Минимальная длительность зоны в барах (default: 2)
+        min_duration: Порог длительности для агрегатов (default: 1 — не
+            отсеивать). Зоны короче остаются в ``result.zones``, но не входят
+            в статистику и последовательности; сколько их — в
+            ``result.metadata['duration_filter']``
         zone_types: Типы зон для анализа (default: ['bull', 'bear'])
         smooth_window: Окно сглаживания для детекции (optional)
         zone_basis: На чём детектировать зону (default: 'line'):
@@ -115,13 +118,13 @@ def analyze_macd_zones(df: pd.DataFrame,
                        signal_period=signal)
         .detect_zones('zero_crossing',
                      indicator_role=indicator_role,
-                     min_duration=min_duration,
                      zone_types=zone_types,
                      smooth_window=smooth_window)
         .analyze(clustering=clustering,
                 n_clusters=n_clusters,
                 regression=regression,
-                validation=validation)
+                validation=validation,
+                min_duration=min_duration)
         .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
     
@@ -132,7 +135,7 @@ def analyze_rsi_zones(df: pd.DataFrame,
                       period: int = 14,
                       upper_threshold: float = 70,
                       lower_threshold: float = 30,
-                      min_duration: int = 2,
+                      min_duration: int = 1,
                       zone_types: Optional[list] = None,
                       clustering: bool = True,
                       n_clusters: int = 3,
@@ -153,7 +156,8 @@ def analyze_rsi_zones(df: pd.DataFrame,
         period: Период RSI (default: 14)
         upper_threshold: Порог перекупленности (default: 70)
         lower_threshold: Порог перепроданности (default: 30)
-        min_duration: Минимальная длительность зоны (default: 2)
+        min_duration: Порог длительности для агрегатов (default: 1 — не
+            отсеивать); см. ``result.metadata['duration_filter']``
         zone_types: Типы зон (default: ['overbought', 'neutral', 'oversold'])
         clustering: Выполнять кластеризацию (default: True)
         n_clusters: Количество кластеров (default: 3)
@@ -186,12 +190,12 @@ def analyze_rsi_zones(df: pd.DataFrame,
                      indicator_col='RSI_14' if period == 14 else f'RSI_{period}',
                      upper_threshold=upper_threshold,
                      lower_threshold=lower_threshold,
-                     min_duration=min_duration,
                      zone_types=zone_types)
         .analyze(clustering=clustering,
                 n_clusters=n_clusters,
                 regression=regression,
-                validation=validation)
+                validation=validation,
+                min_duration=min_duration)
         .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
     
@@ -201,7 +205,7 @@ def analyze_rsi_zones(df: pd.DataFrame,
 def analyze_ao_zones(df: pd.DataFrame,
                      fast: int = 5,
                      slow: int = 34,
-                     min_duration: int = 2,
+                     min_duration: int = 1,
                      zone_types: Optional[list] = None,
                      smooth_window: Optional[int] = None,
                      clustering: bool = True,
@@ -222,7 +226,8 @@ def analyze_ao_zones(df: pd.DataFrame,
         df: DataFrame с OHLCV данными
         fast: Быстрый период (default: 5)
         slow: Медленный период (default: 34)
-        min_duration: Минимальная длительность зоны (default: 2)
+        min_duration: Порог длительности для агрегатов (default: 1 — не
+            отсеивать); см. ``result.metadata['duration_filter']``
         zone_types: Типы зон для анализа (default: ['bull', 'bear'])
         smooth_window: Окно сглаживания для детекции (optional)
         clustering: Выполнять кластеризацию (default: True)
@@ -252,13 +257,13 @@ def analyze_ao_zones(df: pd.DataFrame,
         .with_indicator('pandas_ta', 'ao', fast=fast, slow=slow)
         .detect_zones('zero_crossing',
                      indicator_col=ao_col,
-                     min_duration=min_duration,
                      zone_types=zone_types,
                      smooth_window=smooth_window)
         .analyze(clustering=clustering,
                 n_clusters=n_clusters,
                 regression=regression,
-                validation=validation)
+                validation=validation,
+                min_duration=min_duration)
         .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
     
@@ -267,6 +272,7 @@ def analyze_ao_zones(df: pd.DataFrame,
 
 def analyze_preloaded_zones(df: pd.DataFrame,
                             zones_data: Union[str, Path, pd.DataFrame],
+                            min_duration: int = 1,
                             clustering: bool = True,
                             n_clusters: int = 3,
                             regression: bool = False,
@@ -285,6 +291,8 @@ def analyze_preloaded_zones(df: pd.DataFrame,
         zones_data: Путь к CSV файлу или DataFrame с зонами
             Требуемые колонки: start_time, end_time, type
             Опциональные: zone_id, start_idx, end_idx, duration
+        min_duration: Порог длительности для агрегатов (default: 1 — не
+            отсеивать); см. ``result.metadata['duration_filter']``
         clustering: Выполнять кластеризацию (default: True)
         n_clusters: Количество кластеров (default: 3)
         regression: Запустить регрессионный анализ (default: False)
@@ -315,7 +323,8 @@ def analyze_preloaded_zones(df: pd.DataFrame,
         .analyze(clustering=clustering,
                 n_clusters=n_clusters,
                 regression=regression,
-                validation=validation)
+                validation=validation,
+                min_duration=min_duration)
         .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
     

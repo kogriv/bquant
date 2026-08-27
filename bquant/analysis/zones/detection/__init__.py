@@ -23,7 +23,6 @@ Example:
     
     # Configure detection
     config = ZoneDetectionConfig(
-        min_duration=2,
         zone_types=['bull', 'bear'],
         # Детектор зовут напрямую, минуя пайплайн, поэтому колонка называется
         # именем: роль резолвит пайплайн, у которого есть схема.

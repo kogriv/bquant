@@ -45,9 +45,9 @@ def test_config_module():
     print("[OK] get_indicator_params() возвращает параметры индикатора")
     
     # Тест получения параметров анализа
-    analysis_params = get_analysis_params('zone_analysis')
+    analysis_params = get_analysis_params('zone_features')
     assert isinstance(analysis_params, dict)
-    assert 'min_duration' in analysis_params
+    assert 'swing_strategy' in analysis_params
     
     print("[OK] get_analysis_params() возвращает параметры анализа")
     

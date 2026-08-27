@@ -72,7 +72,10 @@ _SWING_CLASS_TO_NAME = {
 #                 dropped the dead backward-compatibility aliases (G8 C2b-1).
 #   v12 (2026-08): computed columns carry canonical names, slug + role
 #                 (G8 stage C2b-2).
-CACHE_SCHEMA_VERSION = 12
+#   v13 (2026-08): detection returns the complete tiling — the length threshold
+#                 moved out of detection into the aggregates (G21 variant c),
+#                 so v12 results are missing the short zones entirely.
+CACHE_SCHEMA_VERSION = 13
 
 
 @dataclass
@@ -109,6 +112,10 @@ class ZoneAnalysisConfig:
     run_regression: bool = False
     run_validation: bool = False
     swing_scope: Literal["per_zone", "global"] = "global"
+    #: Порог длительности **отчётности**: зоны короче в агрегаты не берутся,
+    #: но остаются в ``result.zones``. ``1`` = не отсеивать. Раньше стоял в
+    #: детекции со значением ``2`` и рвал мощение молча.
+    min_duration: int = 1
 
     def to_cache_key(self) -> str:
         """Serialize configuration into a stable JSON string for caching."""
@@ -131,6 +138,7 @@ class ZoneAnalysisConfig:
             "run_regression": self.run_regression,
             "run_validation": self.run_validation,
             "swing_scope": self.swing_scope,
+            "min_duration": self.min_duration,
             "schema_version": CACHE_SCHEMA_VERSION,
         }
         return json.dumps(payload, sort_keys=True, default=str)
@@ -440,6 +448,7 @@ class ZoneAnalysisPipeline:
             run_regression=self.config.run_regression,
             run_validation=self.config.run_validation,
             column_schema=self.column_schema or None,
+            min_duration=self.config.min_duration,
         )
 
     def _get_cache_wrapper(self) -> Optional[ZoneAnalysisCache]:
@@ -635,6 +644,7 @@ class ZoneAnalysisBuilder:
         self._n_clusters = 3
         self._run_regression = False
         self._run_validation = False
+        self._min_duration = 1
         self._enable_cache = True
         self._cache_ttl = 3600
         # v2.1: Analytical strategies configuration
@@ -663,16 +673,18 @@ class ZoneAnalysisBuilder:
     def detect_zones(
         self,
         strategy: str,
-        min_duration: int = 2,
         zone_types: List[str] = None,
         indicator_role: Optional[str] = None,
         **rules,
     ) -> 'ZoneAnalysisBuilder':
         """Configure zone detection rules.
 
+        There is no ``min_duration`` here any more: detection returns the
+        complete tiling of the timeline, and the length threshold is a
+        **reporting** filter — :meth:`analyze`. See ``devref/gaps/sequence/``.
+
         Args:
             strategy: Registered detection strategy name.
-            min_duration: Minimum zone length in bars.
             zone_types: Restrict the result to these types; ``None`` = no filter.
             indicator_role: Address the series by **role** instead of by column
                 name — ``indicator_role='hist'`` rather than
@@ -698,23 +710,38 @@ class ZoneAnalysisBuilder:
             rules["indicator_role"] = indicator_role
 
         self._zone_detection_config = ZoneDetectionConfig(
-            min_duration=min_duration,
             zone_types=zone_types,
             rules=rules,
             strategy_name=strategy
         )
         return self
-    
+
     def analyze(self,
                clustering: bool = True,
                n_clusters: int = 3,
                regression: bool = False,
-               validation: bool = False) -> 'ZoneAnalysisBuilder':
-        """Toggle optional analysis stages."""
+               validation: bool = False,
+               min_duration: int = 1) -> 'ZoneAnalysisBuilder':
+        """Toggle optional analysis stages.
+
+        Args:
+            clustering: Run zone clustering.
+            n_clusters: Number of clusters to ask for.
+            regression: Run the regression step.
+            validation: Run the validation suite.
+            min_duration: Length threshold for the **aggregates**. Zones shorter
+                than this stay in ``result.zones`` with their features, but are
+                left out of the statistics, hypothesis tests, sequence analysis,
+                clustering and regression; ``result.metadata['duration_filter']``
+                says how many zones and bars that was. ``1`` = keep everything,
+                which is the only setting under which the zones tile the frame
+                exactly.
+        """
         self._perform_clustering = clustering
         self._n_clusters = n_clusters
         self._run_regression = regression
         self._run_validation = validation
+        self._min_duration = min_duration
         return self
     
     def with_strategies(self,
@@ -832,6 +859,7 @@ class ZoneAnalysisBuilder:
             run_regression=self._run_regression,
             run_validation=self._run_validation,
             swing_scope=self._swing_scope,
+            min_duration=self._min_duration,
         )
         
         # ✅ v2.1: Create custom analyzer if strategies are specified

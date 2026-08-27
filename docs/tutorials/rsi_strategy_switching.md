@@ -49,8 +49,8 @@ rsi_data['RSI_signal'] = rsi_data['RSI'].rolling(5, min_periods=1).mean()
 ```python
 rsi_line = (
     analyze_zones(rsi_data)
-    .detect_zones('line_crossing', line1_col='RSI', line2_col='RSI_signal', min_duration=3)
-    .analyze(clustering=True)
+    .detect_zones('line_crossing', line1_col='RSI', line2_col='RSI_signal')
+    .analyze(clustering=True, min_duration=3)
     .build()
 )
 

@@ -99,9 +99,17 @@ class ZoneDetectionStrategy(Protocol):
 class ZoneDetectionConfig:
     """
     Универсальная конфигурация правил определения зон.
-    
+
+    Здесь **нет** ``min_duration``, и это осознанно. Детекция обязана выдавать
+    полное мощение: каждый бар принадлежит ровно одной зоне, зона ``i+1``
+    начинается там, где кончилась зона ``i``. Отбрасывание коротких зон делало
+    из мощения решето — соседи выброшенной зоны переставали примыкать, — а
+    анализ последовательностей читал их как соседей. Порог длительности стал
+    фильтром **отчётности**: его принимает стадия анализа
+    (:meth:`UniversalZoneAnalyzer.analyze_zones`), которая сообщает, что именно
+    исключила. Разбор: ``devref/gaps/sequence/``.
+
     Attributes:
-        min_duration: Минимальная длительность зоны в барах
         zone_types: Типы зон для поиска. ``None`` = **не фильтровать**: стратегия
             отдаёт все типы, которые находит.
 
@@ -119,27 +127,24 @@ class ZoneDetectionConfig:
     Example:
         # MACD zero crossing
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             # Прямой вызов детектора адресуется именем колонки; роль
             # (`rules={'indicator_role': 'hist'}`) резолвит пайплайн по схеме.
             rules={'indicator_col': 'macd_12_26_9__hist'},
             strategy_name='zero_crossing'
         )
-        
+
         # RSI thresholds
         config = ZoneDetectionConfig(
-            min_duration=3,
             zone_types=['overbought', 'oversold'],
             rules={
-                'indicator_col': 'rsi',
+                'indicator_col': 'rsi_14',
                 'upper_threshold': 70,
                 'lower_threshold': 30
             },
             strategy_name='threshold'
         )
     """
-    min_duration: int = 2
     zone_types: Optional[List[str]] = None
     rules: Dict[str, Any] = field(default_factory=dict)
     strategy_name: str = None
@@ -172,10 +177,44 @@ class ZoneDetectionConfig:
             )
 
 
+def defined_segments(values: "np.ndarray") -> List[tuple]:
+    """Полуинтервалы ``[start, stop)``, на которых индикатор **определён**.
+
+    Бар, на котором у индикатора значения нет (разогрев скользящего окна),
+    зоной не является — ни одного типа. Это не придирка: знак ``NaN`` ложен для
+    любого сравнения, поэтому ``mean() > 0`` на разогреве даёт ``False``, и
+    участок, где индикатор ещё не существует, получал уверенную метку ``bear``.
+    Пока порог длительности стоял в детекции, такие короткие участки чаще всего
+    отсеивались и дефект оставался невидимым; теперь детекция обязана вернуть
+    полное мощение, и умолчать об этом больше нельзя.
+
+    Мостится, следовательно, область определения индикатора, а не весь кадр.
+    Бары вне её не принадлежат никакой зоне — и это видно по границам.
+    """
+    import numpy as np
+
+    finite = np.isfinite(np.asarray(values, dtype=float))
+    if not finite.any():
+        return []
+
+    segments = []
+    start = None
+    for position, is_finite in enumerate(finite):
+        if is_finite and start is None:
+            start = position
+        elif not is_finite and start is not None:
+            segments.append((start, position))
+            start = None
+    if start is not None:
+        segments.append((start, len(finite)))
+    return segments
+
+
 # Экспорт
 __all__ = [
     'ZoneDetectionStrategy',
-    'ZoneDetectionConfig'
+    'ZoneDetectionConfig',
+    'defined_segments'
 ]
 
 

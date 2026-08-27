@@ -128,19 +128,20 @@ class UniversalZoneAnalyzer:
         
         self.logger.info("UniversalZoneAnalyzer initialized with DI components")
     
-    def analyze_zones(self, 
+    def analyze_zones(self,
                       zones: List[ZoneInfo],
                       data: pd.DataFrame,
                       perform_clustering: bool = True,
                       n_clusters: int = 3,
                       run_regression: bool = False,
                       run_validation: bool = False,
-                      column_schema: Optional[Any] = None) -> ZoneAnalysisResult:
+                      column_schema: Optional[Any] = None,
+                      min_duration: int = 1) -> ZoneAnalysisResult:
         """
         Анализ готовых зон.
-        
+
         ЧИСТАЯ КООРДИНАЦИЯ - только вызовы делегатов!
-        
+
         Args:
             zones: Список зон для анализа
             data: Исходный DataFrame с OHLCV + индикаторами
@@ -151,25 +152,65 @@ class UniversalZoneAnalyzer:
             column_schema: Отображение ``(индикатор, роль) → колонка``, если оно
                 известно. Извлечение признаков спрашивает по нему роль вместо
                 того, чтобы угадывать имя колонки.
-            
+            min_duration: Порог длительности **отчётности**: зоны короче него в
+                анализ не берутся. ``1`` (по умолчанию) — не отсеивать ничего.
+
+                Раньше этот порог стоял в детекции со значением ``2``, и это
+                молча превращало мощение таймлайна в решето: соседи выброшенной
+                зоны переставали примыкать, а список зон об этом не сообщал.
+                Здесь отсев виден в результате — ``metadata['duration_filter']``
+                называет и порог, и сколько зон и баров он исключил, — а сам
+                отсев запрашивается явно. Значение ``2`` нигде и никогда не было
+                обосновано; на 1000 барах сэмпла оно давало 8 разрывов на
+                флагманском пути, на ~100 тыс. баров H1 — 136 разрывов и 120
+                структурно невозможных соседств одного типа.
+                Разбор: ``devref/gaps/sequence/``.
+
         Returns:
             ZoneAnalysisResult с полными результатами анализа
         """
         if not zones:
             return self._empty_result(data)
-        
+
+        if min_duration < 1:
+            raise ValueError(
+                f"min_duration must be at least 1 (got {min_duration}); "
+                "1 means no filtering"
+            )
+
         self.logger.info(f"Starting analysis of {len(zones)} zones")
-        
+
         # 1. Извлечение признаков (БЕЗ адаптеров!)
-        zones_features = self.features.extract_all_zones_features(
+        #    Результат выровнен по позиции с `zones`; None = зону не измерили.
+        all_features = self.features.extract_all_zones_features(
             zones, column_schema=column_schema
         )
-        
+
         # ✅ v2.1 FIX: Write features back to ZoneInfo for convenient access
         # This makes features immediately available in zone.features dict
-        for zone, features in zip(zones, zones_features):
-            zone.features = features.to_dict()
-        
+        for zone, features in zip(zones, all_features):
+            zone.features = features.to_dict() if features is not None else None
+
+        # 1a. Фильтр отчётности. Он применяется **после** измерения, поэтому
+        #     исключённая зона остаётся полноценной зоной со своими признаками —
+        #     она просто не участвует в агрегатах.
+        duration_filter = self._duration_filter(zones, min_duration)
+        analysed_zones = [
+            zone for zone in zones if zone.duration >= min_duration
+        ]
+        zones_features = [
+            features for zone, features in zip(zones, all_features)
+            if features is not None and zone.duration >= min_duration
+        ]
+        unmeasured = sum(1 for features in all_features if features is None)
+
+        if not zones_features:
+            self.logger.warning(
+                "No zone survived measurement and the duration filter "
+                "(min_duration=%d); returning an empty result", min_duration
+            )
+            return self._empty_result(data)
+
         # 2. Статистический анализ
         statistics = self.features.analyze_zones_distribution([f.to_dict() for f in zones_features])
         
@@ -178,7 +219,7 @@ class UniversalZoneAnalyzer:
         # свойства типа (полярность, контрастную пару), а не сравнивает его имя со
         # строковым литералом — дефект G20.
         from .detection import resolve_vocabulary
-        vocabulary = resolve_vocabulary(zones)
+        vocabulary = resolve_vocabulary(analysed_zones)
         
         # 3. Тестирование гипотез
         hypothesis_tests = self.hypotheses.run_all_tests(
@@ -198,7 +239,7 @@ class UniversalZoneAnalyzer:
         
         # 5. Кластеризация (опционально)
         clustering = None
-        if perform_clustering and len(zones) >= n_clusters:
+        if perform_clustering and len(zones_features) >= n_clusters:
             clustering = self.sequences.cluster_zones(
                 zones_features, n_clusters=n_clusters, vocabulary=vocabulary
             )
@@ -206,7 +247,7 @@ class UniversalZoneAnalyzer:
         
         # 6. Регрессия (опционально)
         regression_results = None
-        if run_regression and self.regression and len(zones) > 10:
+        if run_regression and self.regression and len(zones_features) > 10:
             # Регрессия — необязательный шаг, и её отказ не повод убивать весь
             # анализ: остальные разделы результата от неё не зависят. Но и молчать
             # нельзя — иначе `regression_results is None` неотличимо от «не
@@ -225,7 +266,7 @@ class UniversalZoneAnalyzer:
         
         # 7. Валидация (опционально)
         validation_results = None
-        if run_validation and self.validation and len(zones) > 20:
+        if run_validation and self.validation and len(zones_features) > 20:
             # Валидация требует функцию анализа и DataFrame
             # Это будет реализовано позже в integration тестах
             self.logger.info("Validation requested but not executed (need analyze_func)")
@@ -236,7 +277,9 @@ class UniversalZoneAnalyzer:
             'total_zones': len(zones),
             'zone_types': list(set(z.type for z in zones)),
             'clustering_performed': clustering is not None,
-            'regression_performed': regression_results is not None
+            'regression_performed': regression_results is not None,
+            # Что именно попало в агрегаты, а что осталось только в `zones`.
+            'duration_filter': {**duration_filter, 'zones_unmeasured': unmeasured},
         }
         
         # Добавляем метаданные о данных из df.attrs
@@ -264,13 +307,39 @@ class UniversalZoneAnalyzer:
         )
         
         self.logger.info(
-            f"Analysis complete: {len(zones)} zones, "
-            f"clustering={clustering is not None}, "
+            f"Analysis complete: {len(zones_features)} of {len(zones)} zones "
+            f"aggregated, clustering={clustering is not None}, "
             f"regression={regression_results is not None}"
         )
-        
+
         return result
-    
+
+    def _duration_filter(self, zones: List[ZoneInfo],
+                         min_duration: int) -> Dict[str, Any]:
+        """Что исключит порог длительности — посчитано, а не подразумеваемо.
+
+        Порог применяется к агрегатам, но ``result.zones`` продолжает содержать
+        **все** зоны с их признаками: отчётный фильтр ничего не уничтожает, он
+        сужает выборку, и потребитель видит, насколько.
+        """
+        excluded = [zone for zone in zones if zone.duration < min_duration]
+
+        if excluded:
+            self.logger.info(
+                "Duration filter (min_duration=%d) leaves %d of %d zones out of "
+                "the aggregates (%d bars); they remain in `result.zones`.",
+                min_duration, len(excluded), len(zones),
+                sum(zone.duration for zone in excluded),
+            )
+
+        return {
+            'min_duration': int(min_duration),
+            'zones_analysed': len(zones) - len(excluded),
+            'zones_excluded': len(excluded),
+            'bars_excluded': int(sum(zone.duration for zone in excluded)),
+            'excluded_zone_ids': [zone.zone_id for zone in excluded],
+        }
+
     def _empty_result(self, data: pd.DataFrame) -> ZoneAnalysisResult:
         """Создать пустой результат."""
         self.logger.warning("No zones provided, returning empty result")

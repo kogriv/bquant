@@ -46,10 +46,9 @@ combined_result = (
         conditions=conditions,
         logic='AND',
         zone_type_map={True: 'bull_confirmed', False: 'filtered_out'},
-        zone_types=['bull_confirmed'],
-        min_duration=3
+        zone_types=['bull_confirmed']
     )
-    .analyze(clustering=False)
+    .analyze(clustering=False, min_duration=3)
     .build()
 )
 
@@ -67,7 +66,6 @@ from bquant.analysis.zones.detection import ZoneDetectionConfig, ZoneDetectionRe
 pipeline_df = combined_result.data  # DataFrame с MACD и вспомогательными колонками
 config = ZoneDetectionConfig(
     strategy_name='combined',
-    min_duration=3,
     zone_types=['bull_confirmed', 'filtered_out'],
     rules={
         'conditions': conditions,

@@ -49,7 +49,6 @@ class CombinedRulesDetection:
             lambda df: df['close'] > df['sma_50']
         ]
         config = ZoneDetectionConfig(
-            min_duration=3,
             zone_types=['bull_confirmed'],
             rules={
                 'conditions': conditions,
@@ -118,9 +117,6 @@ class CombinedRulesDetection:
             start_idx = boundaries[i]
             end_idx = boundaries[i + 1] - 1
             duration = end_idx - start_idx + 1
-            
-            if duration < config.min_duration:
-                continue
             
             zone_active = combined[start_idx]
             zone_type = zone_type_map.get(zone_active, f'zone_{zone_active}')

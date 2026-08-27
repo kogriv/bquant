@@ -231,14 +231,14 @@ def main():
     result = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', indicator_role='line', min_duration=3)
+        .detect_zones('zero_crossing', indicator_role='line')
         .with_strategies(
             swing='zigzag',          # pandas_ta ZigZag (автоматически рассчитывает 23 метрики)
             shape='statistical',     # Skewness, Kurtosis
             divergence='classic',    # Classic divergences
             volume='standard',       # Volume analysis
         )
-        .analyze(clustering=True, n_clusters=3)
+        .analyze(clustering=True, n_clusters=3, min_duration=3)
         .build()
     )
 

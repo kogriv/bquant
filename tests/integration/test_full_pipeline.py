@@ -360,12 +360,7 @@ class TestEndToEndWorkflow:
         
         # 2. Настройка анализа
         macd_params = {'fast': 12, 'slow': 26, 'signal': 9}
-        zone_params = {
-            'min_duration': 2,
-            'min_amplitude': 0.001,
-            'normalization_method': 'atr',
-            'detection_method': 'sign_change'
-        }
+        zone_params = {'min_duration': 1}
         
         # 3. Выполнение анализа
         analysis_result = analyze_macd_zones(data, fast=12, slow=26, signal=9)

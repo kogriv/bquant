@@ -47,7 +47,7 @@ from bquant.analysis.zones import analyze_zones
 modern_result = (
     analyze_zones(data)
     .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones("zero_crossing", indicator_role="hist", min_duration=2)
+    .detect_zones("zero_crossing", indicator_role="hist")
     .with_strategies(swing="find_peaks", shape="statistical")
     .analyze(clustering=False)
     .build()
@@ -71,7 +71,7 @@ modern_zones = list(modern_result.zones)
 1. **Замените импорт**: `from bquant.indicators.macd import MACDZoneAnalyzer` → `from bquant.analysis.zones import analyze_zones`.
 2. **Перепишите инициализацию**: вместо `MACDZoneAnalyzer()` используйте `builder = analyze_zones(df)`.
 3. **Передайте параметры индикатора** через `.with_indicator(...)` (используйте те же `fast`, `slow`, `signal`, что и раньше).
-4. **Настройте детекцию**: `.detect_zones("zero_crossing", indicator_role="hist", min_duration=2)` повторяет старую конфигурацию.
+4. **Настройте детекцию**: `.detect_zones("zero_crossing", indicator_role="hist")` повторяет старую конфигурацию.
 5. **Добавьте дополнительные стратегии** (при необходимости) с `.with_strategies(...)` — Example 7 включает swing и shape анализ.
 6. **Финализируйте анализ**: `.analyze(clustering=perform_clustering, n_clusters=3).build()` возвращает `ZoneAnalysisResult`.
 7. **Переиспользуйте пост-обработку**: весь код, который читал `ZoneAnalysisResult` или список зон, продолжает работать без изменений.

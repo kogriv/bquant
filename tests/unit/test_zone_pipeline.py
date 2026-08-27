@@ -301,7 +301,6 @@ class TestZoneAnalysisBuilder:
         result = (
             analyze_zones(sample_data)
             .detect_zones('zero_crossing',
-                         min_duration=2,
                          zone_types=['bull'],
                          indicator_col='macd_hist')
             .analyze(clustering=False)  # Might have < 3 zones after filtering

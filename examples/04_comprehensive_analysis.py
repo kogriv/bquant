@@ -94,12 +94,12 @@ def main():
     result = (
         analyze_zones(df)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-        .detect_zones('zero_crossing', 
-                     indicator_role='line',
-                     min_duration=3)
+        .detect_zones('zero_crossing',
+                     indicator_role='line')
         .analyze(
             clustering=True,
             n_clusters=3,
+            min_duration=3,   # порог отчётности: зоны короче в агрегаты не идут
             regression=False,  # Опционально
             validation=False   # Опционально
         )
@@ -196,7 +196,6 @@ def main():
     # пишем строкой: строка разошлась бы с ним при смене параметров.
     detector = ZoneDetectionRegistry.get('zero_crossing')
     config = ZoneDetectionConfig(
-        min_duration=5,
         rules={'indicator_col': macd_ind.get_output_roles()['hist']},
         strategy_name='zero_crossing'
     )

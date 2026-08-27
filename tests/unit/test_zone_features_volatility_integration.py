@@ -48,9 +48,7 @@ class TestZoneFeaturesVolatilityIntegration:
     def test_analyzer_with_volatility_strategy(self, sample_zone_info):
         """Test analyzer with explicitly provided volatility strategy."""
         volatility_strategy = CombinedVolatilityStrategy()
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volatility_strategy=volatility_strategy
+        analyzer = ZoneFeaturesAnalyzer(volatility_strategy=volatility_strategy
         )
         
         features = analyzer.extract_zone_features(sample_zone_info)
@@ -68,9 +66,7 @@ class TestZoneFeaturesVolatilityIntegration:
     
     def test_volatility_metrics_values_reasonable(self, sample_zones):
         """Test that volatility metrics have reasonable values across multiple zones."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volatility_strategy=CombinedVolatilityStrategy()
+        analyzer = ZoneFeaturesAnalyzer(volatility_strategy=CombinedVolatilityStrategy()
         )
         
         for zone in sample_zones[:5]:  # Test first 5 zones
@@ -113,9 +109,7 @@ class TestZoneFeaturesVolatilityIntegration:
         shape_strategy = StatisticalShapeStrategy()
         volatility_strategy = CombinedVolatilityStrategy()
         
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            swing_strategy=swing_strategy,
+        analyzer = ZoneFeaturesAnalyzer(swing_strategy=swing_strategy,
             divergence_strategy=divergence_strategy,
             shape_strategy=shape_strategy,
             volatility_strategy=volatility_strategy
@@ -137,9 +131,7 @@ class TestZoneFeaturesVolatilityIntegration:
     
     def test_volatility_regime_distribution(self, sample_zones):
         """Test distribution of volatility regimes across zones."""
-        analyzer = ZoneFeaturesAnalyzer(
-            min_duration=2,
-            volatility_strategy=CombinedVolatilityStrategy()
+        analyzer = ZoneFeaturesAnalyzer(volatility_strategy=CombinedVolatilityStrategy()
         )
         
         regimes = []

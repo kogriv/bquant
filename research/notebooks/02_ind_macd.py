@@ -98,7 +98,7 @@ result = (
     .with_indicator('custom', 'macd', 
                    fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', 
-                 indicator_role='hist', min_duration=2)
+                 indicator_role='hist')
     .analyze()
     .build()
 )
@@ -122,8 +122,7 @@ result = analyze_macd_zones(
     df,
     fast=12,
     slow=26,
-    signal=9,
-    min_duration=2
+    signal=9
 )
 
 # Один вызов - все готово!

@@ -50,7 +50,6 @@ class PreloadedZonesDetection:
         # From CSV
         strategy = PreloadedZonesDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             rules={'zones_data': 'expert_zones.csv'}
         )
         zones = strategy.detect_zones(ohlcv_data, config)
@@ -96,7 +95,7 @@ class PreloadedZonesDetection:
                 zone_row, data, time_tolerance
             )
             
-            if zone_info and zone_info.duration >= config.min_duration:
+            if zone_info:
                 # `'any'` больше не нужен: словарь этой стратегии определяется
                 # импортируемыми данными, и `zone_types=None` означает «не
                 # фильтровать» напрямую, без имени-заглушки, которым ни одна зона
@@ -167,22 +166,22 @@ class PreloadedZonesDetection:
         )
 
 
-def load_preloaded_zones(zones_path: Union[str, Path], 
+def load_preloaded_zones(zones_path: Union[str, Path],
                          ohlcv_data: pd.DataFrame,
-                         time_tolerance: str = '1min',
-                         min_duration: int = 2) -> List[ZoneInfo]:
+                         time_tolerance: str = '1min') -> List[ZoneInfo]:
     """
     Helper function для загрузки готовых зон.
-    
+
     Args:
         zones_path: Путь к CSV/Excel с зонами
         ohlcv_data: DataFrame с OHLCV данными
         time_tolerance: Допуск времени для мержа
-        min_duration: Минимальная длительность зоны
-        
+
     Returns:
-        List[ZoneInfo]
-        
+        List[ZoneInfo] — все зоны, какие есть в файле. Отсев коротких — дело
+        стадии анализа (``analyze_zones(..., min_duration=N)``), которая
+        сообщает, что исключила; здесь читатель ничего не выбрасывает.
+
     Example:
         zones = load_preloaded_zones('expert_zones.csv', df)
         analyzer = UniversalZoneAnalyzer()
@@ -190,7 +189,6 @@ def load_preloaded_zones(zones_path: Union[str, Path],
     """
     detector = PreloadedZonesDetection()
     config = ZoneDetectionConfig(
-        min_duration=min_duration,
         # Фильтра нет: словарь типов приходит из импортируемых данных.
         zone_types=None,
         rules={

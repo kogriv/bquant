@@ -40,7 +40,7 @@ class TestMACDFullPipeline:
         result = (
             analyze_zones(df)
             .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-            .detect_zones('zero_crossing', indicator_role='hist', min_duration=2)
+            .detect_zones('zero_crossing', indicator_role='hist')
             .with_strategies(swing='find_peaks', shape='statistical')
             .analyze(clustering=True, n_clusters=3)
             .build()
@@ -82,7 +82,6 @@ class TestMACDFullPipeline:
             fast=12,
             slow=26,
             signal=9,
-            min_duration=2,
             clustering=True,
             n_clusters=3
         )
@@ -112,8 +111,7 @@ class TestRSIFullPipeline:
                          # собственную колонку из выгрузки TradingView.
                          indicator_col='rsi_14',
                          upper_threshold=70,
-                         lower_threshold=30,
-                         min_duration=2)
+                         lower_threshold=30)
             .with_strategies(shape='statistical', volume='standard')
             .analyze(clustering=True, n_clusters=2)
             .build()
@@ -153,7 +151,6 @@ class TestRSIFullPipeline:
             period=14,
             upper_threshold=70,
             lower_threshold=30,
-            min_duration=2,
             clustering=False
         )
         
@@ -175,7 +172,7 @@ class TestAOFullPipeline:
         result = (
             analyze_zones(df)
             .with_indicator('pandas_ta', 'ao', fast=5, slow=34)
-            .detect_zones('zero_crossing', indicator_col='AO_5_34', min_duration=2)
+            .detect_zones('zero_crossing', indicator_col='AO_5_34')
             .with_strategies(swing='pivot_points')
             .analyze(clustering=True, n_clusters=2)
             .build()
@@ -345,8 +342,7 @@ class TestPipelineEdgeCases:
             .detect_zones('threshold',
                          indicator_col='rsi',
                          upper_threshold=99,
-                         lower_threshold=1,
-                         min_duration=2)
+                         lower_threshold=1)
             .analyze(clustering=False)
             .build()
         )

@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 from typing import List
 
-from .base import ZoneDetectionStrategy, ZoneDetectionConfig
+from .base import ZoneDetectionStrategy, ZoneDetectionConfig, defined_segments
 from .registry import ZoneDetectionRegistry
 from ..models import ZoneInfo, ZoneType
 from bquant.core.logging_config import get_logger
@@ -49,7 +49,6 @@ class LineCrossingDetection:
     Example:
         strategy = LineCrossingDetection()
         config = ZoneDetectionConfig(
-            min_duration=2,
             zone_types=['bull', 'bear'],
             rules={
                 'line1_col': 'close',
@@ -80,28 +79,38 @@ class LineCrossingDetection:
         # Разница между линиями
         diff = df[line1_col].values - df[line2_col].values
         
-        # Знак разницы
-        signs = np.sign(diff)
-        signs[signs == 0] = 1
-        
-        # Найти пересечения
-        sign_changes = np.where(np.diff(signs) != 0)[0] + 1
-        
-        if len(sign_changes) == 0:
-            self.logger.warning("No line crossings found")
+        # Мостится область, где определены **обе** линии: там, где одной из них
+        # ещё нет, у их разницы нет знака, а не «отрицательный знак».
+        segments = defined_segments(diff)
+        if not segments:
+            self.logger.warning(
+                "Lines '%s' and '%s' never overlap; no zones", line1_col, line2_col
+            )
             return []
-        
-        boundaries = np.concatenate([[0], sign_changes, [len(df)]])
-        
+
+        undefined_bars = len(df) - sum(stop - start for start, stop in segments)
+        if undefined_bars:
+            self.logger.info(
+                "%d of %d bars have no value for both lines; they belong to no "
+                "zone.", undefined_bars, len(df)
+            )
+
+        spans = []
+        for seg_start, seg_stop in segments:
+            signs = np.sign(diff[seg_start:seg_stop])
+            signs[signs == 0] = 1
+            changes = (np.where(np.diff(signs) != 0)[0] + 1 + seg_start).tolist()
+            edges = [seg_start, *changes, seg_stop]
+            spans.extend(zip(edges, edges[1:]))
+
+        if len(spans) == 1:
+            self.logger.warning("No line crossings found")
+
         zones = []
-        for i in range(len(boundaries) - 1):
-            start_idx = boundaries[i]
-            end_idx = boundaries[i + 1] - 1
+        for start_idx, stop_idx in spans:
+            end_idx = stop_idx - 1
             duration = end_idx - start_idx + 1
-            
-            if duration < config.min_duration:
-                continue
-            
+
             zone_mean_diff = diff[start_idx:end_idx + 1].mean()
             zone_type = 'bull' if zone_mean_diff > 0 else 'bear'
             

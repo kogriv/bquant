@@ -58,7 +58,10 @@ class ZoneAnalysisCache:
     # v12 (G8 stage C2b-2): computed columns are named canonically
     # (`macd_12_26_9__hist`), so a v11 result carries the old names throughout —
     # in `data`, in the schema and in every zone's frame.
-    CACHE_VERSION = 12
+    # v13 (G21 variant c): detection no longer drops short zones, so a v12
+    # result is missing them — and its aggregates were computed over a zone
+    # sequence with gaps in it.
+    CACHE_VERSION = 13
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

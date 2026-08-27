@@ -63,7 +63,6 @@ def test_pipeline_auto_thresholds_matches_kpi() -> None:
             parameters={"fast_period": 12, "slow_period": 26, "signal_period": 9},
         ),
         zone_detection=ZoneDetectionConfig(
-            min_duration=2,
             zone_types=["bull"],
             rules={"indicator_role": "hist"},
             strategy_name="zero_crossing",
