@@ -14,7 +14,7 @@ import chardet
 
 from ..core.config import (
     DATA_DIR, get_data_dir, get_data_path, validate_timeframe,
-    DATA_VALIDATION, SUPPORTED_TIMEFRAMES, TIMEFRAME_MAPPING
+    DATA_VALIDATION, SUPPORTED_TIMEFRAMES
 )
 from ..core.exceptions import (
     DataError, DataLoadingError, DataValidationError,
@@ -331,15 +331,16 @@ def load_symbol_data(
     """
     # Validate timeframe
     timeframe = validate_timeframe(timeframe)
-    
-    # Get mapped timeframe for the specific data source
-    if data_source in TIMEFRAME_MAPPING:
-        mapped_timeframe = TIMEFRAME_MAPPING[data_source].get(timeframe, timeframe)
-    else:
-        mapped_timeframe = timeframe
-    
-    # Get file path using config with mapped timeframe
-    file_path = get_data_path(symbol, mapped_timeframe, data_source, quote_provider)
+
+    # `get_data_path` принимает **универсальное** имя таймфрейма и само
+    # переводит его в словарь провайдера. Здесь стоял ещё один перевод, и в
+    # `get_data_path` уезжало уже переведённое `H1` — то есть значение чужого
+    # словаря под именем параметра, которое ничего о словаре не говорит.
+    # Валидацию там из-за этого пришлось закомментировать (2025-08-31): она
+    # честно сообщала «Unsupported timeframe: H1», и сигнал выключили вместо
+    # причины. Второй перевод не портил путь лишь по случайности — `.get(x, x)`
+    # проваливается насквозь, когда переведённого имени нет среди ключей.
+    file_path = get_data_path(symbol, timeframe, data_source, quote_provider)
     
     # Load data
     return load_ohlcv_data(file_path, symbol, timeframe)

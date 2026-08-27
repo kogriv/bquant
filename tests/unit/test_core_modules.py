@@ -4,6 +4,7 @@ Tests for BQuant core modules (Steps 1.2-1.3)
 Простые тесты для проверки базовых модулей: config, exceptions, logging, utils, numpy_fix
 """
 
+import pytest
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -279,3 +280,45 @@ def run_core_tests():
 
 if __name__ == "__main__":
     run_core_tests()
+
+
+def test_data_path_takes_the_universal_timeframe_not_the_providers():
+    """Кто переводит имя таймфрейма — тот и один.
+
+    `get_data_path` принимает универсальное имя (`1h`) и само переводит его в
+    словарь провайдера (`H1` у MetaTrader, `60` у TradingView). `load_symbol_data`
+    переводил его **тоже** и передавал сюда уже переведённое, то есть значение
+    чужого словаря под именем параметра, которое о словаре ничего не говорит.
+    Валидацию из-за этого закомментировали 2025-08-31 — она честно сообщала
+    «Unsupported timeframe: H1», и выключили сигнал, а не причину.
+
+    Путь при этом не портился, но лишь по случайности: второй перевод — это
+    `.get(x, x)`, который проваливается насквозь, когда переведённого имени нет
+    среди ключей. Стоит любому провайдеру завести ключ, совпадающий с чужим
+    выходом, и путь молча уедет.
+
+    Разбор: `devref/gaps/deffered/issue_double_timeframe_validation.md`.
+    """
+    from bquant.core.config import get_data_path
+
+    # Универсальное имя переводится ровно один раз.
+    assert get_data_path('XAUUSD', '1h', 'metatrader').name == 'XAUUSDH1.csv'
+    assert get_data_path('XAUUSD', '15m', 'metatrader').name == 'XAUUSDM15.csv'
+    assert get_data_path('XAUUSD', '1h', 'tradingview').name == 'OANDA_XAUUSD, 60.csv'
+
+    # Имя чужого словаря сюда попасть не должно, и проверка снова это ловит.
+    # (`validate_timeframe` бросает голый `ValueError`, а не `ConfigurationError`
+    # из иерархии `bquant.core.exceptions`, вопреки правилу AGENTS.md. Здесь
+    # закрепляется поведение как есть; смена типа исключения — отдельная правка,
+    # ломающая `except ValueError` у вызывающих.)
+    for providers_name in ('H1', 'M15', 'Daily', '60'):
+        with pytest.raises(ValueError, match="Unsupported timeframe"):
+            get_data_path('XAUUSD', providers_name, 'metatrader')
+
+    # И тот же путь через публичную функцию загрузки: она обязана дойти до
+    # поиска файла, а не упасть на валидации собственного перевода.
+    from bquant.data.loader import load_symbol_data
+    from bquant.core.exceptions import DataLoadingError
+
+    with pytest.raises(DataLoadingError, match="XAUUSDH1.csv"):
+        load_symbol_data('XAUUSD', '1h', data_source='metatrader')

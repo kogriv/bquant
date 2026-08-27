@@ -303,11 +303,12 @@ def get_data_path(symbol: str, timeframe: str, data_source: str = 'tradingview',
     Returns:
         Path to data file
     """
-    # [2025-08-31] ВРЕМЕННОЕ РЕШЕНИЕ: Валидация отключена, чтобы избежать ошибки двойной проверки
-    # при вызове из bquant.data.loader.load_symbol_data.
-    # TODO: Требуется постоянное решение. См. подробный анализ в файле:
-    # devref/gaps/issue_double_timeframe_validation.md
-    # timeframe = validate_timeframe(timeframe)
+    # `timeframe` здесь — **универсальное** имя (`1h`, `15m`, `1d`), а не имя из
+    # словаря провайдера: перевод делается ниже, этой же функцией. Валидация с
+    # 2025-08-31 по 2026-08-27 была закомментирована, потому что вызывающий
+    # (`load_symbol_data`) переводил имя сам и передавал сюда уже `H1`. Чинили
+    # симптом — выключили проверку; починен вызывающий, проверка вернулась.
+    timeframe = validate_timeframe(timeframe)
     
     # Get mapped timeframe for the specific data source
     if data_source in TIMEFRAME_MAPPING:
