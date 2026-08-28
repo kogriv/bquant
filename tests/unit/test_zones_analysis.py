@@ -12,8 +12,8 @@ from datetime import datetime
 
 # BQuant imports
 from bquant.analysis.zones import (
-    Zone,
-    ZoneAnalyzer,
+    PriceLevelZone,
+    PriceLevelAnalyzer,
     find_support_resistance
 )
 
@@ -118,7 +118,7 @@ class TestBasicZoneAnalyzer:
     @pytest.fixture
     def analyzer(self):
         """Создание базового анализатора."""
-        return ZoneAnalyzer()
+        return PriceLevelAnalyzer()
     
     @pytest.fixture
     def test_data(self):
@@ -138,7 +138,7 @@ class TestBasicZoneAnalyzer:
         assert isinstance(zones, list)
         # Может быть пустым если нет достаточных паттернов
         for zone in zones:
-            assert isinstance(zone, Zone)
+            assert isinstance(zone, PriceLevelZone)
             assert zone.zone_type in ['support', 'resistance']
             assert zone.strength >= 0 and zone.strength <= 1
             assert zone.confidence >= 0 and zone.confidence <= 1
@@ -149,14 +149,14 @@ class TestBasicZoneAnalyzer:
         
         assert isinstance(zones, list)
         for zone in zones:
-            assert isinstance(zone, Zone)
+            assert isinstance(zone, PriceLevelZone)
     
     def test_zone_properties(self):
-        """Тест свойств объекта Zone."""
+        """Тест свойств объекта PriceLevelZone."""
         start_time = datetime(2024, 1, 1, 10, 0)
         end_time = datetime(2024, 1, 1, 12, 0)
         
-        zone = Zone(
+        zone = PriceLevelZone(
             zone_id='test_zone',
             zone_type='support',
             start_time=start_time,
@@ -404,7 +404,7 @@ class TestIntegrationZonesAnalysis:
         # Проверяем, что функция работает без ошибок
         assert isinstance(zones, list)
         for zone in zones:
-            assert isinstance(zone, Zone)
+            assert isinstance(zone, PriceLevelZone)
     
     @pytest.mark.skipif(not zone_features_available, reason="Zone features module not available")
     def test_zone_features_workflow(self):

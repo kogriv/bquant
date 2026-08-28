@@ -471,40 +471,44 @@ print(vocab.is_declared, vocab.names())
 потребители читают `is_declared` и в этом случае не фильтруют.
 
 
-### Legacy API
+### Вторая ветка: уровни цены
 
-Эти имена **экспортируются и работают**; предпочтительный путь — Universal Pipeline:
+В пакете **две разные вещи называются зоной**, и это не старая и новая версии одной,
+а разные предметы:
 
-| Legacy | Предпочтительно |
-|---|---|
-| `Zone` | `ZoneInfo` dataclass |
-| `find_support_resistance()` | стратегии детекции |
-| `ZoneAnalyzer` | `UniversalZoneAnalyzer` через пайплайн |
-| `extract_zone_features()` | извлечение внутри пайплайна |
+| | `ZoneInfo` (пайплайн) | `PriceLevelZone` |
+|---|---|---|
+| Что это | **участок времени**, на котором осциллятор в одном состоянии | **полоса цены**: поддержка, сопротивление |
+| Границы | в барах (`start_idx`/`end_idx`) | в цене (`start_price`/`end_price`) |
+| Как расположены | идут встык, каждый бар ровно в одной зоне | могут перекрываться, покрывают не всю историю |
+| Кто считает | `analyze_zones()` / `UniversalZoneAnalyzer` | `PriceLevelAnalyzer` / `find_support_resistance()` |
 
-> Раздел назывался «Deprecated», но **в коде нет ни `DeprecationWarning`, ни
-> маркера устаревания** — ни у одного из четырёх имён. Объявлять устаревшим то,
-> за чем в коде ничего не стоит, значит обещать переходный период, которого нет.
-> По конвенции проекта переходных механизмов не заводят: имя либо живёт, либо
-> удаляется целиком.
+Раньше они звались `Zone` и `ZoneInfo`, а анализаторы — `ZoneAnalyzer` и
+`UniversalZoneAnalyzer`. Имена намекали на иерархию («базовое против расширенного»),
+и этот раздел из-за них однажды был написан как «Deprecated, мигрируйте на пайплайн».
+Мигрировать некуда — это разные предметы; разбор в
+`../../../devref/gaps/zone_types/g28_one_word_two_concepts_2026-08.md`.
 
-**Как перейти на пайплайн:**
+Приставка `Universal` у второго анализатора означает **независимость от конкретного
+индикатора**, а не превосходство над первым.
+
 ```python
-# Legacy
-from bquant.analysis.zones import find_support_resistance, extract_zone_features
-zones = find_support_resistance(data, window=20, min_touches=2)
-features = extract_zone_features(zone_info)
+import pandas as pd
 
-# Новый способ (Universal Pipeline)
-from bquant.analysis.zones import analyze_zones
-result = (
-    analyze_zones(data)
-    .detect_zones('threshold', indicator_col='RSI_14', upper_threshold=70)
-    .analyze(clustering=True)
-    .build()
-)
-zones = result.zones
-features = zones[0].features  # Автоматически извлечены
+from bquant.analysis.zones import find_support_resistance
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+
+# Время нужно на индексе: границы полосы задаются временем, и длительность
+# считается как разница дат. `get_sample_data()` отдаёт кадр со временем в
+# колонке `time` и позиционным индексом, поэтому его надо переставить.
+data = data.set_index(pd.to_datetime(data['time'])).drop(columns=['time'])
+
+# Полосы цены: где цена разворачивалась достаточно часто
+levels = find_support_resistance(data, window=20, min_touches=2)
+for level in levels[:3]:
+    print(level.zone_type, level.start_price, level.end_price, level.strength)
 ```
 
 ## Примеры
@@ -560,12 +564,9 @@ result = (
 )
 ```
 
-### Legacy Примеры
-
-Работают, но предпочтителен Universal Pipeline:
+### Пример: поиск ценовых полос
 
 ```python
-# Legacy
 import pandas as pd
 
 from bquant.analysis.zones import find_support_resistance
@@ -584,23 +585,23 @@ data = pd.DataFrame(
 zones = find_support_resistance(data, window=3, min_touches=1)
 
 if zones:
-    legacy_zone = zones[0]
-    duration_hours = legacy_zone.duration.total_seconds() / 3600
+    level = zones[0]
+    duration_hours = level.duration.total_seconds() / 3600
     print(
-        f"{legacy_zone.zone_type} zone from {legacy_zone.start_time:%Y-%m-%d %H:%M} "
-        f"to {legacy_zone.end_time:%Y-%m-%d %H:%M} ({duration_hours:.0f} hours)"
+        f"{level.zone_type} zone from {level.start_time:%Y-%m-%d %H:%M} "
+        f"to {level.end_time:%Y-%m-%d %H:%M} ({duration_hours:.0f} hours)"
     )
 else:
-    print("No support/resistance zones detected with the legacy API.")
+    print("No support/resistance levels detected on this data.")
 
 # ZoneFeaturesAnalyzer можно использовать как и раньше, передавая словарь зоны.
 # Пример:
 # zfa = ZoneFeaturesAnalyzer()
 # features = zfa.extract_zone_features({
-#     "zone_id": legacy_zone.zone_id,
-#     "type": legacy_zone.zone_type,
-#     "data": data.loc[legacy_zone.start_time : legacy_zone.end_time],
-#     "indicator_context": {"detection_strategy": "legacy_support_resistance"},
+#     "zone_id": level.zone_id,
+#     "type": level.zone_type,
+#     "data": data.loc[level.start_time : level.end_time],
+#     "indicator_context": {"detection_strategy": "price_level_support_resistance"},
 # })
 ```
 
@@ -610,4 +611,4 @@ else:
 - **[Zone Detection Strategies](strategies.md)** - Детальное описание 5 стратегий детекции
 - **[Statistical Analysis](statistical.md)** - Тесты гипотез и статистический анализ
 - **[Examples](../../examples/README.md)** - Готовые примеры использования
-- **[Migration Guide](../../examples/README.md)** - Переход с legacy API
+- **[Примеры](../../examples/README.md)** - готовые сценарии

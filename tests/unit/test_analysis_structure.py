@@ -211,21 +211,21 @@ class TestZoneAnalysis:
     
     def test_zone_analyzer_import(self):
         """Тест импорта анализатора зон."""
-        from bquant.analysis.zones import Zone, ZoneAnalyzer
+        from bquant.analysis.zones import PriceLevelZone, PriceLevelAnalyzer
         from bquant.analysis.zones import get_zone_analyzers
         
-        assert Zone is not None
-        assert ZoneAnalyzer is not None
+        assert PriceLevelZone is not None
+        assert PriceLevelAnalyzer is not None
         assert callable(get_zone_analyzers)
     
     def test_zone_creation(self):
         """Тест создания зоны."""
-        from bquant.analysis.zones import Zone
+        from bquant.analysis.zones import PriceLevelZone
         
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=2)
         
-        zone = Zone(
+        zone = PriceLevelZone(
             zone_id='test_zone_1',
             zone_type='support',
             start_time=start_time,
@@ -244,12 +244,12 @@ class TestZoneAnalysis:
     
     def test_zone_to_dict(self):
         """Тест конвертации зоны в словарь."""
-        from bquant.analysis.zones import Zone
+        from bquant.analysis.zones import PriceLevelZone
         
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=1)
         
-        zone = Zone(
+        zone = PriceLevelZone(
             zone_id='test_zone',
             zone_type='resistance',
             start_time=start_time,
@@ -271,7 +271,7 @@ class TestZoneAnalysis:
     
     def test_zone_analyzer_creation(self):
         """Тест создания анализатора зон."""
-        from bquant.analysis.zones import ZoneAnalyzer
+        from bquant.analysis.zones import PriceLevelAnalyzer
         
         config = {
             'min_zone_duration': 3,
@@ -279,9 +279,9 @@ class TestZoneAnalysis:
             'min_confidence_threshold': 0.6
         }
         
-        analyzer = ZoneAnalyzer(config)
+        analyzer = PriceLevelAnalyzer(config)
         
-        assert analyzer.name == 'ZoneAnalyzer'
+        assert analyzer.name == 'PriceLevelAnalyzer'
         assert analyzer.min_zone_duration == 3
         assert analyzer.min_strength_threshold == 0.4
         assert analyzer.min_confidence_threshold == 0.6
@@ -447,9 +447,9 @@ class TestIntegrationAnalysis:
     
     def test_zone_analysis_integration(self, test_data):
         """Интеграционный тест анализа зон."""
-        from bquant.analysis.zones import ZoneAnalyzer
+        from bquant.analysis.zones import PriceLevelAnalyzer
         
-        analyzer = ZoneAnalyzer({'min_zone_duration': 2})
+        analyzer = PriceLevelAnalyzer({'min_zone_duration': 2})
         result = analyzer.analyze(test_data)
         
         assert isinstance(result, AnalysisResult)

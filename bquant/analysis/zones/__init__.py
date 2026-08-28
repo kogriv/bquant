@@ -25,9 +25,23 @@ __version__ = "0.0.0"
 
 
 @dataclass
-class Zone:
+class PriceLevelZone:
     """
-    Базовый класс для представления зоны.
+    Полоса цены: поддержка, сопротивление, накопление.
+
+    Это **не** то же, что :class:`~bquant.analysis.zones.models.ZoneInfo`, хотя оба
+    называются «зоной». Разница не в зрелости, а в предмете:
+
+    * ``PriceLevelZone`` — **полоса цены**. Границы задаются ценой; полосы могут
+      перекрываться, жить одновременно и покрывать не всю историю.
+    * ``ZoneInfo`` — **участок времени**, на котором осциллятор в одном состоянии.
+      Границы задаются барами; такие зоны идут встык и образуют мощение — каждый бар
+      ровно в одной зоне.
+
+    Пока эти классы звались ``Zone`` и ``ZoneInfo``, имена намекали на иерархию
+    («базовое против расширенного»), и из-за этого дока однажды объявила первый
+    устаревшей версией второго. Мигрировать некуда: см.
+    ``devref/gaps/zone_types/g28_one_word_two_concepts_2026-08.md``.
     
     Attributes:
         zone_id: Уникальный идентификатор зоны
@@ -87,9 +101,15 @@ class Zone:
         }
 
 
-class ZoneAnalyzer(BaseAnalyzer):
+class PriceLevelAnalyzer(BaseAnalyzer):
     """
-    Базовый класс для анализа зон.
+    Поиск ценовых полос и анализ их пробоев.
+
+    Работает с :class:`PriceLevelZone` — полосами цены, а не с временными участками
+    осциллятора. Для последних есть отдельная ветка: ``analyze_zones()`` и
+    ``UniversalZoneAnalyzer``. Это две разные возможности пакета, а не старая и новая
+    версии одной; приставка ``Universal`` у второго анализатора говорит про
+    независимость от конкретного индикатора, а не про превосходство над этим.
     """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -99,7 +119,7 @@ class ZoneAnalyzer(BaseAnalyzer):
         Args:
             config: Конфигурация анализатора
         """
-        super().__init__("ZoneAnalyzer", config)
+        super().__init__("PriceLevelAnalyzer", config)
         
         # Параметры по умолчанию
         self.min_zone_duration = self.config.get('min_zone_duration', 5)
@@ -108,7 +128,7 @@ class ZoneAnalyzer(BaseAnalyzer):
     
     def identify_support_resistance(self, data: pd.DataFrame, 
                                   window: int = 20, 
-                                  min_touches: int = 2) -> List[Zone]:
+                                  min_touches: int = 2) -> List[PriceLevelZone]:
         """
         Определение зон поддержки и сопротивления.
         
@@ -168,7 +188,7 @@ class ZoneAnalyzer(BaseAnalyzer):
         return extrema
     
     def _validate_zones(self, data: pd.DataFrame, extrema: List[Tuple[int, float]], 
-                       zone_type: str, min_touches: int) -> List[Zone]:
+                       zone_type: str, min_touches: int) -> List[PriceLevelZone]:
         """
         Валидация и создание зон на основе экстремумов.
         
@@ -239,7 +259,7 @@ class ZoneAnalyzer(BaseAnalyzer):
     
     def _create_zone_from_group(self, data: pd.DataFrame, 
                                group: List[Tuple[int, float]], 
-                               zone_type: str) -> Optional[Zone]:
+                               zone_type: str) -> Optional[PriceLevelZone]:
         """
         Создание зоны из группы экстремумов.
         
@@ -249,7 +269,7 @@ class ZoneAnalyzer(BaseAnalyzer):
             zone_type: Тип зоны
         
         Returns:
-            Объект Zone или None
+            Объект PriceLevelZone или None
         """
         if not group:
             return None
@@ -280,7 +300,7 @@ class ZoneAnalyzer(BaseAnalyzer):
         
         zone_id = f"{zone_type}_{start_time.strftime('%Y%m%d_%H%M')}_{end_time.strftime('%Y%m%d_%H%M')}"
         
-        zone = Zone(
+        zone = PriceLevelZone(
             zone_id=zone_id,
             zone_type=zone_type,
             start_time=start_time,
@@ -298,7 +318,7 @@ class ZoneAnalyzer(BaseAnalyzer):
         
         return zone
     
-    def analyze_zone_breaks(self, data: pd.DataFrame, zones: List[Zone]) -> Dict[str, Any]:
+    def analyze_zone_breaks(self, data: pd.DataFrame, zones: List[PriceLevelZone]) -> Dict[str, Any]:
         """
         Анализ пробоев зон.
         
@@ -404,7 +424,7 @@ class ZoneAnalyzer(BaseAnalyzer):
             results['zone_statistics'] = zone_stats
         
         metadata = {
-            'analyzer': 'ZoneAnalyzer',
+            'analyzer': 'PriceLevelAnalyzer',
             'window': window,
             'min_touches': min_touches,
             'min_strength_threshold': self.min_strength_threshold,
@@ -419,7 +439,7 @@ class ZoneAnalyzer(BaseAnalyzer):
             metadata=metadata
         )
     
-    def _calculate_zone_statistics(self, zones: List[Zone]) -> Dict[str, Any]:
+    def _calculate_zone_statistics(self, zones: List[PriceLevelZone]) -> Dict[str, Any]:
         """
         Вычисление статистик по зонам.
         
@@ -473,7 +493,7 @@ def get_zone_analyzers() -> Dict[str, str]:
 
 # Удобные функции
 def find_support_resistance(data: pd.DataFrame, window: int = 20, 
-                           min_touches: int = 2) -> List[Zone]:
+                           min_touches: int = 2) -> List[PriceLevelZone]:
     """
     Быстрый поиск уровней поддержки и сопротивления.
     
@@ -485,7 +505,7 @@ def find_support_resistance(data: pd.DataFrame, window: int = 20,
     Returns:
         Список зон
     """
-    analyzer = ZoneAnalyzer()
+    analyzer = PriceLevelAnalyzer()
     return analyzer.identify_support_resistance(data, window, min_touches)
 
 
@@ -561,8 +581,7 @@ try:
     from .zone_features import (
         ZoneFeatures,
         ZoneFeaturesAnalyzer, 
-        analyze_zones_distribution,
-        extract_zone_features
+        analyze_zones_distribution
     )
     _zone_features_available = True
     logger.debug("Zone features module loaded successfully")
@@ -587,8 +606,8 @@ except ImportError as e:
 
 # Экспорт базового функционала
 __all__ = [
-    'Zone',
-    'ZoneAnalyzer',
+    'PriceLevelZone',
+    'PriceLevelAnalyzer',
     'get_zone_analyzers',
     'find_support_resistance',
     '__version__'
@@ -638,8 +657,7 @@ if _zone_features_available:
     __all__.extend([
         'ZoneFeatures',
         'ZoneFeaturesAnalyzer',
-        'analyze_zones_distribution',
-        'extract_zone_features'
+        'analyze_zones_distribution'
     ])
 
 # Добавляем sequence analysis если доступен  

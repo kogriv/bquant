@@ -969,25 +969,9 @@ def analyze_zones_distribution(
     return analysis_result.results
 
 
-def extract_zone_features(zone_info: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Извлечение признаков одной зоны.
-
-    Args:
-        zone_info: Информация о зоне
-
-    Returns:
-        Словарь с характеристиками зоны
-    """
-    analyzer = ZoneFeaturesAnalyzer()
-    zone_features = analyzer.extract_zone_features(zone_info)
-    return zone_features.to_dict()
-
-
 # Экспорт
 __all__ = [
     'ZoneFeatures',
     'ZoneFeaturesAnalyzer',
-    'analyze_zones_distribution',
-    'extract_zone_features'
+    'analyze_zones_distribution'
 ]
