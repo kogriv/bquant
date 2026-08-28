@@ -98,25 +98,56 @@ class ChartBuilder:
         
         return True
     
+    #: Имена колонок, в которых может лежать время. ``time`` — имя из стандарта
+    #: проекта (``AGENTS.md``, «Column Standards»), и именно его тут не хватало.
+    TIME_COLUMN_CANDIDATES = ('time', 'timestamp', 'date', 'datetime')
+
     def _prepare_datetime_index(self, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Подготовка datetime индекса для графика.
-        
+        Поставить на индекс время из данных — или честно оставить позиционную ось.
+
+        Раньше эта функция, не найдя ``timestamp``/``date``, **синтезировала** ось:
+        ``pd.date_range('2024-01-01', periods=len(data), freq='1H')``. Про колонку
+        ``time`` — имя из собственного стандарта проекта — она не знала, а
+        ``get_sample_data()`` возвращает кадр именно с ``time`` и ``RangeIndex``,
+        поэтому срабатывала как раз ветка выдумывания. Замер: график начинался
+        с ``2024-01-01T00:00:00``, тогда как данные шли с ``2025-06-11``.
+
+        Это хуже, чем отсутствие оси: график не молчал о времени, он **утверждал**
+        конкретные даты, которых в данных нет, и подписывал ими реальные цены.
+        Поэтому синтез убран. Если времени в кадре нет, ось остаётся позиционной —
+        по ней ничего нельзя прочитать неверно, а в лог уходит предупреждение.
+
         Args:
             data: DataFrame с данными
-        
+
         Returns:
-            DataFrame с подготовленным индексом
+            DataFrame с временным индексом, если время нашлось; иначе — исходный.
         """
-        if not isinstance(data.index, pd.DatetimeIndex):
-            if 'timestamp' in data.columns:
-                data = data.set_index('timestamp')
-            elif 'date' in data.columns:
-                data = data.set_index('date')
-            else:
-                # Создаем временной индекс если его нет
-                data.index = pd.date_range('2024-01-01', periods=len(data), freq='1H')
-        
+        if isinstance(data.index, pd.DatetimeIndex):
+            return data
+
+        for column in self.TIME_COLUMN_CANDIDATES:
+            if column not in data.columns:
+                continue
+            parsed = pd.to_datetime(data[column], errors='coerce')
+            if parsed.isna().all():
+                self.logger.warning(
+                    f"Column '{column}' looks like time but nothing in it parsed; "
+                    f"leaving the positional axis in place"
+                )
+                continue
+            # Копия, а не правка на месте: раньше присваивание в `data.index`
+            # меняло кадр вызывающего как побочный эффект отрисовки.
+            data = data.drop(columns=[column]).set_index(parsed)
+            data.index.name = column
+            return data
+
+        self.logger.warning(
+            "No time column found (looked for "
+            f"{', '.join(self.TIME_COLUMN_CANDIDATES)}); the X axis stays positional. "
+            "Times are not invented."
+        )
         return data
 
 
@@ -314,6 +345,194 @@ class FinancialCharts(ChartBuilder):
             return self._create_plotly_macd_with_zones(macd_data, zones_data, title, resolved, **kwargs)
         else:
             return self._create_matplotlib_macd_with_zones(macd_data, zones_data, title, resolved, **kwargs)
+
+    def plot_zones_over_indicator(self, data: pd.DataFrame,
+                                  zones_data: List[Dict] = None,
+                                  title: str = "Zones",
+                                  column_schema=None,
+                                  columns: Optional[Dict[str, str]] = None,
+                                  **kwargs) -> Union[go.Figure, plt.Figure]:
+        """Нарисовать зоны поверх того индикатора, который есть в кадре.
+
+        :meth:`plot_macd_with_zones` требует тройку ролей ``line``/``signal``/``hist``
+        и отказывается работать, если их нет. Но осциллятор не обязан быть MACD:
+        RSI и AO объявляют **одну** роль ``value``, поэтому зоны, посчитанные по ним,
+        нечем было показать — а универсальность пайплайна как раз в том, что зоны
+        считаются по любому осциллятору.
+
+        Метод спрашивает у кадра, что в нём вообще есть, и рисует это:
+
+        * есть ``line``/``signal``/``hist`` → полноценный двухпанельный вид MACD;
+        * есть одна роль (``value``, ``line`` или ``hist``) → одна панель с этим рядом.
+
+        Отказ остаётся отказом: если по схеме не резолвится ни один осциллятор,
+        поднимается ``ValueError`` — рисовать «что-нибудь похожее» нельзя, иначе
+        график начнёт утверждать то, чего никто не считал.
+
+        Args:
+            data: кадр с посчитанным индикатором (``result.data``)
+            zones_data: зоны (``result.zones``) — объекты ``ZoneInfo`` или словари
+            title: заголовок
+            column_schema: схема ``(индикатор, роль) → колонка`` из результата анализа
+            columns: явное сопоставление роли на колонку для чужих кадров
+
+        Returns:
+            Объект графика
+        """
+        try:
+            resolved = resolve_role_columns(
+                data, ('line', 'signal', 'hist'),
+                schema=column_schema, overrides=columns,
+            )
+        except ValueError:
+            resolved = None
+
+        if resolved is not None:
+            return self.plot_macd_with_zones(
+                data, zones_data=zones_data, title=title,
+                column_schema=column_schema, columns=columns, **kwargs
+            )
+
+        single = None
+        for role in ('value', 'line', 'hist'):
+            try:
+                single = resolve_role_columns(
+                    data, (role,), schema=column_schema, overrides=columns,
+                )
+                break
+            except ValueError:
+                continue
+
+        if single is None:
+            raise ValueError(
+                "No oscillator to draw: none of the roles line/signal/hist, value "
+                "or hist resolved against this frame. Pass `column_schema` from the "
+                "analysis result, or name the column explicitly via `columns`."
+            )
+
+        prepared = self._prepare_datetime_index(data)
+        role, column = next(iter(single.items()))
+
+        if self.backend == 'plotly':
+            return self._create_plotly_zones_over_series(
+                prepared, zones_data, title, column, role, **kwargs
+            )
+        raise NotImplementedError(
+            "plot_zones_over_indicator is implemented for the plotly backend only"
+        )
+
+    def _zone_shading_colors(self, zones_data: List[Dict]):
+        """Сопоставление зоны и цвета по ОБЪЯВЛЕННОЙ полярности её типа."""
+
+        from ..analysis.zones.detection import resolve_vocabulary
+
+        try:
+            vocabulary = resolve_vocabulary(zones_data)
+        except Exception as exc:  # pragma: no cover - защита от чужой формы входа
+            self.logger.debug(f"Could not resolve zone vocabulary: {exc}")
+            vocabulary = None
+
+        palette = {1: 'lightgreen', -1: 'lightpink', 0: 'lightgrey', None: 'lightblue'}
+        return vocabulary, palette
+
+    @staticmethod
+    def _zone_bounds(zone):
+        """Границы зоны — одинаково для ``ZoneInfo`` и для словаря."""
+
+        if isinstance(zone, dict):
+            return zone.get('start_time'), zone.get('end_time'), zone.get('type')
+        return (getattr(zone, 'start_time', None),
+                getattr(zone, 'end_time', None),
+                getattr(zone, 'type', None))
+
+    @staticmethod
+    def _bound_on_axis(bound, axis) -> Any:
+        """Перевести границу зоны в координату той оси, что реально нарисована.
+
+        ``ZoneInfo.start_time``/``end_time`` — это **позиция в кадре**, если анализ
+        шёл по кадру с ``RangeIndex`` (а ``get_sample_data()`` отдаёт именно такой:
+        время лежит в колонке ``time``). Стоит поставить на график временную ось, и
+        целое ``0`` читается plotly как эпоха — зона уезжает в 1970 год, за левый
+        край. Прямоугольники при этом **есть**, и их ровно столько, сколько зон, так
+        что проверка «зоны размечены» проходит, а размечено не то место.
+
+        Поэтому позиция переводится через сам индекс, а не подставляется как есть.
+        """
+        if axis is None or not isinstance(axis, pd.DatetimeIndex):
+            return bound
+        if isinstance(bound, (pd.Timestamp, datetime)):
+            return bound
+        try:
+            position = int(bound)
+        except (TypeError, ValueError):
+            return bound
+        if 0 <= position < len(axis):
+            return axis[position]
+        # Позиция вне кадра — рисовать нечего; пусть лучше зона не будет
+        # закрашена, чем будет закрашена наугад.
+        return None
+
+    def _shade_zones(self, fig, zones_data: List[Dict], row: int = 1, col: int = 1,
+                     axis=None) -> None:
+        """Закрасить зоны на указанной панели фигуры.
+
+        Args:
+            axis: индекс кадра, который нарисован. Нужен, чтобы позиционные
+                границы зон легли на временную ось, а не на эпоху.
+        """
+
+        if not zones_data:
+            return
+
+        vocabulary, palette = self._zone_shading_colors(zones_data)
+
+        for zone in zones_data:
+            start_time, end_time, zone_type = self._zone_bounds(zone)
+            if start_time is None or end_time is None:
+                continue
+            x0 = self._bound_on_axis(start_time, axis)
+            x1 = self._bound_on_axis(end_time, axis)
+            if x0 is None or x1 is None:
+                continue
+            fig.add_vrect(
+                x0=x0,
+                x1=x1,
+                fillcolor=palette.get(
+                    vocabulary.polarity_of(zone_type) if vocabulary else None,
+                    palette[None],
+                ),
+                opacity=0.3,
+                layer="below",
+                line_width=0,
+                row=row, col=col,
+            )
+
+    def _create_plotly_zones_over_series(self, data: pd.DataFrame,
+                                         zones_data: List[Dict], title: str,
+                                         column: str, role: str,
+                                         **kwargs) -> go.Figure:
+        """Одна панель: ряд осциллятора и закрашенные зоны поверх него."""
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=data[column],
+            mode='lines',
+            name=str(column),
+            line=dict(color='blue', width=2),
+        ))
+
+        self._shade_zones(fig, zones_data, axis=data.index)
+
+        fig.update_layout(
+            title=title,
+            width=self.default_config['width'],
+            height=self.default_config['height'],
+            template='plotly_white',
+            showlegend=True,
+            yaxis_title=role,
+        )
+        return fig
     
     # Plotly реализации
     def _create_plotly_candlestick(self, data: pd.DataFrame, title: str, 
@@ -484,50 +703,15 @@ class FinancialCharts(ChartBuilder):
             opacity=0.7
         ), row=2, col=1)
         
-        # Добавляем зоны если есть
-        if zones_data:
-            # Цвет зоны следует ОБЪЯВЛЕННОЙ ПОЛЯРНОСТИ её типа, а не имени: раньше
-            # здесь стояло `'lightblue' if zone_type == 'bull' else 'lightpink'`, и
-            # зона любого другого словаря (`overbought`, `regime_a`, …) молча
-            # окрашивалась как медвежья — график сообщал направление, которого никто
-            # не объявлял.
-            from ..analysis.zones.detection import resolve_vocabulary
+        # Цвет зоны следует ОБЪЯВЛЕННОЙ ПОЛЯРНОСТИ её типа, а не имени: раньше здесь
+        # стояло `'lightblue' if zone_type == 'bull' else 'lightpink'`, и зона любого
+        # другого словаря (`overbought`, `regime_a`, …) молча окрашивалась как
+        # медвежья — график сообщал направление, которого никто не объявлял.
+        # Сама разметка вынесена в `_shade_zones`, чтобы одинаково работать и здесь,
+        # и на одноряднoм графике для осцилляторов с единственной ролью `value`.
+        self._shade_zones(fig, zones_data, row=1, col=1, axis=macd_data.index)
 
-            try:
-                vocabulary = resolve_vocabulary(zones_data)
-            except Exception as exc:  # pragma: no cover - защита от чужой формы входа
-                self.logger.debug(f"Could not resolve zone vocabulary: {exc}")
-                vocabulary = None
-            
-            polarity_colors = {1: 'lightgreen', -1: 'lightpink',
-                               0: 'lightgrey', None: 'lightblue'}
-            
-            for i, zone in enumerate(zones_data):
-                # Поддержка как словарей, так и dataclass объектов ZoneInfo
-                if isinstance(zone, dict):
-                    start_time = zone.get('start_time')
-                    end_time = zone.get('end_time')
-                    zone_type = zone.get('type')
-                else:
-                    # Для dataclass объектов (ZoneInfo)
-                    start_time = getattr(zone, 'start_time', None)
-                    end_time = getattr(zone, 'end_time', None)
-                    zone_type = getattr(zone, 'type', None)
-                
-                if start_time and end_time:
-                    fig.add_vrect(
-                        x0=start_time,
-                        x1=end_time,
-                        fillcolor=polarity_colors.get(
-                            vocabulary.polarity_of(zone_type) if vocabulary else None,
-                            polarity_colors[None],
-                        ),
-                        opacity=0.3,
-                        layer="below",
-                        line_width=0,
-                        row=1, col=1
-                    )
-        
+
         fig.update_layout(
             title=title,
             width=self.default_config['width'],
@@ -656,12 +840,34 @@ def create_price_chart(data: pd.DataFrame, chart_type: str = 'line', **kwargs):
         return None
 
 
+def create_zones_chart(data: pd.DataFrame, zones_data=None, **kwargs):
+    """
+    Быстрое создание графика зон поверх посчитанного индикатора.
+
+    В отличие от :func:`create_price_chart`, ошибки **не глотаются**: если
+    осциллятор не резолвится по схеме, поднимается ``ValueError``. Молча вернуть
+    ``None`` здесь нельзя — вызывающий не отличит «нечего рисовать» от «нарисовано
+    не то», а именно на этом различии и держится правдивость графика.
+
+    Args:
+        data: кадр с посчитанным индикатором (``result.data``)
+        zones_data: зоны (``result.zones``)
+        **kwargs: ``title``, ``column_schema``, ``columns``
+
+    Returns:
+        Объект графика
+    """
+    charts = FinancialCharts()
+    return charts.plot_zones_over_indicator(data, zones_data=zones_data, **kwargs)
+
+
 # Экспорт
 __all__ = [
     'ChartBuilder',
     'FinancialCharts',
     'create_candlestick_chart',
     'create_price_chart',
+    'create_zones_chart',
     'PLOTLY_AVAILABLE',
     'MATPLOTLIB_AVAILABLE'
 ]

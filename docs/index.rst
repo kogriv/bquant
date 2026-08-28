@@ -46,6 +46,7 @@ BQuant Documentation
    
    user_guide/README
    user_guide/quick_start
+   user_guide/cli
    user_guide/core_concepts
    user_guide/zone_analysis
    user_guide/zone_analysis_result

@@ -88,12 +88,20 @@ See the [LibraryManager documentation](docs/api/indicators/library_manager.md) f
 # List available sample datasets
 bquant list
 
-# Analyze a dataset using default settings
+# Detect and analyze zones (MACD by default) on a sample dataset
 bquant analyze tv_xauusd_1h
+
+# Any oscillator: the zone vocabulary follows the indicator
+bquant analyze tv_xauusd_1h --indicator rsi
+
+# Structured output, for programs rather than for reading
+bquant analyze --json --no-chart
 
 # Analyze and save the chart to a file
 bquant analyze mt_xauusd_m15 -o chart.html
 ```
+
+See the [CLI guide](docs/user_guide/cli.md) for every flag and the JSON schema.
 
 ## 📋 Project Structure
 
