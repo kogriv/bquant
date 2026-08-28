@@ -52,7 +52,7 @@ print(list(datasets.keys()))
 
 Модуль использует контекстное логирование с детальными техническими сообщениями:
 
-```python
+```text
 # Пример вывода логгера
 10:54:37 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Loading data from: /path/to/file.csv
 10:54:37 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Detected encoding: ascii

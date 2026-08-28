@@ -51,8 +51,9 @@ rsi = IndicatorFactory.create('pandas_ta', 'rsi', length=14)
 from bquant.indicators import IndicatorFactory
 
 info = IndicatorFactory.get_indicator_info('pandas_ta_macd')
+# Ключи: 'name', 'source', 'class', 'description'
 print(info['description'])
-print(info['parameters'])
+print(info['source'])
 ```
 
 ## Встроенные индикаторы (`bquant.indicators`)

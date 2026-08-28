@@ -169,8 +169,14 @@ def quick_analysis():
     # 5. Hypothesis tests (автоматически в pipeline)
     if result.hypothesis_tests:
         print(f"   • Статистические тесты: ✅ выполнено")
-        for test_name, test_result in result.hypothesis_tests.results.items():
-            print(f"     - {test_name}: p={test_result['p_value']:.4f}")
+        # results — это {'tests': {...}, 'summary': {...}}; сами тесты лежат в 'tests'.
+        # Тест, которому не хватило данных или объявлений, возвращает 'error'
+        # вместо 'p_value' и называет причину — это не сбой, а отказ по существу.
+        for test_name, test_result in result.hypothesis_tests.results['tests'].items():
+            if 'p_value' in test_result:
+                print(f"     - {test_name}: p={test_result['p_value']:.4f}")
+            else:
+                print(f"     - {test_name}: не посчитан — {test_result.get('error')}")
     else:
         print(f"   • Статистические тесты: ⚠️ не выполнено")
     

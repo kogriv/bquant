@@ -377,7 +377,7 @@ from bquant.analysis.zones import ZoneFeaturesAnalyzer
 analyzer = ZoneFeaturesAnalyzer(swing_strategy='zigzag')
 # Or with custom parameters
 from bquant.core.config import create_swing_strategy
-strategy = create_swing_strategy('zigzag', legs=15, deviation=0.03)
+strategy = create_swing_strategy({'type': 'zigzag', 'params': {'legs': 15, 'deviation': 0.03}})
 analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
 ```
 

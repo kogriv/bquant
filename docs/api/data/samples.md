@@ -171,6 +171,7 @@ fig.show()
 ```python
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_macd_zones
+from bquant.analysis.zones.detection import resolve_vocabulary
 from bquant.analysis.statistical import run_all_hypothesis_tests
 from bquant.analysis.zones.zone_features import ZoneFeaturesAnalyzer
 
@@ -183,9 +184,17 @@ result = analyze_macd_zones(data)
 # Статистические тесты
 features = ZoneFeaturesAnalyzer().extract_all_zones_features(result.zones)
 zones_features = [feature.to_dict() for feature in features]
-test_results = run_all_hypothesis_tests(zones_features)
+
+# Словарь типов зон передаётся отдельно: `to_dict()` оставляет ИМЯ типа
+# ('bull'), но не его свойства (polarity, counterpart). Без словаря два теста
+# из семи откажутся считать направленные метрики и объяснят, чего им не хватает.
+vocabulary = resolve_vocabulary(result.zones)
+test_results = run_all_hypothesis_tests(zones_features, vocabulary=vocabulary)
 for test_name, outcome in test_results["tests"].items():
-    print(f"{test_name}: p-value = {outcome['p_value']:.4f}")
+    if "p_value" in outcome:
+        print(f"{test_name}: p-value = {outcome['p_value']:.4f}")
+    else:
+        print(f"{test_name}: не посчитан — {outcome.get('error')}")
 ```
 
 ## 📁 Структура данных

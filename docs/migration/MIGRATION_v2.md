@@ -18,7 +18,7 @@
 ```python
 from bquant.data.samples import get_sample_data
 
-data = get_sample_data("btc_hourly")
+data = get_sample_data("tv_xauusd_1h")
 ```
 
 Эти строки остаются неизменными и совпадают с примером. 

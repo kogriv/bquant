@@ -93,8 +93,8 @@ Use the centralized configuration system:
 ```python
 from bquant.core.config import get_data_path, get_indicator_params, PROJECT_ROOT
 
-# Get configured paths
-data_dir = get_data_path()
+# Get the path a symbol's data file would have
+data_file = get_data_path('XAUUSD', '1h')
 
 # Get indicator parameters
 macd_params = get_indicator_params('macd')

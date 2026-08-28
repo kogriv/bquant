@@ -707,14 +707,14 @@ print(StrategyRegistry.list_divergence_strategies())
 print(StrategyRegistry.list_volatility_strategies())
 print(StrategyRegistry.list_volume_strategies())
 
-# Get strategy class
-SwingClass = StrategyRegistry.get_swing_strategy('zigzag')
-strategy_instance = SwingClass(legs=10, deviation=0.05)
+# Получить готовый экземпляр стратегии (метод возвращает объект, не класс)
+strategy_instance = StrategyRegistry.get_swing_strategy('zigzag')
 
 # Registry stats
 stats = StrategyRegistry.get_registry_stats()
+# {'swing': 3, 'divergence': 1, 'shape': 1, 'volume': 1, 'volatility': 1, 'total': 7}
 print(f"Total strategies: {stats['total']}")
-print(f"By type: {stats['by_type']}")
+print(f"Swing strategies: {stats['swing']}")
 ```
 
 ### Конфигурация фабрики

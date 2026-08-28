@@ -144,24 +144,20 @@ def test_my_strategy_detects_zone(sample_indicator_df):
 ## 🔌 Использование в пайплайне
 
 ```python
-from bquant.analysis.zones.pipeline import ZoneAnalysisPipeline
-from bquant.analysis.zones.detection import ZoneDetectionConfig
+from bquant.analysis.zones import analyze_zones
 
-pipeline = (
-    ZoneAnalysisPipeline()
-    .with_data(source="df", data=df)
-    .detect_zones(
-        ZoneDetectionConfig(
-            strategy_name="my_strategy",
-            rules={"my_indicator": "signal"},
-        )
-    )
+result = (
+    analyze_zones(df)
+    .detect_zones("my_strategy", indicator_col="signal")
     .analyze()
     .build()
 )
-
-result = pipeline.run()
 ```
+
+`analyze_zones(df)` — это и есть точка входа билдера: данные передаются ему, а не
+отдельным шагом. Имя стратегии — строка из реестра, дополнительные правила уходят
+в `**rules`. `.build()` возвращает уже посчитанный `ZoneAnalysisResult`; отдельного
+`run()` нет.
 
 После регистрации стратегия автоматически появится в `ZoneDetectionRegistry.list_strategies()` и станет доступна в документации API (см. `docs/api/analysis/strategies.md`).
 

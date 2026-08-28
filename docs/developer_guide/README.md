@@ -231,8 +231,10 @@ from bquant.analysis.zones.models import ZoneInfo
 class _DemoFeaturesAnalyzer:
     """Минимальная реализация извлечения признаков."""
 
-    # NOTE: пример обновлен для демонстрации Dependency Injection
-    def extract_all_zones_features(self, zones: List[ZoneInfo]):
+    # NOTE: пример обновлен для демонстрации Dependency Injection.
+    # `column_schema` обязателен: анализатор передаёт его именованным аргументом,
+    # чтобы признаки резолвили колонки по ролям, а не по угаданным именам.
+    def extract_all_zones_features(self, zones: List[ZoneInfo], column_schema=None):
         return [pd.Series({"zone_id": zone.zone_id, "duration": zone.duration}) for zone in zones]
 
     def analyze_zones_distribution(self, features):
@@ -240,7 +242,9 @@ class _DemoFeaturesAnalyzer:
 
 
 class _DemoHypothesisSuite:
-    def run_all_tests(self, features):
+    # `vocabulary` обязателен: анализатор передаёт словарь типов зон, чтобы тесты
+    # знали объявленные свойства (polarity, counterpart), а не угадывали их по имени
+    def run_all_tests(self, features, vocabulary=None):
         return {"duration_vs_return": {"significant": False, "alpha": 0.05}}
 
 
