@@ -87,7 +87,10 @@ class ZeroCrossingDetection:
             List[ZoneInfo] - список обнаруженных зон
         """
         # Валидация
-        config.validate(required_rules=['indicator_col'])
+        config.validate(
+            required_rules=['indicator_col'],
+            optional_rules=['smooth_window'],
+        )
         
         indicator_col = config.rules['indicator_col']
         if indicator_col not in data.columns:

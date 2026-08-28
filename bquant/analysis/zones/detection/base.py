@@ -6,7 +6,7 @@ Zone Detection - Base Protocol and Configuration
 - ZoneDetectionConfig: Универсальная конфигурация правил
 """
 
-from typing import Protocol, runtime_checkable, List, Dict, Any, Optional
+from typing import Iterable, Protocol, runtime_checkable, List, Dict, Any, Optional
 from dataclasses import dataclass, field
 import pandas as pd
 
@@ -160,21 +160,68 @@ class ZoneDetectionConfig:
             return True
         return zone_type in self.zone_types
     
-    def validate(self, required_rules: List[str]) -> None:
+    def validate(self, required_rules: List[str],
+                 optional_rules: Iterable[str] = ()) -> None:
         """
-        Валидация наличия обязательных правил.
-        
+        Валидация правил: и нехватки обязательных, и **лишних**.
+
+        Раньше проверялась только нехватка. Стратегии называли, чего им не хватает,
+        и никто не проверял, что им дали лишнего, — поэтому валидный вызов
+        проглатывал любой незнакомый аргумент. Сообщил внешний потребитель: у него
+        ``min_duration`` входит в контентный хэш профиля, и после переноса порога из
+        детекции в анализ (G21) вызов ``detect_zones(..., min_duration=2)``
+        продолжал приниматься, ничего не фильтруя. Его формулировка точна:
+        **принятый и проигнорированный параметр хуже удалённого — удалённый ломает
+        сборку, проигнорированный ломает выводы.**
+
         Args:
-            required_rules: Список обязательных ключей в self.rules
-            
+            required_rules: обязательные ключи в ``self.rules``
+            optional_rules: остальные ключи, которые стратегия понимает. Объявлять
+                их обязана каждая стратегия: без полного набора отвергать лишнее нечем.
+
         Raises:
-            ValueError: Если отсутствуют обязательные правила
+            ValueError: если обязательного не хватает или дано непонятое правило.
         """
         missing = [r for r in required_rules if r not in self.rules]
         if missing:
             raise ValueError(
                 f"Missing required rules for {self.strategy_name}: {missing}"
             )
+
+        understood = set(required_rules) | set(optional_rules)
+        # `<x>_role` — законный способ адресации: билдер превращает его в `<x>_col`
+        # до вызова стратегии. Роль принимается везде, где принимается колонка.
+        understood |= {f"{r[:-4]}_role" for r in understood if r.endswith("_col")}
+
+        unknown = sorted(set(self.rules) - understood)
+        if unknown:
+            hints = [RETIRED_RULES[r] for r in unknown if r in RETIRED_RULES]
+            explanation = ("\n" + "\n".join(hints)) if hints else (
+                f" Strategy {self.strategy_name} understands: "
+                f"{sorted(understood)}."
+            )
+            raise ValueError(
+                f"Unknown rules for {self.strategy_name}: {unknown}."
+                f"{explanation}"
+            )
+
+
+#: Правила, которые когда-то принимались детекцией, и чем они заменены. Отказ,
+#: который просто говорит «не знаю такого», перекладывает поиск на того, кто и так
+#: не знал; отказ с заменой — доводит до места.
+RETIRED_RULES = {
+    "min_duration": (
+        "  `min_duration` больше не правило детекции: детекция возвращает полное "
+        "мощение таймлайна, а порог длительности — фильтр ОТЧЁТНОСТИ. Передавайте "
+        "его в `.analyze(min_duration=N)`; исключённые зоны остаются в "
+        "`result.zones`, а их число — в `result.metadata['duration_filter']`. "
+        "Разбор: devref/gaps/sequence/."
+    ),
+    "min_amplitude": (
+        "  `min_amplitude` больше не правило детекции — порог применяется на стадии "
+        "анализа признаков, а не при нарезке зон."
+    ),
+}
 
 
 def defined_segments(values: "np.ndarray") -> List[tuple]:

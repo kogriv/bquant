@@ -78,7 +78,10 @@ class CombinedRulesDetection:
                      data: pd.DataFrame,
                      config: ZoneDetectionConfig) -> List[ZoneInfo]:
         """Обнаружить зоны по комбинированным правилам."""
-        config.validate(required_rules=['conditions'])
+        config.validate(
+            required_rules=['conditions'],
+            optional_rules=['logic', 'zone_type_map'],
+        )
         
         conditions = config.rules['conditions']
         logic = config.rules.get('logic', 'AND').upper()

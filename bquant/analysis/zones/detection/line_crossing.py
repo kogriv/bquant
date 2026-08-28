@@ -65,7 +65,10 @@ class LineCrossingDetection:
                      data: pd.DataFrame,
                      config: ZoneDetectionConfig) -> List[ZoneInfo]:
         """Обнаружить зоны по пересечению линий."""
-        config.validate(required_rules=['line1_col', 'line2_col'])
+        config.validate(
+            required_rules=['line1_col', 'line2_col'],
+            optional_rules=['smooth_window'],
+        )
         
         line1_col = config.rules['line1_col']
         line2_col = config.rules['line2_col']

@@ -74,7 +74,10 @@ class PreloadedZonesDetection:
                      data: pd.DataFrame,
                      config: ZoneDetectionConfig) -> List[ZoneInfo]:
         """Загрузить и объединить готовые зоны с OHLCV данными."""
-        config.validate(required_rules=['zones_data'])
+        config.validate(
+            required_rules=['zones_data'],
+            optional_rules=['time_tolerance'],
+        )
         
         zones_data = config.rules['zones_data']
         time_tolerance = config.rules.get('time_tolerance', '1min')

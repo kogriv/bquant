@@ -73,7 +73,10 @@ class ThresholdDetection:
                      config: ZoneDetectionConfig) -> List[ZoneInfo]:
         """Обнаружить зоны по порогам."""
         # Валидация
-        config.validate(required_rules=['indicator_col', 'upper_threshold', 'lower_threshold'])
+        config.validate(
+            required_rules=['indicator_col', 'upper_threshold', 'lower_threshold'],
+            optional_rules=['smooth_window'],
+        )
         
         indicator_col = config.rules['indicator_col']
         upper = config.rules['upper_threshold']
