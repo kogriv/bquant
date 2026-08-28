@@ -303,6 +303,23 @@ def test_library_functions_raise_instead_of_killing_the_process():
         run_zone_analysis(DATASET, indicator="определённо-не-индикатор")
 
 
+def test_quiet_is_short_but_not_silent_about_the_result():
+    """``--quiet`` сокращает подробности, а не обязанность назвать посчитанное.
+
+    Прежняя команда в тихом режиме печатала только путь к файлу — то есть
+    отчитывалась о том, что не упала, а не о том, что нашла.
+    """
+
+    stdout = _run_cli(["analyze", DATASET, "-q", "--no-chart"])
+    lines = [line for line in stdout.splitlines() if line.strip()]
+
+    assert len(lines) == 1, f"тихий режим не такой уж тихий:\n{stdout}"
+    assert re.search(r"\d+", lines[0]), (
+        "тихий режим не назвал ни одного числа: " + lines[0]
+    )
+    assert "зон" in lines[0].lower(), "тихий режим не сказал, что именно посчитано"
+
+
 def test_an_unknown_indicator_is_refused_by_the_parser():
     """Опечатку в имени индикатора надо ловить на разборе аргументов."""
 

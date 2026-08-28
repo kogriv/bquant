@@ -212,13 +212,26 @@ def summarize(result, dataset_name: str = '', indicator: str = '') -> Dict[str, 
     return _jsonable(summary)
 
 
-def render_summary(summary: Dict[str, Any]) -> str:
+def render_summary(summary: Dict[str, Any], brief: bool = False) -> str:
     """Человекочитаемая сводка — из того же словаря, что уходит в ``--json``.
 
     Один источник на оба вида вывода: иначе текст и JSON расходятся, и по одному
     из них люди делают выводы, которых другой не подтверждает.
+
+    Args:
+        summary: сводка из :func:`summarize`
+        brief: короткая форма (``--quiet``) — одна строка с результатом.
+            Именно **с результатом**: краткость сокращает подробности, а не
+            обязанность назвать посчитанное.
     """
     zones = summary.get('zones', {})
+
+    if brief:
+        by_type = zones.get('by_type') or {}
+        parts = ", ".join(f"{name}: {count}" for name, count in sorted(by_type.items()))
+        total = zones.get('total', 0)
+        return f"{total} зон" + (f" ({parts})" if parts else "")
+
     lines = [
         f"Набор данных: {summary.get('dataset')}",
         f"Индикатор:    {summary.get('indicator')}",
@@ -317,7 +330,10 @@ def analyze_dataset(dataset_name: str = DEFAULT_DATASET,
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return summary
 
-    print(render_summary(summary))
+    # `--quiet` укорачивает отчёт, но не отменяет его: команда всё равно обязана
+    # назвать результат. Молчаливое «готово» — это отчёт о том, что код не упал,
+    # а не о том, что что-то посчитано.
+    print(render_summary(summary, brief=quiet))
     if chart_path is not None:
         print(f"График: {chart_path}")
 
