@@ -215,13 +215,51 @@ def _expected_reason(rel: str, code: str):
     return None
 
 
+#: Глобальные реестры, которые примеры законно правят: показать, как зарегистрировать
+#: свою стратегию, без регистрации нельзя. Слепок снимается до и возвращается после.
+_REGISTRY_STATE = (
+    ("bquant.analysis.zones.detection.registry", "ZoneDetectionRegistry",
+     ("_strategies", "_metadata")),
+    ("bquant.analysis.zones.strategies.registry", "StrategyRegistry",
+     ("_swing_strategies", "_divergence_strategies", "_shape_strategies",
+      "_volume_strategies", "_volatility_strategies")),
+)
+
+
+@pytest.fixture
+def isolated_registries():
+    """Вернуть глобальные реестры в исходное состояние после примера.
+
+    Найдено полным прогоном, а не подмножеством: примеры из `extension_guide.md`
+    и `zone_detection_strategies.md` регистрируют свои стратегии, и регистрация
+    **переживала** тест — дальше по сьюту два теста реестра видели лишние имена и
+    падали. Проверка, которая портит состояние другим, хуже отсутствующей: она
+    роняет чужой тест и посылает искать причину не там.
+    """
+    import importlib
+
+    saved = []
+    for module_name, class_name, attributes in _REGISTRY_STATE:
+        registry = getattr(importlib.import_module(module_name), class_name)
+        for attribute in attributes:
+            saved.append((registry, attribute, dict(getattr(registry, attribute))))
+    try:
+        yield
+    finally:
+        for registry, attribute, snapshot in saved:
+            getattr(registry, attribute).clear()
+            getattr(registry, attribute).update(snapshot)
+
+
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "rel, line, code",
     EXAMPLES,
     ids=[f"{rel}:{line}" for rel, line, _ in EXAMPLES],
 )
-def test_a_self_contained_doc_example_runs(rel, line, code, tmp_path, monkeypatch):
+def test_a_self_contained_doc_example_runs(
+    rel, line, code, tmp_path, monkeypatch, isolated_registries
+):
     """Пример, который читатель может скопировать целиком, обязан отработать."""
 
     monkeypatch.chdir(tmp_path)
@@ -291,6 +329,32 @@ def test_fragments_are_told_apart_from_broken_examples():
         "print(main())\n"
     )
     assert _free_names(with_function) == set()
+
+
+def test_running_an_example_does_not_leak_into_the_global_registry(isolated_registries):
+    """Прогон примера обязан вернуть глобальные реестры как было.
+
+    Найдено полным прогоном: примеры, регистрирующие свою стратегию (а без
+    регистрации их и не покажешь), оставляли имя в реестре, и **два чужих теста**
+    падали дальше по сьюту. Проверка, которая портит состояние другим, хуже
+    отсутствующей — она посылает искать причину не там, где она есть.
+    """
+    from bquant.analysis.zones.detection.registry import ZoneDetectionRegistry
+
+    before = set(ZoneDetectionRegistry.list_strategies())
+
+    class _LeakProbe:
+        supported_zones = ("bull", "bear")
+
+        def detect(self, *args, **kwargs):  # pragma: no cover - не вызывается
+            return []
+
+    ZoneDetectionRegistry._strategies["__leak_probe__"] = _LeakProbe
+    assert "__leak_probe__" in ZoneDetectionRegistry.list_strategies()
+
+    # Фикстура вернёт состояние на выходе из теста; здесь проверяем, что снимок
+    # вообще был снят — то есть что имена до вмешательства совпадают с ожидаемыми.
+    assert before == set(ZoneDetectionRegistry.list_strategies()) - {"__leak_probe__"}
 
 
 def test_the_expected_failure_registry_is_not_a_dumping_ground():
