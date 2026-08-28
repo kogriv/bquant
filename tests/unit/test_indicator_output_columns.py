@@ -25,6 +25,8 @@ Analysis: ``devref/gaps/columns/g8_column_contract_measurement_2026-08-23.md``
 
 import logging
 
+from bquant.data.processor import resolve_time_index
+
 import pandas as pd
 import pytest
 
@@ -199,7 +201,11 @@ def test_the_sample_column_is_no_longer_overwritten(data):
         "fixture assumption broken: this sample ships its own 'macd' column, "
         "which is what made the overwrite observable"
     )
-    original = data["macd"].copy()
+    # Сравниваем с кадром ПОСЛЕ нормализации индекса: с G30 пайплайн ставит время
+    # на индекс на входе, поэтому `result.data` временной, а исходный сэмпл —
+    # позиционный. Значения при этом те же, и утверждение здесь про значения:
+    # собственная колонка сэмпла не должна быть затёрта вычисленной.
+    original = resolve_time_index(data)["macd"].copy()
 
     logger = logging.getLogger(ZoneAnalysisPipeline.__module__)
     handler = _Capture()

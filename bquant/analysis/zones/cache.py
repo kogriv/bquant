@@ -66,7 +66,11 @@ class ZoneAnalysisCache:
     # `hist_amplitude`/`hist_slope` -> `oscillator_*`, `correlation_price_hist` ->
     # `correlation_price_oscillator` — and the per-role metadata keys changed
     # shape (`max_macd` -> `line_max`). A v13 result carries the old keys.
-    CACHE_VERSION = 14
+    # v15 (G30): пайплайн ставит время на индекс на входе, поэтому границы зон —
+    # `Timestamp`, а не позиции, если в кадре есть колонка времени. Кэш v14 хранит
+    # результаты, посчитанные до нормализации: те же зоны, но с позициями в
+    # `start_time`/`end_time`.
+    CACHE_VERSION = 15
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

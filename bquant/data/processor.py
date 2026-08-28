@@ -17,6 +17,57 @@ from ..core.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+#: Имена колонок, в которых может лежать время. ``time`` — из стандарта колонок
+#: проекта (``AGENTS.md``, «Column Standards»); остальные встречаются в чужих выгрузках.
+TIME_COLUMN_CANDIDATES = ('time', 'timestamp', 'date', 'datetime')
+
+
+def resolve_time_index(df: pd.DataFrame) -> pd.DataFrame:
+    """Поставить время на индекс, если оно есть в кадре, — иначе вернуть как есть.
+
+    Два входа данных пакета отдавали кадры с **разными** контрактами индекса:
+    ``get_sample_data()`` — позиционный, со временем в колонке ``time``;
+    ``load_ohlcv_data()`` — временной, колонка поглощена индексом. Всё ниже по
+    течению наследовало неоднозначность, и ``ZoneInfo.start_time`` оказывался то
+    временем, то позицией — в зависимости от того, каким входом воспользовались.
+
+    Само поле при этом было честным: оно отражало данный ему индекс. Виноват вход.
+
+    Что эта функция **не** делает: не выдумывает время. Кадр без распознаваемого
+    времени возвращается нетронутым, и границы зон остаются позициями — честно,
+    потому что ничего другого в данных нет. Синтез дат (чем занималась визуализация
+    до 0.0.8) хуже отсутствия: по позиционной оси нельзя прочитать неверное, а по
+    выдуманной — можно.
+
+    Разбор: ``devref/gaps/detection/g30_two_entry_points_two_index_contracts_2026-08.md``.
+
+    Args:
+        df: кадр с данными.
+
+    Returns:
+        Кадр с ``DatetimeIndex``, если время нашлось; иначе исходный кадр.
+    """
+    if isinstance(df.index, pd.DatetimeIndex):
+        return df
+
+    for column in TIME_COLUMN_CANDIDATES:
+        if column not in df.columns:
+            continue
+        parsed = pd.to_datetime(df[column], errors='coerce')
+        if parsed.isna().all():
+            logger.warning(
+                f"Column '{column}' looks like time but nothing in it parsed; "
+                f"leaving the positional index in place"
+            )
+            continue
+        # Копия, а не правка на месте: подготовка не должна менять кадр вызывающего.
+        prepared = df.drop(columns=[column]).set_index(parsed)
+        prepared.index.name = column
+        return prepared
+
+    return df
+
+
 def clean_ohlcv_data(
     df: pd.DataFrame, 
     fill_method: str = 'forward',
@@ -632,6 +683,8 @@ def prepare_data_for_analysis(
 
 # Экспорт функций
 __all__ = [
+    'resolve_time_index',
+    'TIME_COLUMN_CANDIDATES',
     'clean_ohlcv_data',
     'remove_price_outliers',
     'calculate_derived_indicators',

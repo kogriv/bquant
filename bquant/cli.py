@@ -95,42 +95,13 @@ def run_zone_analysis(dataset_name: str = DEFAULT_DATASET,
         'ao': analyze_ao_zones,
     }
 
-    data = _with_time_index(get_sample_data(dataset_name))
+    # Время на индекс ставит сам пайплайн (G30) — своего обхода здесь больше нет.
+    data = get_sample_data(dataset_name)
     logger.info(f"Loaded {len(data)} rows from sample dataset '{dataset_name}'")
 
     return presets[indicator](
         data, min_duration=min_duration, clustering=clustering
     )
-
-
-def _with_time_index(df):
-    """Поставить время на индекс, если оно лежит в колонке.
-
-    ``get_sample_data()`` отдаёт кадр с ``RangeIndex`` и временем в колонке ``time``.
-    Детекция зон читает **индекс**, поэтому у ``ZoneInfo`` в таком кадре
-    ``start_time``/``end_time`` оказываются не временами, а позициями (`0`, `2`, …).
-    Дальше это уезжает и в график (где целое на временной оси читается как эпоха, и
-    зона встаёт в 1970 год), и в структурный вывод — то есть результат анализа
-    сообщает позиции под именем времени.
-
-    Тот же приём стоит в ``examples/zone_analysis_global_swings.py``: это
-    установившийся способ подготовки встроенных наборов, а не частная уловка CLI.
-    """
-    import pandas as pd
-
-    if 'time' not in df.columns:
-        return df
-
-    timestamps = pd.to_datetime(df['time'], utc=True, errors='coerce')
-    if timestamps.isna().all():
-        logger.warning("Column 'time' did not parse; leaving the positional index")
-        return df
-
-    prepared = df.drop(columns=['time']).set_index(timestamps)
-    prepared.index.name = 'time'
-    if getattr(prepared.index, 'tz', None) is not None:
-        prepared.index = prepared.index.tz_convert(None)
-    return prepared
 
 
 def _jsonable(value: Any) -> Any:

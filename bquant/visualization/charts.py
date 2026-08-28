@@ -18,6 +18,7 @@ import warnings
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
 from ..indicators.schema import resolve_role_columns
+from ..data.processor import resolve_time_index
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
@@ -98,57 +99,26 @@ class ChartBuilder:
         
         return True
     
-    #: Имена колонок, в которых может лежать время. ``time`` — имя из стандарта
-    #: проекта (``AGENTS.md``, «Column Standards»), и именно его тут не хватало.
-    TIME_COLUMN_CANDIDATES = ('time', 'timestamp', 'date', 'datetime')
-
     def _prepare_datetime_index(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Поставить время из данных на индекс — или честно оставить позиционную ось.
+
+        Разбор живёт в :func:`bquant.data.processor.resolve_time_index`; здесь
+        только вызов. Своя копия этой логики тут была и чинилась отдельно в 0.0.8
+        (она не знала про колонку ``time`` и **синтезировала** ось
+        ``date_range('2024-01-01', …)``). Две копии одного разбора расходятся:
+        одна научится понимать колонку, другая нет — и вторая начнёт врать.
         """
-        Поставить на индекс время из данных — или честно оставить позиционную ось.
+        prepared = resolve_time_index(data)
+        if prepared is data and not isinstance(data.index, pd.DatetimeIndex):
+            self.logger.warning(
+                "No time column found; the X axis stays positional. "
+                "Times are not invented."
+            )
+        return prepared
 
-        Раньше эта функция, не найдя ``timestamp``/``date``, **синтезировала** ось:
-        ``pd.date_range('2024-01-01', periods=len(data), freq='1H')``. Про колонку
-        ``time`` — имя из собственного стандарта проекта — она не знала, а
-        ``get_sample_data()`` возвращает кадр именно с ``time`` и ``RangeIndex``,
-        поэтому срабатывала как раз ветка выдумывания. Замер: график начинался
-        с ``2024-01-01T00:00:00``, тогда как данные шли с ``2025-06-11``.
-
-        Это хуже, чем отсутствие оси: график не молчал о времени, он **утверждал**
-        конкретные даты, которых в данных нет, и подписывал ими реальные цены.
-        Поэтому синтез убран. Если времени в кадре нет, ось остаётся позиционной —
-        по ней ничего нельзя прочитать неверно, а в лог уходит предупреждение.
-
-        Args:
-            data: DataFrame с данными
-
-        Returns:
-            DataFrame с временным индексом, если время нашлось; иначе — исходный.
-        """
-        if isinstance(data.index, pd.DatetimeIndex):
-            return data
-
-        for column in self.TIME_COLUMN_CANDIDATES:
-            if column not in data.columns:
-                continue
-            parsed = pd.to_datetime(data[column], errors='coerce')
-            if parsed.isna().all():
-                self.logger.warning(
-                    f"Column '{column}' looks like time but nothing in it parsed; "
-                    f"leaving the positional axis in place"
-                )
-                continue
-            # Копия, а не правка на месте: раньше присваивание в `data.index`
-            # меняло кадр вызывающего как побочный эффект отрисовки.
-            data = data.drop(columns=[column]).set_index(parsed)
-            data.index.name = column
-            return data
-
-        self.logger.warning(
-            "No time column found (looked for "
-            f"{', '.join(self.TIME_COLUMN_CANDIDATES)}); the X axis stays positional. "
-            "Times are not invented."
-        )
-        return data
+    #: Чтобы пин мог проверить, что слой графиков пользуется общим помощником,
+    #: а не завёл себе вторую копию разбора.
+    _prepare_datetime_index.__wrapped_helper__ = resolve_time_index
 
 
 class FinancialCharts(ChartBuilder):

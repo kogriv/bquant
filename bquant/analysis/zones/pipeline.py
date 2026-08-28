@@ -22,6 +22,7 @@ from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
 from bquant.core.cache import get_cache_manager
 from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
+from bquant.data.processor import resolve_time_index
 from .strategies.swing.thresholds import _AdaptiveSwingStrategy
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
@@ -79,7 +80,7 @@ _SWING_CLASS_TO_NAME = {
 #                 one indicator's name (`macd_amplitude` -> `line_amplitude`,
 #                 `hist_*` -> `oscillator_*`), and the per-role metadata keys
 #                 changed shape (`max_macd` -> `line_max`).
-CACHE_SCHEMA_VERSION = 14
+CACHE_SCHEMA_VERSION = 15
 
 
 @dataclass
@@ -944,7 +945,13 @@ def analyze_zones(df: pd.DataFrame) -> ZoneAnalysisBuilder:
             .build()
         )
     """
-    return ZoneAnalysisBuilder(df)
+    # Нормализация индекса — ЗДЕСЬ, а не у вызывающего. До этого её писал каждый
+    # сам: `set_index` по времени встречался в коде проекта **шестнадцать раз**,
+    # независимо, а семнадцатый добавили в CLI, не зная о предыдущих. Когда одну и
+    # ту же подготовку пишут семнадцать вызывающих, она принадлежит тому, кого они
+    # вызывают. Без неё `ZoneInfo.start_time` оказывался то временем, то позицией —
+    # смотря каким входом загрузили данные (G30).
+    return ZoneAnalysisBuilder(resolve_time_index(df))
 
 
 # Экспорт
