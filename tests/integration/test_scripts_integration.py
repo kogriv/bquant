@@ -54,7 +54,20 @@ class TestScriptsExecution:
         
         # Может упасть из-за известных проблем, но не должен крашиться
         if result.returncode == 0:
-            assert "analysis completed" in result.stdout.lower(), "Should indicate completion"
+            # Раньше здесь искалась строка «analysis completed» в stdout — но это
+            # сообщение **лога**, а не вывод скрипта. Логи уехали на stderr (там им
+            # и место: диагностика — не данные), и проверка развалилась, хотя скрипт
+            # отработал. Утверждаем теперь то, что скрипт действительно печатает, а
+            # факт завершения ищем в том потоке, куда он и пишется.
+            assert "macd analysis results" in result.stdout.lower(), (
+                f"скрипт не напечатал свой отчёт:\n{result.stdout}"
+            )
+            assert "total zones" in result.stdout.lower(), (
+                f"в отчёте нет числа зон:\n{result.stdout}"
+            )
+            assert "analysis completed" in result.stderr.lower(), (
+                "нет записи о завершении в потоке диагностики"
+            )
             analysis_success = True
         else:
             print(f"Analysis failed (may be expected): {result.stderr}")
@@ -135,7 +148,14 @@ class TestScriptsExecution:
         
         # Статистические тесты могут упасть из-за известных проблем
         if result.returncode == 0:
-            assert "testing completed" in result.stdout.lower(), "Should indicate completion"
+            # См. пояснение в test_run_macd_analysis_script: «testing completed» —
+            # строка лога, а не вывод скрипта, и живёт она в stderr.
+            assert "hypothesis testing results" in result.stdout.lower(), (
+                f"скрипт не напечатал свой отчёт:\n{result.stdout}"
+            )
+            assert "testing completed" in result.stderr.lower(), (
+                "нет записи о завершении в потоке диагностики"
+            )
             hypothesis_success = True
         else:
             print(f"Hypothesis testing failed (may be expected): {result.stderr}")
