@@ -14,7 +14,6 @@
 ### Core Features
 - **Universal Configuration System**: Flexible settings for data sources, indicators, and analysis
 - **Extensible Indicator Library**: Includes optimized built-in indicators and supports external libraries like `pandas-ta` and `TA-Lib`
-- **ML Readiness**: A modular structure prepared for future machine learning integration
 - **Rich Visualization Tools**: Create interactive financial charts and statistical plots with Plotly and Matplotlib
 - **Performance-Oriented**: Features a two-level caching system and performance monitoring tools
 - **Command-Line Interface**: Provides a simple CLI for quick analysis and data management
@@ -147,7 +146,7 @@ pytest tests/ -v
 - **[Quick Start](docs/user_guide/quick_start.md)** - 5 минут до первого результата
 - **[API Reference](docs/api/analysis/pipeline.md)** - полная документация Universal Pipeline
 - **[Examples](examples/02a_universal_zones.py)** - готовые примеры для всех индикаторов
-- **[Migration Guide](examples/02_macd_zone_analysis.py)** - переход с deprecated API
+- **[MACD Zone Analysis](examples/02_macd_zone_analysis.py)** - пресет, билдер, стратегии детекции, модульное использование
 
 ### Complete Documentation
 - **[API Documentation](docs/api/)** - Справочник API
@@ -159,13 +158,13 @@ pytest tests/ -v
 - **Two-Layer Design**: Simplification from 3 to 2 layers
 - **Zero Hardcode**: ZERO hardcoded indicators, full universality
 - **Design Patterns**: Strategy, Dependency Injection, Builder, Registry
-- **Test Suite**: 1155 tests, green on every release
+- **Test Suite**: green on every release; the count is recorded per release in `CHANGELOG.md` rather than repeated here, so it cannot go stale
 
 ## 🎯 Roadmap
 
 - **Phase 1 (Completed)**: Core functionality (data loading, processing, validation), advanced MACD analysis, and statistical engine.
 - **Phase 2 (In Progress)**: Extended visualization options, implementation of Time Series and other indicator analysis modules (currently stubs).
-- **Phase 3 (Planned)**: Full machine learning integration, chart pattern recognition, and enhanced automation pipelines.
+- **Phase 3 (Planned)**: Chart pattern recognition and enhanced automation pipelines. Machine learning is **not** currently part of the package: the `bquant.ml` placeholder was removed in 0.0.7 because both of its public functions only ever raised `NotImplementedError`.
 
 ## 📄 License
 

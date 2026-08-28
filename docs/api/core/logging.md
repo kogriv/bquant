@@ -18,7 +18,7 @@
 
 ### `setup_logging()` - Единая точка конфигурации
 
-```python
+```text
 def setup_logging(
     level: str = None,                    # Общий уровень логирования
     console_level: str = None,            # Уровень для консоли
@@ -38,7 +38,7 @@ def setup_logging(
 
 ### `get_logger()` - Получение логгера
 
-```python
+```text
 def get_logger(
     name: str,                            # Имя логгера (обычно __name__)
     context: Dict[str, Any] = None        # Контекстная информация

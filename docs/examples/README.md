@@ -142,7 +142,7 @@ if result.hypothesis_tests:
 - **Universal Zones** (см. исходный код) — **НАЧНИТЕ ЗДЕСЬ**: любой индикатор за 3 строки
 
 ### 📚 Маршрут изучения
-- **Migration Guide** (02_macd_zone_analysis.py) — переход с deprecated API (см. исходный код)
+- **MACD Zone Analysis** (02_macd_zone_analysis.py) — пресет `analyze_macd_zones()`, билдер `analyze_zones()`, разные стратегии детекции
 - **Strategies Deep Dive** (05_strategies_demo.py) — все типы стратегий (см. исходный код)
 - **Regression Analysis** (06_regression_demo.py) — статистическое моделирование (см. исходный код)
 - **Validation Framework** (07_validation_demo.py) — проверка качества (см. исходный код)

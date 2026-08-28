@@ -43,7 +43,7 @@ result = (
 - `'talib'` - библиотека TA-Lib
 
 **Примеры:**
-```python
+```text
 # MACD
 .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
 
@@ -65,7 +65,7 @@ result = (
 - `'combined'` - комбинированные правила
 
 **Примеры:**
-```python
+```text
 # Zero crossing для MACD
 .detect_zones('zero_crossing', indicator_role='hist')
 
@@ -88,7 +88,7 @@ result = (
 - `volatility` - анализ волатильности (combined, statistical)
 
 **Примеры:**
-```python
+```text
 # Базовые стратегии
 .with_strategies(swing='find_peaks', shape='statistical')
 
@@ -111,7 +111,7 @@ result = (
 - `validation=True/False` - валидация моделей
 
 **Примеры:**
-```python
+```text
 # Базовый анализ
 .analyze(clustering=True, n_clusters=3)
 
@@ -152,7 +152,7 @@ else:
 - `ttl=3600` - время жизни кэша в секундах
 
 **Примеры:**
-```python
+```text
 # С кэшированием на 2 часа
 .with_cache(enable=True, ttl=7200)
 
@@ -169,7 +169,7 @@ else:
 - `scope='per_zone'` — свинги считаются локально внутри каждой зоны (совместимость).
 
 **Пример:**
-```python
+```text
 .with_strategies(swing='zigzag').with_swing_scope('global')
 ```
 

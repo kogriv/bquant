@@ -166,7 +166,7 @@ result = pipeline.run(df)
 - `'global'` (по умолчанию) — один проход по всему датасету, затем агрегация в зоны;
 - `'per_zone'` — локальный расчёт внутри каждой зоны (режим совместимости).
 
-```python
+```text
 .with_strategies(swing="zigzag").with_swing_scope("global")
 ```
 

@@ -471,18 +471,26 @@ print(vocab.is_declared, vocab.names())
 потребители читают `is_declared` и в этом случае не фильтруют.
 
 
-### Legacy API (Deprecated)
+### Legacy API
 
-⚠️ **DEPRECATED:** Следующие компоненты устарели в v2.1:
+Эти имена **экспортируются и работают**; предпочтительный путь — Universal Pipeline:
 
-- `Zone` class → `ZoneInfo` dataclass
-- `find_support_resistance()` → Universal detection strategies
-- `ZoneAnalyzer` → `UniversalZoneAnalyzer` через pipeline
-- `extract_zone_features()` → автоматическое извлечение в pipeline
+| Legacy | Предпочтительно |
+|---|---|
+| `Zone` | `ZoneInfo` dataclass |
+| `find_support_resistance()` | стратегии детекции |
+| `ZoneAnalyzer` | `UniversalZoneAnalyzer` через пайплайн |
+| `extract_zone_features()` | извлечение внутри пайплайна |
 
-**Руководство по Миграции:**
+> Раздел назывался «Deprecated», но **в коде нет ни `DeprecationWarning`, ни
+> маркера устаревания** — ни у одного из четырёх имён. Объявлять устаревшим то,
+> за чем в коде ничего не стоит, значит обещать переходный период, которого нет.
+> По конвенции проекта переходных механизмов не заводят: имя либо живёт, либо
+> удаляется целиком.
+
+**Как перейти на пайплайн:**
 ```python
-# Старый способ (Deprecated)
+# Legacy
 from bquant.analysis.zones import find_support_resistance, extract_zone_features
 zones = find_support_resistance(data, window=20, min_touches=2)
 features = extract_zone_features(zone_info)
@@ -552,12 +560,12 @@ result = (
 )
 ```
 
-### Legacy Примеры (Deprecated)
+### Legacy Примеры
 
-⚠️ **DEPRECATED:** Используйте Universal Pipeline вместо этих примеров:
+Работают, но предпочтителен Universal Pipeline:
 
 ```python
-# Старый способ (Deprecated)
+# Legacy
 import pandas as pd
 
 from bquant.analysis.zones import find_support_resistance

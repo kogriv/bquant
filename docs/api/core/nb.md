@@ -34,7 +34,7 @@ nb.finish()
 
 #### Инициализация
 
-```python
+```text
 NotebookSimulator(
     description: Optional[str] = None,
     default_log_name: Optional[str] = None,
@@ -50,13 +50,13 @@ NotebookSimulator(
 #### Основные методы
 
 ##### set_trap_mode()
-```python
+```text
 set_trap_mode(enable: bool) -> None
 ```
 Включение/выключение пошагового режима (автоматически настраивается из аргументов).
 
 ##### setup_logging()
-```python
+```text
 setup_logging(log_file_path: Optional[Union[str, Path]] = None) -> None
 ```
 Настройка двойного логирования (автоматически вызывается при инициализации).
@@ -65,7 +65,7 @@ setup_logging(log_file_path: Optional[Union[str, Path]] = None) -> None
 - `log_file_path`: Путь к лог-файлу или None для консоли только
 
 ##### step()
-```python
+```text
 step(title: str, level: int = 0, separator_char: str = "-") -> None
 ```
 Начало нового шага выполнения.
@@ -76,13 +76,13 @@ step(title: str, level: int = 0, separator_char: str = "-") -> None
 - `separator_char`: Символ разделителя
 
 ##### substep()
-```python
+```text
 substep(title: str) -> None
 ```
 Подшаг внутри текущего шага.
 
 ##### wait()
-```python
+```text
 wait() -> None
 ```
 Ожидание команды продолжения (ENTER=продолжить, 'q'=выход).
@@ -90,13 +90,13 @@ wait() -> None
 #### Методы логирования
 
 ##### log()
-```python
+```text
 log(message: str, to_file_only: bool = False) -> None
 ```
 Базовый метод вывода сообщений.
 
 ##### success() / error() / warning() / info()
-```python
+```text
 success(message: str) -> None    # ✅
 error(message: str) -> None      # ❌
 warning(message: str) -> None    # ⚠️
@@ -105,7 +105,7 @@ info(message: str) -> None       # ℹ️
 Специализированные методы с префиксами `[OK]`, `[FAIL]`, `[WARN]`, `[INFO]`.
 
 ##### data_info()
-```python
+```text
 data_info(label: str, value: Any) -> None
 ```
 Вывод структурированной информации.
@@ -119,13 +119,13 @@ nb.data_info("Memory usage", "2.5 MB")
 ```
 
 ##### section_header()
-```python
+```text
 section_header(title: str) -> None
 ```
 Заголовок секции с форматированием.
 
 ##### summary_item()
-```python
+```text
 summary_item(label: str, value: Any, success: Optional[bool] = None) -> None
 ```
 Элемент резюме со статусом.
@@ -139,7 +139,7 @@ nb.summary_item("Tests passed", "5/10", success=False)
 ```
 
 ##### next_steps()
-```python
+```text
 next_steps(steps: List[str]) -> None
 ```
 Список следующих действий.
@@ -160,19 +160,19 @@ nb.next_steps([
 #### Управление выполнением
 
 ##### finish()
-```python
+```text
 finish(message: str = "Script finished successfully!") -> None
 ```
 Корректное завершение скрипта.
 
 ##### cleanup_and_exit()
-```python
+```text
 cleanup_and_exit(exit_code: int = 0) -> None
 ```
 Очистка ресурсов и выход.
 
 ##### error_handling()
-```python
+```text
 @contextmanager
 error_handling(operation_name: str, critical: bool = False)
 ```
@@ -189,7 +189,7 @@ with nb.error_handling("Data loading", critical=True):
 Все утилиты встроены в класс `NotebookSimulator` и доступны как методы объекта.
 
 #### format_file_size() (статический)
-```python
+```text
 @staticmethod
 NotebookSimulator.format_file_size(size_bytes: int) -> str
 ```
@@ -201,7 +201,7 @@ print(NotebookSimulator.format_file_size(1048576))   # "1.00 MB"
 ```
 
 #### format_duration()
-```python
+```text
 format_duration(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None) -> str
 ```
 Форматирование длительности операции (по умолчанию от старта скрипта).

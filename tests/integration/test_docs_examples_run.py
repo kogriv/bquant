@@ -92,6 +92,8 @@ EXPECTED_TO_FAIL = {
         "относительный импорт внутри пакета: так выглядит файл стратегии на месте",
     ("docs/user_guide/zone_analysis_result.md", "ZoneAnalysisResult.load("):
         "читает результат, сохранённый предыдущим прогоном читателя",
+    ("docs/examples/README.md", "runpy.run_path"):
+        "запускает файл примера по пути от корня репозитория; тест работает во временном каталоге",
 }
 
 
@@ -157,14 +159,67 @@ def _bound_names(tree: ast.AST) -> set[str]:
 _ALWAYS_AVAILABLE = set(dir(builtins)) | {"__name__", "__file__", "__doc__", "_"}
 
 
-def _free_names(code: str) -> set[str]:
-    """Имена, которые блок читает на модульном уровне, но не определяет."""
-    tree = ast.parse(code)
-    loaded = {
-        node.id for node in _module_level_nodes(tree)
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+def _scope_bindings(node) -> set[str]:
+    """Имена, связываемые внутри одной области видимости (без вложенных)."""
+    bound: set[str] = set()
+    args = getattr(node, "args", None)
+    if isinstance(args, ast.arguments):
+        bound.update(
+            a.arg for a in
+            [*args.posonlyargs, *args.args, *args.kwonlyargs,
+             args.vararg, args.kwarg] if a is not None
+        )
+    for child in _module_level_nodes(node):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bound.add(child.name)
+        elif isinstance(child, (ast.Import, ast.ImportFrom)):
+            for alias in child.names:
+                bound.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(child, ast.Name) and isinstance(child.ctx, (ast.Store, ast.Del)):
+            bound.add(child.id)
+        elif isinstance(child, ast.ExceptHandler) and child.name:
+            bound.add(child.name)
+        elif isinstance(child, (ast.Global, ast.Nonlocal)):
+            bound.update(child.names)
+    return bound
+
+
+def _free_names_in_scope(node, visible: set[str]) -> set[str]:
+    """Свободные имена области ``node`` и всех вложенных в неё."""
+    visible = visible | _scope_bindings(node)
+    free = {
+        child.id for child in _module_level_nodes(node)
+        if isinstance(child, ast.Name)
+        and isinstance(child.ctx, ast.Load)
+        and child.id not in visible
     }
-    return loaded - _bound_names(tree) - _ALWAYS_AVAILABLE
+    for child in ast.walk(node):
+        if child is node or not isinstance(child, _SCOPED):
+            continue
+        # Декораторы и базовые классы вычисляются снаружи и уже учтены обходом
+        # модульного уровня; здесь спускаемся именно в тело.
+        free |= _free_names_in_scope(child, visible)
+    return free
+
+
+def _free_names(code: str) -> set[str]:
+    """Имена, которые блок читает, но нигде не определяет.
+
+    Считается **по областям видимости**, а не по одному лишь модульному уровню.
+    Обе более простые версии оказались неверны в разные стороны, и обе ошибки
+    поймал прогон:
+
+    * обход всего дерева одним множеством — аргумент ``def analyze(self, data)``
+      выглядел определением имени ``data``, и фрагмент считался самодостаточным;
+    * только модульный уровень — шаблон вида ``def main(): … get_sample_data(…)``
+      с вызовом ``main()`` внизу тоже считался самодостаточным, хотя импорт
+      ``get_sample_data`` остался в предыдущем блоке страницы.
+
+    Правило простое и настоящее: имя внутри функции свободно, если оно не связано
+    ни в её собственной области, ни в объемлющих.
+    """
+    tree = ast.parse(code)
+    return _free_names_in_scope(tree, set()) - _ALWAYS_AVAILABLE
 
 
 def _unwrap(block: str) -> str:
@@ -188,8 +243,16 @@ def _collect_examples():
         text = doc.read_text(encoding="utf-8")
         rel = doc.relative_to(PROJECT_ROOT).as_posix()
         for raw in _python_blocks(doc, text):
-            if "bquant" not in raw:
-                continue
+            # Отбора по подстроке «bquant» здесь нет намеренно. Он выглядел
+            # безобидной оптимизацией, но это не свойство блока, а совпадение
+            # символов: блок, где импорт стоял абзацем выше, а вызов здесь,
+            # отсеивался, хотя он про пакет. Той же формой промаха из проверок уже
+            # дважды выпадали целые файлы — `README.md` и `docs/index.rst`; чинили
+            # каждый раз не проверку, а её охват (G27).
+            #
+            # Критерий отбора теперь — свойство самого блока: он **разбирается** и
+            # **самодостаточен**. Пример из доков, который не работает, не работает
+            # независимо от того, попалось ли в нём слово «bquant».
             position = text.find(raw)
             line = text[:position].count("\n") + 1 if position >= 0 else 0
             block = _unwrap(raw)
@@ -197,12 +260,28 @@ def _collect_examples():
                 if _free_names(block):
                     continue  # фрагмент: опирается на предыдущий блок
             except SyntaxError:
-                # Блок вообще не разбирается. После снятия разметочной обёртки это
-                # уже не артефакт, а поломка — пусть доедет до теста и покраснеет
-                # там с внятным сообщением.
-                pass
+                # Блок не разбирается — это отдельная претензия, и у неё отдельная
+                # проверка (`test_a_python_fence_contains_python`). Смешивать её с
+                # «пример не работает» нельзя: причины разные, и чинятся они разным.
+                continue
             items.append((rel, line, block))
     return items
+
+
+def _collect_python_fences():
+    """Все блоки, подписанные ``python``: (относительный путь, строка, код)."""
+    items = []
+    for doc in _iter_docs():
+        text = doc.read_text(encoding="utf-8")
+        rel = doc.relative_to(PROJECT_ROOT).as_posix()
+        for raw in _python_blocks(doc, text):
+            position = text.find(raw)
+            line = text[:position].count("\n") + 1 if position >= 0 else 0
+            items.append((rel, line, _unwrap(raw)))
+    return items
+
+
+PYTHON_FENCES = _collect_python_fences()
 
 
 EXAMPLES = _collect_examples()
@@ -296,6 +375,36 @@ def test_a_self_contained_doc_example_runs(
         pytest.fail(
             f"{rel}:{line} числится в EXPECTED_TO_FAIL ({reason}), но отработал. "
             f"Уберите запись — иначе реестр начнёт прикрывать настоящие поломки."
+        )
+
+
+@pytest.mark.parametrize(
+    "rel, line, code",
+    PYTHON_FENCES,
+    ids=[f"{rel}:{line}" for rel, line, _ in PYTHON_FENCES],
+)
+def test_a_python_fence_contains_python(rel, line, code):
+    """Блок, подписанный ``python``, обязан быть питоном.
+
+    Претензия отдельная от «пример не работает», и цена у неё своя: на сайте такой
+    блок подсвечен как исполняемый код, а для любой проверки он **невидим** —
+    разбор падает, и блок молча выпадает из выборки. Молчаливое выпадение из
+    проверки уже случалось в парити (многострочные импорты схлопывались в пустое
+    имя, 11 блоков мимо кассы) и хуже отсутствия проверки: отчёт зелёный.
+
+    Справка, которая кодом не является — перечень сигнатур, набросок структуры, —
+    подписывается ``text``. Это не придирка к оформлению: подпись говорит читателю,
+    можно ли это скопировать и запустить.
+    """
+    try:
+        ast.parse(code)
+    except SyntaxError as exc:
+        first = next((ln for ln in code.splitlines() if ln.strip()), "")
+        pytest.fail(
+            f"{rel}:{line} — блок подписан ```python, но питоном не является:\n"
+            f"    {exc.msg} (строка {exc.lineno})\n"
+            f"    начало блока: {first[:70]}\n"
+            f"Если это справка, а не код, — подпишите блок ```text."
         )
 
 

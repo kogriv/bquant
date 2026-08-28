@@ -403,7 +403,9 @@ analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy)
 ```python
 analyzer = ZoneFeaturesAnalyzer(swing_strategy='find_peaks')
 # Custom parameters
-strategy = create_swing_strategy('find_peaks', prominence=0.01, distance=5)
+strategy = create_swing_strategy(
+    {'type': 'find_peaks', 'params': {'prominence': 0.01, 'distance': 5}}
+)
 ```
 
 **Фокус метрик:** Более многочисленные, но меньшие свинги
@@ -428,7 +430,9 @@ strategy = create_swing_strategy('find_peaks', prominence=0.01, distance=5)
 ```python
 analyzer = ZoneFeaturesAnalyzer(swing_strategy='pivot_points')
 # Asymmetric window
-strategy = create_swing_strategy('pivot_points', left_bars=7, right_bars=3)
+strategy = create_swing_strategy(
+    {'type': 'pivot_points', 'params': {'left_bars': 7, 'right_bars': 3}}
+)
 ```
 
 **Фокус метрик:** Подтвержденные, проверенные свинги

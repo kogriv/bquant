@@ -232,7 +232,7 @@ result = (
 ### 🔬 Advanced Features
 5. **[Deep Dive Tutorial](../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis (412 строк)
 6. **[Advanced Features](../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
-7. **[Migration Guide](../../examples/02_macd_zone_analysis.py)** - Переход с deprecated API
+7. **[MACD Zone Analysis](../../examples/02_macd_zone_analysis.py)** - пресет, билдер и стратегии детекции на одном примере
 
 ### 🏗️ Developer Resources
 8. **[Architecture Patterns](../developer_guide/README.md)** - Design Patterns, Extension Points

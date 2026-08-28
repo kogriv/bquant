@@ -292,7 +292,7 @@ class ZeroCrossingDetection:
 
 ### Этап 4: Анализ зон (UniversalZoneAnalyzer)
 
-```python
+```text
 class UniversalZoneAnalyzer:
     def analyze_zones(self, zones, data, perform_clustering, n_clusters, ...):
         # 1. Извлечение признаков из каждой зоны
@@ -346,7 +346,7 @@ class UniversalZoneAnalyzer:
 
 ### ZoneInfo (одна зона)
 
-```python
+```text
 @dataclass
 class ZoneInfo:
     zone_id: int                    # Уникальный ID
@@ -371,7 +371,7 @@ class ZoneInfo:
 
 ### ZoneAnalysisResult (результат анализа)
 
-```python
+```text
 @dataclass
 class ZoneAnalysisResult:
     zones: List[ZoneInfo]              # Все обнаруженные зоны
@@ -485,7 +485,7 @@ config = ZoneDetectionConfig(
 
 **ZoneFeaturesAnalyzer** заполняет `zone.features`. Структура — смесь полей верхнего уровня и вложенного `metadata`:
 
-```python
+```text
 zone.features = {
     # Верхний уровень (ZoneFeatures)
     'zone_id': 'bull_0',
@@ -550,7 +550,7 @@ print(f"Найдено зон: {len(result.zones)}")
 
 ### Полный пример (с кастомизацией)
 
-```python
+```text
 result = (
     analyze_zones(df)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)

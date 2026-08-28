@@ -141,7 +141,7 @@ PRELOADED индикатор для работы с готовыми MACD дан
    - **Bearish**: col1 < col2 И col1_prev ≥ col2_prev
 
 **Возвращает:**
-```python
+```text
 {
     'column1': 'название первой колонки',
     'column2': 'название второй колонки',
