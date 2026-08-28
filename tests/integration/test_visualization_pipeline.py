@@ -15,18 +15,18 @@ from typing import Dict, List, Any
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-try:
-    from bquant.visualization import (
-        FinancialCharts,
-        ZoneVisualizer, 
-        StatisticalPlots,
-        ChartThemes,
-        create_financial_chart
-    )
-    visualization_available = True
-except ImportError as e:
-    visualization_available = False
-    print(f"Visualization module not available: {e}")
+# Импорты НЕ обёрнуты в try/except намеренно: matplotlib и plotly — основные
+# зависимости пакета, а ошибка импорта символа bquant должна ронять сбор, а не
+# превращаться в молчаливый пропуск. См. tests/unit/test_no_silent_skips_on_bquant_imports.py
+from bquant.visualization import (
+    FinancialCharts,
+    ZoneVisualizer,
+    StatisticalPlots,
+    ChartThemes,
+    create_financial_chart
+)
+
+visualization_available = True
 
 from bquant.analysis.zones import analyze_macd_zones
 from bquant.data.samples import get_sample_data, list_dataset_names

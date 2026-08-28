@@ -21,29 +21,24 @@ from bquant.visualization import (
 )
 
 # Условные импорты для модулей
-try:
-    from bquant.visualization.charts import FinancialCharts, ChartBuilder
-    charts_available = True
-except ImportError:
-    charts_available = False
+from bquant.visualization.charts import FinancialCharts, ChartBuilder
 
-try:
-    from bquant.visualization.zones import ZoneVisualizer, plot_zones_on_chart
-    zones_available = True
-except ImportError:
-    zones_available = False
+charts_available = True
 
-try:
-    from bquant.visualization.statistical import StatisticalPlots, create_quick_histogram
-    statistical_available = True
-except ImportError:
-    statistical_available = False
+from bquant.visualization.zones import ZoneVisualizer, plot_zones_on_chart
 
-try:
-    from bquant.visualization.themes import ChartThemes, apply_theme
-    themes_available = True
-except ImportError:
-    themes_available = False
+zones_available = True
+
+from bquant.visualization.statistical import StatisticalPlots, create_quick_histogram
+
+statistical_available = True
+
+# Импорты НЕ обёрнуты в try/except намеренно: matplotlib и plotly — основные
+# зависимости пакета, а ошибка импорта символа bquant должна ронять сбор, а не
+# превращаться в молчаливый пропуск. См. tests/unit/test_no_silent_skips_on_bquant_imports.py
+from bquant.visualization.themes import ChartThemes, apply_theme
+
+themes_available = True
 
 # Проверка библиотек визуализации
 try:

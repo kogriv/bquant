@@ -17,29 +17,30 @@ from bquant.analysis.zones import (
     find_support_resistance
 )
 
-# Импорты для расширенного анализа зон
-try:
-    from bquant.analysis.zones.zone_features import (
-        ZoneFeatures,
-        ZoneFeaturesAnalyzer,
-        analyze_zones_distribution,
-        extract_zone_features
-    )
-    zone_features_available = True
-except ImportError:
-    zone_features_available = False
+# Импорты для расширенного анализа зон.
+#
+# Импорт НЕ обёрнут в try/except намеренно. Раньше был обёрнут, и когда из пакета
+# убрали модульную `extract_zone_features` (дубль метода, G28), девять тестов в этом
+# файле начали **молча скипаться** вместо того чтобы упасть. Отчёт остался зелёным,
+# а проверок стало на девять меньше. Отсутствующий импорт обязан ронять сбор, а не
+# превращаться в пропуск.
+from bquant.analysis.zones.zone_features import (
+    ZoneFeatures,
+    ZoneFeaturesAnalyzer,
+    analyze_zones_distribution,
+)
 
-try:
-    from bquant.analysis.zones.sequence_analysis import (
-        TransitionAnalysis,
-        ClusterAnalysis,
-        ZoneSequenceAnalyzer,
-        create_zone_sequence_analysis,
-        cluster_zone_shapes
-    )
-    sequence_analysis_available = True
-except ImportError:
-    sequence_analysis_available = False
+zone_features_available = True
+
+from bquant.analysis.zones.sequence_analysis import (
+    TransitionAnalysis,
+    ClusterAnalysis,
+    ZoneSequenceAnalyzer,
+    create_zone_sequence_analysis,
+    cluster_zone_shapes
+)
+
+sequence_analysis_available = True
 
 from bquant.core.exceptions import AnalysisError
 
@@ -254,9 +255,9 @@ class TestZoneFeaturesAnalyzer:
     
     def test_convenience_functions(self):
         """Тест удобных функций."""
-        # Тест extract_zone_features
+        # Тест извлечения признаков одной зоны
         zone_info = create_test_zone_info('bear', 15)
-        features_dict = extract_zone_features(zone_info)
+        features_dict = ZoneFeaturesAnalyzer().extract_zone_features(zone_info).to_dict()
         
         assert isinstance(features_dict, dict)
         assert features_dict['zone_type'] == 'bear'
@@ -414,7 +415,7 @@ class TestIntegrationZonesAnalysis:
         for i in range(5):
             zone_type = 'bull' if i % 2 == 0 else 'bear'
             zone_info = create_test_zone_info(zone_type, 10 + i * 2)
-            features_dict = extract_zone_features(zone_info)
+            features_dict = ZoneFeaturesAnalyzer().extract_zone_features(zone_info).to_dict()
             zones_features.append(features_dict)
         
         # Анализируем распределение
@@ -477,7 +478,7 @@ class TestIntegrationZonesAnalysis:
         # 4. Извлекаем характеристики зон
         zones_features = []
         for zone_info in macd_zones_info:
-            features_dict = extract_zone_features(zone_info)
+            features_dict = ZoneFeaturesAnalyzer().extract_zone_features(zone_info).to_dict()
             zones_features.append(features_dict)
         
         # 5. Анализируем распределение
