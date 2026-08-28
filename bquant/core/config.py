@@ -12,17 +12,71 @@ from typing import Any, Dict, Optional, Union
 # PROJECT STRUCTURE
 # ============================================================================
 
+#: Откуда приехал код. В рабочей копии — корень репозитория; у установленного
+#: пакета — каталог установки (`site-packages`). Только для чтения.
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
+
+
+def is_source_checkout(root: Union[str, Path]) -> bool:
+    """Похож ли ``root`` на рабочую копию репозитория, а не на каталог установки.
+
+    Признаки, а не догадка: рядом с пакетом лежит ``pyproject.toml``. В
+    `site-packages` его нет — там лежат `*.dist-info` и чужие пакеты.
+    """
+    root = Path(root)
+    return (root / "pyproject.toml").is_file() and (root / "bquant").is_dir()
+
+
+def resolve_state_root(project_root: Union[str, Path]) -> Path:
+    """Куда пакету можно **писать**: данные, результаты, логи.
+
+    Раньше этого различия не было: `PROJECT_ROOT` означал сразу и «откуда читается
+    код», и «куда складывать своё». В рабочей копии оба смысла совпадают — поэтому
+    промах не виден ровно тому, кто правит код. Расходятся они только у
+    пользователя: у установленного пакета «три уровня вверх» дают `site-packages`,
+    и пакет принимался заводить там `logs/`, `results/`, `data/processed/`.
+
+    Замер на чистом окружении с ``pip install bquant==0.0.7``: при `site-packages`
+    без права записи ``import bquant`` падал с
+    ``PermissionError: '…/site-packages/logs'`` — то есть отказ прав приходил на
+    **импорте**, когда вызывающий ещё ничего не просил записать и обойти его нечем.
+    Разбор: ``devref/gaps/install/g24_package_writes_into_its_own_install_2026-08.md``.
+
+    Порядок разрешения:
+
+    1. ``$BQUANT_HOME`` — пользователь назвал каталог сам;
+    2. рабочая копия — корень репозитория (поведение разработчика не меняется:
+       примеры и скрипты продолжают складывать результаты в репозиторий);
+    3. иначе — ``~/.local/share/bquant``.
+
+    Ничего не создаёт: каталог заводит тот, кто в него пишет.
+    """
+    override = os.environ.get('BQUANT_HOME')
+    if override:
+        return Path(override).expanduser()
+
+    project_root = Path(project_root)
+    if is_source_checkout(project_root):
+        return project_root
+
+    return Path.home() / ".local" / "share" / "bquant"
+
+
+#: Куда пакету можно писать. Отделён от :data:`PROJECT_ROOT` намеренно — см.
+#: :func:`resolve_state_root`.
+STATE_ROOT = resolve_state_root(PROJECT_ROOT)
+
+DATA_DIR = STATE_ROOT / "data"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 NOTEBOOKS_DIR = PROJECT_ROOT / "research" / "notebooks"
 ALLDATA_DIR = DATA_DIR / "alldata"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
-RESULTS_DIR = PROJECT_ROOT / "results"
+RESULTS_DIR = STATE_ROOT / "results"
 
-# Создаем директории если их нет
-for directory in [PROCESSED_DATA_DIR, RESULTS_DIR, PROJECT_ROOT / "logs"]:
-    directory.mkdir(exist_ok=True, parents=True)
+# Каталоги здесь НЕ создаются. Создание на импорте — это не подготовка, а перенос
+# отказа прав в точку, где вызывающий ничего сделать не может. Все, кто реально
+# пишет, заводят каталог сами: `core/utils.py`, `core/logging_config.py`,
+# `core/cache.py`.
 
 # ============================================================================
 # UNIVERSAL DATA CONFIGURATION
@@ -272,7 +326,10 @@ LOGGING = {
     'level': "INFO",
     'format': "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     'file_logging': True,
-    'log_file': PROJECT_ROOT / "logs" / "bquant.log"
+    # Не `PROJECT_ROOT`: у установленного пакета это `site-packages`, и лог ложился
+    # внутрь собственной установки — переживая `pip uninstall`, потому что каталог
+    # заведён не пакетным менеджером и в `RECORD` его нет.
+    'log_file': STATE_ROOT / "logs" / "bquant.log"
 }
 
 # ============================================================================

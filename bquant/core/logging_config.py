@@ -15,6 +15,25 @@ from datetime import datetime
 from .config import LOGGING, PROJECT_ROOT
 
 
+class LazyDirRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """Файловый обработчик, который заводит каталог в момент **первой записи**.
+
+    Раньше каталог для логов создавался при настройке логгирования, а настройка
+    происходила на импорте пакета. У установленного пакета путь вёл внутрь
+    ``site-packages``, поэтому при каталоге установки без права записи
+    ``import bquant`` падал с ``PermissionError`` — отказ прав приходил туда, где
+    вызывающий ещё ничего не просил записать (G24).
+
+    Здесь каталог создаётся вместе с открытием файла, а открытие отложено
+    (``delay=True``). Импорт не трогает файловую систему вовсе; если писать всё же
+    некуда, отваливается запись одной строки лога, а не весь пакет.
+    """
+
+    def _open(self):
+        Path(self.baseFilename).parent.mkdir(parents=True, exist_ok=True)
+        return super()._open()
+
+
 class BQuantFormatter(logging.Formatter):
     """
     Кастомный форматтер для BQuant с цветовой поддержкой
@@ -36,7 +55,7 @@ class BQuantFormatter(logging.Formatter):
             use_colors: Использовать цветовое выделение для консоли
         """
         super().__init__(*args, **kwargs)
-        self.use_colors = use_colors and sys.stdout.isatty()
+        self.use_colors = use_colors and sys.stderr.isatty()
     
     def format(self, record: logging.LogRecord) -> str:
         """Форматировать запись лога"""
@@ -180,26 +199,31 @@ def setup_logging(
             'class': 'logging.StreamHandler',
             'level': console_level,
             'formatter': 'console',
-            'stream': sys.stdout
+            # stderr, а не stdout: диагностика и результат — разные потоки.
+            # Строка лога, попавшая в stdout, делает неразбираемым вывод любой
+            # команды, которая отдаёт данные (`bquant analyze --json`), при том
+            # что посчитано всё правильно.
+            'stream': sys.stderr
         }
         config['loggers']['bquant']['handlers'].append('console')
     
     # Добавляем файловый обработчик если нужно
     if log_to_file:
-        # Создаем директорию для логов
-        log_path = Path(log_file)
-        log_path.parent.mkdir(exist_ok=True, parents=True)
-        
+        # Каталог здесь НЕ создаётся: его заведёт сам обработчик при первой записи
+        # (`LazyDirRotatingFileHandler` + `delay`). Настройка логгирования случается
+        # на импорте, и создание каталога здесь превращало отсутствие права записи
+        # в отказ импорта — см. G24.
         config['handlers']['file'] = {
-            'class': 'logging.handlers.RotatingFileHandler',
+            '()': LazyDirRotatingFileHandler,
             'level': file_level,
             'formatter': 'file',
             'filename': str(log_file),
             'maxBytes': 10 * 1024 * 1024,  # 10MB
             'backupCount': 5,
-            'encoding': 'utf-8'
+            'encoding': 'utf-8',
+            'delay': True,
         }
-        
+
         # Добавляем файловый обработчик к логгеру
         config['loggers']['bquant']['handlers'].append('file')
     

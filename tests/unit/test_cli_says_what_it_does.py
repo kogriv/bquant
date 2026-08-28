@@ -202,12 +202,64 @@ def test_list_names_every_dataset():
 # --- Структурный вывод: потребитель здесь программа, а не человек -----------
 
 
+def _run_cli_as_a_subprocess(argv: list[str]) -> tuple[str, str, int]:
+    """Запустить команду **настоящим процессом** и вернуть (stdout, stderr, код).
+
+    Это не педантизм. Проверка через ``redirect_stdout`` внутри процесса
+    **пропустила настоящий дефект**: обработчики логгирования держат ссылку на
+    исходный ``sys.stdout``, поэтому подмена перехватывала только ``print()``, а
+    строки лога шли мимо неё — в тот же поток, куда уходит JSON. Тест был зелёным,
+    а `bquant analyze --json | jq` у пользователя падал.
+
+    Вывод общий: если проверяешь, что попадает в поток, — бери процесс, а не
+    подмену потока внутри своего.
+    """
+
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "bquant.cli", *argv],
+        capture_output=True, text=True, timeout=600,
+    )
+    return result.stdout, result.stderr, result.returncode
+
+
 @pytest.fixture(scope="module")
 def json_run() -> dict:
     """``--json --no-chart``: только числа, без отрисовки — поэтому быстро."""
 
-    stdout = _run_cli(["analyze", DATASET, "--json", "--no-chart"])
-    return json.loads(stdout)
+    stdout, stderr, code = _run_cli_as_a_subprocess(
+        ["analyze", DATASET, "--json", "--no-chart"]
+    )
+    assert code == 0, f"команда завершилась с кодом {code}\nstderr:\n{stderr}"
+    try:
+        return json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        pytest.fail(
+            "stdout при --json не разбирается как JSON — вероятно, в него попали "
+            f"строки лога.\nОшибка: {exc}\nstdout:\n{stdout[:2000]}"
+        )
+
+
+def test_diagnostics_do_not_land_in_the_data_stream():
+    """Логи — на stderr, результат — на stdout.
+
+    Потребитель ``--json`` — программа: она читает stdout и разбирает его целиком.
+    Строка лога, попавшая туда же, делает вывод неразбираемым, при том что
+    посчитано всё правильно. Диагностика и результат — разные потоки.
+    """
+
+    stdout, stderr, code = _run_cli_as_a_subprocess(
+        ["analyze", DATASET, "--json", "--no-chart"]
+    )
+    assert code == 0, stderr
+    json.loads(stdout)  # падение здесь и есть суть проверки
+
+    for line in stdout.splitlines():
+        assert " - INFO - " not in line and " - WARNING - " not in line, (
+            "строка лога попала в поток данных: " + line
+        )
 
 
 def test_json_output_is_parseable_and_versioned(json_run):

@@ -52,17 +52,21 @@ def setup_project_logging(
     formatter = logging.Formatter(LOGGING['format'])
     
     # Добавляем консольный обработчик
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = logging.StreamHandler(sys.stderr)  # диагностика — не в поток данных
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
     # Добавляем файловый обработчик если нужно
     if log_to_file:
-        # Создаем директорию для логов если не существует
-        log_path = Path(log_file)
-        log_path.parent.mkdir(exist_ok=True, parents=True)
-        
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        # Каталог создаётся обработчиком при первой записи, а не здесь: эта функция
+        # вызывается на импорте модуля (см. её вызов в конце файла), и создание
+        # каталога тут превращало отсутствие права записи в отказ импорта — G24.
+        from .logging_config import LazyDirRotatingFileHandler
+
+        file_handler = LazyDirRotatingFileHandler(
+            str(log_file), maxBytes=10 * 1024 * 1024, backupCount=5,
+            encoding='utf-8', delay=True,
+        )
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     
