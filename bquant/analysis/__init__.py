@@ -21,7 +21,11 @@ from ..core.logging_config import get_logger
 logger = get_logger(__name__)
 
 # Версия модуля анализа
-__version__ = "0.0.0"
+# Версия — одна на пакет. Свой литерал здесь разъезжался с пакетом молча:
+# восемь модулей объявляли собственную версию, четыре из них застряли на
+# "0.0.0" при пакете 0.0.9, и `get_visualization_info()` выдавал этот ноль
+# наружу как факт (G32).
+from bquant import __version__  # noqa: F401
 
 # Поддерживаемые виды анализа
 SUPPORTED_ANALYSIS_TYPES = {
@@ -207,71 +211,52 @@ class BaseAnalyzer:
 
 def get_available_analyzers() -> Dict[str, str]:
     """
-    Получить список доступных анализаторов.
-    
+    Имена, которые принимает :func:`create_analyzer`, и что каждое означает.
+
+    Вопрос, на который отвечает эта функция, — «что я могу передать фабрике».
+    Поэтому она **выводится** из ``SUPPORTED_ANALYSIS_TYPES``, а не собирается
+    отдельным списком.
+
+    Так было не всегда: до 0.0.10 она объединяла шесть модульных перечней и
+    объявляла 24 имени, из которых фабрика принимала 5 — и ни одно из четырёх
+    зональных (``zone``, ``support_resistance``, ``macd_zones``,
+    ``price_action``) не принималось. Два утверждения по отдельности были
+    зелёными, ложной была их конъюнкция, и сверять их было нечем (G32).
+
+    Модульные перечни (``get_zone_analyzers`` и другие) никуда не делись, но
+    отвечают на **другой** вопрос — какие виды анализа покрывает модуль. Их
+    ключи не предназначены для фабрики.
+
     Returns:
-        Словарь {анализатор: описание}
+        Словарь {имя для create_analyzer: описание}
     """
-    analyzers = {}
-    
-    # Статистические анализаторы
-    try:
-        from .statistical import get_statistical_analyzers
-        analyzers.update(get_statistical_analyzers())
-    except ImportError:
-        logger.debug("Statistical analyzers not available")
-    
-    # Зональные анализаторы
-    try:
-        from .zones import get_zone_analyzers
-        analyzers.update(get_zone_analyzers())
-    except ImportError:
-        logger.debug("Zone analyzers not available")
-    
-    # Технические анализаторы
-    try:
-        from .technical import get_technical_analyzers
-        analyzers.update(get_technical_analyzers())
-    except ImportError:
-        logger.debug("Technical analyzers not available")
-    
-    # Свечные анализаторы
-    try:
-        from .candlestick import get_candlestick_analyzers
-        analyzers.update(get_candlestick_analyzers())
-    except ImportError:
-        logger.debug("Candlestick analyzers not available")
-    
-    # Временные анализаторы
-    try:
-        from .timeseries import get_timeseries_analyzers
-        analyzers.update(get_timeseries_analyzers())
-    except ImportError:
-        logger.debug("Timeseries analyzers not available")
-    
-    # Графические анализаторы
-    try:
-        from .chart import get_chart_analyzers
-        analyzers.update(get_chart_analyzers())
-    except ImportError:
-        logger.debug("Chart analyzers not available")
-    
-    return analyzers
+    return dict(SUPPORTED_ANALYSIS_TYPES)
 
 
 def create_analyzer(analyzer_type: str, **kwargs) -> BaseAnalyzer:
     """
-    Фабрика для создания анализаторов.
-    
+    Создать анализатор по имени из :func:`get_available_analyzers`.
+
+    **Что именно возвращается.** Сейчас это :class:`BaseAnalyzer` с проставленным
+    именем и конфигом, а не специализированный класс: собственный ``analyze()``
+    есть у ``StatisticalAnalyzer`` и у четырёх заглушек, но фабрика их пока не
+    строит. Написано здесь прямо, потому что имя ``create_analyzer('statistical')``
+    обещает больше, чем делает, и молчание об этом уже стоило пакету
+    рассогласования каталога и фабрики (G32).
+
+    Для анализа зон фабрика — не тот вход: пользуйтесь
+    :func:`bquant.analysis.zones.analyze_zones`.
+
     Args:
-        analyzer_type: Тип анализатора
-        **kwargs: Параметры для анализатора
-    
+        analyzer_type: Имя из :func:`get_available_analyzers`
+        **kwargs: Параметры, которые лягут в ``config`` анализатора
+
     Returns:
-        Экземпляр анализатора
+        Экземпляр :class:`BaseAnalyzer`
+
+    Raises:
+        ValueError: если имя не из списка поддерживаемых
     """
-    # Здесь будет реализована фабрика анализаторов
-    # Пока возвращаем базовый анализатор
     logger.info(f"Creating {analyzer_type} analyzer")
     
     if analyzer_type not in SUPPORTED_ANALYSIS_TYPES:

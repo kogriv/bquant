@@ -19,7 +19,11 @@ from .. import BaseAnalyzer, AnalysisResult
 logger = get_logger(__name__)
 
 # Версия модуля анализа свечей
-__version__ = "0.1.0-stub"
+# Версия — одна на пакет. Свой литерал здесь разъезжался с пакетом молча:
+# восемь модулей объявляли собственную версию, четыре из них застряли на
+# "0.0.0" при пакете 0.0.9, и `get_visualization_info()` выдавал этот ноль
+# наружу как факт (G32).
+from bquant import __version__  # noqa: F401
 
 
 class CandlestickAnalyzer(BaseAnalyzer):
@@ -80,8 +84,12 @@ def get_candlestick_analyzers() -> Dict[str, str]:
     """
     Получить список доступных анализаторов свечных паттернов.
     
+    Ключи — **не** имена для :func:`bquant.analysis.create_analyzer`; тот принимает
+    только имена из :func:`bquant.analysis.get_available_analyzers`. Здесь —
+    перечисление того, что модуль покрывает (G32).
+
     Returns:
-        Словарь {анализатор: описание}
+        Словарь {вид анализа: описание}
     """
     return {
         'candlestick': 'Анализ свечных паттернов (заглушка)',

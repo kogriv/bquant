@@ -23,6 +23,7 @@ BQuant Documentation
    api/data/schemas
    api/indicators/README
    api/indicators/base
+   api/indicators/custom
    api/indicators/factory
    api/indicators/library_manager
    api/indicators/macd

@@ -93,6 +93,11 @@ Visualization модули предоставляют инструменты д�
 - `ChartThemes` - Темы графиков
 
 #### 🔧 Функции
+- `create_financial_chart()` - Финансовый график по типу (`candlestick`/`ohlc`/`line`/`area`)
+- `create_statistical_plot()` - Статистический график по типу
+- `check_visualization_dependencies()` - Готова ли визуализация (bool)
+- `get_visualization_info()` - Структурный статус модуля
+- `print_visualization_status()` - Тот же статус печатью
 - `create_candlestick_chart()` - Candlestick график
 - `plot_macd_with_zones()` - MACD с зонами
 - `plot_correlation_matrix()` - Матрица корреляции
@@ -103,6 +108,86 @@ Visualization модули предоставляют инструменты д�
 - `ThemeConfig` - Конфигурация темы
 - `ZoneVisualizationConfig` - Конфигурация визуализации зон
 - `StatisticalPlotConfig` - Конфигурация статистического графика
+
+## 🚪 Функции уровня пакета
+
+Короткие входы, доступные прямо из `bquant.visualization` — не требуют знать, в каком
+подмодуле лежит нужный класс.
+
+### `create_financial_chart(chart_type='candlestick', **kwargs)`
+
+Строит финансовый график, делегируя в `FinancialCharts`. Принимает четыре типа —
+`'candlestick'`, `'ohlc'`, `'line'`, `'area'`; на любом другом поднимает `ValueError`,
+а если модуль графиков не загрузился — `VisualizationError`.
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.visualization import create_financial_chart
+
+data = get_sample_data('tv_xauusd_1h')
+
+fig = create_financial_chart('candlestick', data=data)
+print(type(fig).__name__)   # Figure
+```
+
+Остальные аргументы уходят в соответствующий метод `FinancialCharts` как есть.
+
+### `create_statistical_plot(plot_type, data, **kwargs)`
+
+То же для статистических графиков: `'histogram'`, `'scatter'`, `'correlation'`,
+`'distribution'`. **Форма данных у типов разная** — гистограмме и распределению
+достаточно ряда, диаграмме рассеяния нужны кадр и имена колонок, матрице корреляций —
+кадр из числовых колонок.
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.visualization import create_statistical_plot
+
+data = get_sample_data('tv_xauusd_1h')
+
+hist = create_statistical_plot('histogram', data['close'])
+scatter = create_statistical_plot('scatter', data, x_column='open', y_column='close')
+corr = create_statistical_plot('correlation', data[['open', 'high', 'low', 'close']])
+
+print(type(hist).__name__, type(scatter).__name__, type(corr).__name__)
+```
+
+### `check_visualization_dependencies() -> bool`
+
+Есть ли всё нужное для отрисовки. Полезно в скриптах, которые должны деградировать
+до текстового вывода, а не падать на середине.
+
+```python
+from bquant.visualization import check_visualization_dependencies
+
+if check_visualization_dependencies():
+    ...   # строим графики
+```
+
+### `get_visualization_info() -> dict`
+
+Структурная версия того же: что доступно и что загрузилось. Ключи —
+`version`, `available_libraries`, `modules_loaded`, `dependencies_met`.
+
+```python
+from bquant.visualization import get_visualization_info
+
+info = get_visualization_info()
+print(sorted(info))   # ['available_libraries', 'dependencies_met', 'modules_loaded', 'version']
+```
+
+`version` — версия самого пакета BQuant.
+
+### `print_visualization_status()`
+
+То же самое, но печатью для человека: список библиотек, список загруженных модулей и
+итоговая готовность. Ничего не возвращает.
+
+```python
+from bquant.visualization import print_visualization_status
+
+print_visualization_status()
+```
 
 ## 💡 Примеры использования
 

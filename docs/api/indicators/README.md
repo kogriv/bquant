@@ -51,6 +51,12 @@ result = (
 )
 ```
 
+### 🧮 [bquant.indicators.custom](custom.md) - Встроенные индикаторы
+- **SimpleMovingAverage**, **ExponentialMovingAverage**, **RelativeStrengthIndex**,
+  **MACD**, **BollingerBands** — реализованы в самом пакете, без внешних библиотек
+- Объявляют роли выходных колонок; имена колонок выводятся из параметров вызова
+- `register_builtin_indicators()` — регистрация всех пяти в фабрике (пакет делает это сам)
+
 ### 🔄 [bquant.indicators.preloaded](preloaded.md) - PRELOADED индикаторы
 - **MACDPreloadedIndicator** - извлечение готовых MACD значений
 - Работа с предобработанными данными
@@ -114,6 +120,10 @@ result = (
 
 #### 🏗️ Классы
 - `BaseIndicator` - Базовый класс индикатора
+- `SimpleMovingAverage` / `ExponentialMovingAverage` - Скользящие средние ([custom.md](custom.md))
+- `RelativeStrengthIndex` - RSI ([custom.md](custom.md))
+- `MACD` - Встроенный MACD ([custom.md](custom.md))
+- `BollingerBands` - Полосы Боллинджера ([custom.md](custom.md))
 - `PreloadedIndicator` - Базовый класс для PRELOADED индикаторов
 - `LibraryIndicator` - Обёртка индикатора из внешней библиотеки
 - `MACDPreloadedIndicator` - PRELOADED MACD индикатор
@@ -125,6 +135,7 @@ result = (
 - `IndicatorFactory.register_indicator()` - Регистрация индикатора
 - `LibraryManager.create_indicator()` - Создание из внешней библиотеки
 - `calculators.calculate_macd()` - Расчет MACD (модуль `bquant.indicators.calculators`)
+- `register_builtin_indicators()` - Регистрация встроенных индикаторов в фабрике ([custom.md](custom.md))
 
 #### 📋 Типы данных
 - `IndicatorResult` - Результат индикатора

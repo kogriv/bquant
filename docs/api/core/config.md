@@ -15,6 +15,8 @@
 - `DATA_VALIDATION`: правила валидации данных
 - `CACHE_CONFIG`: настройки кэширования
 - `LOGGING`: базовые настройки логирования
+- `DEFAULT_INDICATORS`: параметры индикаторов по умолчанию — источник, из которого
+  читает `get_indicator_params()` (см. ниже)
 
 ## Ключевые функции
 
@@ -23,6 +25,25 @@
 
 - `get_indicator_params(indicator, **overrides) -> Dict[str, Any]`
   - Параметры индикатора по умолчанию с возможностью переопределения.
+  - Читает `DEFAULT_INDICATORS`; для незнакомого имени возвращает пустой словарь,
+    а не ошибку.
+
+```python
+from bquant.core import DEFAULT_INDICATORS
+from bquant.core.config import get_indicator_params
+
+print(sorted(DEFAULT_INDICATORS))
+# ['atr', 'bollinger_bands', 'ema', 'macd', 'rsi', 'sma', 'stochastic', 'williams_r']
+
+print(get_indicator_params('macd'))                # {'fast': 12, 'slow': 26, 'signal': 9}
+print(get_indicator_params('macd', fast=5))        # {'fast': 5, 'slow': 26, 'signal': 9}
+print(get_indicator_params('несуществующий'))      # {}
+```
+
+Имена ключей здесь — **не** имена классов индикаторов, и параметры записаны в стиле
+внешних библиотек (`fast`/`slow`/`signal`, `length`). Встроенные индикаторы
+([custom.md](../indicators/custom.md)) принимают свои имена аргументов
+(`fast_period`, `period`), так что словарь сюда не передаётся как есть.
 
 - `get_analysis_params(analysis_type, **overrides) -> Dict[str, Any]`
   - Параметры анализа по умолчанию с возможностью переопределения.

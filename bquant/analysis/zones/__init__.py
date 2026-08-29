@@ -21,7 +21,11 @@ from .. import BaseAnalyzer, AnalysisResult
 logger = get_logger(__name__)
 
 # Версия модуля анализа зон
-__version__ = "0.0.0"
+# Версия — одна на пакет. Свой литерал здесь разъезжался с пакетом молча:
+# восемь модулей объявляли собственную версию, четыре из них застряли на
+# "0.0.0" при пакете 0.0.9, и `get_visualization_info()` выдавал этот ноль
+# наружу как факт (G32).
+from bquant import __version__  # noqa: F401
 
 
 @dataclass
@@ -478,16 +482,24 @@ class PriceLevelAnalyzer(BaseAnalyzer):
 
 def get_zone_analyzers() -> Dict[str, str]:
     """
-    Получить список доступных анализаторов зон.
-    
+    Виды зонального анализа, которые покрывает модуль.
+
+    Ключи — **не** имена для :func:`bquant.analysis.create_analyzer`; тот принимает
+    только имена из :func:`bquant.analysis.get_available_analyzers`. Здесь —
+    перечисление того, что модуль покрывает (G32).
+
     Returns:
-        Словарь {анализатор: описание}
+        Словарь {вид анализа: описание}
     """
     return {
-        'zone': 'Комплексный анализ зон поддержки/сопротивления',
-        'support_resistance': 'Анализ уровней поддержки и сопротивления',
-        'macd_zones': 'Анализ MACD зон',
-        'price_action': 'Анализ зон price action'
+        'oscillator_zones': (
+            'Зоны по осциллятору через Universal Pipeline — analyze_zones() '
+            'и пресеты analyze_macd_zones/analyze_rsi_zones/analyze_ao_zones'
+        ),
+        'price_levels': (
+            'Уровни поддержки и сопротивления — PriceLevelAnalyzer, '
+            'find_support_resistance()'
+        ),
     }
 
 

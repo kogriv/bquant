@@ -143,13 +143,45 @@ class TestAnalysisStructure:
     def test_get_available_analyzers(self):
         """Тест получения списка доступных анализаторов."""
         analyzers = get_available_analyzers()
-        
+
         assert isinstance(analyzers, dict)
         assert len(analyzers) > 0
-        
-        # Проверяем, что есть базовые анализаторы
         assert 'statistical' in analyzers
-        assert 'zone' in analyzers
+
+    def test_every_advertised_analyzer_can_actually_be_created(self):
+        """Каталог и фабрика обязаны сходиться — по отдельности они врали (G32).
+
+        До 0.0.10 `get_available_analyzers()` объявлял 24 имени, а
+        `create_analyzer()` принимал 5: все четыре зональных имени
+        (`zone`, `support_resistance`, `macd_zones`, `price_action`) фабрика
+        отвергала, причём `macd_zones` называл класс, удалённый в 0.0.5.
+
+        Сьют это заверял. Один тест утверждал «в каталоге есть `zone`», другой —
+        «фабрика работает», и оба были зелёными: ложной была их **конъюнкция**,
+        а сверить её было нечем, потому что никто не подставлял ключи каталога
+        в фабрику. Этот тест и есть недостающая сверка.
+        """
+        advertised = get_available_analyzers()
+        assert advertised, "каталог пуст — сверять нечего"
+
+        rejected = []
+        for name in advertised:
+            try:
+                analyzer = create_analyzer(name)
+            except Exception as exc:
+                rejected.append(f"{name}: {type(exc).__name__}: {exc}")
+                continue
+            assert analyzer.name == name, (
+                f"фабрика приняла {name!r}, но собрала анализатор с именем "
+                f"{analyzer.name!r} — имя перестало быть тем, что просили"
+            )
+
+        assert not rejected, (
+            "каталог объявляет имена, которых фабрика не принимает:\n  "
+            + "\n  ".join(rejected)
+            + "\nКаталог обязан выводиться из того, что умеет фабрика, "
+            "а не вестись отдельным списком"
+        )
     
     def test_create_analyzer_factory(self):
         """Тест фабрики создания анализаторов."""

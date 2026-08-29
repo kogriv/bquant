@@ -114,6 +114,38 @@ hourly_data = find_datasets(timeframe='1h')
 tv_data = find_datasets(source='TradingView')
 ```
 
+#### `get_datasets_by_symbol(symbol)` / `get_datasets_by_timeframe(timeframe)` / `get_datasets_by_source(source)`
+Однокритериальные сёстры `find_datasets()`. Каждая возвращает список имён датасетов.
+
+```python
+from bquant.data.samples import (
+    get_datasets_by_symbol,
+    get_datasets_by_timeframe,
+    get_datasets_by_source,
+)
+
+print(get_datasets_by_symbol('XAUUSD'))       # ['tv_xauusd_1h', 'mt_xauusd_m15']
+print(get_datasets_by_timeframe('1H'))        # ['tv_xauusd_1h']
+print(get_datasets_by_source('MetaTrader'))   # ['mt_xauusd_m15']
+```
+
+Таймфрейм сравнивается без учёта регистра: `'1H'` и `'1h'` дают одно и то же.
+
+Множество результатов у них и у `find_datasets()` с тем же критерием совпадает, а вот
+**порядок — нет**: `find_datasets()` сортирует, эти три отдают в порядке реестра.
+Полагаться на порядок не стоит ни у тех, ни у других.
+
+#### `print_datasets_info()`
+Печатает карточку каждого встроенного датасета: источник, символ, таймфрейм, число
+строк и колонок, размер, период и дату обновления. Ничего не возвращает — для
+структурного доступа есть `list_datasets()` и `get_dataset_info()`.
+
+```python
+from bquant.data.samples import print_datasets_info
+
+print_datasets_info()
+```
+
 #### `compare_sample_datasets(dataset1, dataset2)`
 Сравнивает два датасета.
 
