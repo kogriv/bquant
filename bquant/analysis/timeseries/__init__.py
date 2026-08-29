@@ -15,7 +15,7 @@ from typing import Dict, List, Any, Optional
 import pandas as pd
 
 from ...core.logging_config import get_logger
-from .. import BaseAnalyzer, AnalysisResult
+from .. import BaseAnalyzer, AnalysisResult, mark_if_stub
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 # Версия — одна на пакет. Свой литерал здесь разъезжался с пакетом молча:
 # восемь модулей объявляли собственную версию, четыре из них застряли на
 # "0.0.0" при пакете 0.0.9, и `get_visualization_info()` выдавал этот ноль
-# наружу как факт (G32).
+# наружу как факт (G33).
 from bquant import __version__  # noqa: F401
 
 
@@ -31,6 +31,10 @@ class TimeseriesAnalyzer(BaseAnalyzer):
     """
     Заглушка для анализатора временных рядов.
     """
+
+    #: Разметка под будущую работу, а не рабочий анализатор.
+    #: Признак читается программой; см. `BaseAnalyzer.is_stub`.
+    is_stub = True
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
@@ -93,13 +97,13 @@ def get_timeseries_analyzers() -> Dict[str, str]:
     Returns:
         Словарь {вид анализа: описание}
     """
-    return {
-        'timeseries': 'Анализ временных рядов (заглушка)',
-        'trend': 'Трендовый анализ (заглушка)',
-        'seasonality': 'Анализ сезонности (заглушка)',
-        'forecasting': 'Прогнозирование (заглушка)',
-        'volatility': 'Анализ волатильности (заглушка)'
-    }
+    return mark_if_stub(TimeseriesAnalyzer, {
+        'timeseries': 'Анализ временных рядов',
+        'trend': 'Трендовый анализ',
+        'seasonality': 'Анализ сезонности',
+        'forecasting': 'Прогнозирование',
+        'volatility': 'Анализ волатильности'
+    })
 
 
 # Экспорт

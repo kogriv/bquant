@@ -14,7 +14,7 @@ from typing import Dict, List, Any, Optional
 import pandas as pd
 
 from ...core.logging_config import get_logger
-from .. import BaseAnalyzer, AnalysisResult
+from .. import BaseAnalyzer, AnalysisResult, mark_if_stub
 
 logger = get_logger(__name__)
 
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 # Версия — одна на пакет. Свой литерал здесь разъезжался с пакетом молча:
 # восемь модулей объявляли собственную версию, четыре из них застряли на
 # "0.0.0" при пакете 0.0.9, и `get_visualization_info()` выдавал этот ноль
-# наружу как факт (G32).
+# наружу как факт (G33).
 from bquant import __version__  # noqa: F401
 
 
@@ -30,6 +30,10 @@ class TechnicalAnalyzer(BaseAnalyzer):
     """
     Заглушка для анализатора технических паттернов.
     """
+
+    #: Разметка под будущую работу, а не рабочий анализатор.
+    #: Признак читается программой; см. `BaseAnalyzer.is_stub`.
+    is_stub = True
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
@@ -90,12 +94,12 @@ def get_technical_analyzers() -> Dict[str, str]:
     Returns:
         Словарь {вид анализа: описание}
     """
-    return {
-        'technical': 'Технический анализ (заглушка)',
-        'patterns': 'Анализ паттернов (заглушка)',
-        'divergences': 'Анализ дивергенций (заглушка)',
-        'signals': 'Технические сигналы (заглушка)'
-    }
+    return mark_if_stub(TechnicalAnalyzer, {
+        'technical': 'Технический анализ',
+        'patterns': 'Анализ паттернов',
+        'divergences': 'Анализ дивергенций',
+        'signals': 'Технические сигналы'
+    })
 
 
 # Экспорт

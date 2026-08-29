@@ -83,6 +83,32 @@ Core модули содержат базовую функциональност
 - `DataError` - Ошибки данных
 - `AnalysisError` - Ошибки анализа
 
+### 🧩 Совместимость с numpy
+
+`bquant.core` поднимает три функции из `bquant.core.numpy_fix` и константу `NaN`.
+**Вызывать функции вручную не нужно** — `apply_numpy_fixes()` выполняется сам при
+импорте модуля, до того как пакетом начнут пользоваться. Экспортированы они, чтобы
+состояние совместимости можно было *спросить*, а не чтобы им управлять.
+
+- `apply_numpy_fixes()` — восстанавливает `np.NaN`, убранный в numpy 2.x, от
+  которого зависят некоторые сторонние библиотеки. Идемпотентна: если атрибут уже
+  есть, ничего не делает.
+- `ensure_numpy_compatibility()` — то же самое, но сперва проверяет, нужно ли.
+  Пригодна как явный вызов перед импортом библиотеки, ломающейся о numpy 2.x.
+- `check_numpy_compatibility() -> dict` — отчёт, ничего не меняет. Ключи:
+  `numpy_version`, `has_nan`, `has_NaN`, `fixes_applied`, `issues`.
+
+```python
+from bquant.core import check_numpy_compatibility
+
+info = check_numpy_compatibility()
+print(sorted(info))
+# ['fixes_applied', 'has_NaN', 'has_nan', 'issues', 'numpy_version']
+```
+
+`fixes_applied` отвечает на вопрос «понадобилось ли чинить», а не «вызывали ли
+функцию»: на numpy, где `NaN` на месте, там будет `False`.
+
 ## 💡 Примеры использования
 
 ### Конфигурация

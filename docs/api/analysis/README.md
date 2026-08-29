@@ -96,6 +96,52 @@ Analysis модули содержат инструменты для стати�
 - **AnalysisParams** - Параметры анализа (из bquant.analysis)
 - **AnalysisRegistry** - Реестр анализаторов (из bquant.analysis)
 
+### 🧱 Модули-заглушки — что это и как их отличить
+
+Четыре подмодуля — `bquant.analysis.candlestick`, `.chart`, `.technical`,
+`.timeseries` — сейчас **разметка под будущую работу**, а не рабочие анализаторы:
+`CandlestickAnalyzer`, `ChartAnalyzer`, `TechnicalAnalyzer`, `TimeseriesAnalyzer`.
+
+Они не притворяются: `analyze()` отрабатывает без ошибки и возвращает
+`AnalysisResult`, в котором прямо сказано, что реализации нет.
+
+```python
+import pandas as pd
+from bquant.analysis.candlestick import CandlestickAnalyzer
+
+frame = pd.DataFrame({
+    'open': [100.0, 101.0], 'high': [101.0, 102.0],
+    'low': [99.0, 100.0], 'close': [100.5, 101.5],
+})
+
+result = CandlestickAnalyzer().analyze(frame)
+
+print(CandlestickAnalyzer.is_stub)                      # True
+print(result.metadata['implementation_status'])         # stub
+print(result.results['status'])                         # stub_implementation
+print(result.results['message'])
+# Candlestick analysis module is not yet implemented
+```
+
+**Отличать их следует по `is_stub`, а не по названию модуля и не по словам в
+описании.** Признак объявлен свойством класса (`BaseAnalyzer.is_stub`, по
+умолчанию `False`), и на связь маркера с поведением стоит пин в обе стороны:
+реализуют анализатор и забудут снять маркер — покраснеет; снимут маркер, не убрав
+заглушку, — тоже.
+
+Оттуда же берётся суффикс «(заглушка)» в перечнях `get_*_analyzers()`: он
+**выводится** из маркера, а не вписан в строки описаний руками.
+
+```python
+from bquant.analysis.technical import get_technical_analyzers
+
+print(get_technical_analyzers()['technical'])
+# Технический анализ (заглушка)
+```
+
+Планы каждого модуля перечислены в `result.results['planned_features']` и в
+докстроке модуля.
+
 ## 🔍 Быстрый поиск
 
 ### По функциональности
