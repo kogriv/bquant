@@ -48,13 +48,19 @@ rsi = IndicatorFactory.create('pandas_ta', 'rsi', length=14)
 ### Пример: получение метаданных
 
 ```python
-from bquant.indicators import IndicatorFactory
+from bquant.indicators import IndicatorFactory, LibraryManager
 
+LibraryManager.load_all_libraries()
 info = IndicatorFactory.get_indicator_info('pandas_ta_macd')
-# Ключи: 'name', 'source', 'class', 'description'
-print(info['description'])
-print(info['source'])
+
+print(sorted(info))
+print(info['source'], info['class'], repr(info['description']))
+# ['class', 'description', 'name', 'source']
+# library PandasTAMacd 'No description'
 ```
+
+`'No description'` у индикаторов из библиотеки — не ошибка: описание берётся из класса, а
+обёртки над функциями `pandas-ta` создаются на лету и своего описания не имеют.
 
 ## Встроенные индикаторы (`bquant.indicators`)
 

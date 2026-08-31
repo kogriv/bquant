@@ -22,19 +22,21 @@
 | `get_library_info(name: str) -> Dict[str, Any]` | Возвращает структуру с признаками доступности, количеством и списком индикаторов или сообщением об ошибке. |
 | `create_indicator(library: str, indicator: str, **params)` | Создаёт индикатор библиотеки, автоматически загружая соответствующую обёртку из `IndicatorFactory`. |
 
-Дополнительные функции-алиасы: `load_pandas_ta()`, `load_talib()`, `load_all_indicators()`.
+Дополнительные функции-алиасы: `load_pandas_ta()`, `load_talib()`, `load_all_indicators()` — все три экспортируются из `bquant.indicators`.
 
 ## Быстрый старт: «простой способ» получить индикатор из pandas-ta
 
 ```python
+from bquant.data.samples import get_sample_data
 from bquant.indicators import LibraryManager
 
-# 1. Загрузить все доступные библиотеки
-LibraryManager.load_all_libraries()
+data = get_sample_data('tv_xauusd_1h')
 
-# 2. Создать индикатор pandas-ta без ручной регистрации
+LibraryManager.load_all_libraries()
 macd = LibraryManager.create_indicator('pandas_ta', 'macd', fast=12, slow=26, signal=9)
-result = macd.calculate(data)
+
+print(macd.calculate(data).data.columns.tolist())
+# ['MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9']
 ```
 
 `LibraryManager.create_indicator()` скрывает детали префиксов (`pandas_ta_macd`) и использует
@@ -45,35 +47,52 @@ result = macd.calculate(data)
 Имена колонок задаёт **сама библиотека**, и они включают параметры расчёта:
 
 ```python
-LibraryManager.create_indicator('pandas_ta', 'rsi', length=14).calculate(data)
-# колонка: RSI_14
+from bquant.data.samples import get_sample_data
+from bquant.indicators import LibraryManager
 
-LibraryManager.create_indicator('pandas_ta', 'rsi', length=50).calculate(data)
-# колонка: RSI_50   <- имя следует за параметром
+data = get_sample_data('tv_xauusd_1h')
+
+print(LibraryManager.create_indicator('pandas_ta', 'rsi', length=14).calculate(data).data.columns.tolist())
+print(LibraryManager.create_indicator('pandas_ta', 'rsi', length=50).calculate(data).data.columns.tolist())
+# ['RSI_14']
+# ['RSI_50']   <- имя следует за параметром
 ```
 
 Практическое следствие: **не задавайте имя колонки константой, если меняете параметры.**
 Узнать его заранее можно у самого индикатора:
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+from bquant.indicators import LibraryManager
+
+data = get_sample_data('tv_xauusd_1h')
+
 rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=50)
-col = rsi.get_output_columns()[0]        # 'RSI_50'
+print(rsi.get_output_columns())
+# ['RSI_50']
 
 result = (
     analyze_zones(data)
     .with_indicator('pandas_ta', 'rsi', length=50)
-    .detect_zones('threshold',
-                  indicator_col=col,                        # не константа, а имя от индикатора
-                  zone_types=['overbought', 'oversold'],    # см. примечание ниже
+    .detect_zones('threshold', indicator_role='value',
                   upper_threshold=70, lower_threshold=30)
+    .analyze()
     .build()
 )
+
+print(len(result.zones))
+# 4
 ```
 
-> **Передавайте `zone_types` явно для порогового детектора.** По умолчанию
-> `zone_types` = `['bull', 'bear']` — это словарь MACD-подобных стратегий, а пороговый
-> детектор выдаёт `overbought` / `neutral` / `oversold`. Без явного списка **все зоны
-> отфильтровываются и результат пуст**. Дефект зарегистрирован как **G19**.
+Внутри пайплайна имя колонки не нужно вовсе: роль `value` разрешается по схеме, которую
+пайплайн строит сам. `get_output_columns()` пригодится там, где кадр обрабатывают руками.
+
+> **`zone_types` передавать не нужно** — с 0.0.6 умолчание `None` означает «не
+> фильтровать», и пороговый детектор возвращает свои `overbought` / `neutral` /
+> `oversold`. Раньше умолчанием было `['bull', 'bear']` — словарь MACD-подобных
+> стратегий, — и на пороговом детекторе **все зоны отфильтровывались, а результат
+> оказывался пуст**. Это был G19, он исправлен.
 
 > **Изменение в 0.0.6 (G18).** Раньше имя выводилось один раз при регистрации индикатора,
 > на дефолтных параметрах, и подставлялось всегда: `rsi(length=50)` считался верно, но
@@ -86,12 +105,14 @@ result = (
 from bquant.indicators import LibraryManager
 
 info = LibraryManager.get_library_info('pandas_ta')
-if info['available']:
-    print(f"Всего индикаторов: {info['indicators_count']}")
-    print(f"Примеры: {info['indicators'][:5]}")
-else:
-    print(f"Библиотека недоступна: {info['error']}")
+
+print(info['available'], info['indicators_count'])
+print(info['indicators'][:5])
+# True 158
+# ['aberration', 'accbands', 'ad', 'adosc', 'adx']
 ```
+
+У недоступной библиотеки `available` будет `False`, а причина — в `info['error']`.
 
 Информация полезна для отображения в интерфейсе или логировании. Список индикаторов (`info['indicators']`) отражает
 все функции, обнаруженные динамическим загрузчиком `PandasTALoader`.
