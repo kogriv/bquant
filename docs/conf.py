@@ -16,15 +16,23 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'BQuant Zone Analysis'
-copyright = '2025, BQuant Team'
-author = 'BQuant Team'
+# Имя сайта совпадает с именем пакета. Прежнее — 'BQuant Zone Analysis' — осталось
+# от времён, когда пакет был только про MACD-зоны; сейчас зоны это одна из областей,
+# а `pyproject.toml` описывает пакет как quantitative research toolkit.
+project = 'BQuant'
+copyright = '2024–2026, BQuant'
+author = 'BQuant'
 
 # The full version, including alpha/beta/rc tags.
 # Derived from the package rather than hardcoded: this was pinned at '0.0.1' through
 # four releases because nothing tied it to the real version. `sys.path` already points
 # at the repo root above, so this reads the working tree, not an installed copy.
 from bquant import __version__ as release  # noqa: E402
+
+# Язык контента. Объявлен явно: без него Sphinx считает сайт английским и подписывает
+# навигацию по-английски поверх русского текста. Он же — точка входа для gettext, если
+# дойдёт до второй языковой ветки (см. devref/architecture/docs_sequential_pass_2026-08.md).
+language = 'ru'
 
 # -- General configuration ---------------------------------------------------
 
@@ -53,27 +61,21 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '_build', 
-    'Thumbs.db', 
+    '_build',
+    'Thumbs.db',
     '.DS_Store',
-    # ДИАГНОСТИКА: Исключаем все markdown файлы, кроме api/core/*.md
-    # Явно перечисляем все markdown файлы для исключения (Sphinx не поддерживает отрицательные паттерны)
-    # 'analytics/**',  # Разрешаем analytics/*.md
-    # 'api/analysis/**',  # Разрешаем api/analysis/*.md
-    # 'api/data/**',  # Разрешаем api/data/*.md
-    # 'api/extension_guide.md',  # Разрешаем api/extension_guide.md
-    # 'api/indicators/**',  # Разрешаем api/indicators/*.md
-    # 'api/README.md',  # Разрешаем api/README.md
-    # 'api/visualization/**',  # Разрешаем api/visualization/*.md
-    # 'developer_guide/**',  # Разрешаем developer_guide/*.md
-    # 'examples/**',  # Разрешаем examples/*.md
-    # 'migration/**',  # Разрешаем migration/*.md
-    # 'MIGRATION_v2.md',  # Перенесен в migration/
+    # `docs/README.md` — навигация по каталогу для того, кто читает репозиторий на
+    # GitHub. На сайте её роль выполняют `index.rst` и боковое меню, поэтому в сборку
+    # она не идёт.
     'README.md',
-    # 'tutorials/**',  # Разрешаем tutorials/*.md
-    # 'user_guide/**',  # Разрешаем user_guide/*.md
-    # api/core/*.md НЕ исключаем - они должны быть в сборке
 ]
+
+# Здесь стоял блок из двенадцати закомментированных строк под шапкой
+# «ДИАГНОСТИКА: Исключаем все markdown файлы, кроме api/core/*.md». Фактически
+# исключался один файл — всё остальное было закомментировано. Леса от давней
+# диагностики убрали, шапку нет, и читатель конфига получал картину, обратную
+# действительности. Ни одна из проверок доки этого не видела: они смотрят
+# содержимое страниц, а не конфиг сборки.
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -82,10 +84,11 @@ exclude_patterns = [
 #
 html_theme = 'sphinx_rtd_theme'
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# Своих статических файлов у сайта нет, поэтому `html_static_path` не объявляется.
+# Здесь же стояли `html_logo = '_static/logo.png'` и `html_favicon = '_static/favicon.ico'`
+# при том, что каталога `docs/_static/` не существует вовсе — сборка ругалась тремя
+# предупреждениями на каждый прогон, а сайт всё это время был без логотипа. Вернуть,
+# когда появятся сами файлы.
 
 # -- Options for autodoc ----------------------------------------------------
 
@@ -136,21 +139,11 @@ html_theme_options = {
     'sticky_navigation': True,
     'includehidden': True,
     'logo_only': False,
-    # 'display_version': True,  # Временно отключено - не поддерживается в текущей версии темы
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
     'vcs_pageview_mode': '',
     'style_nav_header_background': '#2980B9',
 }
-
-# The name of an image file (relative to this directory) to place at the top
-# of the sidebar.
-html_logo = '_static/logo.png'
-
-# The name of an image file (relative to this directory) to use as a favicon of
-# the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-html_favicon = '_static/favicon.ico'
 
 # -- Options for LaTeX output ------------------------------------------------
 

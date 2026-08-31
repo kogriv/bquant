@@ -1,97 +1,160 @@
-# Core Concepts — Базовые концепции BQuant
+# Базовые концепции
 
-## 🎯 Назначение раздела
+Страница между [быстрым стартом](quick_start.md) и справочником: из чего состоит анализ
+зон и что возвращается в результате.
 
-Этот раздел связывает быстрый старт с подробной документацией и объясняет, как устроен Universal Zone Analysis Pipeline v2.1. Вы узнаете, какие компоненты участвуют в анализе зон, как подготавливаются данные и какие результаты возвращаются пользователю.
-
-## 🧱 Ключевые составляющие Universal Pipeline
+## Из чего собирается анализ
 
 | Компонент | Что делает | Где описан |
-|-----------|------------|------------|
-| **DataFrame с OHLCV** | Исходные котировки и готовые индикаторы | [Data Management](../api/data/README.md) |
-| **IndicatorSpec** | Какой индикатор посчитать и с какими параметрами (заявка на расчёт) | [Analysis / pipeline](../api/analysis/pipeline.md) |
-| **ZoneDetectionConfig** | Стратегия поиска зон и её правила | [Analysis / Zones](../api/analysis/zones.md) |
-| **UniversalZoneAnalyzer** | Извлекает признаки, гипотезы, последовательности | [Analysis / pipeline](../api/analysis/pipeline.md) |
-| **ZoneAnalysisResult** | Итоговый объект с зонами, метриками и сервисными данными | [Analysis / base](../api/analysis/base.md) |
+|---|---|---|
+| `DataFrame` с OHLCV | исходные котировки, возможно с готовыми индикаторами | [Данные](../api/data/README.md) |
+| `IndicatorSpec` | заявка на расчёт: какой индикатор и с какими параметрами | [Pipeline](../api/analysis/pipeline.md) |
+| `ZoneDetectionConfig` | стратегия поиска зон и её правила | [Зоны](../api/analysis/zones.md) |
+| `UniversalZoneAnalyzer` | признаки зон, гипотезы, последовательности | [Pipeline](../api/analysis/pipeline.md) |
+| `ZoneAnalysisResult` | итог: зоны, метрики, служебные данные | [Базовые классы](../api/analysis/base.md) |
 
-> ℹ️ Universal Pipeline не привязан к MACD. Любой индикатор (включая пользовательский) или готовый столбец может стать основой для зон при корректной конфигурации `ZoneDetectionConfig`.
+Пайплайн **не привязан к MACD**. Основой зон может стать любой индикатор — встроенный,
+из внешней библиотеки, свой собственный — или уже посчитанная колонка.
 
-## 🔄 Поток данных и контрольные точки
+## Поток данных
 
-1. **Подготовка данных** — убедитесь, что DataFrame содержит столбцы `time`, `open`, `high`, `low`, `close`, `volume` и дополнительные индикаторы.
-2. **Настройка индикатора** — либо рассчитываем индикатор в пайплайне (тогда колонка называется канонически, `macd_12_26_9__hist`, и адресоваться к ней можно ролью), либо подаём готовые значения под своими именами.
-3. **Выбор стратегии детекции** — `zero_crossing`, `threshold`, `line_crossing`, `preloaded` или `combined`.
-4. **Анализ зон** — UniversalZoneAnalyzer рассчитывает признаки, гипотезы и (по необходимости) регрессию, валидацию и кластеризацию.
-5. **Интерпретация результата** — объект `ZoneAnalysisResult` содержит списки зон, статистику, отчеты по стратегиям и вспомогательные данные для визуализации.
+1. **Данные.** Кадр с `open`, `high`, `low`, `close` и, если есть, `volume`. Время может
+   лежать в колонке (`time`, `timestamp`, `date`, `datetime`) или уже в индексе —
+   пайплайн приводит к индексу сам и не выдумывает время там, где его нет.
+2. **Индикатор.** Либо считаем в пайплайне — тогда колонки называются канонически
+   (`macd_12_26_9__hist`) и адресуются **ролью**; либо подаём готовые значения под своими
+   именами и адресуемся именем колонки.
+3. **Детекция.** Одна из пяти стратегий: `zero_crossing`, `threshold`, `line_crossing`,
+   `preloaded`, `combined`.
+4. **Анализ.** Признаки зон, гипотезы, при желании — кластеризация, регрессия, валидация.
+5. **Результат.** `ZoneAnalysisResult`.
 
-## ⚙️ Конфигурация пайплайна через классы
+## Роль или имя колонки
 
-Следующий пример повторяет структуру документации и показывает, из каких элементов собирается pipeline.
+Разница определяет, переживёт ли ваш код смену параметров.
 
 ```python
-from bquant.analysis.zones.pipeline import IndicatorSpec, ZoneDetectionConfig, ZoneAnalysisConfig
+from bquant.data.samples import get_sample_data
+from bquant.analysis.zones import analyze_zones
 
-config = ZoneAnalysisConfig(
-    indicator=IndicatorSpec(
-        source='custom',
-        name='macd',
-        parameters={'fast': 12, 'slow': 26, 'signal': 9}
-    ),
-    zone_detection=ZoneDetectionConfig(
-        strategy_name='zero_crossing',
-        rules={'indicator_role': 'hist'}
-    ),
-    # Порог длительности — параметр анализа, а не детекции: детекция обязана
-    # вернуть полное мощение, иначе соседство зон становится выдумкой.
-    min_duration=3,
-    perform_clustering=True,
-    n_clusters=3,
-    run_regression=False,
-    run_validation=False
+data = get_sample_data('tv_xauusd_1h')
+
+# Индикатор считает пайплайн — есть схема, адресуемся ролью.
+by_role = (
+    analyze_zones(data)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze()
+    .build()
 )
 
-print(config.zone_detection.strategy_name)
-print(config.indicator.name)
+print(len(by_role.zones))                                       # 32
+print([c for c in by_role.data.columns if c.startswith('macd_')])
+# ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']
 ```
 
-## 🚀 Минимальный анализ зон на готовых данных
-
-В sample-данных `tv_xauusd_1h` уже присутствуют столбцы `macd` и `signal`, поэтому гистограмму можно получить вычитанием. Это избавляет от повторного расчета индикатора и демонстрирует, как документация рекомендует работать с готовыми колонками.
+Имя колонки собирается из **фактических параметров вызова**: `fast_period=5` дало бы
+`macd_5_26_9__hist`. Поэтому по имени адресуются только там, где схемы нет — то есть
+когда колонку принесли вы сами:
 
 ```python
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_zones
 
 df = get_sample_data('tv_xauusd_1h').head(200).copy()
-df['macd_hist'] = df['macd'] - df['signal']  # своя колонка, своё имя
+df['my_hist'] = df['macd'] - df['signal']   # своя колонка, своё имя
 
 result = (
     analyze_zones(df)
-    # Индикатор здесь не считается, схемы взяться неоткуда — адресуемся именем
-    # колонки. Роль (`indicator_role='hist'`) резолвит пайплайн, и только когда
-    # индикатор посчитал он сам.
-    .detect_zones('zero_crossing', indicator_col='macd_hist')
+    .detect_zones('zero_crossing', indicator_col='my_hist')
     .with_strategies(swing='find_peaks', shape='statistical')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
 
 print(len(result.zones))
-print(sorted(result.statistics.keys())[:3])
-print(result.clustering is not None)
+print(result.clustering is not None)   # True
 ```
 
-### Что важно знать о `ZoneAnalysisResult`
+Во встроенном наборе `tv_xauusd_1h` уже есть колонки `macd` и `signal` — от источника
+данных, а не от нашего расчёта. Поэтому гистограмму здесь можно получить вычитанием, не
+считая индикатор заново.
 
-- `zones` — список обнаруженных зон с временными границами, типом и метаданными.
-- `statistics` — агрегированные метрики (длительность, распределение амплитуд, асимметрия и т.д.).
-- `hypothesis_tests` — результаты гипотез (подходят для отчетов и автоматической валидации).
-- `clustering`, `regression_results`, `validation_results` — присутствуют, если вы включили соответствующие этапы.
-- `data` — копия исходного DataFrame (можно отключить через параметры сохранения).
+## Конфигурация объектами
 
-## 📎 Что почитать дальше
+Билдер `analyze_zones()` — удобная обёртка. Ту же конфигурацию можно собрать классами,
+если она приходит, например, из файла:
 
-- [Quick Start](quick_start.md) — если хотите сразу применить пайплайн к своим данным.
-- [Core Modules](../api/core/README.md) — архитектура ядра и сервисные компоненты.
-- [Analysis / pipeline](../api/analysis/pipeline.md) — полный справочник по конфигурации и расширениям.
-- [Visualization](../api/visualization/README.md) — способы представить результаты `ZoneAnalysisResult`.
+```python
+from bquant.data.samples import get_sample_data
+from bquant.analysis.zones.pipeline import (
+    IndicatorSpec,
+    ZoneAnalysisConfig,
+    ZoneAnalysisPipeline,
+    ZoneDetectionConfig,
+)
+
+config = ZoneAnalysisConfig(
+    indicator=IndicatorSpec(
+        source='custom',
+        name='macd',
+        # Имена параметров — те же, что у самого индикатора: `fast_period`, а не `fast`.
+        parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
+    ),
+    zone_detection=ZoneDetectionConfig(
+        strategy_name='zero_crossing',
+        rules={'indicator_role': 'hist'},
+    ),
+    # Порог длительности — параметр анализа, а не детекции: детекция обязана вернуть
+    # полное мощение, иначе соседство зон становится выдумкой.
+    min_duration=3,
+    perform_clustering=True,
+    n_clusters=3,
+    run_regression=False,
+    run_validation=False,
+)
+
+result = ZoneAnalysisPipeline(config).run(get_sample_data('tv_xauusd_1h'))
+print(len(result.zones))
+```
+
+`parameters` уходит в конструктор индикатора **как есть**, поэтому имена там его
+собственные. Словарь `DEFAULT_INDICATORS` из `bquant.core.config` записан в стиле внешних
+библиотек (`fast`, `slow`, `signal`) и сюда подставляться не должен — см.
+[config](../api/core/config.md).
+
+## Что лежит в `ZoneAnalysisResult`
+
+| Поле | Что это |
+|---|---|
+| `zones` | найденные зоны: границы, тип, признаки |
+| `statistics` | агрегаты: длительность, распределения амплитуд, асимметрия |
+| `hypothesis_tests` | результаты статистических тестов |
+| `clustering`, `regression_results`, `validation_results` | заполнены, если соответствующий этап включали |
+| `data` | кадр, **с которым работал пайплайн** |
+| `metadata` | служебное: версия схемы кэша, отчёт фильтра длительности |
+
+Про `data` стоит сказать точнее, потому что это частый источник путаницы: **это не копия
+входного кадра.** Пайплайн нормализует индекс (время переезжает из колонки) и добавляет
+колонки посчитанного индикатора. Именно этот кадр, а не исходный, нужно передавать в
+визуализацию — иначе зоны не совпадут с осью.
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.analysis.zones import analyze_macd_zones
+
+data = get_sample_data('tv_xauusd_1h')
+result = analyze_macd_zones(data)
+
+print(type(data.index).__name__, '→', type(result.data.index).__name__)
+# RangeIndex → DatetimeIndex
+print(len(data.columns), '→', len(result.data.columns))
+# 15 → 17
+```
+
+## Дальше
+
+- [Zone Analysis](zone_analysis.md) — пайплайн на практике
+- [Pipeline API](../api/analysis/pipeline.md) — полный справочник билдера и конфигурации
+- [Visualization](../api/visualization/README.md) — как показать `ZoneAnalysisResult`
+- [Core Modules](../api/core/README.md) — устройство ядра

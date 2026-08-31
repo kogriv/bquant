@@ -1,87 +1,83 @@
-# BQuant Docs — Quick Start
+# Документация BQuant — как собрать локально
 
-Краткие инструкции для локальной сборки и просмотра документации.
+Эта страница нужна тому, кто **правит доку**. Читателю самой документации она не
+нужна: он открывает [bquant.readthedocs.io](https://bquant.readthedocs.io/) или
+начинает с [user_guide/quick_start.md](user_guide/quick_start.md).
 
-> Раньше здесь стояла отсылка к `SETUP_READTHEDOCS.md` — файла с таким именем в
-> репозитории нет. Упоминание было в бэктиках, а не ссылкой, поэтому проверка
-> ссылок его не видела.
+В сборку сайта эта страница не входит — навигацию там даёт `index.rst`.
 
 ## Структура
 
-- `api/` — API документация
-- `user_guide/` — Руководства и гайды
-- `developer_guide/` — Для разработчиков
-- `tutorials/` — Туториалы
-- `examples/` — Примеры кода
-- `_static/`, `_templates/` — статика и шаблоны
-
-## Установка зависимостей (единый источник)
-
-```bash
-pip install -e .[docs]
-```
+| Каталог | Что внутри |
+|---|---|
+| `user_guide/` | руководства для пользователя пакета |
+| `api/` | справочник по модулям |
+| `tutorials/` | пошаговые сценарии |
+| `examples/` | разбор примеров из `examples/` в корне |
+| `developer_guide/` | для тех, кто расширяет пакет |
+| `analytics/` | разборы конкретных исследований |
+| `migration/` | переходы между версиями API |
 
 ## Сборка
 
 ```bash
-# Из корня проекта
+pip install -e .[docs]
 python -m sphinx -b html docs docs/_build/html
-
-# Либо из каталога docs
-cd docs
-sphinx-build -b html . _build/html
 ```
 
-## Просмотр
+Открыть `docs/_build/html/index.html`.
 
-Откройте в браузере: `docs/_build/html/index.html`.
-
-## Live‑режим (по желанию)
+Живая пересборка при правке:
 
 ```bash
 pip install sphinx-autobuild
 sphinx-autobuild docs docs/_build/html --open-browser
 ```
 
-Если новая страница открывается по прямой ссылке, но не появляется в левой панели (toctree), обычно это эффект инкрементальной сборки.
+## Сборка обязана быть без предупреждений
+
+Предупреждения Sphinx — это не шум, а отдельный слой проверок, которого нет
+в тестах. Автоматические проверки доки читают страницы как **текст** и не знают,
+во что они собираются:
+
+| Что ловит только сборка | Пример |
+|---|---|
+| ссылка на каталог, а не на файл | `[core](../core/)` — на GitHub работает, на сайте ведёт в никуда |
+| ссылка за пределы дерева доки | ссылка из `docs/` на `devref/` или корневой `README.md` |
+| разрыв уровней заголовков | H2 сразу на H4 — ломает оглавление страницы |
+| неизвестный лексер подсветки | ` ```csv ` — блок отрендерится без подсветки |
+
+Отсюда правило: **страницу правят до нуля предупреждений о ней**, а не до «текст
+выглядит хорошо».
 
 ```bash
-# Остановить sphinx-autobuild
-Ctrl+C
+python -m sphinx -b html docs docs/_build/html -E -a 2>&1 | grep -i warning
+```
 
-# Очистить артефакты и пересобрать с "чистой" средой
+Ключевые слова в логе: `toctree`, `orphan`, `xref_missing`,
+`document isn't included in any toctree`.
+
+Если страница открывается по прямой ссылке, но не появилась в левом меню, — как
+правило, дело в инкрементальной сборке. Чистая пересборка:
+
+```bash
 python -m sphinx -M clean docs docs/_build
-sphinx-autobuild docs docs/_build/html -a -E --open-browser
+python -m sphinx -b html docs docs/_build/html -E -a
 ```
 
-После перезапуска сделайте hard refresh в браузере (`Ctrl+Shift+R`).
+## Публикация
 
-### Лог сборки и что проверять
+Сайт собирает Read the Docs по `.readthedocs.yml` (Python 3.12, extras `docs`).
 
-Если проблема осталась, сохраните полный лог сборки в файл и проверьте предупреждения:
+**Пуш только в GitHub сайт не пересобирает** — RTD подключён к зеркалу на GitLab.
+Это стоило одного релиза документации: пакет уехал на PyPI, а сайт сутки показывал
+предыдущую версию. Подробности, признаки и проверка одной командой —
+[SETUP_READTHEDOCS.md](../SETUP_READTHEDOCS.md).
 
-```bash
-# Одноразовая полная сборка с записью лога
-python -m sphinx -b html docs docs/_build/html -E -a -n -T 2>&1 | tee docs/_build/sphinx-build.log
-```
+Релизная версия сайта появляется от тега `vX.Y.Z`.
 
-Где смотреть:
+## Ссылки
 
-- Файл лога: `docs/_build/sphinx-build.log`
-- Ключевые паттерны: `toctree`, `orphan`, `WARNING`, `document isn't included in any toctree`
-- Частый кейс: документ собирается, но отсутствует в меню, если не попал в `toctree` или помечен `:orphan:`
-
-## Read the Docs (сборка в облаке)
-
-- Конфиг: `.readthedocs.yml` (Python 3.11, Sphinx, extras `docs`).
-- Для обновления «latest» — достаточно `git push` в основную ветку.
-- Для релизной версии — создайте тег `vX.Y.Z` и запушьте.
-
-Подробнее: см. `SETUP_READTHEDOCS.md`.
-
-## Полезные ссылки
-
-- Live: https://bquant.readthedocs.io/
-- RTD: https://readthedocs.org/
-- Sphinx: https://www.sphinx-doc.org/
-- Repo: https://github.com/kogriv/bquant
+- Сайт: <https://bquant.readthedocs.io/>
+- Полное руководство по документации: [SETUP_READTHEDOCS.md](../SETUP_READTHEDOCS.md)
+- Sphinx: <https://www.sphinx-doc.org/>
