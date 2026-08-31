@@ -692,18 +692,41 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             
             df_features = pd.DataFrame(features_dicts)
             
-            # Разделяем по типу зон
+            # Разделяем по типу зон. Литералы 'bull'/'bear' здесь — имена из словаря
+            # одного семейства индикаторов; универсальный агрегат не вправе их знать
+            # (G20). Ниже они остаются только там, где эти типы действительно
+            # встретились, а основным ответом служит распределение по фактическим
+            # типам.
             bull_zones = df_features[df_features['zone_type'] == 'bull']
             bear_zones = df_features[df_features['zone_type'] == 'bear']
-            
+
+            observed_types = df_features['zone_type'].value_counts()
+            total = len(df_features)
+
             # Общая статистика
             total_stats = {
-                'total_zones': len(df_features),
-                'bull_zones_count': len(bull_zones),
-                'bear_zones_count': len(bear_zones),
-                'bull_ratio': len(bull_zones) / len(df_features) if len(df_features) > 0 else 0,
-                'bear_ratio': len(bear_zones) / len(df_features) if len(df_features) > 0 else 0
+                'total_zones': total,
+                'zones_by_type': {
+                    str(zone_type): int(count)
+                    for zone_type, count in observed_types.items()
+                },
+                'ratios_by_type': {
+                    str(zone_type): count / total
+                    for zone_type, count in observed_types.items()
+                } if total > 0 else {},
             }
+
+            # Направленные поля — только для словаря, который их содержит. Раньше они
+            # стояли безусловно, и на RSI сводка сообщала `bull_zones_count: 0` при
+            # 64 найденных зонах: ноль, неотличимый от измерения, вместо «такого
+            # деления у этого индикатора не существует» (G34).
+            if not bull_zones.empty or not bear_zones.empty:
+                total_stats.update({
+                    'bull_zones_count': len(bull_zones),
+                    'bear_zones_count': len(bear_zones),
+                    'bull_ratio': len(bull_zones) / total if total > 0 else 0,
+                    'bear_ratio': len(bear_zones) / total if total > 0 else 0,
+                })
             
             # Статистика по длительности
             duration_stats = self._calculate_distribution_stats(df_features, bull_zones, bear_zones, 'duration')

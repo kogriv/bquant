@@ -89,12 +89,10 @@ print(zone.type, zone.start_time, '→', zone.end_time, zone.duration)
 `oversold`, у MACD — `bull` / `bear`. Не предполагайте `bull`/`bear`: для осциллятора,
 у которого нет направления, такого деления не существует.
 
-> **Осторожно с агрегатом.** `result.statistics['total_statistics']` содержит поля
-> `bull_zones_count`, `bear_zones_count`, `bull_ratio`, `bear_ratio` — они посчитаны по
-> двум литеральным именам типов и для не-MACD осциллятора равны нулю, хотя зоны есть.
-> Ноль здесь означает «такого типа нет», а не «измерено ноль». Известное расхождение,
-> разбор — `devref/gaps/zone_types/g34_aggregate_statistics_speak_macd_2026-08.md`.
-> Считайте по типам сами, как в примере выше. `total_zones` при этом верен.
+То же распределение считает и сам пайплайн: `result.statistics['total_statistics']`
+содержит `zones_by_type` и `ratios_by_type` по фактически встреченным типам. Поля
+`bull_zones_count`/`bull_ratio` появляются там только у словаря, который эти типы
+содержит, — у RSI их не будет, и это верно: такого деления у него не существует.
 
 ### 4. MACD в одну строку
 

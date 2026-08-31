@@ -94,7 +94,7 @@ print(len(result.zones), result.zones[0].start_time)
 | Поле | Тип | Обязательность | Источник (этап/компонент) | Описание |
 |------|-----|----------------|----------------------------|----------|
 | **zones** | `List[ZoneInfo]` | да | Детекция + анализ | Список зон; после анализа у каждой заполнены `data`, `features`, `indicator_context`, при global — `swing_context`. |
-| **statistics** | `Dict[str, Any]` | да | `ZoneFeaturesAnalyzer.analyze_zones_distribution()` → `AnalysisResult.results` | Агрегированная статистика по зонам: total_statistics, duration_distribution, return_distribution, oscillator_amplitude_distribution, line_amplitude_distribution, additional_metrics. |
+| **statistics** | `Dict[str, Any]` | да | `ZoneFeaturesAnalyzer.analyze_zones_distribution()` → `AnalysisResult.results` | Агрегированная статистика по зонам: total_statistics, duration_distribution, return_distribution, oscillator_amplitude_distribution, line_amplitude_distribution, additional_metrics. В `total_statistics` — `total_zones`, `zones_by_type`, `ratios_by_type` по фактически встреченным типам; `bull_zones_count`/`bear_zones_count`/`bull_ratio`/`bear_ratio` присутствуют **только** у словаря, который содержит эти типы. |
 | **hypothesis_tests** | `Dict[str, Any]` или объект с атрибутом `.results` | да | `HypothesisTestSuite.run_all_tests()` | Результаты тестов гипотез. Если объект — у него есть `.results` с ключами `tests` (словарь тестов по имени) и `summary`. В коде часто: `getattr(result.hypothesis_tests, 'results', result.hypothesis_tests)`. |
 | **clustering** | `Optional[Dict[str, Any]]` | нет | `ZoneSequenceAnalyzer.cluster_zones()` → `AnalysisResult.results` | Есть только при `analyze(clustering=True)` и при числе зон ≥ n_clusters. Ключи: clustering_summary, cluster_labels, clusters_analysis, feature_importance. |
 | **sequence_analysis** | `Optional[Dict[str, Any]]` | нет | `ZoneSequenceAnalyzer.analyze_zone_transitions()` → `AnalysisResult.results` | Есть при числе зон ≥ 3. Переходы между типами зон (bull_to_bear и т.д.), вероятности, детали переходов. |
@@ -372,10 +372,8 @@ from collections import Counter
 summary = {
     **result.metadata,
     'zones_count': len(result.zones),
-    # Считаем по фактически встреченным типам, а не по bull_zones_count /
-    # bear_zones_count из total_statistics: те посчитаны по двум литеральным
-    # именам и для не-MACD осциллятора равны нулю при непустом наборе зон.
-    # Разбор — devref/gaps/zone_types/g34_aggregate_statistics_speak_macd_2026-08.md
+    # То же распределение есть в result.statistics['total_statistics']['zones_by_type'];
+    # здесь считаем сами, чтобы сводка не зависела от того, включались ли агрегаты.
     'zones_by_type': dict(Counter(zone.type for zone in result.zones)),
 }
 save_json(summary, out_dir / 'summary.json')

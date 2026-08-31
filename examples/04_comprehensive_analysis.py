@@ -125,8 +125,12 @@ def main():
     if 'total_statistics' in stats:
         total = stats['total_statistics']
         print(f"   Всего зон: {total.get('total_zones', 0)}")
-        print(f"   Bull ratio: {total.get('bull_ratio', 0):.2%}")
-        print(f"   Bear ratio: {total.get('bear_ratio', 0):.2%}")
+        # По фактическим типам: словарь зон следует за индикатором, и `bull`/`bear`
+        # существуют не у всякого. Раньше здесь печатались `bull_ratio`/`bear_ratio`
+        # через `.get(..., 0)` — на пороговом осцилляторе это давали два нуля.
+        for zone_type, count in (total.get('zones_by_type') or {}).items():
+            share = (total.get('ratios_by_type') or {}).get(zone_type, 0)
+            print(f"   {zone_type}: {count} ({share:.1%})")
     
     if 'duration_distribution' in stats:
         dur = stats['duration_distribution']['overall']

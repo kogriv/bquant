@@ -87,7 +87,8 @@ bquant analyze --output chart.html
     "duration": {"min": 1, "max": 98, "mean": 31.25}
   },
   "duration_filter": {"min_duration": 1, "zones_analysed": 32, "zones_excluded": 0},
-  "total_statistics": {"total_zones": 32, "bull_ratio": 0.5, "bear_ratio": 0.5},
+  "total_statistics": {"total_zones": 32, "zones_by_type": {"bull": 16, "bear": 16},
+                       "bull_ratio": 0.5, "bear_ratio": 0.5},
   "columns": {"macd_12_26_9:line": "macd_12_26_9__line"},
   "clustering": {"n_clusters": 3}
 }
@@ -96,12 +97,11 @@ bquant analyze --output chart.html
 У структуры есть `schema_version` — потребитель здесь программа, и без номера она не
 отличит смену формы от смены данных.
 
-**Считайте зоны по `zones.by_type`, а не по `total_statistics`.** Первое строится по
-фактически встреченным типам и потому верно для любого индикатора; второе приходит из
-библиотеки и содержит `bull_*`/`bear_*`, посчитанные по двум литеральным именам. Для RSI
-или AO эти поля равны нулю при непустом наборе зон — ноль там означает «такого типа нет»,
-а не «измерено ноль». Известное расхождение, разбор —
-`devref/gaps/zone_types/g34_aggregate_statistics_speak_macd_2026-08.md`.
+Считать зоны можно и по `zones.by_type`, и по `total_statistics.zones_by_type` — обе
+структуры строятся по фактически встреченным типам. Поля `bull_*`/`bear_*` в
+`total_statistics` приходят только для словаря, который эти типы содержит: у RSI или AO
+их не будет вовсе. До версии схемы 2 они стояли всегда и печатали нули при непустом
+наборе зон (G34).
 
 ## Индикатор — параметр, а не значение слова «анализ»
 

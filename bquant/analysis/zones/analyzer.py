@@ -281,6 +281,10 @@ class UniversalZoneAnalyzer:
             # Что именно попало в агрегаты, а что осталось только в `zones`.
             'duration_filter': {**duration_filter, 'zones_unmeasured': unmeasured},
         }
+
+        swing_coverage = self._swing_coverage(zones)
+        if swing_coverage is not None:
+            metadata['swing_coverage'] = swing_coverage
         
         # Добавляем метаданные о данных из df.attrs
         if hasattr(data, 'attrs'):
@@ -313,6 +317,48 @@ class UniversalZoneAnalyzer:
         )
 
         return result
+
+    def _swing_coverage(self, zones: List[ZoneInfo]) -> Optional[Dict[str, Any]]:
+        """Сколько зон получили хотя бы один свинг — и громко сказать, если ни одна.
+
+        G35: `swing_metrics` с `num_swings: 0` выглядит ровно так же, когда движения
+        действительно не было и когда порог стратегии крупнее самой зоны. На часовом
+        золоте `min_amplitude_pct` пресета по умолчанию (2% цены) больше медианного
+        размаха зоны (1.2%), и две стратегии из трёх не находят ничего ни в одной
+        зоне — молча.
+
+        Отсюда два ответа вместо одного: число в метаданных, чтобы программа могла
+        спросить, и предупреждение в лог, чтобы человек не искал причину в рынке.
+        """
+
+        strategy = getattr(self.features, "swing_strategy", None)
+        if strategy is None or not zones:
+            return None
+
+        measured = 0
+        for zone in zones:
+            metrics = ((zone.features or {}).get("metadata") or {}).get("swing_metrics")
+            if metrics and (metrics.get("num_swings") or 0) > 0:
+                measured += 1
+
+        coverage = {
+            "strategy": type(strategy).__name__,
+            "zones": len(zones),
+            "zones_with_swings": measured,
+        }
+
+        if measured == 0:
+            self.logger.warning(
+                "Swing strategy %s found no swings in any of %d zones. This is "
+                "indistinguishable from 'the market did not move': check the "
+                "thresholds before the data. The default preset is calibrated for "
+                "wide zones - try .with_swing_preset('narrow_zone'). See "
+                "devref/gaps/swing/g35_default_preset_measures_nothing_and_says_nothing_2026-08.md",
+                coverage["strategy"],
+                len(zones),
+            )
+
+        return coverage
 
     def _duration_filter(self, zones: List[ZoneInfo],
                          min_duration: int) -> Dict[str, Any]:
