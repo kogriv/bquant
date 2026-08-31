@@ -121,8 +121,8 @@ class ValidationSuite:
             
             # Calculate degradation
             degradation = self._calculate_degradation(
-                train_metrics.get(metric_key, 0),
-                test_metrics.get(metric_key, 0)
+                self._metric(train_metrics, metric_key, 'train window'),
+                self._metric(test_metrics, metric_key, 'test window')
             )
             
             success = abs(degradation) <= self.degradation_threshold * 100
@@ -238,8 +238,10 @@ class ValidationSuite:
                 raise AnalysisError("No iterations completed in walk-forward test")
             
             # Aggregate metrics
-            avg_train_metric = np.mean([m.get(metric_key, 0) for m in train_results])
-            avg_test_metric = np.mean([m.get(metric_key, 0) for m in test_results])
+            train_values = [self._metric(m, metric_key, 'walk-forward train window') for m in train_results]
+            test_values = [self._metric(m, metric_key, 'walk-forward test window') for m in test_results]
+            avg_train_metric = np.mean(train_values)
+            avg_test_metric = np.mean(test_values)
             
             degradation = self._calculate_degradation(avg_train_metric, avg_test_metric)
             success = abs(degradation) <= self.degradation_threshold * 100
@@ -253,8 +255,8 @@ class ValidationSuite:
                 'iterations_detail': iterations,
                 'avg_train_metric': avg_train_metric,
                 'avg_test_metric': avg_test_metric,
-                'std_train_metric': np.std([m.get(metric_key, 0) for m in train_results]),
-                'std_test_metric': np.std([m.get(metric_key, 0) for m in test_results]),
+                'std_train_metric': np.std(train_values),
+                'std_test_metric': np.std(test_values),
                 'timestamp': datetime.now().isoformat()
             }
             
@@ -326,10 +328,10 @@ class ValidationSuite:
                     results.append({
                         'params': params,
                         'metrics': result_metrics,
-                        'metric_value': result_metrics.get(metric_key, 0)
+                        'metric_value': self._metric(result_metrics, metric_key, 'sensitivity run')
                     })
                     
-                    metrics.append(result_metrics.get(metric_key, 0))
+                    metrics.append(self._metric(result_metrics, metric_key, 'sensitivity run'))
                     
                 except Exception as e:
                     self.logger.warning(f"Failed for params {params}: {e}")
@@ -433,7 +435,7 @@ class ValidationSuite:
             # Analyze real data
             real_result = analyze_func(data)
             real_metrics = self._extract_metrics(real_result)
-            real_metric_value = real_metrics.get(metric_key, 0)
+            real_metric_value = self._metric(real_metrics, metric_key, 'real data')
             
             # Run simulations
             simulation_metrics = []
@@ -445,7 +447,7 @@ class ValidationSuite:
                 try:
                     sim_result = analyze_func(synthetic_data)
                     sim_metrics = self._extract_metrics(sim_result)
-                    simulation_metrics.append(sim_metrics.get(metric_key, 0))
+                    simulation_metrics.append(self._metric(sim_metrics, metric_key, 'monte-carlo simulation'))
                 except Exception as e:
                     self.logger.warning(f"Simulation {i} failed: {e}")
                     continue
@@ -506,6 +508,34 @@ class ValidationSuite:
             self.logger.error(f"Monte Carlo test failed: {e}")
             raise AnalysisError(f"Monte Carlo test failed: {e}")
     
+    @staticmethod
+    def _metric(metrics: Dict[str, Any], metric_key: str, where: str) -> float:
+        """Достать метрику или сказать, что её нет.
+
+        Раньше здесь стоял `metrics.get(metric_key, 0)` — девять раз по файлу. Отсутствие
+        метрики превращалось в ноль, ноль сравнивался с нулём, и валидация сообщала
+        «деградация 0%, модель устойчива», не измерив ничего. Для модуля, который
+        отвечает ровно на вопрос «держится ли модель», это худший из возможных отказов:
+        правдоподобный вердикт вместо признания, что вердикта нет (G39).
+        """
+
+        if metric_key not in metrics:
+            raise AnalysisError(
+                f"Metric {metric_key!r} is missing from the analysis result ({where}). "
+                f"Available keys: {sorted(metrics)}. "
+                "The validation suite compares this metric between windows; without it "
+                "there is nothing to compare, and reporting zero would be a verdict "
+                "made up out of nothing."
+            )
+
+        value = metrics[metric_key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise AnalysisError(
+                f"Metric {metric_key!r} must be a number to be compared between windows, "
+                f"got {type(value).__name__} ({where})."
+            )
+        return float(value)
+
     def _extract_metrics(self, analysis_result: Any) -> Dict[str, Any]:
         """
         Extract metrics from analysis result.
@@ -518,16 +548,20 @@ class ValidationSuite:
         """
         if isinstance(analysis_result, dict):
             return analysis_result
-        elif hasattr(analysis_result, 'to_dict'):
-            return analysis_result.to_dict()
-        elif hasattr(analysis_result, 'results'):
-            # AnalysisResult object
+
+        # Порядок ветвей существен. `AnalysisResult` имеет и `results`, и `to_dict()`,
+        # но метрики лежат в первом, а `to_dict()` кладёт их **на уровень глубже**, под
+        # ключ `results`. Пока проверка на `to_dict` стояла раньше, запрошенная метрика
+        # не находилась ни разу — и вместо отказа получался ноль (G39).
+        if hasattr(analysis_result, 'results'):
             if isinstance(analysis_result.results, dict):
                 return analysis_result.results
-            else:
-                return {'result': analysis_result.results}
-        else:
-            return {'result': str(analysis_result)}
+            return {'result': analysis_result.results}
+
+        if hasattr(analysis_result, 'to_dict'):
+            return analysis_result.to_dict()
+
+        return {'result': str(analysis_result)}
     
     def _calculate_degradation(self, train_metric: float, test_metric: float) -> float:
         """

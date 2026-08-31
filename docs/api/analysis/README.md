@@ -1,102 +1,102 @@
-# Analysis - Аналитические модули BQuant
+# Analysis — аналитические модули
 
-## 📚 Обзор
+Что лежит в `bquant.analysis` и как это связано между собой.
 
-Analysis модули содержат инструменты для статистического анализа, анализа зон и других аналитических методов для исследования финансовых данных.
+| Модуль | Предмет | Страница |
+|---|---|---|
+| `bquant.analysis.zones` | зоны: детекция, признаки, последовательности, пайплайн | [зоны](zones.md) · [пайплайн](pipeline.md) |
+| `bquant.analysis.zones.strategies` | метрики зон пятью семействами | [стратегии](strategies.md) |
+| `bquant.analysis.statistical` | гипотезы, распределения, регрессия | [статистика](statistical.md) |
+| `bquant.analysis` | `BaseAnalyzer`, `AnalysisResult`, реестр видов анализа | [база](base.md) |
+| `bquant.analysis.validation` | проверка устойчивости моделей | ниже |
 
-## 🎉 New in Phase 3-4
+## Зоны
 
-### Major Extensions
-- ✨ **Strategy Pattern** for extensible metrics (8 strategies implemented)
-- ✨ **67 total metrics** (was: 12 base metrics)
-- ✨ **Regression analysis** for predictive modeling
-- ✨ **Validation suite** for model robustness testing
-- ✨ **Extended hypothesis tests** (H4, ADF, H5)
+Основной вход — `analyze_zones()`; полный справочник билдера в
+[пайплайне](pipeline.md), практика — в [руководстве](../../user_guide/zone_analysis.md).
 
-### API Stability Categories
-- 🟢 **Stable APIs** - Strategy Pattern, Regression, Validation (documented fully)
-- 🟡 **Evolving APIs** - Some zone features may be renamed during universalization
+Живые компоненты, на которых пайплайн собран: `ZoneFeaturesAnalyzer` (признаки зоны) и
+`ZoneSequenceAnalyzer` (переходы между зонами и кластеризация). Раньше оба были помечены
+здесь как deprecated — это было неверно: пайплайн вызывает их напрямую, и они показаны в
+актуальных примерах.
 
-## 🗂️ Модули
+### Две модели зоны — разные предметы, а не версии
 
-### 🔬 [bquant.analysis.statistical](statistical.md) - Статистический анализ
+| | `ZoneInfo` | `PriceLevelZone` |
+|---|---|---|
+| что описывает | участок **времени**, где осциллятор в одном состоянии | полосу **цены**: поддержку, сопротивление |
+| границы | в барах | в цене |
+| покрытие | зоны идут встык, мощение полное | полосы могут перекрываться и покрывают не всю историю |
+| вход | `analyze_zones()` | `find_support_resistance()`, `PriceLevelAnalyzer` |
 
-**Базовый анализ:**
-- **StatisticalAnalyzer** - Статистический анализатор
-- **run_all_hypothesis_tests()** - Запуск всех статистических тестов
-- **HypothesisTestSuite** - Набор статистических тестов
-- **HypothesisTestResult** - Результат тестирования гипотезы
-
-**New in Phase 3.7-3.8 (🟢 Stable):**
-- **HypothesisTestSuite** - Extended with H4, ADF, H5 tests
-- **ZoneRegressionAnalyzer** - OLS regression for duration and return prediction
-- **RegressionResult** - Regression model results with diagnostics
-- **ValidationSuite** - 4 validation methods (out-of-sample, walk-forward, sensitivity, monte-carlo)
-- **ModelValidationResult** - Validation test results
-
-### 📊 [bquant.analysis.zones](zones.md) - Universal Zone Analysis Pipeline v2.1
-
-> **✅ v2.1 - Truly Universal Architecture**
-
-**Universal Pipeline API:**
-- **analyze_zones()** - Entry point для Universal Pipeline
-- **ZoneAnalysisBuilder** - Fluent interface для настройки анализа
-- **ZoneAnalysisResult** - Результат анализа с полным набором данных
-- **ZoneInfo** - Модель зоны с полным контекстом
-
-**Живые компоненты, на которых стоит пайплайн:**
-- **ZoneFeaturesAnalyzer** - извлечение признаков зон
-- **ZoneSequenceAnalyzer** - анализ последовательностей зон
-
-Раньше оба были помечены здесь как deprecated. Это было неверно: пайплайн собран
-именно на них, они вызываются из пакета и показаны в актуальных примерах.
-
-**Вторая ветка — уровни цены (не «старая версия», а другой предмет):**
-- **PriceLevelZone** - полоса цены: поддержка, сопротивление
-- **PriceLevelAnalyzer** - ищет такие полосы, анализирует пробои
-- **find_support_resistance()** - удобный вход в неё
-
-`ZoneInfo` описывает **участок времени**, на котором осциллятор в одном состоянии:
-границы в барах, зоны идут встык. `PriceLevelZone` описывает **полосу цены**:
-границы в цене, полосы могут перекрываться и покрывают не всю историю. Общего у них
-только слово «зона» — раньше оно и стирало различие, из-за чего одна модель числилась
-устаревшей версией другой. Разбор:
+Общего у них только слово «зона». Раньше оно стирало различие, и одна модель числилась
+устаревшей версией другой — разбор в
 `../../../devref/gaps/zone_types/g28_one_word_two_concepts_2026-08.md`.
 
-**New in v2.1:**
-- **Universal Pipeline** - работает с ЛЮБЫМ индикатором
-- **indicator_context** - зоны сами описывают стратегию детекции
-- **115 тестов, 100% pass rate** - доказательство универсальности
+### Глобальные свинги
 
-**Документация по глобальным свингам:**
-- [Модели](zones/global_swings_models.md) — `SwingPoint`, `SwingContext`, расширения `ZoneInfo`
-- [Пайплайн](zones/global_swings_pipeline.md) — `_calculate_global_swings`, `_inject_swing_context`, `with_swing_scope()`
-- [Стратегии](zones/global_swings_strategies.md) — протокол `SwingCalculationStrategy`, ZigZag/FindPeaks/PivotPoints
+- [Модели](zones/global_swings_models.md) — `SwingPoint`, `SwingContext`, поля `ZoneInfo`
+- [Пайплайн](zones/global_swings_pipeline.md) — расчёт на всём кадре и нарезка по зонам
+- [Стратегии](zones/global_swings_strategies.md) — контракт `calculate_global` / `aggregate_for_zone`
 
-### 🎨 [bquant.analysis.zones.strategies](strategies.md) - Strategy Pattern (New)
+## Стратегии метрик
 
-> **API Stability:** 🟢 STABLE - won't change
+Пять семейств, семь зарегистрированных реализаций. Список берите у реестра, а не отсюда —
+он не устаревает:
 
-**8 implemented strategies:**
-- **Swing strategies** (3): ZigZag, FindPeaks, PivotPoints → 23 metrics
-- **Shape strategies** (1): StatisticalShape → 3 metrics
-- **Divergence strategies** (1): ClassicDivergence → 4 metrics
-- **Volatility strategies** (1): CombinedVolatility → 10 metrics
-- **Volume strategies** (1): StandardVolume → 4 metrics
+```python
+from bquant.analysis.zones.strategies.registry import StrategyRegistry
 
-**Infrastructure:**
-- **StrategyRegistry** - Centralized strategy registration
-- **Protocols** - Type-safe strategy contracts
-- **Dataclasses** - Structured metric results
-- **Factory functions** - Strategy creation from config
+for family in ('swing', 'shape', 'divergence', 'volatility', 'volume'):
+    lister = getattr(StrategyRegistry, f'list_{family}_strategies')
+    print(f"{family}: {lister()}")
+# swing: ['zigzag', 'find_peaks', 'pivot_points']
+# shape: ['statistical']
+# divergence: ['classic']
+# volatility: ['combined']
+# volume: ['standard']
+```
 
-### 🏗️ [bquant.analysis (base)](base.md) - Базовые классы анализа
-- **BaseAnalyzer** - Базовый класс анализатора (из bquant.analysis)
-- **AnalysisResult** - Результат анализа (из bquant.analysis)
-- **AnalysisParams** - Параметры анализа (из bquant.analysis)
-- **AnalysisRegistry** - Реестр анализаторов (из bquant.analysis)
+Сколько метрик даёт каждое семейство — тоже вопрос к коду:
 
-### 🧱 Модули-заглушки — что это и как их отличить
+```python
+import dataclasses
+
+from bquant.analysis.zones.strategies import base
+
+for name in ('SwingMetrics', 'ShapeMetrics', 'DivergenceMetrics',
+             'VolatilityMetrics', 'VolumeMetrics'):
+    fields = [f.name for f in dataclasses.fields(getattr(base, name))
+              if f.name not in ('strategy_name', 'strategy_params')]
+    print(f"{name}: {len(fields)}")
+# SwingMetrics: 23
+# ShapeMetrics: 3
+# DivergenceMetrics: 4
+# VolatilityMetrics: 10
+# VolumeMetrics: 4
+```
+
+Инфраструктура вокруг них: `StrategyRegistry` — регистрация и поиск по имени, протоколы —
+контракт, который обязана выполнить своя реализация, dataclass-ы — форма результата.
+Как добавить свою — [Extension Guide](../extension_guide.md).
+
+## Статистика
+
+- `HypothesisTestSuite` — набор проверок гипотез о зонах; тест, которому не хватило
+  данных или словаря типов, возвращает `error` **с причиной**, а не правдоподобное число;
+- `ZoneRegressionAnalyzer` — OLS для длительности и доходности зоны, с диагностикой;
+- `StatisticalAnalyzer` — общие статистики;
+- `run_all_hypothesis_tests()` — прогнать всё разом.
+
+Подробности и разбор отказов — [статистика](statistical.md).
+
+## Валидация
+
+`bquant.analysis.validation.ValidationSuite` — четыре метода проверки устойчивости:
+`out_of_sample_test`, `walk_forward_test`, `sensitivity_analysis`, `monte_carlo_test`.
+Включается через `.analyze(validation=True)` и требует больше 20 зон.
+
+## Модули-заглушки — что это и как их отличить
 
 Четыре подмодуля — `bquant.analysis.candlestick`, `.chart`, `.technical`,
 `.timeseries` — сейчас **разметка под будущую работу**, а не рабочие анализаторы:
@@ -142,330 +142,36 @@ print(get_technical_analyzers()['technical'])
 Планы каждого модуля перечислены в `result.results['planned_features']` и в
 докстроке модуля.
 
-## 🔍 Быстрый поиск
-
-### По функциональности
-
-#### Статистический анализ
-- `run_all_hypothesis_tests()` - Все статистические тесты
-- `HypothesisTestSuite` - Набор статистических тестов
-- `StatisticalAnalyzer` - Статистический анализатор
-- `calculate_correlation()` - Расчет корреляции
-- `perform_t_test()` - T-тест
-
-#### Анализ зон
-- `ZoneFeaturesAnalyzer.analyze()` - Анализ характеристик зон
-- `ZoneSequenceAnalyzer.analyze()` - Анализ последовательностей
-- `extract_zone_features()` - Извлечение характеристик зон
-- `analyze_transitions()` - Анализ переходов между зонами
-
-#### Базовый анализ
-- `BaseAnalyzer.analyze()` - Базовый анализ
-- `BaseAnalyzer.validate_data()` - Валидация данных
-- `BaseAnalyzer.get_params()` - Получение параметров
-- `BaseAnalyzer.set_params()` - Установка параметров
-
-### По типу
-
-#### 🏗️ Классы
-- `BaseAnalyzer` - Базовый класс анализатора
-- `StatisticalAnalyzer` - Статистический анализатор
-- `ZoneFeaturesAnalyzer` - Анализатор характеристик зон
-- `ZoneSequenceAnalyzer` - Анализатор последовательностей зон
-
-#### 🔧 Функции
-- `run_all_hypothesis_tests()` - Статистические тесты
-- `HypothesisTestSuite` - Набор статистических тестов
-- `extract_zone_features()` - Извлечение характеристик зон
-- `analyze_transitions()` - Анализ переходов
-
-#### 📋 Типы данных
-- `HypothesisTestResult` - Результат тестирования гипотезы
-- `ZoneFeatures` - Характеристики зоны
-- `TransitionAnalysis` - Анализ переходов
-- `AnalysisResult` - Результат анализа
-
-## 💡 Примеры использования
-
-### Universal Pipeline v2.1
+## Пример: анализ зон целиком
 
 ```python
 from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
-# Загрузка данных
-data = get_sample_data('tv_xauusd_1h')
-
-# Universal Pipeline с автоматическими hypothesis tests
 result = (
-    analyze_zones(data)
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .with_strategies(swing='find_peaks', divergence='classic')
-    .analyze(clustering=True)  # Автоматически включает hypothesis tests
+    .detect_zones('zero_crossing', indicator_role='line')
+    .with_strategies(swing='zigzag', shape='statistical', volatility='combined')
+    .analyze(clustering=True, n_clusters=3)
     .build()
 )
 
-# Анализ результатов
-print(f"Найдено зон: {len(result.zones)}")
-if result.hypothesis_tests:
-    for test_name, test_result in result.hypothesis_tests.results.items():
-        print(f"{test_name}:")
-        # Проверяем структуру результата
-        if hasattr(test_result, 'p_value'):
-            print(f"  p-value: {test_result.p_value:.4f}")
-            print(f"  Significant: {test_result.is_significant}")
-        elif isinstance(test_result, dict) and 'p_value' in test_result:
-            print(f"  p-value: {test_result['p_value']:.4f}")
-            print(f"  Significant: {test_result['is_significant']}")
-        else:
-            print(f"  Result: {test_result}")
+print(len(result.zones))
+print(sorted(result.statistics))
+print(len(result.hypothesis_tests.results['tests']))
+# 32
+# ['additional_metrics', 'duration_distribution', 'line_amplitude_distribution',
+#  'oscillator_amplitude_distribution', 'return_distribution', 'total_statistics']
+# 7
 ```
 
-### Тестирование отдельной гипотезы
+## Дальше
 
-```python
-from bquant.analysis.statistical import run_all_hypothesis_tests
-import numpy as np
-from scipy import stats
-
-# Тестирование гипотезы о различии волатильности между bull и bear зонами
-bull_volatility = [zone.features.get('avg_volatility', 0) for zone in result.zones 
-                   if zone.type == 'bull' and zone.features]
-bear_volatility = [zone.features.get('avg_volatility', 0) for zone in result.zones 
-                   if zone.type == 'bear' and zone.features]
-
-if len(bull_volatility) > 0 and len(bear_volatility) > 0:
-    # T-тест
-    t_stat, p_value = stats.ttest_ind(bull_volatility, bear_volatility)
-    
-    print(f"T-test result:")
-    print(f"  p-value: {p_value:.4f}")
-    print(f"  Significant: {p_value < 0.05}")
-    print(f"  t-statistic: {t_stat:.4f}")
-```
-
-### Анализ характеристик зон (Universal Pipeline)
-
-```python
-# Universal Pipeline автоматически извлекает характеристики
-result = (
-    analyze_zones(data)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .with_strategies(swing='find_peaks', volatility='combined')
-    .analyze(clustering=True)
-    .build()
-)
-
-# Анализ результатов
-print(f"Zone features analysis:")
-print(f"  Total zones analyzed: {len(result.zones)}")
-for i, zone in enumerate(result.zones[:3]):
-    if zone.features:
-        print(f"  Zone {i}: volatility={zone.features.get('volatility_regime', 'unknown')}")
-        print(f"    Swings: {zone.features.get('num_swings', 0)}")
-        print(f"    Duration: {zone.features.get('duration', 0):.2f}")
-```
-
-### Анализ последовательностей зон (Universal Pipeline)
-
-```python
-# Universal Pipeline с sequence analysis
-result = (
-    analyze_zones(data)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .analyze(clustering=True)  # sequence analysis включен автоматически
-    .build()
-)
-
-# Анализ переходов между зонами
-if result.sequence_analysis:
-    print(f"Transition analysis:")
-    print(f"  Bull to Bear transitions: {result.sequence_analysis.get('bull_to_bear', 0)}")
-    print(f"  Bear to Bull transitions: {result.sequence_analysis.get('bear_to_bull', 0)}")
-
-# Кластерный анализ зон
-if result.clustering:
-    print(f"Cluster analysis:")
-    print(f"  Number of clusters: {result.clustering.get('n_clusters', 0)}")
-    print(f"  Cluster labels: {result.clustering.get('cluster_labels', [])[:5]}...")
-```
-
-### Комбинированный статистический анализ
-
-```python
-import numpy as np
-from bquant.analysis.statistical import StatisticalAnalyzer
-
-# Создание статистического анализатора
-stat_analyzer = StatisticalAnalyzer()
-
-# Подготовка данных для анализа
-bull_zones = [zone for zone in result.zones if zone.type == 'bull']
-bear_zones = [zone for zone in result.zones if zone.type == 'bear']
-
-# Извлечение характеристик
-bull_durations = [zone.duration for zone in bull_zones]
-bear_durations = [zone.duration for zone in bear_zones]
-bull_amplitudes = [zone.amplitude for zone in bull_zones]
-bear_amplitudes = [zone.amplitude for zone in bear_zones]
-
-# Комплексный статистический анализ
-from scipy import stats
-
-# T-тест для сравнения групп
-duration_t_stat, duration_p_value = stats.ttest_ind(bull_durations, bear_durations)
-amplitude_t_stat, amplitude_p_value = stats.ttest_ind(bull_amplitudes, bear_amplitudes)
-
-# Описательная статистика
-bull_duration_stats = {
-    'mean': np.mean(bull_durations),
-    'std': np.std(bull_durations),
-    'min': np.min(bull_durations),
-    'max': np.max(bull_durations)
-}
-
-bear_duration_stats = {
-    'mean': np.mean(bear_durations),
-    'std': np.std(bear_durations),
-    'min': np.min(bear_durations),
-    'max': np.max(bear_durations)
-}
-
-# Вывод результатов
-print(f"\nDuration comparison:")
-print(f"  p-value: {duration_p_value:.4f}")
-print(f"  Significant: {duration_p_value < 0.05}")
-
-print(f"\nBull duration stats:")
-print(f"  Mean: {bull_duration_stats['mean']:.4f}")
-print(f"  Std: {bull_duration_stats['std']:.4f}")
-print(f"  Min: {bull_duration_stats['min']:.4f}")
-print(f"  Max: {bull_duration_stats['max']:.4f}")
-```
-
-### Создание собственного анализатора
-
-```python
-from bquant.analysis import BaseAnalyzer, AnalysisResult
-import numpy as np
-
-class VolatilityAnalyzer(BaseAnalyzer):
-    """Анализатор волатильности"""
-    
-    def __init__(self, window_size=20):
-        super().__init__('VolatilityAnalyzer')
-        self.window_size = window_size
-    
-    def analyze(self, data):
-        """Анализ волатильности"""
-        if not self.validate_data(data):
-            raise ValueError("Invalid data for volatility analysis")
-        
-        # Расчет волатильности
-        returns = data['close'].pct_change()
-        volatility = returns.rolling(window=self.window_size).std()
-        
-        # Статистики волатильности
-        volatility_stats = {
-            'mean': volatility.mean(),
-            'std': volatility.std(),
-            'min': volatility.min(),
-            'max': volatility.max(),
-            'current': volatility.iloc[-1]
-        }
-        
-        return AnalysisResult(
-            analysis_type='VolatilityAnalyzer',
-            results=volatility_stats,
-            data_size=len(volatility),
-            metadata={'window_size': self.window_size}
-        )
-    
-    def validate_data(self, data):
-        """Валидация данных"""
-        required_columns = ['close']
-        return all(col in data.columns for col in required_columns)
-
-# Использование собственного анализатора
-volatility_analyzer = VolatilityAnalyzer(window_size=20)
-volatility_result = volatility_analyzer.analyze(data)
-
-print(f"Volatility analysis:")
-print(f"  Mean volatility: {volatility_result.results['mean']:.4f}")
-print(f"  Current volatility: {volatility_result.results['current']:.4f}")
-```
-
-### Экспорт результатов анализа
-
-```python
-import json
-import pandas as pd
-from bquant.analysis.statistical import run_all_hypothesis_tests
-
-# Выполнение анализа
-hypothesis_results = run_all_hypothesis_tests(zones_info)
-
-# Подготовка данных для экспорта
-export_data = {
-    'analysis_date': str(pd.Timestamp.now()),
-    'data_info': {
-        'symbol': 'XAUUSD',
-        'timeframe': '1H',
-        'zones_count': len(result.zones)
-    },
-    'hypothesis_tests': {
-        test_name: {
-            'p_value': float(test_result.p_value),
-            'is_significant': test_result.is_significant,
-            'effect_size': float(test_result.effect_size),
-            'test_statistic': float(test_result.test_statistic),
-            'alpha': float(test_result.alpha)
-        }
-        for test_name, test_result in hypothesis_results.items()
-    }
-}
-
-# Экспорт в JSON
-with open('statistical_analysis.json', 'w') as f:
-    json.dump(export_data, f, indent=2)
-
-print("Statistical analysis exported to statistical_analysis.json")
-```
-
-## 🔗 Связанные разделы
-
-- **[Core Modules](../core/README.md)** - Базовые модули
-- **[Data Modules](../data/README.md)** - Модули данных
-- **[Indicators](../indicators/README.md)** - Технические индикаторы
-- **[Visualization](../visualization/README.md)** - Модули визуализации
-
-## 📖 Детальная документация
-
-- **[Universal Pipeline](pipeline.md)** - Полная документация Universal Pipeline v2.1
-- **[Zone Detection Strategies](strategies.md)** - Детальное описание 5 стратегий детекции
-- **[Statistical Module](statistical.md)** - Подробная документация статистического анализа
-- **[Zones Module](zones.md)** - Universal API для анализа зон
-- **[Base Module](base.md)** - Документация базовых классов анализа
-
-## 🚀 Руководство по расширению
-
-### Создание нового анализатора
-
-1. **Наследование от BaseAnalyzer**
-2. **Реализация метода analyze()**
-3. **Валидация данных**
-4. **Возврат AnalysisResult**
-
-### Лучшие практики
-
-- Используйте научно обоснованные статистические методы
-- Валидируйте входные данные
-- Документируйте статистические тесты и их интерпретацию
-- Учитывайте множественные сравнения
-
----
-
-**Следующий раздел:** [Visualization](../visualization/README.md) 📊
+| | |
+|---|---|
+| [Пайплайн](pipeline.md) | справочник билдера |
+| [Зоны](zones.md) | модели, словарь типов, стратегии детекции |
+| [Стратегии](strategies.md) | метрики и их параметры |
+| [Статистика](statistical.md) | гипотезы, регрессия, отказы |
+| [Extension Guide](../extension_guide.md) | своя стратегия или индикатор |

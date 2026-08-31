@@ -421,12 +421,17 @@ class TestValidationIntegration:
         def param_func(data, window=10):
             return {'metric': len(data) / window}
         
+        # metric_key обязателен: param_func отдаёт ключ `metric`, а умолчание —
+        # `total_zones`. Пока отсутствие метрики подменялось нулём, эта проверка
+        # проходила на нулях и ничего не проверяла (G39).
         sens_result = suite.sensitivity_analysis(
             param_func,
             large_data,
-            {'window': [8, 10, 12]}
+            {'window': [8, 10, 12]},
+            metric_key='metric'
         )
         assert isinstance(sens_result, ModelValidationResult)
+        assert sens_result.metadata['best_params'] is not None
         
         # Monte Carlo
         mc_result = suite.monte_carlo_test(

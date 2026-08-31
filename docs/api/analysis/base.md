@@ -16,6 +16,8 @@
     - `validate_data(data) -> bool`
     - `analyze(data, **kwargs) -> AnalysisResult` (абстрактный)
     - `prepare_data(data) -> DataFrame`
+  - Атрибут класса: `is_stub: bool` — по умолчанию `False`; заглушки объявляют `True`,
+    и по нему их следует отличать, а не по названию модуля (см. [обзор](README.md))
 
 ## Функции
 

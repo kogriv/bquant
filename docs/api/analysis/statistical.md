@@ -20,12 +20,12 @@
   - `correlation_matrix(df, method='pearson') -> DataFrame`
 - Тестирование гипотез (из `hypothesis_testing`):
   - `HypothesisTestResult`, `HypothesisTestSuite`
-  - `run_all_hypothesis_tests(zones_features, alpha=0.05) -> Dict`
-  - `run_single_hypothesis_test(zones_features, test_type, alpha=0.05) -> HypothesisTestResult`
+  - `run_all_hypothesis_tests(zones_features, alpha=0.05, vocabulary=None) -> Dict`
+  - `run_single_hypothesis_test(zones_features, test_type, alpha=0.05, price_levels=None, tolerance_pct=0.5, vocabulary=None) -> HypothesisTestResult`
 - Регрессионный анализ:
   - `ZoneRegressionAnalyzer`
-- Валидация моделей:
-  - `ValidationSuite`
+- Валидация моделей: `ValidationSuite` — она живёт в соседнем модуле
+  `bquant.analysis.validation`, а не здесь
 
 ## Подготовка данных
 
@@ -96,10 +96,10 @@ def generate_market_data(seed: int = 7, periods: int = 360):
     high = np.maximum(open_, close) * (1 + rng.uniform(0.0005, 0.01, periods))
     low = np.minimum(open_, close) * (1 - rng.uniform(0.0005, 0.01, periods))
     volume = rng.integers(15_000, 45_000, periods)
-    indicator = pd.Series(close).rolling(5).mean().fillna(method='bfill')
+    indicator = pd.Series(close).rolling(5).mean().bfill()
     duration_proxy = rng.integers(5, 30, periods)
 
-    dates = pd.date_range('2024-01-01', periods=periods, freq='H')
+    dates = pd.date_range('2024-01-01', periods=periods, freq='h')
     market_data = pd.DataFrame({
         'open': open_,
         'high': high,
@@ -157,19 +157,31 @@ print(sa_small.t_test(df['a'], df['b']))
 > оказывались пустыми, а сообщение винило объём данных).
 >
 > Через пайплайн словарь резолвится автоматически — из стратегии детекции, имя
-> которой зоны несут в `indicator_context`. При прямом вызове по словарям фич его
-> нужно передать:
->
-> ```python
-> from bquant.analysis.zones.detection import resolve_vocabulary
->
-> vocabulary = resolve_vocabulary(result.zones)
-> tests = test_suite.run_all_tests(zones_features, vocabulary=vocabulary)
-> ```
->
-> Без него эти три теста **откажутся считать** и назовут причину — отсутствие
-> объявления, а не нехватку данных. Отказ намеренный: угадать полярность по имени
-> значило бы вернуть снятый хардкод.
+> которой зоны несут в `indicator_context`. При прямом вызове по словарям признаков
+> его нужно передать явно; без него эти три теста **откажутся считать** и назовут
+> причину — отсутствие объявления, а не нехватку данных. Отказ намеренный: угадать
+> полярность по имени значило бы вернуть снятый хардкод.
+
+Словарь получают из зон — а если зон под рукой нет, из имени стратегии детекции:
+
+```python
+from bquant.analysis.zones.detection import resolve_vocabulary
+
+
+class ZoneLike:
+    """Минимум, который нужен резолверу: имя стратегии в контексте зоны."""
+    indicator_context = {'detection_strategy': 'zero_crossing'}
+
+
+vocabulary = resolve_vocabulary([ZoneLike()])
+
+print(vocabulary.names())            # ['bull', 'bear']
+print(vocabulary.contrast_pairs())   # [('bear', 'bull')]
+print(vocabulary.polarity_of('bull'))  # 1
+```
+
+В обычном коде вместо `ZoneLike` стоят настоящие зоны: `resolve_vocabulary(result.zones)`.
+Дальше `vocabulary` передаётся в тесты, которым он нужен.
 
 Полный запуск тестов и одиночный вызов:
 

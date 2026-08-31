@@ -1,161 +1,110 @@
-# API Reference - Справочник API BQuant
+# Справочник API
 
-## 📚 Обзор
+Карта модулей пакета. Практическая сторона — в [руководстве пользователя](../user_guide/README.md);
+здесь описано, что где лежит и как называется.
 
-Справочник API содержит подробную документацию всех модулей, классов и функций BQuant.
+## Карта модулей
 
-## 🗂️ Структура API
+| Модуль | О чём | Страница |
+|---|---|---|
+| `bquant.analysis.zones` | пайплайн анализа зон, детекция, модели, пресеты | [пайплайн](analysis/pipeline.md) · [зоны](analysis/zones.md) |
+| `bquant.analysis.zones.strategies` | метрики зон: swing, shape, divergence, volatility, volume | [стратегии](analysis/strategies.md) |
+| `bquant.analysis.statistical` | проверка гипотез, распределения, регрессия | [статистика](analysis/statistical.md) |
+| `bquant.analysis` | базовые классы анализа, реестр видов анализа | [база](analysis/base.md) · [обзор](analysis/README.md) |
+| `bquant.indicators` | фабрика, встроенные индикаторы, внешние библиотеки | [обзор](indicators/README.md) |
+| `bquant.indicators.base` | `BaseIndicator`, `IndicatorFactory`, `IndicatorConfig` | [база](indicators/base.md) · [фабрика](indicators/factory.md) |
+| `bquant.indicators.custom` | реализации внутри пакета: SMA, EMA, RSI, MACD, Bollinger | [встроенные](indicators/custom.md) |
+| `bquant.indicators.preloaded` | индикаторы поверх уже посчитанных колонок | [preloaded](indicators/preloaded.md) |
+| `bquant.indicators.library` | pandas-ta и TA-Lib через `LibraryManager` | [менеджер библиотек](indicators/library_manager.md) |
+| `bquant.data.loader` | чтение OHLCV из файлов | [загрузка](data/loader.md) |
+| `bquant.data.processor` | подготовка кадра, нормализация индекса | [обработка](data/processor.md) |
+| `bquant.data.validator` | проверки качества данных | [валидация](data/validator.md) |
+| `bquant.data.samples` | встроенные наборы данных | [наборы](data/samples.md) |
+| `bquant.data.schemas` | описания структур данных | [схемы](data/schemas.md) |
+| `bquant.core.config` | конфигурация, таймфреймы, пресеты свингов | [config](core/config.md) |
+| `bquant.core.cache` | двухуровневый кэш | [кэширование](../user_guide/caching.md) |
+| `bquant.core.logging_config` | настройка логирования | [логирование](core/logging.md) |
+| `bquant.core.nb` | `NotebookSimulator` для исследовательских скриптов | [nb](core/nb.md) |
+| `bquant.core.performance` | замер и мониторинг производительности | [производительность](core/performance.md) |
+| `bquant.core.exceptions` | иерархия исключений | [исключения](core/exceptions.md) |
+| `bquant.core.utils` | вспомогательные функции | [утилиты](core/utils.md) |
+| `bquant.visualization.charts` | финансовые графики | [визуализация](visualization/README.md) |
+| `bquant.visualization.zones` | графики зон | [зоны на графике](visualization/zones.md) |
+| `bquant.visualization.statistical` | статистические графики | [визуализация](visualization/README.md) |
+| `bquant.visualization.themes` | пять тем оформления | [визуализация](visualization/README.md) |
 
-### 🏗️ Core Modules - Базовые модули
-- **bquant.core.config** - Конфигурация и настройки
-- **bquant.core.exceptions** - Исключения и ошибки
-- **bquant.core.logging_config** - Настройка логирования
-- **bquant.core.performance** - Производительность и профилирование
-- **bquant.core.utils** - Утилиты и вспомогательные функции
+Модулей `bquant.indicators.macd`, `bquant.indicators.factory` и
+`bquant.indicators.library_manager` **не существует**: MACD-индикатор живёт в
+`custom`/`preloaded`, фабрика — в `base`, менеджер библиотек — в пакете `library`.
+Страницы справочника названы по предмету, а не по файлу.
 
-### 📊 Data Modules - Модули данных
-- **bquant.data.loader** - Загрузка данных из различных источников
-- **bquant.data.processor** - Обработка и очистка данных
-- **bquant.data.validator** - Валидация данных
-- **bquant.data.samples** - Встроенные sample данные
-- **bquant.data.schemas** - Схемы данных и типы
+## Размер поверхности — спросите у пакета
 
-### 📈 Indicators - Технические индикаторы
-- **bquant.indicators.base** - Базовые классы индикаторов
-- **bquant.indicators.macd** - MACD индикатор с анализом зон
-- **bquant.indicators.preloaded** - PRELOADED индикаторы для готовых данных
-- **bquant.indicators.factory** - Фабрика индикаторов
-- **bquant.indicators.library_manager** - Управление внешними библиотеками (pandas-ta, TA-Lib)
+Числа вроде «столько-то классов» устаревают быстрее, чем их успевают исправить, поэтому
+здесь не число, а способ его получить:
 
-### 🔬 Analysis - Аналитические модули
-- **bquant.analysis.statistical** - Статистический анализ
-- **bquant.analysis.zones** - Universal Zone Analysis Pipeline v2.1
-- **bquant.analysis.base** - Базовые классы анализа
+```python
+from bquant.indicators import IndicatorFactory
 
-### 📊 Visualization - Модули визуализации
-- **bquant.visualization.charts** - Финансовые графики
-- **bquant.visualization.zones** - Визуализация зон
-- **bquant.visualization.statistical** - Статистические графики
-- **bquant.visualization.themes** - Темы и стили
+catalogue = IndicatorFactory.list_indicators()
 
-## 🔍 Поиск по API
+print(len(catalogue))                                    # 164
+print(sorted({source for source in catalogue.values()}))  # ['custom', 'library', 'preloaded']
+```
 
-> **📊 Статистика пакета (на 24.10.2025):** BQuant содержит **1110+ сущностей** в **85 модулях**:
-> - **491 класс** (индикаторы, анализаторы, визуализаторы)
-> - **619 функций** (утилиты, расчеты, обработка данных)
-> - **164+ индикатора** (включая pandas-ta интеграцию)
-> 
-> Ниже перечислены только **ключевые entry points** для быстрого старта. 
-> Полная документация доступна в соответствующих разделах.
+На сегодня это 158 индикаторов из `pandas-ta`, 5 собственных (`sma`, `ema`, `rsi`,
+`macd`, `bbands`) и 1 preloaded. TA-Lib добавляет свои, если библиотека установлена.
 
-### 🎯 Основные entry points
+## С чего начать
 
-#### 🚀 Быстрый старт
-- `analyze_zones()` - **Universal Pipeline** для анализа зон (основной API)
-- `load_ohlcv_data()` - Загрузка OHLCV данных
-- `get_sample_data()` - Получение sample данных
+| Задача | Точка входа |
+|---|---|
+| проанализировать зоны | `analyze_zones(df)` → [пайплайн](analysis/pipeline.md) |
+| то же для MACD одной строкой | `analyze_macd_zones(df)` |
+| загрузить свои данные | `load_ohlcv_data(path)` → [загрузка](data/loader.md) |
+| взять встроенные данные | `get_sample_data('tv_xauusd_1h')` → [наборы](data/samples.md) |
+| посчитать индикатор | `IndicatorFactory.create(...)` → [фабрика](indicators/factory.md) |
+| построить график | `FinancialCharts()` → [визуализация](visualization/README.md) |
+| написать свою стратегию | [Extension Guide](extension_guide.md) |
 
-#### 🔧 Ключевые компоненты
-- `ZoneAnalysisBuilder` - Fluent builder для Universal Pipeline
-- `IndicatorFactory` - Фабрика индикаторов (164+ доступных)
-- `FinancialCharts` - Создание финансовых графиков
-
-### 📚 Подробная документация
-
-#### 📈 Indicators API - 164+ индикаторов
-- **6 встроенных:** SMA, EMA, RSI, MACD, Bollinger Bands, Custom
-- **158 pandas-ta:** Полная интеграция с pandas-ta библиотекой
-- **PRELOADED:** Готовые индикаторы для sample данных
-- **Factory pattern:** Универсальное создание любых индикаторов
-
-#### 🔬 Analysis API - Аналитические модули
-- **Universal Zone Analysis v2.1:** Анализ зон с любыми индикаторами
-- **5 Detection Strategies:** zero_crossing, threshold, line_crossing, preloaded, combined
-- **5 Analysis Strategies:** swing, divergence, shape, volume, volatility
-- **Statistical Analysis:** Гипотезные тесты, регрессия, валидация
-- **Clustering:** Автоматическая группировка зон
-
-#### 📊 Visualization API - Графики и визуализация
-- **FinancialCharts:** Candlestick, line, bar графики
-- **ZoneVisualizer:** Визуализация зон с контекстом
-- **StatisticalPlots:** Статистические графики и распределения
-- **Themes:** 5 готовых тем оформления
-
-#### 💾 Data API - Работа с данными
-- **Loader:** Загрузка OHLCV данных из файлов
-- **Processor:** Очистка и валидация данных
-- **Samples:** 8 встроенных sample датасетов
-- **Schemas:** Типизация и валидация структур данных
-
-### 🔍 Поиск по функциональности
-
-#### 📊 Работа с данными
-- `load_ohlcv_data()` - Загрузка OHLCV данных
-- `get_sample_data()` - Получение sample данных  
-- `clean_ohlcv_data()` - Очистка и валидация данных
-
-#### 📈 Технические индикаторы
-- `IndicatorFactory.create()` - Создание любого из 164+ индикаторов
-- `MACDPreloadedIndicator` - PRELOADED MACD для готовых данных
-- `BaseIndicator` - Базовый класс для создания custom индикаторов
-
-#### 🔬 Universal Zone Analysis (v2.1)
-- `analyze_zones()` - **Основной API** для анализа зон
-- `ZoneAnalysisBuilder` - Fluent builder с полной настройкой
-- `run_all_hypothesis_tests()` - Статистические тесты
-
-#### 📊 Визуализация
-- `FinancialCharts` - Создание финансовых графиков
-- `ZoneVisualizer` - Визуализация зон с контекстом
-- `create_candlestick_chart()` - Быстрое создание candlestick
-
-### 🗑️ Удалённый API
-
-Удалено в 0.0.5 — при обновлении замените:
-
-| Было | Стало |
-|------|-------|
-| `MACDZoneAnalyzer` | `analyze_zones()` / пресет `analyze_macd_zones()` |
-| `analyze_complete()` | `.analyze().build()` |
-| `_zone_to_dict()` | `zone.features.get()` |
-
-Полное соответствие — в [MIGRATION_v2](../migration/MIGRATION_v2.md).
-
-## Актуальные примеры работы с MACD
-
-### Universal Pipeline (рекомендуемый подход)
+## Пример: от данных до зон
 
 ```python
 from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
-# Загружаем данные
 data = get_sample_data('tv_xauusd_1h')
 
-# Анализ MACD через Universal Pipeline
 result = (
     analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .with_strategies(swing='find_peaks', shape='statistical')
+    .detect_zones('zero_crossing', indicator_role='line')
+    .with_strategies(swing='zigzag', shape='statistical')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
 
-print(f"Найдено зон: {len(result.zones)}")
-print(f"Статистика: {result.statistics}")
+print(len(result.zones), result.metadata['swing_coverage']['zones_with_swings'])
+# 32 29
 ```
 
-### PRELOADED MACD индикатор
+Второе число — сколько зон получили хотя бы один свинг. Смотреть на него стоит всегда:
+пустые свинг-метрики выглядят так же, как честно измеренное отсутствие движения.
+
+## Индикатор поверх уже посчитанных колонок
+
+Когда значения индикатора пришли вместе с данными, считать их заново не нужно:
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 from bquant.indicators.preloaded import MACDPreloadedIndicator
 
-# Создание PRELOADED MACD индикатора
-macd_indicator = MACDPreloadedIndicator()
-macd_data = macd_indicator.calculate(data)
+data = get_sample_data('tv_xauusd_1h')
 
-# Использование в Universal Pipeline
+print(MACDPreloadedIndicator().calculate(data).data.columns.tolist())
+# ['macd', 'signal']
+
 result = (
     analyze_zones(data)
     .with_indicator('preloaded', 'macd_preloaded')
@@ -163,105 +112,32 @@ result = (
     .analyze(clustering=False)
     .build()
 )
+
+print(len(result.zones))   # 30
 ```
 
-## 📖 Как читать документацию
+Тридцать зон, а не тридцать две: колонка `macd` пришла из набора данных и посчитана не
+теми параметрами, что наш `custom.macd`.
 
-### Структура документации класса
+## Что удалено
 
-```python
-class MACD(CustomIndicator):
-    """
-    Moving Average Convergence Divergence (MACD) indicator.
+Замены для имён, которых больше нет:
 
-    Измеряет соотношение двух скользящих средних для выявления смены импульса.
+| Было | Стало | Когда |
+|---|---|---|
+| `MACDZoneAnalyzer` | `analyze_zones()` или пресет `analyze_macd_zones()` | 0.0.5 |
+| `MACDZoneAnalyzer.analyze_complete()` | `.analyze().build()` | 0.0.5 |
+| `_zone_to_dict()` | `zone.features` | 0.0.5 |
+| `bquant.ml` | — (обе публичные функции только поднимали `NotImplementedError`) | 0.0.7 |
+| `IndicatorConfig` из `bquant.analysis.zones` | `IndicatorSpec` — заявка на расчёт, не описание посчитанного | 2026-08-24 |
 
-    Attributes:
-        fast_period (int): Период быстрой EMA
-        slow_period (int): Период медленной EMA
-        signal_period (int): Период сигнальной линии
+Пакет не держит переходных периодов: переименование доводится до конца в одном
+изменении, а `CHANGELOG.md` называет замену для каждого сломанного имени.
 
-    Example:
-        >>> macd = MACD(fast_period=12, slow_period=26, signal_period=9)
-        >>> result = macd.calculate(data)
-        >>> print(result.data.columns.tolist())
-        ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']
-    """
+## Дальше
 
-    def __init__(self, fast_period: int = 12, slow_period: int = 26,
-                 signal_period: int = 9):
-        """
-        Инициализация индикатора.
-
-        Args:
-            fast_period (int, optional): Период быстрой EMA. Defaults to 12.
-            slow_period (int, optional): Период медленной EMA. Defaults to 26.
-            signal_period (int, optional): Период сигнальной линии. Defaults to 9.
-        """
-
-    def calculate(self, data):
-        """
-        Рассчитывает значения индикатора.
-
-        Args:
-            data (pd.DataFrame): OHLCV данные
-
-        Returns:
-            IndicatorResult: Результат с колонками ролей line/signal/hist
-                (имена канонические: `{слаг}__{роль}`)
-
-        Raises:
-            DataError: Если данные некорректны
-        """
-```
-
-### Структура документации функции
-
-```python
-def load_ohlcv_data(file_path, **kwargs):
-    """
-    Загружает OHLCV данные из файла.
-    
-    Поддерживает различные форматы файлов: CSV, Excel, JSON.
-    Автоматически определяет формат и кодировку файла.
-    
-    Args:
-        file_path (str): Путь к файлу с данными
-        **kwargs: Дополнительные параметры для pandas.read_csv/read_excel
-        
-    Returns:
-        pd.DataFrame: DataFrame с OHLCV данными
-        
-    Raises:
-        FileNotFoundError: Если файл не найден
-        DataError: Если данные некорректны
-        
-    Example:
-        >>> data = load_ohlcv_data('data.csv')
-        >>> print(f"Загружено {len(data)} записей")
-    """
-```
-
-## 🔗 Связанные разделы
-
-- **[User Guide](../user_guide/README.md)** - Руководство пользователя
-- **[Tutorials](../tutorials/README.md)** - Обучающие материалы
-- **[Examples](../examples/README.md)** - Примеры использования
-- **[Developer Guide](../developer_guide/README.md)** - Для разработчиков
-
-## 💡 Советы по использованию API
-
-1. **Начните с базовых модулей** - изучите core и data
-2. **Используйте sample данные** для экспериментов
-3. **Читайте docstrings** - они содержат примеры использования
-4. **Изучайте типы данных** - понимайте что возвращают функции
-5. **Обрабатывайте исключения** - используйте try/except для ошибок
-
-## 🚀 Расширение API
-
-Хотите создать собственные индикаторы, анализаторы или визуализации? 
-Изучите **[Extension Guide](extension_guide.md)** для подробного руководства по расширению BQuant.
-
----
-
-**Начать изучение:** Core Modules 🏗️
+| | |
+|---|---|
+| [Руководство пользователя](../user_guide/README.md) | как этим пользоваться |
+| [Extension Guide](extension_guide.md) | как добавить свою стратегию или индикатор |
+| [Руководство разработчика](../developer_guide/README.md) | как устроено внутри |
