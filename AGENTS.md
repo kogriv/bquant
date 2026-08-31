@@ -194,7 +194,11 @@ Never commit:
   VM/container names, names of private machines or build stands.
 - **Personal filesystem paths** — `C:\Users\<name>\...`, `/home/<name>/...`. Use repo-relative
   paths or neutral placeholders in examples and scripts.
-- **Names of private sibling projects** and what is done in them.
+- **The contents of private sibling projects** — their research, data, findings, and
+  internal reasoning. The *name* of a sibling repository is fine: it is a repo name on the
+  owner's own account, it appears in this repo's history already, and referring to "the
+  external consumer" while everyone knows which one it is buys nothing. What must stay out
+  is what happens inside it.
 
 This applies to trace logs too. A trace log records *what changed in this repository* — the fact
 that a measurement ran on some other machine is infrastructure, not project history. If a hardware
@@ -204,7 +208,8 @@ state the **property**, not the machine.
 Internal infrastructure documentation lives outside the repo, in `/data/infra/`.
 
 **Before committing, grep the diff** for: your own username, `ssh`, `ProxyJump`, host names,
-`C:\Users`, `/home/`, `token`, `.pypirc`, and the names of private machines.
+`C:\Users`, `/home/`, `token`, `.pypirc`, and the names of private machines. Sibling *repository*
+names are not on this list — see above.
 
 If something already slipped through, say so plainly and treat removing it as its own task —
 redacting `HEAD` does not remove it from history that has already been pushed.
