@@ -96,6 +96,40 @@ for name in ('SwingMetrics', 'ShapeMetrics', 'DivergenceMetrics',
 `out_of_sample_test`, `walk_forward_test`, `sensitivity_analysis`, `monte_carlo_test`.
 Включается через `.analyze(validation=True)` и требует больше 20 зон.
 
+Каждый возвращает `ModelValidationResult`: `validation_type`, `success`, `train_metrics`,
+`test_metrics`, `degradation_pct`, `iterations`, `metadata`.
+
+```python
+import numpy as np
+import pandas as pd
+
+from bquant.analysis import AnalysisResult
+from bquant.analysis.validation import ValidationSuite
+
+rng = np.random.default_rng(0)
+market = pd.DataFrame({'close': 2000 + np.cumsum(rng.normal(0, 2, 400))})
+
+
+def analyse(window):
+    return AnalysisResult('demo', results={'total_zones': float(len(window) // 10)},
+                          data_size=len(window))
+
+
+result = ValidationSuite().out_of_sample_test(
+    analyse, market, train_ratio=0.7, metric_key='total_zones'
+)
+
+print(result.train_metrics['total_zones'], result.test_metrics['total_zones'])
+print(round(result.degradation_pct, 1), result.success)
+# 28.0 12.0
+# 57.1 False
+```
+
+**Метрика, которую попросили, обязана найтись.** Если её нет в том, что вернула ваша
+функция анализа, набор откажется считать и назовёт доступные ключи — вместо того чтобы
+подставить ноль и сообщить «деградации нет». До 2026-08-31 подставлял:
+`devref/gaps/validation/g39_validation_answered_holds_up_without_measuring_2026-08.md`.
+
 ## Модули-заглушки — что это и как их отличить
 
 Четыре подмодуля — `bquant.analysis.candlestick`, `.chart`, `.technical`,
