@@ -1,436 +1,276 @@
-# Universal Zone Analysis Pipeline v2.1
+# Pipeline анализа зон — справочник
 
-## 📚 Обзор
+Входная точка — `analyze_zones(df)`: она возвращает билдер, каждый метод которого
+возвращает его же, а `.build()` запускает расчёт и отдаёт `ZoneAnalysisResult`.
 
-Universal Zone Analysis Pipeline v2.1 - это современная архитектура для анализа зон любых технических индикаторов. Pipeline использует Fluent Builder Pattern и Two-Layer Architecture для обеспечения максимальной гибкости и универсальности.
+Пайплайн не привязан к индикатору. Он не знает ни имён колонок, ни словаря типов зон:
+и то и другое приносит выбранный индикатор вместе со стратегией детекции.
 
-## 🏗️ Архитектурные принципы
-
-### Two-Layer Architecture
-- **Слой 1:** Zone Detection Strategies (5 типов стратегий)
-- **Слой 2:** Universal Zone Analyzer (агностичен к источникам зон)
-- **Убрано:** Indicator-specific facades (упрощение с 3 до 2 слоев)
-
-### Fluent Builder Pattern
-```python
-result = (
-    analyze_zones(df)
-    .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='RSI_14', 
-                  upper_threshold=70, lower_threshold=30)
-    .with_strategies(swing='find_peaks', shape='statistical')
-    .analyze(clustering=True, n_clusters=3)
-    .build()
-)
-```
-
-### True Universality v2.1
-- **ZERO hardcoded индикаторов** - работает с любым индикатором
-- **indicator_context контракт** - стратегии сами заполняют контекст
-- **115 тестов, 100% pass rate** - доказательство универсальности
-
-## 🔧 ZoneAnalysisBuilder - Fluent Interface
-
-### Основные методы
-
-#### `.with_indicator(source, name, **params)`
-Настройка индикатора для анализа.
-
-**Поддерживаемые источники:**
-- `'preloaded'` - встроенные индикаторы
-- `'custom'` - пользовательские индикаторы
-- `'pandas_ta'` - библиотека pandas_ta
-- `'talib'` - библиотека TA-Lib
-
-**Примеры:**
-```text
-# MACD
-.with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-
-# RSI
-.with_indicator('pandas_ta', 'rsi', length=14)
-
-# AO (Awesome Oscillator)
-.with_indicator('pandas_ta', 'ao', fast=5, slow=34)
-```
-
-#### `.detect_zones(strategy, **params)`
-Настройка стратегии детекции зон.
-
-**5 Detection Strategies:**
-- `'zero_crossing'` - пересечение нулевой линии (MACD, AO)
-- `'threshold'` - пороговые значения (RSI, Stochastic)
-- `'line_crossing'` - пересечение линий (MA crossovers)
-- `'preloaded'` - импорт готовых зон
-- `'combined'` - комбинированные правила
-
-**Примеры:**
-```text
-# Zero crossing для MACD
-.detect_zones('zero_crossing', indicator_role='hist')
-
-# Threshold для RSI
-.detect_zones('threshold', indicator_col='RSI_14', 
-              upper_threshold=70, lower_threshold=30)
-
-# Line crossing для MA
-.detect_zones('line_crossing', line1_col='ma_fast', line2_col='ma_slow')
-```
-
-#### `.with_strategies(**strategies)`
-Настройка аналитических стратегий.
-
-**Доступные стратегии:**
-- `swing` - анализ свингов (find_peaks, pivot_points, zigzag)
-- `shape` - анализ формы зон (statistical, geometric)
-- `divergence` - детекция дивергенций (classic, hidden)
-- `volume` - анализ объемов (standard, correlation)
-- `volatility` - анализ волатильности (combined, statistical)
-
-**Примеры:**
-```text
-# Базовые стратегии
-.with_strategies(swing='find_peaks', shape='statistical')
-
-# Расширенные стратегии
-.with_strategies(
-    swing='zigzag',
-    divergence='classic',
-    volume='standard',
-    volatility='combined'
-)
-```
-
-#### `.analyze(**options)`
-Настройка анализа и обработки.
-
-**Опции:**
-- `clustering=True/False` - кластеризация зон
-- `n_clusters=3` - количество кластеров
-- `regression=True/False` - регрессионный анализ
-- `validation=True/False` - валидация моделей
-
-**Примеры:**
-```text
-# Базовый анализ
-.analyze(clustering=True, n_clusters=3)
-
-# Полный анализ
-.analyze(clustering=True, regression=True, validation=True)
-```
-
-**Регрессия требует больше 10 зон** и попадает в `result.regression_results` —
-словарь с ключами `duration` и `return`. Если модель подогнать нельзя, шаг **не
-роняет весь анализ**: под соответствующим ключом лежит `{'error': '...'}` с
-причиной, а остальные разделы результата остаются на месте.
-
-Причины отказа, которые вы реально увидите:
-
-- **пустой предиктор.** Набор по умолчанию начинается с `line_amplitude` —
-  амплитуды *линии* индикатора. У осциллятора без линии (RSI, AO) её нет, и
-  предиктор пуст во всех зонах. Такой предиктор выбрасывается, его имя
-  сообщается в `metadata['empty_predictors']`, а модель считается по остальным;
-- **вырожденная матрица плана.** Если наблюдения не различаются (или предикторы
-  линейно зависимы), коэффициенты не определены. Отказ явный: подогнать
-  псевдообратной матрицей и вернуть правдоподобные числа было бы хуже.
-
-```python
-model = result.regression_results['duration']
-if isinstance(model, dict):
-    print('регрессия не построена:', model['error'])
-else:
-    print(model.r_squared, model.n_observations)
-    print('выброшены как пустые:', model.metadata['empty_predictors'])
-    print('строк отброшено по NaN:', model.metadata['n_dropped_na'])
-```
-
-#### `.with_cache(enable=True, ttl=3600)`
-Настройка кэширования для производительности.
-
-**Параметры:**
-- `enable=True/False` - включить/выключить кэш
-- `ttl=3600` - время жизни кэша в секундах
-
-**Примеры:**
-```text
-# С кэшированием на 2 часа
-.with_cache(enable=True, ttl=7200)
-
-# Без кэширования
-.with_cache(enable=False)
-```
-
-#### `.with_swing_scope(scope)`
-Режим расчёта свингов.
-
-**Параметры:**
-- `scope='global'` (по умолчанию) — свинги считаются один раз по всему датасету, затем
-  агрегируются в каждую зону (`calculate_global` + `aggregate_for_zone`).
-- `scope='per_zone'` — свинги считаются локально внутри каждой зоны (совместимость).
-
-**Пример:**
-```text
-.with_strategies(swing='zigzag').with_swing_scope('global')
-```
-
-> 📖 Внутренняя механика (`_calculate_global_swings`, `_inject_swing_context`, фолбэки) —
-> в [Глобальные свинги: пайплайн](zones/global_swings_pipeline.md).
-
-#### `.build()`
-Запуск анализа и получение результата.
-
-**Возвращает:** `ZoneAnalysisResult` объект с результатами анализа.
-
-## 🏭 ZoneAnalysisPipeline - Core Engine
-
-### Configuration-driven подход
-Pipeline работает через `ZoneAnalysisConfig` без hardcode, обеспечивая максимальную гибкость.
-
-Поле `indicator` в нём — это **`IndicatorSpec`**: какой индикатор посчитать и с какими
-параметрами.
-
-```python
-from bquant.analysis.zones import IndicatorSpec
-
-spec = IndicatorSpec(
-    source='custom',                 # 'preloaded' | 'custom' | 'pandas_ta' | 'talib'
-    name='macd',
-    parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
-)
-```
-
-> **Переименовано 2026-08-24.** Класс назывался `IndicatorConfig` и был **полным тёзкой**
-> другого публичного класса — `bquant.indicators.IndicatorConfig`, который описывает
-> *посчитанный* индикатор (`name/parameters/source/columns/description`), а не заявку на
-> расчёт. Читателю приходилось выводить из контекста, о каком из двух идёт речь. Поле
-> `params` заодно приведено к `parameters` — так оно называется во втором классе.
-> Алиасов нет: старое имя из `bquant.analysis.zones` убрано.
-
-### Dependency Injection
-Все компоненты настраиваются через DI:
-- ZoneFeaturesAnalyzer
-- HypothesisTestSuite
-- ZoneSequenceAnalyzer
-- Regression Analyzer
-- Validation Suite
-
-### Автоматическая интеграция
-```python
-# Pipeline автоматически интегрирует все компоненты
-result = (
-    analyze_zones(df)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .analyze(clustering=True)  # Автоматически включает hypothesis tests
-    .build()
-)
-
-# Доступ к результатам
-print(f"Зон найдено: {len(result.zones)}")
-print(f"Статистика: {result.statistics}")
-if result.hypothesis_tests:
-    print(f"Тесты: {result.hypothesis_tests.results}")
-```
-
-## 🎯 UniversalZoneAnalyzer - Agnostic Analyzer
-
-### Zone-agnostic подход
-UniversalZoneAnalyzer НЕ ЗНАЕТ откуда зоны (MACD, AO, preloaded, custom) - он работает с любыми зонами универсально.
-
-### Component Integration
-Автоматическая интеграция компонентов:
-- **ZoneFeaturesAnalyzer** - извлечение характеристик зон
-- **HypothesisTestSuite** - статистические тесты
-- **ZoneSequenceAnalyzer** - анализ последовательностей
-- **Regression Analyzer** - регрессионный анализ (опционально)
-- **Validation Suite** - валидация моделей (опционально)
-
-### Strategy Support
-Поддержка всех типов стратегий через DI:
-- Swing strategies (find_peaks, pivot_points, zigzag)
-- Shape strategies (statistical, geometric)
-- Divergence strategies (classic, hidden)
-- Volume strategies (standard, correlation)
-- Volatility strategies (combined, statistical)
-
-## 📊 indicator_context Contract
-
-### True Universality v2.1
-Стратегии сами заполняют контекст, обеспечивая ZERO hardcoded индикаторов.
-
-### Standard Fields
-```python
-indicator_context = {
-    'detection_strategy': 'zero_crossing',   # Стратегия детекции
-    'detection_indicator': 'macd_12_26_9__hist',   # Основная колонка
-    'signal_line': 'macd_12_26_9__signal',         # Вторичная линия (если есть)
-    'detection_rules': {...}                 # Правила детекции
-}
-```
-
-### Strategy Usage
-```python
-def detect_zones(self, data, config):
-    context = config.indicator_context
-    indicator_col = context.get('detection_indicator')  # Универсальный доступ
-    rules = context.get('detection_rules', {})
-
-    # Стратегия работает с любым индикатором
-    # без hardcode названий колонок
-```
-
-## 🚀 Практические примеры
-
-### Пример 1: MACD Analysis
 ```python
 from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
-# Загружаем данные
-data = get_sample_data('tv_xauusd_1h')
-
-# MACD анализ с полным pipeline
 result = (
-    analyze_zones(data)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .with_strategies(swing='find_peaks', divergence='classic')
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('pandas_ta', 'rsi', length=14)
+    .detect_zones('threshold', indicator_role='value',
+                  upper_threshold=70, lower_threshold=30)
+    .with_strategies(swing='zigzag')
+    .with_swing_preset('narrow_zone')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )
 
-# Результаты
-print(f"Найдено зон: {len(result.zones)}")
-for i, zone in enumerate(result.zones[:3]):
-    if zone.features:
-        print(f"Зона {i}: {zone.features.get('zone_type', 'unknown')}")
+print(len(result.zones))   # 64
 ```
 
-### Пример 2: RSI Analysis
-```python
-# RSI анализ с threshold detection
-result = (
-    analyze_zones(data)
-    .with_indicator('pandas_ta', 'rsi', length=14)
-    .detect_zones('threshold', indicator_col='RSI_14', 
-                  upper_threshold=70, lower_threshold=30)
-    .with_strategies(swing='pivot_points', volatility='combined')
-    .analyze(clustering=True)
-    .build()
-)
-```
+Практическая сторона — [Анализ зон на практике](../../user_guide/zone_analysis.md);
+здесь описаны методы и их параметры.
 
-### Пример 3: AO Analysis
-```python
-# AO (Awesome Oscillator) анализ
-result = (
-    analyze_zones(data)
-    .with_indicator('pandas_ta', 'ao', fast=5, slow=34)
-    .detect_zones('zero_crossing', indicator_col='AO_5_34')
-    .with_strategies(swing='zigzag', shape='statistical')
-    .analyze(clustering=True)
-    .build()
-)
-```
+## Методы билдера
 
-### Пример 4: Caching для производительности
-```python
-# С кэшированием для больших данных
-result = (
-    analyze_zones(data)
-    .with_cache(enable=True, ttl=7200)  # Кэш на 2 часа
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .analyze(clustering=True)
-    .build()
-)
-```
+### `.with_indicator(source, name, **params)`
 
-## 🔄 Migration Guide
+Какой индикатор посчитать. Необязателен: если нужная колонка уже в кадре, шаг
+пропускается, и в `.detect_zones()` колонка адресуется именем.
 
-### От старого API к новому
+| `source` | Что это |
+|---|---|
+| `'custom'` | реализации внутри пакета (`macd`, `sma`, `ema`, `rsi`, `bbands`) |
+| `'preloaded'` | индикаторы, рассчитанные заранее и зарегистрированные в фабрике |
+| `'pandas_ta'` | всё из `pandas-ta` |
+| `'talib'` | всё из TA-Lib, если библиотека установлена |
 
-**Старый способ (removed):**
-```text
-from bquant.indicators import MACDZoneAnalyzer
+`**params` уходят в конструктор индикатора **как есть**, поэтому имена там его
+собственные: `fast_period=12`, а не `fast=12`.
 
-analyzer = MACDZoneAnalyzer()
-result = analyzer.analyze_complete(data)
-legacy_zone = result.zones[0]
-```
-
-**Новый способ (Universal Pipeline):**
 ```python
 from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+
+macd = analyze_zones(data).with_indicator('custom', 'macd',
+                                          fast_period=12, slow_period=26, signal_period=9)
+rsi = analyze_zones(data).with_indicator('pandas_ta', 'rsi', length=14)
+ao = analyze_zones(data).with_indicator('pandas_ta', 'ao', fast=5, slow=34)
+
+print(type(macd).__name__, type(rsi).__name__, type(ao).__name__)
+# ZoneAnalysisBuilder ZoneAnalysisBuilder ZoneAnalysisBuilder
+```
+
+### `.detect_zones(strategy, zone_types=None, indicator_role=None, **rules)`
+
+Как искать границы. Пять стратегий и их обязательные правила:
+
+| `strategy` | Обязательные правила | Для чего |
+|---|---|---|
+| `'zero_crossing'` | `indicator_role` или `indicator_col` | осцилляторы с нулевой линией |
+| `'threshold'` | то же + `upper_threshold`, `lower_threshold` | ограниченные осцилляторы |
+| `'line_crossing'` | `line1_role`/`line2_role` или `line1_col`/`line2_col` | пары линий |
+| `'preloaded'` | `zones_data` | готовые зоны из файла или кадра |
+| `'combined'` | `conditions` | несколько условий сразу |
+
+**`indicator_role` вместо имени колонки.** Роль (`'line'`, `'signal'`, `'hist'`,
+`'value'`) разрешается по схеме, которую пайплайн построил, когда сам считал индикатор.
+Имя колонки собирается из фактических параметров вызова — `fast_period=5` даст
+`macd_5_26_9__hist`, — поэтому код, написанный на имя, ломается от смены параметра, а код
+на роли не ломается. Имя нужно ровно тогда, когда схемы нет: колонку принесли вы сами.
+
+`zone_types` ограничивает результат перечисленными типами; `None` — без фильтра.
+
+**Порога длительности здесь нет намеренно.** Детекция обязана вернуть полное мощение
+таймлайна: отсев коротких зон рвёт его, и соседство зон становится выдумкой. Фильтр
+длительности живёт в `.analyze(min_duration=N)` и сообщает, что исключил.
+
+### `.with_strategies(swing=..., shape=..., divergence=..., volatility=..., volume=...)`
+
+Какие семейства метрик считать. Ни одно не включено по умолчанию, кроме свингов и формы.
+Зарегистрировано на сегодня:
+
+| Семейство | Доступные значения |
+|---|---|
+| `swing` | `'zigzag'`, `'find_peaks'`, `'pivot_points'` |
+| `shape` | `'statistical'` |
+| `divergence` | `'classic'` |
+| `volatility` | `'combined'` |
+| `volume` | `'standard'` |
+
+Список получен из `StrategyRegistry` прогоном, а не переписан: незарегистрированное имя
+отвергается сразу и называет доступные — `ValueError: Unknown shape strategy: geometric.
+Available: ['statistical']`.
+
+> **Смена стратегии метрик требует выключить кэш.** Ключ кэша не различает `shape`,
+> `divergence`, `volatility` и `volume` (свинги различает), поэтому включённая стратегия
+> может молча получить результат прошлого прогона, посчитанный без неё. До исправления
+> сравнивайте стратегии с `.with_cache(enable=False)`. Разбор:
+> `devref/gaps/cache/g36_the_cache_key_does_not_see_the_strategies_2026-08.md`.
+
+### `.with_swing_preset(name)`
+
+Пороги для свинг-стратегий. Пресетов **два**: `'default'` и `'narrow_zone'`
+(`SWING_PRESETS` в `bquant/core/config.py`).
+
+Умолчание рассчитано на широкие зоны: `min_amplitude_pct` в нём — 2% цены, что больше
+размаха типичной зоны на часовом золоте, и две стратегии из трёх при нём не находят
+ничего. Разбор и таблица покрытия —
+[Анализ зон на практике](../../user_guide/zone_analysis.md).
+
+### `.with_swing_scope(scope)`
+
+Где искать пивоты: `'global'` (умолчание) — один раз на всём кадре, с нарезкой по зонам и
+сохранением соседних точек; `'per_zone'` — внутри каждой зоны отдельно.
+
+### `.with_auto_swing_thresholds(enable=True)`
+
+Вывести пороги из самих данных вместо констант пресета. На встроенном сэмпле меняет
+`deviation` у ZigZag с `0.05` на `0.031`; на покрытие зон свингами при этом не влияет —
+проверяйте на своих данных, а не по названию.
+
+### `.with_cache(enable=True, ttl=3600)`
+
+Двухуровневый кэш (память + диск), включён по умолчанию, TTL в секундах. Ключ строится из
+хэша данных, конфигурации и подписи свинг-настроек. См. предупреждение выше и
+[Кэширование](../../user_guide/caching.md).
+
+### `.analyze(clustering=True, n_clusters=3, regression=False, validation=False, min_duration=1)`
+
+Что считать после детекции. `min_duration` — порог **отчётности**: зоны короче остаются в
+`result.zones`, но не входят в агрегаты, и сколько их — записано в
+`result.metadata['duration_filter']`.
+
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 
 result = (
-    analyze_zones(data)
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_role='hist')
-    .analyze(clustering=True)
+    .analyze(min_duration=5)
     .build()
 )
 
-# Прямой доступ к features
-zone_features = result.zones[0].features.get('zone_type')
+report = result.metadata['duration_filter']
+print(len(result.zones), report['zones_analysed'], report['zones_excluded'])
+# 83 59 24
 ```
 
-### Ключевые изменения
-- `MACDZoneAnalyzer().analyze_complete()` → `analyze_zones().build()`
-- `_zone_to_dict()` → `zone.features.get()`
-- Hardcoded индикаторы → Universal API
-- 3-слойная архитектура → 2-слойная архитектура
+### `.build()`
 
-## 🎯 Преимущества Universal Pipeline v2.1
+Запускает расчёт и возвращает [`ZoneAnalysisResult`](../../user_guide/zone_analysis_result.md).
 
-### Упрощение
-- **2 слоя вместо 3** - убраны indicator-specific facades
-- **Единый API** для всех индикаторов
-- **Автоматическая интеграция** компонентов
+## Конфигурация объектами
 
-### Универсальность
-- **Работает с ЛЮБЫМ индикатором** из IndicatorFactory
-- **ZERO hardcoded** названий колонок
-- **115 тестов, 100% pass rate** - доказательство универсальности
+Билдер — обёртка над тремя dataclass'ами. Когда конфигурация приходит из файла или
+собирается программно, их создают напрямую:
 
-### Производительность
-- **Автоматическое кэширование** (память + диск)
-- **Performance benchmarks** - zones/sec измерения
-- **Code simplification** - ~200 lines net reduction
+```python
+from bquant.analysis.zones.pipeline import (
+    IndicatorSpec,
+    ZoneAnalysisConfig,
+    ZoneAnalysisPipeline,
+    ZoneDetectionConfig,
+)
+from bquant.data.samples import get_sample_data
 
-### Расширяемость
-- **Strategy Pattern** - легко добавлять новые стратегии
-- **Dependency Injection** - настраиваемые компоненты
-- **Registry Pattern** - автоматическая регистрация
+config = ZoneAnalysisConfig(
+    indicator=IndicatorSpec(
+        source='custom',
+        name='macd',
+        parameters={'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
+    ),
+    zone_detection=ZoneDetectionConfig(
+        strategy_name='zero_crossing',
+        rules={'indicator_role': 'hist'},
+    ),
+    min_duration=3,
+    perform_clustering=True,
+    n_clusters=3,
+)
 
-## 🔗 Связанные разделы
+result = ZoneAnalysisPipeline(config, enable_cache=False).run(get_sample_data('tv_xauusd_1h'))
+print(len(result.zones))   # 83
+```
 
-### 📚 Core API
-- **[Quick Start](../../user_guide/quick_start.md)** - Быстрый старт с Universal Pipeline
-- **[Zone Detection Strategies](strategies.md)** - Детальное описание 5 стратегий
-- **[Statistical Analysis](statistical.md)** - Hypothesis tests и статистика
-- **[Zone Analysis Models](zones.md)** - ZoneInfo, ZoneAnalysisResult
+`IndicatorSpec` — это **заявка на расчёт**: какой индикатор посчитать и с какими
+параметрами. Не путайте с `bquant.indicators.IndicatorConfig`, который описывает уже
+*посчитанный* индикатор. До 2026-08-24 оба класса назывались одинаково, и различать их
+приходилось по контексту; старое имя убрано без алиаса.
 
-### 🎯 Learning Path
-- **[Examples](../../examples/README.md)** - Готовые примеры использования
-- **[Deep Dive Tutorial](../../../research/notebooks/03_zones_universal.py)** - Comprehensive analysis
-- **[Advanced Features](../../../research/notebooks/03_analysis_new_features.py)** - Swing, divergence, regression
-- **[Migration Guide](../../../examples/02_macd_zone_analysis.py)** - Переход с legacy API
+## `indicator_context` — зона знает, чем она размечена
 
-### 🏗️ Developer Resources
-- **[Architecture Patterns](../../developer_guide/README.md)** - Design Patterns, Extension Points
-- **[Testing Framework](../../tests/integration/)** - Integration tests, Backward compatibility
-- **[Visualization](../../api/visualization/README.md)** - Zone visualization, Statistical plots
-- **[Indicators](../../api/indicators/README.md)** - IndicatorFactory, Custom indicators
+Каждую зону стратегия детекции подписывает: каким индикатором и по каким правилам она
+найдена.
 
-## 💡 Советы по использованию
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 
-1. **Начните с простого** - один индикатор, базовая стратегия
-2. **Используйте кэширование** - для больших данных и повторных анализов
-3. **Экспериментируйте со стратегиями** - разные комбинации дают разные результаты
-4. **Изучайте indicator_context** - понимание контракта поможет в расширении
-5. **Используйте hypothesis tests** - для статистической валидации результатов
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('line_crossing', line1_role='line', line2_role='signal')
+    .analyze()
+    .build()
+)
 
----
+print(result.zones[0].indicator_context)
+# {'detection_strategy': 'line_crossing',
+#  'detection_indicator': 'macd_12_26_9__line',
+#  'signal_line': 'macd_12_26_9__signal',
+#  'detection_rules': {'line1_col': 'macd_12_26_9__line', 'line2_col': 'macd_12_26_9__signal'}}
+```
 
-**Следующий шаг:** [Zone Detection Strategies](strategies.md) 🎯
+Благодаря этому стратегии метрик берут тот самый ряд, по которому проведена граница, и не
+угадывают его по имени колонки.
+
+## Отказы, которые вы увидите
+
+Шаг, которому не хватило данных, не роняет анализ и **не возвращает правдоподобное
+число**: он кладёт под своим ключом `error` с причиной.
+
+**Регрессия** (`regression=True`, нужно больше 10 зон) попадает в
+`result.regression_results` — словарь с ключами `duration` и `return`:
+
+- **пустой предиктор.** Набор по умолчанию начинается с `line_amplitude` — амплитуды
+  *линии* индикатора. У осциллятора без линии (RSI, AO) её нет, предиктор пуст во всех
+  зонах; он выбрасывается, его имя попадает в `metadata['empty_predictors']`, модель
+  считается по остальным;
+- **вырожденная матрица плана.** Если наблюдения не различаются или предикторы линейно
+  зависимы, коэффициенты не определены — отказ явный.
+
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze(regression=True)
+    .build()
+)
+
+model = result.regression_results['duration']
+if isinstance(model, dict):
+    print('регрессия не построена:', model['error'])
+else:
+    print(round(model.r_squared, 3), model.n_observations)
+    print('выброшены как пустые:', model.metadata['empty_predictors'])
+```
+
+**Тесты гипотез** отказываются так же: у теста, которому не хватило данных или словаря
+типов, вместо `p_value` лежит `error` с причиной. Для собственного словаря типов
+(`strong`/`weak` и т.п.) это норма: `contrast_asymmetry` и `correlation_drawdown` требуют
+объявленных противоположности и полярности.
+
+## Дальше
+
+| | |
+|---|---|
+| [Анализ зон на практике](../../user_guide/zone_analysis.md) | какую стратегию выбрать и почему |
+| [Структура результата](../../user_guide/zone_analysis_result.md) | что лежит в `ZoneAnalysisResult` |
+| [Стратегии метрик](strategies.md) | swing, shape, divergence, volatility, volume |
+| [Зоны: модели и детекция](zones.md) | `ZoneInfo`, словарь типов, реестр стратегий |
+| [Extension Guide](../extension_guide.md) | как добавить свою стратегию |

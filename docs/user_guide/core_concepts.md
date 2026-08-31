@@ -48,10 +48,16 @@ by_role = (
     .build()
 )
 
-print(len(by_role.zones))                                       # 32
+print(len(by_role.zones))                                       # 83
 print([c for c in by_role.data.columns if c.startswith('macd_')])
 # ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']
 ```
+
+Восемьдесят три, а не тридцать две, как у пресета `analyze_macd_zones()` на тех же
+данных. Разница не в параметрах индикатора, а в том, **по чему проведена граница**:
+пресет по умолчанию детектирует по знаку линии MACD (`zone_basis='line'`), здесь же
+взята гистограмма. Гистограмма меняет знак чаще линии — зон получается больше, и они
+короче. Ни один из двух ответов не «правильнее»; выбор основы — это выбор вопроса.
 
 Имя колонки собирается из **фактических параметров вызова**: `fast_period=5` дало бы
 `macd_5_26_9__hist`. Поэтому по имени адресуются только там, где схемы нет — то есть
@@ -67,7 +73,7 @@ df['my_hist'] = df['macd'] - df['signal']   # своя колонка, своё 
 result = (
     analyze_zones(df)
     .detect_zones('zero_crossing', indicator_col='my_hist')
-    .with_strategies(swing='find_peaks', shape='statistical')
+    .with_strategies(swing='zigzag', shape='statistical')
     .analyze(clustering=True, n_clusters=3)
     .build()
 )

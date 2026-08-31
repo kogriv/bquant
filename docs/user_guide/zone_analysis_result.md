@@ -7,7 +7,7 @@
 ## Связанные материалы
 
 - [Best Practices анализа зон](best_practices.md) — рекомендуемая структура папок и файлов (01_…08_, full_analysis, summary).
-- [Zone Analysis Guide](zone_analysis.md) — полный пайплайн, архитектура, примеры вызова.
+- [Анализ зон на практике](zone_analysis.md) — выбор основы зоны, пять стратегий детекции, свинги.
 - [Глубокое погружение: Пайплайн анализатора зон](../developer_guide/zone_analyzer_deep_dive.md) — логика шагов и стратегий.
 - [API: analysis.zones](../api/analysis/zones.md) — технический справочник по API.
 
@@ -21,17 +21,36 @@
 
 ```python
 from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
 
 result = (
-    analyze_zones(df)
+    analyze_zones(data)
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_role='hist')
-    .with_strategies(swing='zigzag', shape='statistical', divergence='classic', volume='standard', volatility='combined')
+    .with_strategies(swing='zigzag', shape='statistical', divergence='classic',
+                     volume='standard', volatility='combined')
+    .with_swing_preset('narrow_zone')
+    .with_cache(enable=False)
     .analyze(clustering=True, n_clusters=3, regression=False, validation=False)
     .build()
 )
-# result — ZoneAnalysisResult
+
+print(type(result).__name__, len(result.zones))   # ZoneAnalysisResult 83
 ```
+
+Две строки здесь не украшение.
+
+`with_swing_preset('narrow_zone')` — потому что с пресетом по умолчанию две стратегии
+свингов из трёх не находят на этих данных ничего, и `swing_metrics` придёт нулевым:
+[Анализ зон на практике](zone_analysis.md).
+
+`with_cache(enable=False)` — потому что **кэш-ключ не различает стратегии метрик**.
+`shape`, `divergence`, `volatility` и `volume` в ключ не входят (свинги входят), поэтому
+включённая стратегия может молча получить результат прошлого прогона, посчитанный без
+неё. Пока это не исправлено, при смене или добавлении стратегий метрик кэш выключайте.
+Разбор: `devref/gaps/cache/g36_the_cache_key_does_not_see_the_strategies_2026-08.md`.
 
 **Этапы пайплайна и что они заполняют:**
 
@@ -47,16 +66,31 @@ result = (
 Если зоны получены отдельно (например, только детекция или preloaded):
 
 ```python
-from bquant.analysis.zones import ZoneDetectionRegistry, ZoneDetectionConfig, UniversalZoneAnalyzer
+from bquant.analysis.zones import (
+    UniversalZoneAnalyzer,
+    ZoneDetectionConfig,
+    ZoneDetectionRegistry,
+)
+from bquant.data.samples import get_sample_data
+
+# Время на индекс кладём сами: отдельная стратегия, в отличие от пайплайна,
+# кадр не нормализует, и `start_time` будет тем, что лежит в индексе.
+df_prepared = get_sample_data('tv_xauusd_1h').set_index('time')
 
 detector = ZoneDetectionRegistry.get('zero_crossing')
-config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_role': 'hist'})
+config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': 'macd'})
 zones = detector.detect_zones(df_prepared, config)
 
 analyzer = UniversalZoneAnalyzer()
 result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_clusters=3)
-# result — тот же ZoneAnalysisResult
+
+print(len(result.zones), result.zones[0].start_time)
+# 30 2025-06-11 20:00:00+07:00
 ```
+
+Здесь колонка адресуется **именем**: роль (`indicator_role`) разрешается по схеме,
+которую строит пайплайн, а без него схемы нет — `rules={'indicator_role': 'hist'}` даст
+`ValueError: Missing required rules`.
 
 При этом `result.data` — это переданный `df_prepared`; `result.zones` — тот же список `zones`, у которого анализатор заполнил `zone.features`.
 
@@ -77,6 +111,7 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 | **validation_results** | `Optional[Dict[str, Any]]` | нет | `ValidationSuite` | Есть при `analyze(validation=True)` и числе зон > 20; в текущей реализации может не выполняться. |
 | **data** | `Optional[pd.DataFrame]` | нет | Пайплайн: выход `_prepare_data()`; модульно: переданный DataFrame | Полный DataFrame с OHLCV и колонками индикаторов. Используется для визуализации и для доступа к «сырым» данным. |
 | **metadata** | `Dict[str, Any]` | да (по умолчанию `{}`) | Собирается в `UniversalZoneAnalyzer.analyze_zones()` | analysis_timestamp, total_zones, zone_types, clustering_performed, regression_performed; при наличии — symbol, timeframe, source, dataset_name из `data.attrs`. |
+| **column_schema** | `Optional[ColumnSchema]` | нет | Строится при расчёте индикатора в пайплайне | Карта «(индикатор, роль) → имя колонки»: `('macd_12_26_9', 'hist') → 'macd_12_26_9__hist'`. Через неё разрешается `indicator_role`; при модульном вызове без пайплайна её нет — тогда колонки адресуются только именем. Методы: `column(indicator, role)`, `roles_of(column)`, `to_dict()`. |
 
 ### 2.1. Методы `ZoneAnalysisResult`
 
@@ -128,7 +163,7 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 
 | Ключ | Тип | Описание |
 |------|-----|----------|
-| zone_id | str/int | Идентификатор зоны. |
+| zone_id | int | Идентификатор зоны; то же значение, что в `ZoneInfo.zone_id`. |
 | zone_type | str | Тип зоны ('bull', 'bear'). |
 | duration | int | Длительность в барах. |
 | start_price, end_price | float | Цена на первом и последнем баре зоны. |
@@ -161,7 +196,7 @@ result = analyzer.analyze_zones(zones, df_prepared, perform_clustering=True, n_c
 | **swing_metrics** | Словарь метрик свингов (если включена стратегия свингов). См. ниже. |
 | **shape_metrics** | Словарь метрик формы (если включена shape-стратегия): hist_skewness, hist_kurtosis, hist_smoothness, strategy_name, strategy_params. |
 | **divergence_metrics** | Словарь метрик дивергенций: divergence_type, divergence_count, divergence_strength, divergence_direction, strategy_name, strategy_params. |
-| **volatility_metrics** | Словарь метрик волатильности: volatility_score, volatility_regime, bollinger_width_pct и др. |
+| **volatility_metrics** | Словарь метрик волатильности: volatility_score, volatility_regime, bollinger_width_pct и др. Появляется не у каждой зоны: если окно Боллинджера (`bb_length`, по умолчанию 20) в зоне наполнилось меньше двух раз, группа отбрасывается целиком, и узнать об этом можно только из лога. На встроенном сэмпле это 3 зоны из 32 — `devref/gaps/metrics/g37_nan_fails_a_non_negativity_assert_2026-08.md`. |
 | **volume_metrics** | Словарь метрик объёма: avg_volume_zone, volume_indicator_corr и др. (при наличии колонки volume и стратегии). |
 
 ### 4.3. Содержимое `metadata['swing_metrics']`
@@ -341,14 +376,17 @@ result.save(out_dir / 'full_analysis.pkl.gz', format='pickle', compress=True, in
 ### 7.7. summary.json
 
 ```python
+from collections import Counter
+
 summary = {
     **result.metadata,
     'zones_count': len(result.zones),
+    # Считаем по фактически встреченным типам, а не по bull_zones_count /
+    # bear_zones_count из total_statistics: те посчитаны по двум литеральным
+    # именам и для не-MACD осциллятора равны нулю при непустом наборе зон.
+    # Разбор — devref/gaps/zone_types/g34_aggregate_statistics_speak_macd_2026-08.md
+    'zones_by_type': dict(Counter(zone.type for zone in result.zones)),
 }
-if result.statistics and isinstance(result.statistics, dict):
-    total = result.statistics.get('total_statistics') or {}
-    summary['bull_zones'] = total.get('bull_zones_count')
-    summary['bear_zones'] = total.get('bear_zones_count')
 save_json(summary, out_dir / 'summary.json')
 ```
 
@@ -372,10 +410,13 @@ fig_cmp.write_html(out_dir / 'visualizations' / 'zones_comparison.html')
 
 ```python
 from pathlib import Path
+from tempfile import mkdtemp
 import json
 import pickle
 import pandas as pd
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.analysis.zones.models import ZoneAnalysisResult
+from bquant.data.samples import get_sample_data
 
 def export_result_to_artifacts(result: ZoneAnalysisResult, out_dir: Path) -> None:
     out_dir = Path(out_dir)
@@ -420,8 +461,14 @@ def export_result_to_artifacts(result: ZoneAnalysisResult, out_dir: Path) -> Non
     summary = {**result.metadata, 'zones_count': len(result.zones)}
     j(summary, out_dir / 'summary.json')
 
-# Использование:
-# export_result_to_artifacts(result, Path('results/XAUUSD_1h'))
+result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
+out_dir = Path(mkdtemp())            # в работе — results/XAUUSD_1h
+export_result_to_artifacts(result, out_dir)
+
+print(sorted(p.name for p in out_dir.iterdir()))
+# ['01_indicator_data.parquet', '02_zones.csv', '02_zones.pkl', '03_features.csv',
+#  '04_statistics.json', '05_hypotheses.json', '06_sequence.json', '07_clustering.json',
+#  'full_analysis.pkl', 'summary.json']
 ```
 
 ---
@@ -429,15 +476,24 @@ def export_result_to_artifacts(result: ZoneAnalysisResult, out_dir: Path) -> Non
 ## 8. Загрузка сохранённого результата
 
 ```python
+from pathlib import Path
+from tempfile import mkdtemp
+
+from bquant.analysis.zones import analyze_macd_zones
 from bquant.analysis.zones.models import ZoneAnalysisResult
+from bquant.data.samples import get_sample_data
 
-# Полный результат из pickle
-result = ZoneAnalysisResult.load('results/XAUUSD_1h/full_analysis.pkl', format='pickle')
+out_dir = Path(mkdtemp())
+analyze_macd_zones(get_sample_data('tv_xauusd_1h')).save(out_dir / 'full_analysis.pkl')
 
-# Из JSON (без DataFrame)
-result = ZoneAnalysisResult.load('results/XAUUSD_1h/full_analysis.json', format='json')
-# result.data будет None, если не был сохранён в JSON
+result = ZoneAnalysisResult.load(out_dir / 'full_analysis.pkl', format='pickle')
+
+print(len(result.zones), result.data is not None, len(result.zones[0].data))
+# 32 True 3
 ```
+
+Из JSON результат читается тем же методом (`format='json'`), но без кадров: `result.data`
+будет `None`, а `zone.data` — пустым.
 
 После загрузки из JSON или parquet у зон в `zone.data` будет пустой DataFrame; при необходимости его можно восстановить по `result.data` и `zone.start_idx`/`zone.end_idx`, если сохраняли 01_indicator_data.parquet отдельно.
 

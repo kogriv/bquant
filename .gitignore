@@ -306,7 +306,10 @@ research/studies/outputs/
 # Analysis results and cache
 results/
 analysis_results/
-cache/
+# Только каталог кэша в корне. Без ведущего слэша шаблон ловил любой каталог
+# с именем `cache` на любой глубине — в том числе `devref/gaps/cache/`, из-за чего
+# документ гэпа молча не попадал в коммит.
+/cache/
 *.cache
 
 # Documentation builds

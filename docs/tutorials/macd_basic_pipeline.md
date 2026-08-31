@@ -1,7 +1,7 @@
 # Tutorial: MACD zones (Пример 1) — базовый pipeline и визуализация
 
 ## 🎯 Цели
-- Повторить базовый конвейер из [Примера 1: MACD Analysis](../api/analysis/pipeline.md#пример-1-macd-analysis)
+- Повторить базовый конвейер из [справочника пайплайна](../api/analysis/pipeline.md)
 - Получить результат `ZoneAnalysisResult` с минимальными настройками
 - Построить обзорную и детальную визуализацию через `ZoneVisualizer`
 

@@ -1,134 +1,150 @@
-# Best Practices анализа зон BQuant
+# Практика: паттерны и артефакты
 
-Руководство собирает проверенные приемы для работы с универсальным пайплайном анализа зон и модульными компонентами. Материал основан на практиках из `devref/gaps/zo/zomodul.md`, но адаптирован для повседневного использования аналитиками и разработчиками.
+Приёмы, которые окупаются, когда анализ перестаёт быть разовым: как не пересчитывать
+одно и то же, где хранить результаты и что отдавать наружу.
 
-## Когда выбирать полный пайплайн, а когда модульные шаги
+## Пайплайн или сборка вручную
 
-**Используйте `analyze_zones(...).build()` если:**
+**`analyze_zones(...).build()`** — когда нужен обычный анализ от начала до конца, и
+промежуточные шаги не интересуют. Одна цепочка возвращает `ZoneAnalysisResult`.
 
-- нужен стандартный end-to-end анализ без кастомизаций;
-- выполняется разовый запуск и нет необходимости сохранять промежуточные артефакты;
-- важна минимальная точка входа: одна функция возвращает `ZoneAnalysisResult`.
+**Компоненты по отдельности** (`IndicatorFactory`, стратегии детекции,
+`UniversalZoneAnalyzer`) — когда:
 
-**Выбирайте модульный подход (компоненты `IndicatorFactory`, `ZoneDetectionStrategy`, `UniversalZoneAnalyzer` и т.д.), когда:**
+- нужно остановиться на промежуточном шаге, например только на детекции;
+- одни и те же зоны анализируются многократно с разными настройками;
+- между шагами вставляется своя логика;
+- зоны приходят снаружи и пересчитывать индикатор незачем;
+- поверх признаков строится ML или своя статистика, а не отчёт.
 
-- требуется остановиться на промежуточном этапе (например, только детекция зон);
-- нужно переиспользовать результаты на множестве инструментов или таймфреймов;
-- в проекте присутствует кастомная логика, которую удобнее встроить между шагами пайплайна;
-- зоны поступают из внешних источников (preloaded) и нужно анализировать их без пересчета индикаторов;
-- строится ML/статистика поверх признаков зон, а не полный отчет.
+Цена ручной сборки — то, что пайплайн делает молча: перенос времени на индекс и схему
+колонок (роли вместо имён). См. [Анализ зон на практике](zone_analysis.md).
 
-## Рекомендуемая структура артефактов
+## Считать один раз, анализировать много
 
-Поддерживайте единообразную иерархию для сохранения результатов:
+Детекция дешевле анализа, а зоны от настроек анализа не зависят. Разделите их:
+
+```python
+from bquant.analysis.zones import UniversalZoneAnalyzer, ZoneDetectionConfig, ZoneDetectionRegistry
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h').set_index('time')
+
+# Один раз: границы зон
+detector = ZoneDetectionRegistry.get('zero_crossing')
+zones = detector.detect_zones(data, ZoneDetectionConfig(rules={'indicator_col': 'macd'}))
+
+# Много раз: разные настройки анализа поверх тех же зон
+for n_clusters in (2, 3, 4):
+    result = UniversalZoneAnalyzer().analyze_zones(zones, data, n_clusters=n_clusters)
+    quality = result.clustering['clustering_summary']['clustering_quality']
+    print(n_clusters, round(quality['silhouette_score'], 3))
+# 2 0.467
+# 3 0.415
+# 4 0.434
+```
+
+Один список зон, три анализа. Обратите внимание: `analyze_zones()` **дописывает**
+`features` в те же объекты `ZoneInfo`, так что список после первого прохода уже не
+«чистый» — если нужна независимость прогонов, детектируйте заново или делайте
+`copy.deepcopy`.
+
+## Признаки — в таблицу, дальше своими средствами
+
+```python
+import pandas as pd
+
+from bquant.analysis.zones import analyze_macd_zones
+from bquant.data.samples import get_sample_data
+
+result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
+
+features = pd.DataFrame([
+    {k: v for k, v in (zone.features or {}).items() if k != 'metadata'}
+    for zone in result.zones
+])
+
+print(features.shape, list(features.columns[:5]))
+# (32, 20) ['zone_id', 'zone_type', 'duration', 'start_price', 'end_price']
+```
+
+Дальше это обычный `DataFrame` — ML, статистика, BI. Вложенные метрики стратегий лежат в
+`features['metadata']` и разворачиваются отдельно; как именно — в
+[Структуре результата](zone_analysis_result.md).
+
+## Структура артефактов
+
+Единообразная иерархия окупается на второй же неделе:
 
 ```
 results/
-├── {instrument}_{timeframe}/
-│   ├── 01_indicator_data.parquet       # Данные с индикаторами
-│   ├── 02_zones.pkl                    # Объекты ZoneInfo
-│   ├── 02_zones.csv                    # Легкая мета-информация о зонах
-│   ├── 03_features.csv                 # Признаки зон
-│   ├── 04_statistics.json              # Распределения и агрегации
-│   ├── 05_hypotheses.json              # Гипотезы и p-value
-│   ├── 06_sequence.json                # Переходы зон
-│   ├── 07_clustering.json              # Результаты кластеризации
-│   ├── 08_regression.json              # Модели прогноза (если нужны)
-│   ├── full_analysis.pkl               # Полный ZoneAnalysisResult
-│   ├── summary.json                    # Краткая сводка
-│   └── visualizations/
-│       ├── overview.html
-│       ├── zone_3_detail.html
-│       └── zones_comparison.html
+└── {instrument}_{timeframe}/
+    ├── 01_indicator_data.parquet    # данные с индикаторами (result.data)
+    ├── 02_zones.pkl                 # объекты ZoneInfo целиком
+    ├── 02_zones.csv                 # лёгкая мета: границы, тип, длительность
+    ├── 03_features.csv              # признаки зон
+    ├── 04_statistics.json           # распределения и агрегаты
+    ├── 05_hypotheses.json           # гипотезы и p-value
+    ├── 06_sequence.json             # переходы между зонами
+    ├── 07_clustering.json           # кластеризация
+    ├── 08_regression.json           # модели прогноза, если считались
+    ├── full_analysis.pkl            # весь ZoneAnalysisResult
+    ├── summary.json                 # краткая сводка
+    └── visualizations/
+        ├── overview.html
+        ├── zone_3_detail.html
+        └── zones_comparison.html
 ```
 
-Такая структура облегчает повторное использование и позволяет быстро найти нужный артефакт независимо от выбранного подхода.
+Готовая функция экспорта, которая раскладывает результат именно так, — в
+[Структуре результата](zone_analysis_result.md), раздел «Полный скрипт экспорта».
 
-Подробное описание структуры объекта результата пайплайна и пошаговое получение каждого из этих артефактов см. в **[Структура результата анализа зон и экспорт в артефакты](zone_analysis_result.md)**.
-
-## Паттерны переиспользования
-
-### Detect Once, Analyze Many
+## Версии результатов
 
 ```python
-import pickle
-
-# 1. Детектируем зоны один раз
-zones = detector.detect_zones(df, config)
-with open("zones.pkl", "wb") as f:
-    pickle.dump(zones, f)
-
-# 2. Пробуем разные варианты анализа
-for n_clusters in [2, 3, 4, 5]:
-    analyzer = UniversalZoneAnalyzer()
-    result = analyzer.analyze_zones(zones, df, n_clusters=n_clusters)
-    result.save(f"analysis_clusters_{n_clusters}.pkl")
-```
-
-### Extract Once, Use Everywhere
-
-```python
-zones_features = features_analyzer.extract_all_zones_features(zones)
-features_df = pd.DataFrame([zf.to_dict() for zf in zones_features])
-features_df.to_csv("features.csv", index=False)
-
-# Далее файл можно передать в ML, статистику или BI.
-```
-
-### Incremental Analysis
-
-```python
-# День 1: детекция
-zones = detect_zones(...)
-save(zones, "zones_day1.pkl")
-
-# День 2: признаки
-zones = load("zones_day1.pkl")
-features = extract_features(zones)
-save(features, "features_day2.csv")
-
-# День 3: статистика
-features = load("features_day2.csv")
-statistics = analyze_statistics(features)
-save(statistics, "stats_day3.json")
-
-# День 4: финальный отчет
-zones = load("zones_day1.pkl")
-result = full_analysis(zones, df)
-result.save("final_report.pkl")
-```
-
-## Управление версиями результатов
-
-```python
-import os
 from datetime import datetime
+from pathlib import Path
+from tempfile import mkdtemp
 
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+from bquant.analysis.zones import analyze_macd_zones
+from bquant.data.samples import get_sample_data
 
-zones_file = f"results/zones_{timestamp}.pkl"
-with open(zones_file, "wb") as f:
-    pickle.dump(zones, f)
+out_dir = Path(mkdtemp())
+stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-analysis_file = f"results/analysis_{timestamp}.pkl"
-result.save(analysis_file)
+result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
+result.save(out_dir / f'analysis_{stamp}.pkl')
 
-# Обновляем "последние" ссылки для интеграций
-os.symlink(zones_file, "results/zones_latest.pkl")
-os.symlink(analysis_file, "results/analysis_latest.pkl")
+latest = out_dir / 'analysis_latest.pkl'
+latest.unlink(missing_ok=True)
+latest.symlink_to(out_dir / f'analysis_{stamp}.pkl')
+
+print(latest.is_symlink(), latest.resolve().name.startswith('analysis_'))
+# True True
 ```
 
-В проекте, где пайплайн запускается по расписанию, симлинки или алиасы на «последнюю» версию значительно упрощают автоматизацию.
+Ссылка на «последний» результат снимает с интеграций необходимость знать про метку
+времени. На Windows создание симлинка требует прав — там надёжнее копия или файл-указатель
+с именем.
 
-## Интеграция с внешними системами
+## Что помнить при интеграции
 
-- **Экспорт в MT5 / cTrader** — храните зоны в CSV с полями `start_time`, `end_time`, `type`, `start_bar`, `end_bar`. Функцию экспорта можно адаптировать из `PreloadedZonesDetection`.
-- **Импорт внешних зон** — подайте DataFrame с нужными колонками в `PreloadedZonesDetection` и продолжите анализ с шага UniversalZoneAnalyzer.
-- **Совместимость с ML-пайплайнами** — сериализуйте признаки в `features.csv` и подключайте их к существующим моделям без дополнительных преобразований.
+- **Отдать зоны наружу (MT5, cTrader, свои скрипты).** Достаточно CSV с колонками
+  `zone_id`, `type`, `start_time`, `end_time` — в этом же формате их читает обратно
+  стратегия `preloaded`. Круг замыкается: выгруженное можно вернуть в анализ.
+- **Принять зоны снаружи.** `detect_zones('preloaded', zones_data=...)` — и дальше всё как
+  обычно; словарь типов при этом ваш, пайплайн на имена типов не смотрит.
+- **Считать агрегаты по типам самостоятельно.** Поля `bull_*`/`bear_*` в
+  `total_statistics` посчитаны по двум литеральным именам и для не-MACD осциллятора равны
+  нулю при непустом наборе зон. Считайте `Counter(zone.type for zone in result.zones)`.
+- **Сравниваете стратегии метрик — выключайте кэш.** Ключ не различает `shape`,
+  `divergence`, `volatility` и `volume`; см. [Кэширование](caching.md).
 
 ## Связанные материалы
 
-- [Структура результата и экспорт в артефакты](zone_analysis_result.md) — полная структура `ZoneAnalysisResult` и код для получения файлов 01_…08_, full_analysis, summary.
-- [Zone Analysis Guide](zone_analysis.md) — описание полного пайплайна и архитектуры.
-- [MIGRATION_v2.md](../migration/MIGRATION_v2.md) — пошаговая миграция со старого `MACDZoneAnalyzer` на новый pipeline.
-- [`devref/gaps/zo/zomodul.md`](../../devref/gaps/zo/zomodul.md) — подробные инженерные сценарии модульного использования.
+| | |
+|---|---|
+| [Структура результата](zone_analysis_result.md) | поля результата и готовый экспорт в артефакты |
+| [Анализ зон на практике](zone_analysis.md) | выбор основы зоны и стратегии детекции |
+| [Кэширование](caching.md) | ключи, инвалидация, когда выключать |
+| [Pipeline API](../api/analysis/pipeline.md) | справочник билдера |

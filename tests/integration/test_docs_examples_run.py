@@ -90,8 +90,6 @@ EXPECTED_TO_FAIL = {
         "читает файл с готовыми зонами, который приносит читатель",
     ("docs/developer_guide/zone_detection_strategies.md", "from .base import"):
         "относительный импорт внутри пакета: так выглядит файл стратегии на месте",
-    ("docs/user_guide/zone_analysis_result.md", "ZoneAnalysisResult.load("):
-        "читает результат, сохранённый предыдущим прогоном читателя",
     ("docs/examples/README.md", "runpy.run_path"):
         "запускает файл примера по пути от корня репозитория; тест работает во временном каталоге",
 }

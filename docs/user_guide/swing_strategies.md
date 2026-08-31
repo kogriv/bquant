@@ -6,7 +6,7 @@
 
 Весь API ниже сверен с кодом (`bquant/analysis/zones/`).
 
-## 🧭 Как выбрать стратегию
+## Как выбрать стратегию
 
 | Стратегия | Ключевая идея | Когда использовать | Параметры (значения по умолчанию) |
 | --- | --- | --- | --- |
@@ -19,7 +19,7 @@
 > зону. Для подробного разбора покрытия стратегий см.
 > [сравнение свинг-стратегий](../analytics/zones/swing_strategy_comparison_case_study.md).
 
-## ⚙️ Базовая конфигурация
+## Базовая конфигурация
 
 Стратегия выбирается методом `.with_strategies(swing=...)` fluent-билдера:
 
@@ -27,7 +27,7 @@
 from bquant.analysis.zones import analyze_zones
 from bquant.data.samples import get_sample_data
 
-df = get_sample_data("tv_xauusd_1h").set_index("time")
+df = get_sample_data("tv_xauusd_1h")   # время в колонке; пайплайн перенесёт его на индекс сам
 
 result = (
     analyze_zones(df)
@@ -35,9 +35,12 @@ result = (
     .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
     .detect_zones("zero_crossing", indicator_role="hist")
     .with_strategies(swing="zigzag")
+    .with_swing_preset("narrow_zone")
     .analyze(clustering=False)
     .build()
 )
+
+print(len(result.zones))   # 83
 ```
 
 Свинг-метрики зоны доступны в `zone.features["metadata"]["swing_metrics"]`:
@@ -56,30 +59,35 @@ for zone in result.zones:
     print(zone.zone_id, len(swings))
 ```
 
-## 🎚️ Пресеты параметров
+## Пресеты параметров
 
 `bquant.core.config.SWING_PRESETS` содержит согласованные наборы параметров сразу для
 всех трёх стратегий. Применить пресет ко всему пайплайну — `.with_swing_preset(name)`.
 Доступные пресеты: **`default`** и **`narrow_zone`**.
 
-```python
-result = (
-    analyze_zones(df)
-    .with_cache(enable=False)
-    .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones("zero_crossing", indicator_role="hist")
-    .with_strategies(swing="zigzag")
-    .with_swing_preset("narrow_zone")
-    .analyze(clustering=False)
-    .build()
-)
-```
-
 Пресет `narrow_zone` ужимает ZigZag (`legs=3`, `deviation=0.008`) и сопутствующие пороги,
 чтобы узкие диапазоны регистрировали пивоты; `default` — базовый набор (`legs=10`,
 `deviation=0.05`).
 
-## 🔒 Авто-проминенция `find_peaks` и прогрев (`prominence_warmup`)
+**Выбор пресета влияет сильнее выбора стратегии.** Доля зон, у которых нашёлся хотя бы
+один свинг — 32 зоны MACD по линии на `tv_xauusd_1h`, замер прогоном:
+
+| Стратегия | `default`, `per_zone` | `default`, `global` | `narrow_zone`, `per_zone` | `narrow_zone`, `global` |
+|---|---|---|---|---|
+| `zigzag` | 12/32 | 26/32 | 23/32 | **29/32** |
+| `find_peaks` | 0/32 | 0/32 | 14/32 | 20/32 |
+| `pivot_points` | 0/32 | 2/32 | 10/32 | 23/32 |
+
+Нули в первых двух колонках — не свойство рынка, а свойство порога: `min_amplitude_pct`
+у `default` равен 2% цены, тогда как медианный размах зоны на этих данных — 1.2%. Мерка
+крупнее измеряемого, и пройти её свинг внутри зоны не может.
+
+**Ноль при этом не сообщает о себе:** `swing_metrics` с `num_swings: 0` выглядит ровно
+так же, как честно измеренное отсутствие движения. Если метрики пусты у всех зон —
+проверяйте пресет прежде, чем делать выводы. Разбор:
+`devref/gaps/swing/g35_default_preset_measures_nothing_and_says_nothing_2026-08.md`.
+
+## Авто-проминенция `find_peaks` и прогрев
 
 Если `prominence=None` (по умолчанию), порог выводится из ценового диапазона —
 но **только по первым `prominence_warmup` барам** (по умолчанию 200), и дальше
@@ -114,7 +122,7 @@ strategy = FindPeaksSwingStrategy(distance=3, prominence_warmup=50)
 strategy = FindPeaksSwingStrategy(distance=3, prominence=0.5)
 ```
 
-## 📐 Адаптивные пороги
+## Адаптивные пороги
 
 Для инструментов с широким ценовым диапазоном включите адаптивные пороги — они
 пересчитывают **относительные** пороги на основе диапазона: `deviation` у ZigZag и
@@ -130,36 +138,67 @@ Fluent-билдер предоставляет `.with_auto_swing_thresholds(True
 > он и работает.
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+df = get_sample_data("tv_xauusd_1h")
+
 result = (
     analyze_zones(df)
     .with_cache(enable=False)
     .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones("zero_crossing", indicator_role="hist")
+    .detect_zones("zero_crossing", indicator_role="line")
     .with_strategies(swing="zigzag")
     .with_auto_swing_thresholds(True)
+    .analyze()
     .build()
 )
+
+params = next(z.features["metadata"]["swing_metrics"]["strategy_params"]
+              for z in result.zones
+              if z.features["metadata"].get("swing_metrics", {}).get("strategy_params"))
+print(params)   # {'legs': 10, 'deviation': 0.030924448545605776}
 ```
 
-Или напрямую через `ZoneAnalysisPipeline`:
+Порог выведен из данных: `deviation` пресета `default` — `0.05`, адаптивный дал `0.031`.
+На покрытии зон свингами это на встроенном сэмпле не сказалось (26/32 в обоих случаях) —
+режим меняет порог, а не гарантирует прибавку; проверяйте на своих данных.
+
+Или напрямую через `ZoneAnalysisPipeline` — флаг конструктора `strategy_auto_thresholds`
+и база отката `auto_threshold_base_deviation`:
 
 ```python
-from bquant.analysis.zones.pipeline import ZoneAnalysisConfig, ZoneAnalysisPipeline
+from bquant.analysis.zones.pipeline import (
+    IndicatorSpec,
+    ZoneAnalysisConfig,
+    ZoneAnalysisPipeline,
+    ZoneDetectionConfig,
+)
+from bquant.data.samples import get_sample_data
+
+config = ZoneAnalysisConfig(
+    indicator=IndicatorSpec(source="custom", name="macd",
+                            parameters={"fast_period": 12, "slow_period": 26, "signal_period": 9}),
+    zone_detection=ZoneDetectionConfig(strategy_name="zero_crossing",
+                                       rules={"indicator_role": "line"}),
+)
 
 pipeline = ZoneAnalysisPipeline(
-    config=my_config,
+    config=config,
     enable_cache=False,
     strategy_auto_thresholds=True,
     auto_threshold_base_deviation=0.01,
 )
 pipeline.with_swing_preset("default")  # опциональная база
-result = pipeline.run(df)
+result = pipeline.run(get_sample_data("tv_xauusd_1h"))
+
+print(len(result.zones))   # 32
 ```
 
 Адаптивный режим откатывается к параметрам пресета, когда вычисленный диапазон меньше
 `auto_threshold_base_deviation`, что обеспечивает стабильность на тонких зонах.
 
-## 🔀 Режим расчёта (scope)
+## Режим расчёта (scope)
 
 `.with_swing_scope(scope)` управляет тем, как считаются свинги:
 
@@ -174,7 +213,7 @@ result = pipeline.run(df)
 > `_inject_swing_context`, фолбэки) — в
 > [API: глобальные свинги — пайплайн](../api/analysis/zones/global_swings_pipeline.md).
 
-## 🧪 Контроль качества
+## Контроль качества
 
 - Запускайте smoke-тест пайплайна `tests/integration/test_pipeline_global_swings.py`,
   если меняете параметры по умолчанию.
