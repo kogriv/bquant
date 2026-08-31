@@ -71,3 +71,27 @@ def test_narrow_zone_applies_parameters():
     assert sample_metrics["strategy_params"]["deviation"] == pytest.approx(
         preset.zigzag["deviation"]
     )
+
+
+def test_the_default_preset_is_named_for_what_it_is():
+    """Умолчание — свойство набора порогов, а не его имя.
+
+    До 0.0.10 умолчанием был пресет по имени `default`, и на типичных зонах часового
+    золота две стратегии свингов из трёх не находили при нём ничего: его
+    `min_amplitude_pct` — 2% цены при медианном размахе зоны 1.2% (G35). Умолчанием
+    стал `narrow_zone`, а прежний набор переименован в `wide_zone` — по ширине зоны,
+    под которую он откалиброван.
+
+    Имя `default` не должно вернуться ни к какому пресету: оно называет положение в
+    списке, а не свойство, и разъезжается с реальностью ровно тогда, когда положение
+    меняется.
+    """
+
+    from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
+
+    assert DEFAULT_SWING_PRESET == "narrow_zone"
+    assert set(SWING_PRESETS) == {"narrow_zone", "wide_zone"}
+    assert DEFAULT_SWING_PRESET in SWING_PRESETS
+
+    assert SWING_PRESETS["wide_zone"].find_peaks["min_amplitude_pct"] == 0.02
+    assert SWING_PRESETS["narrow_zone"].find_peaks["min_amplitude_pct"] == 0.006

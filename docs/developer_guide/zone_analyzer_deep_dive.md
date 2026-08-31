@@ -135,7 +135,7 @@ num_swings = swing_metrics.get('num_swings')
 
 | Метод | Описание |
 | :--- | :--- |
-| `.with_swing_preset(name)` | Применить именованный пресет параметров для свингов. Пресетов два: `'default'` и `'narrow_zone'` (`SWING_PRESETS` в `bquant/core/config.py`). Фиксирует пороги для `find_peaks`, `pivot_points`, `zigzag`. |
+| `.with_swing_preset(name)` | Применить именованный пресет параметров для свингов. Пресетов два: `'narrow_zone'` (по умолчанию) и `'wide_zone'` (`SWING_PRESETS` в `bquant/core/config.py`). Фиксирует пороги для `find_peaks`, `pivot_points`, `zigzag`. |
 | `.with_swing_scope(scope)` | Режим расчёта свингов. **По умолчанию** `'global'` — свинги вычисляются один раз по всему датасету и «нарезаются» по зонам. `'per_zone'` — свинги считаются отдельно внутри каждой зоны. `global` часто даёт выше покрытие (см. кейс по состоятельности). |
 | `.with_cache(enable=True, ttl=3600)` | Включить/отключить кэширование результата. `ttl` — время жизни кэша в секундах. Отключайте кэш (`enable=False`) при экспериментировании с разными параметрами. |
 | `.with_auto_swing_thresholds(enable=True)` | Включить адаптивные пороги для `find_peaks` и `pivot_points`. Для `zigzag` не влияет. **Внимание:** при текущих настройках авто-пороги могут обнулять покрытие для `find_peaks`/`pivot_points` — требуется тюнинг. |

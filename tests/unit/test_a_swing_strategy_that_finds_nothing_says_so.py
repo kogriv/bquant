@@ -3,7 +3,7 @@
 G35, первая половина. `swing_metrics` с `num_swings: 0` выглядит одинаково в двух
 разных случаях: движения не было и порог оказался крупнее самой зоны. Второй случай
 на встроенных данных — не редкость, а умолчание: `min_amplitude_pct` пресета
-`default` равен 2% цены при медианном размахе зоны 1.2%.
+`wide_zone` равен 2% цены при медианном размахе зоны 1.2%.
 
 Проверяется не «сколько свингов нашлось» — это свойство данных и порогов, — а то, что
 о полном отсутствии улова сказано **дважды**: числом в метаданных, чтобы могла
@@ -72,9 +72,9 @@ def test_the_result_reports_how_many_zones_got_swings(data):
 
 
 def test_an_empty_catch_is_said_out_loud(data, analyzer_warnings):
-    """`find_peaks` при пресете по умолчанию не находит ничего на этих данных."""
+    """`find_peaks` при широких порогах не находит ничего на этих данных."""
 
-    result = analyse(data, swing="find_peaks", preset="default")
+    result = analyse(data, swing="find_peaks", preset="wide_zone")
 
     assert result.metadata["swing_coverage"]["zones_with_swings"] == 0
 

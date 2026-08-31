@@ -59,7 +59,7 @@ result = (
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='zigzag')       # swing/shape/divergence/volatility/volume
-    .with_swing_preset('default')          # optional: 'default' | 'narrow_zone'
+    .with_swing_preset('narrow_zone')      # optional: 'narrow_zone' (default) | 'wide_zone'
     .analyze(clustering=True)
     .build()
 )

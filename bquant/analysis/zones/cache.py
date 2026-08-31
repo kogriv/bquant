@@ -82,7 +82,10 @@ class ZoneAnalysisCache:
     # (`zones_by_type`, `ratios_by_type`), а `bull_*`/`bear_*` присутствуют только
     # у словаря, который эти типы содержит. Запись v17 несёт нули там, где деления
     # не существует.
-    CACHE_VERSION = 18
+    # v19 (G35, вторая половина): пресет свингов по умолчанию — `narrow_zone` вместо
+    # прежнего `default` (переименован в `wide_zone`). Прогон без явного пресета даёт
+    # другой набор свингов, а запись v18 посчитана по старому умолчанию.
+    CACHE_VERSION = 19
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
