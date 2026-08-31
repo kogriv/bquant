@@ -84,6 +84,11 @@ def _run_pipeline(df, strategy: str, scope: str) -> Dict[str, float]:
         .detect_zones("zero_crossing", indicator_role="hist")
         .with_strategies(swing=strategy)
         .with_swing_preset("narrow_zone")
+        # Адаптивный слой сегодня обнуляет find_peaks и pivot_points: он поднимает
+        # min_amplitude_pct выше размаха типичной зоны (G38). Скрипт оставлен как есть —
+        # он воспроизводит отчёт 2025-11, — но сравнивать стратегии по его выводу нельзя,
+        # пока строка ниже включена. Поправка в отчёте:
+        # docs/analytics/zones/swing_strategy_comparison_case_study.md
         .with_auto_swing_thresholds(True)
         .with_swing_scope(scope)
         .analyze(clustering=False)
