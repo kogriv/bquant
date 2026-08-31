@@ -70,7 +70,12 @@ class ZoneAnalysisCache:
     # `Timestamp`, а не позиции, если в кадре есть колонка времени. Кэш v14 хранит
     # результаты, посчитанные до нормализации: те же зоны, но с позициями в
     # `start_time`/`end_time`.
-    CACHE_VERSION = 15
+    # v16 (G36): в ключ вошла подпись стратегий метрик. До v15 `shape`,
+    # `divergence`, `volatility` и `volume` в ключ не попадали вовсе, поэтому
+    # записи v15 и раньше отвечают на вопрос «этот индикатор, эта детекция», не
+    # различая, какие метрики просили посчитать. Такая запись может быть
+    # посчитана без стратегии, которую спрашивают сейчас.
+    CACHE_VERSION = 16
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
@@ -87,13 +92,23 @@ class ZoneAnalysisCache:
         data_hash: str,
         config_signature: str,
         swing_signature: str,
+        analyzer_signature: str,
     ) -> str:
         """Create a version-aware cache key.
+
+        Every input that changes the result must appear here. ``analyzer_signature``
+        is the fourth part precisely because it did not exist: the metric
+        strategies reach the analyzer past :class:`ZoneAnalysisConfig`, so the key
+        could not see them, and a run asking for volatility metrics silently
+        received a cached result computed without them (G36).
 
         Args:
             data_hash: Hash of the OHLC price data.
             config_signature: JSON signature of :class:`ZoneAnalysisConfig`.
             swing_signature: JSON signature of swing configuration.
+            analyzer_signature: JSON signature of the metric strategies the
+                analyzer will run (shape, divergence, volatility, volume) and of
+                the injected components themselves.
 
         Returns:
             Deterministic cache key string.
@@ -104,6 +119,7 @@ class ZoneAnalysisCache:
             f"data={data_hash}",
             f"config={hashlib.sha256(config_signature.encode()).hexdigest()}",
             f"swing={hashlib.sha256(swing_signature.encode()).hexdigest()}",
+            f"analyzer={hashlib.sha256(analyzer_signature.encode()).hexdigest()}",
         ]
         final_hash = hashlib.sha256("|".join(key_parts).encode()).hexdigest()
         return f"zone_analysis_{final_hash}"
@@ -201,4 +217,10 @@ class ZoneAnalysisCache:
         """Serialize swing configuration for cache hashing."""
 
         return json.dumps(swing_config, sort_keys=True, default=str)
+
+    @staticmethod
+    def analyzer_signature(analyzer_config: Any) -> str:
+        """Serialize the analyzer's metric configuration for cache hashing."""
+
+        return json.dumps(analyzer_config, sort_keys=True, default=str)
 

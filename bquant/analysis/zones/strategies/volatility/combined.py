@@ -6,7 +6,7 @@ a comprehensive assessment of zone volatility and market conditions.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 import pandas as pd
 import numpy as np
 
@@ -140,13 +140,18 @@ class CombinedVolatilityStrategy:
             bb_width = (bb_upper - bb_lower) / bb_middle * 100
             bb_width = bb_width.replace([np.inf, -np.inf], np.nan).dropna()
             
-            # Metrics
-            width_pct = float(bb_width.mean()) if len(bb_width) > 0 else 0.0
-            width_std = float(bb_width.std()) if len(bb_width) > 0 else 0.0
-            
+            # Metrics. Ноль здесь был бы утверждением («полосы нулевой ширины»),
+            # поэтому недостающие величины отсутствуют, а не обнуляются (G37).
+            width_pct = float(bb_width.mean()) if len(bb_width) > 0 else None
+            # Разброс требует минимум двух окон: у зоны длиной ровно в `bb_length`
+            # окно наполняется один раз, и `std` по одному значению — NaN.
+            width_std = float(bb_width.std()) if len(bb_width) > 1 else None
+
             # Squeeze ratio (current vs average)
-            current_width = float(bb_width.iloc[-1]) if len(bb_width) > 0 else width_pct
-            squeeze_ratio = (current_width / width_pct) if width_pct > 0 else 1.0
+            if width_pct is not None and width_pct > 0:
+                squeeze_ratio = float(bb_width.iloc[-1]) / width_pct
+            else:
+                squeeze_ratio = None
             
             # Band touches (price within threshold of band)
             close = zone_data['close']
@@ -166,13 +171,15 @@ class CombinedVolatilityStrategy:
             
         except Exception as e:
             logger.warning(f"Failed to calculate Bollinger metrics: {e}")
-            # Return defaults
+            # Раньше здесь возвращался полный набор нулей с `squeeze_ratio: 1.0` —
+            # правдоподобное измерение вместо признания, что измерить не удалось.
+            # Отсутствие считается отдельно от нуля и видно потребителю.
             return {
-                'width_pct': 0.0,
-                'width_std': 0.0,
-                'squeeze_ratio': 1.0,
-                'upper_touches': 0,
-                'lower_touches': 0
+                'width_pct': None,
+                'width_std': None,
+                'squeeze_ratio': None,
+                'upper_touches': None,
+                'lower_touches': None
             }
     
     def _calculate_atr_metrics(self, zone_data: pd.DataFrame) -> Dict[str, Any]:
@@ -247,33 +254,42 @@ class CombinedVolatilityStrategy:
         self,
         bb_metrics: Dict[str, Any],
         atr_metrics: Dict[str, Any]
-    ) -> float:
+    ) -> Optional[float]:
         """
         Calculate composite volatility score (0-10).
-        
+
         Combines:
         - Bollinger width (wider = higher volatility)
         - ATR normalized range (larger = higher volatility)
         - Band touches (more touches = more volatility)
+
+        Возвращает ``None``, если боллинджеровские компоненты не посчитаны: из трёх
+        слагаемых шкалы 0–10 две приходят от них, и оставшийся ATR-компонент дал бы
+        число по той же шкале, несопоставимое с остальными зонами.
         """
+        width_pct = bb_metrics['width_pct']
+        upper = bb_metrics['upper_touches']
+        lower = bb_metrics['lower_touches']
+        if width_pct is None or upper is None or lower is None:
+            return None
+
         # Bollinger component (0-5)
         # Typical BB width is 2-8%, so normalize to 0-5 range
-        bb_score = min(bb_metrics['width_pct'] / 2.0, 5.0)
-        
+        bb_score = min(width_pct / 2.0, 5.0)
+
         # ATR component (0-3)
         # Normalized range typically 1-5, normalize to 0-3
         atr_score = min(atr_metrics['normalized_range'] / 2.0, 3.0)
-        
+
         # Band touches component (0-2)
-        total_touches = bb_metrics['upper_touches'] + bb_metrics['lower_touches']
-        touch_score = min(total_touches / 5.0, 2.0)  # 5+ touches = max score
-        
+        touch_score = min((upper + lower) / 5.0, 2.0)  # 5+ touches = max score
+
         # Total score (0-10)
         total_score = bb_score + atr_score + touch_score
-        
+
         return float(min(max(total_score, 0.0), 10.0))
     
-    def _classify_volatility_regime(self, score: float) -> str:
+    def _classify_volatility_regime(self, score: Optional[float]) -> Optional[str]:
         """
         Classify volatility regime based on composite score.
         
@@ -283,6 +299,8 @@ class CombinedVolatilityStrategy:
         - high: 5.0-7.5
         - extreme: 7.5-10.0
         """
+        if score is None:
+            return None
         if score < 2.5:
             return 'low'
         elif score < 5.0:

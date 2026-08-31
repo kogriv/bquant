@@ -534,10 +534,15 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                 try:
                     volatility_metrics = self.volatility_strategy.calculate_volatility(data)
                     metadata['volatility_metrics'] = volatility_metrics.to_dict()
+                    # Форматируем через `%s`, а не `:.2f`: у короткой зоны часть
+                    # величин не определена и равна None. Раньше строка лога падала
+                    # на форматировании, падение ловил тот же `except`, и **посчитанные**
+                    # метрики выбрасывались из-за отладочного сообщения о них.
                     self.logger.debug(
-                        f"Volatility metrics calculated: score={volatility_metrics.volatility_score:.2f}, "
-                        f"regime={volatility_metrics.volatility_regime}, "
-                        f"bb_width={volatility_metrics.bollinger_width_pct:.2f}%"
+                        "Volatility metrics calculated: score=%s, regime=%s, bb_width=%s",
+                        volatility_metrics.volatility_score,
+                        volatility_metrics.volatility_regime,
+                        volatility_metrics.bollinger_width_pct,
                     )
                 except Exception as e:
                     self.logger.warning(f"Failed to calculate volatility metrics: {e}")

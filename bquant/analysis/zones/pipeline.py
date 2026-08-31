@@ -39,48 +39,43 @@ from .strategies.swing import (
 logger = get_logger(__name__)
 
 
+def _describe_metric_strategy(strategy: Any) -> Optional[Dict[str, Any]]:
+    """Describe a metric strategy for the cache key: class plus its parameters.
+
+    Two strategies of the same class with different parameters must not share a
+    key, so the parameters are part of the description, not only the name.
+    """
+
+    if strategy is None:
+        return None
+
+    if hasattr(strategy, "config_hash"):
+        return {"class": type(strategy).__name__, "config": strategy.config_hash()}
+
+    params: Optional[Dict[str, Any]] = None
+    if hasattr(strategy, "get_metadata"):
+        metadata = strategy.get_metadata()
+        if isinstance(metadata, dict):
+            raw = metadata.get("params")
+            if isinstance(raw, dict):
+                params = dict(sorted(raw.items()))
+
+    return {"class": type(strategy).__name__, "params": params}
+
+
 _SWING_CLASS_TO_NAME = {
     ZigZagSwingStrategy: "zigzag",
     FindPeaksSwingStrategy: "find_peaks",
     PivotPointsSwingStrategy: "pivot_points",
 }
 
-# Bump whenever the schema/semantics of cached analysis output changes (new
-# SwingPoint/ZoneInfo fields, changed swing computation, etc.), so that on-disk
-# caches computed under an older schema are not silently served.
-#   v2 (2026-07): SwingPoint.confirmation_index added (causal availability).
-#   v3 (2026-07): confirmation_index now populated by find_peaks & pivot_points
-#                 (previously only zigzag; changes cached swing output).
-#   v4 (2026-08): find_peaks & pivot_points confirmation_index made replay-safe
-#                 (G14) — distance-chain settling + first-swing warm-up hold.
-#   v5 (2026-08): find_peaks auto prominence frozen on a warm-up window (G15) —
-#                 changes the detected swing set, not only its confirmations.
-#   v6 (2026-08): adaptive thresholds stop overwriting find_peaks' prominence with a
-#                 relative value (G16); `peak_prominence` metadata key renamed.
-#   v7 (2026-08): zone features carry start_idx/end_idx; sequence and hypothesis
-#                 results derive from declared zone-type properties and count
-#                 only transitions between adjacent zones (G20/G21); the
-#                 asymmetry test key is now `contrast_asymmetry`.
-#   v8 (2026-08): results carry a `column_schema` side-car mapping
-#                 (indicator, role) -> column name (G8 stage C1).
-#   v9 (2026-08): identity slugs changed for the preloaded indicator, which also
-#                 declares roles now, so schema entries appear where v8 had none
-#                 (G8 stage C2a). Column names themselves are unchanged.
-#   v10 (2026-08): `run_regression=True` now yields regression results; the
-#                 analyzer's import of ZoneRegressionAnalyzer was broken and
-#                 swallowed, so v9 results have regression_results=None (G23).
-#   v11 (2026-08): consumers address columns by role; zone feature metadata
-#                 dropped the dead backward-compatibility aliases (G8 C2b-1).
-#   v12 (2026-08): computed columns carry canonical names, slug + role
-#                 (G8 stage C2b-2).
-#   v13 (2026-08): detection returns the complete tiling — the length threshold
-#                 moved out of detection into the aggregates (G21 variant c),
-#                 so v12 results are missing the short zones entirely.
-#   v14 (2026-08): zone feature names follow the role vocabulary rather than
-#                 one indicator's name (`macd_amplitude` -> `line_amplitude`,
-#                 `hist_*` -> `oscillator_*`), and the per-role metadata keys
-#                 changed shape (`max_macd` -> `line_max`).
-CACHE_SCHEMA_VERSION = 15
+# Номер схемы кэша — один на весь пакет. Он живёт в `ZoneAnalysisCache.CACHE_VERSION`
+# вместе с историей версий: там же он попадает в ключ и в метаданные записи, а здесь —
+# в подпись конфигурации. Пока это были два литерала, стоявшие на одном числе, правило
+# «бампятся вместе» держалось только на прозе гэп-документов (G15, G16, G20, G30) — тот
+# самый второй литерал, который закрывали в G33. Комментарий с историей здесь успел
+# отстать на версию, что и есть доказательство.
+CACHE_SCHEMA_VERSION = ZoneAnalysisCache.CACHE_VERSION
 
 
 @dataclass
@@ -481,12 +476,45 @@ class ZoneAnalysisPipeline:
                 "swing_scope": self.config.swing_scope,
             }
         )
+        analyzer_signature = ZoneAnalysisCache.analyzer_signature(
+            self._serialize_analyzer_configuration()
+        )
 
         return cache_wrapper.generate_cache_key(
             data_hash,
             config_signature,
             swing_signature,
+            analyzer_signature,
         )
+
+    def _serialize_analyzer_configuration(self) -> Dict[str, Any]:
+        """Return JSON-serializable snapshot of what the analyzer will compute.
+
+        The four metric families below reach the analyzer through the constructor
+        (`zone_analyzer=`), not through :class:`ZoneAnalysisConfig`, so until G36
+        they were invisible to the cache key: asking for volatility metrics
+        returned a cached result computed without them, and nothing said so.
+        Swings are already covered by their own signature; they are listed here
+        too because the cost is one string and the alternative is a rule kept by
+        memory.
+        """
+
+        features = getattr(self.analyzer, "features", None)
+        strategies = {
+            family: _describe_metric_strategy(
+                getattr(features, f"{family}_strategy", None) if features else None
+            )
+            for family in ("swing", "shape", "divergence", "volatility", "volume")
+        }
+
+        # Классы внедрённых компонентов: подменённый набор тестов гипотез или свой
+        # анализатор последовательностей даёт другой результат на тех же данных.
+        components = {
+            name: type(getattr(self.analyzer, name, None)).__name__
+            for name in ("features", "hypotheses", "sequences", "regression", "validation")
+        }
+
+        return {"metric_strategies": strategies, "components": components}
 
     def with_swing_preset(self, name: str) -> "ZoneAnalysisPipeline":
         """Reconfigure swing strategies using a named preset."""

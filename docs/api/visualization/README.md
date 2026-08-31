@@ -337,11 +337,17 @@ if result.hypothesis_tests:
     )
     hypothesis_fig.show()
 
-# Box plot для сравнения зон
-bull_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones
-                  if zone.type == 'bull' and zone.features]
-bear_volatility = [zone.features.get('volatility_score', 0) for zone in result.zones
-                  if zone.type == 'bear' and zone.features]
+# Box plot для сравнения зон. Метрики стратегий лежат в features['metadata'],
+# а не на верхнем уровне: `features.get('volatility_score', 0)` вернул бы ноль
+# по умолчанию у каждой зоны и построил бы график из выдуманных нулей.
+def volatility_of(zone):
+    metrics = (zone.features.get('metadata') or {}).get('volatility_metrics') or {}
+    return metrics.get('volatility_score')
+
+bull_volatility = [v for zone in result.zones if zone.type == 'bull' and zone.features
+                   for v in [volatility_of(zone)] if v is not None]
+bear_volatility = [v for zone in result.zones if zone.type == 'bear' and zone.features
+                   for v in [volatility_of(zone)] if v is not None]
 
 box_fig = stat_plots.plot_box_plot(
     data=[bull_volatility, bear_volatility],

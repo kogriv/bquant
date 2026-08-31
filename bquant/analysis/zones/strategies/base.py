@@ -6,12 +6,40 @@ Protocols are expressed explicitly to keep mypy enforcement strong while
 allowing a flexible plug-in architecture for third-party strategies.
 """
 
+import math
 from dataclasses import dataclass, field
 from typing import Protocol, Dict, Any, Optional, runtime_checkable
 
 import pandas as pd
 
+from bquant.core.exceptions import AnalysisError
+
 from ..models import SwingContext, ZoneInfo
+
+
+def _require(condition: bool, message: str) -> None:
+    """Проверить инвариант метрики.
+
+    Раньше все проверки в этом файле стояли на `assert` — их было 39. У `assert`
+    два свойства, которые здесь нежелательны: он исчезает целиком под `python -O`
+    (и тогда метрика с мусором уезжает в статистику молча), и он объявляет любое
+    нарушение ошибкой программиста, тогда как речь о данных.
+    """
+
+    if not condition:
+        raise AnalysisError(message)
+
+
+def _is_defined(value: Any) -> bool:
+    """`None` — законное «не измерено»; `NaN` — нет.
+
+    G37: `NaN >= 0` ложно, поэтому проверка на неотрицательность срабатывала на
+    величине, которой просто не существует, и роняла всю группу метрик, объясняя
+    это неверными словами. Отсутствие значения выражается `None` и проходит
+    проверки; `NaN` остаётся ошибкой, но названной своим именем.
+    """
+
+    return not (isinstance(value, float) and math.isnan(value))
 
 
 @dataclass
@@ -101,34 +129,37 @@ class SwingMetrics:
     strategy_params: Dict[str, Any] = field(default_factory=dict)
     
     def validate(self):
-        """Validate metric correctness."""
-        # Existing validations
-        assert self.num_swings >= 0, "num_swings must be >= 0"
-        assert self.avg_rally_pct >= 0, "avg_rally_pct must be >= 0"
-        assert self.avg_drop_pct >= 0, "avg_drop_pct must be >= 0"
-        assert self.max_rally_pct >= 0, "max_rally_pct must be >= 0"
-        assert self.max_drop_pct >= 0, "max_drop_pct must be >= 0"
-        assert self.rally_to_drop_ratio >= 0, "rally_to_drop_ratio must be >= 0"
-        
-        # New validations
-        assert self.rally_count >= 0, "rally_count must be >= 0"
-        assert self.drop_count >= 0, "drop_count must be >= 0"
-        assert self.min_rally_pct >= 0, "min_rally_pct must be >= 0"
-        assert self.min_drop_pct >= 0, "min_drop_pct must be >= 0"
-        assert self.rally_amplitude_std >= 0, "rally_amplitude_std must be >= 0"
-        assert self.drop_amplitude_std >= 0, "drop_amplitude_std must be >= 0"
-        assert self.rally_amplitude_median >= 0, "rally_amplitude_median must be >= 0"
-        assert self.drop_amplitude_median >= 0, "drop_amplitude_median must be >= 0"
-        assert self.avg_rally_duration_bars >= 0, "avg_rally_duration_bars must be >= 0"
-        assert self.avg_drop_duration_bars >= 0, "avg_drop_duration_bars must be >= 0"
-        assert self.max_rally_duration_bars >= 0, "max_rally_duration_bars must be >= 0"
-        assert self.max_drop_duration_bars >= 0, "max_drop_duration_bars must be >= 0"
-        assert self.avg_rally_speed_pct_per_bar >= 0, "avg_rally_speed_pct_per_bar must be >= 0"
-        assert self.avg_drop_speed_pct_per_bar >= 0, "avg_drop_speed_pct_per_bar must be >= 0"
-        assert self.max_rally_speed_pct_per_bar >= 0, "max_rally_speed_pct_per_bar must be >= 0"
-        assert self.max_drop_speed_pct_per_bar >= 0, "max_drop_speed_pct_per_bar must be >= 0"
-        assert self.duration_symmetry >= 0, "duration_symmetry must be >= 0"
-    
+        """Проверить, что метрики не противоречат своему определению."""
+
+        for name in (
+            "num_swings",
+            "avg_rally_pct",
+            "avg_drop_pct",
+            "max_rally_pct",
+            "max_drop_pct",
+            "rally_to_drop_ratio",
+            "rally_count",
+            "drop_count",
+            "min_rally_pct",
+            "min_drop_pct",
+            "rally_amplitude_std",
+            "drop_amplitude_std",
+            "rally_amplitude_median",
+            "drop_amplitude_median",
+            "avg_rally_duration_bars",
+            "avg_drop_duration_bars",
+            "max_rally_duration_bars",
+            "max_drop_duration_bars",
+            "avg_rally_speed_pct_per_bar",
+            "avg_drop_speed_pct_per_bar",
+            "max_rally_speed_pct_per_bar",
+            "max_drop_speed_pct_per_bar",
+            "duration_symmetry",
+        ):
+            value = getattr(self, name)
+            _require(_is_defined(value), f"{name} is NaN: величина не измерена, а не отрицательна")
+            _require(value is None or value >= 0, f"{name} must be >= 0, got {value}")
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -254,13 +285,24 @@ class DivergenceMetrics:
     strategy_params: Dict[str, Any] = field(default_factory=dict)
     
     def validate(self):
-        """Validate metric correctness."""
+        """Проверить, что метрики не противоречат своему определению."""
+
         valid_types = ['none', 'regular', 'hidden', 'mixed']
-        assert self.divergence_type in valid_types, f"divergence_type must be in {valid_types}"
-        assert self.divergence_count >= 0, "divergence_count must be >= 0"
-        assert self.divergence_strength >= 0, "divergence_strength must be >= 0"
+        _require(
+            self.divergence_type in valid_types,
+            f"divergence_type must be in {valid_types}, got {self.divergence_type!r}",
+        )
+        _require(_is_defined(self.divergence_strength), "divergence_strength is NaN")
+        _require(self.divergence_count >= 0, f"divergence_count must be >= 0, got {self.divergence_count}")
+        _require(
+            self.divergence_strength is None or self.divergence_strength >= 0,
+            f"divergence_strength must be >= 0, got {self.divergence_strength}",
+        )
         valid_directions = ['bullish', 'bearish', 'none']
-        assert self.divergence_direction in valid_directions, f"divergence_direction must be in {valid_directions}"
+        _require(
+            self.divergence_direction in valid_directions,
+            f"divergence_direction must be in {valid_directions}, got {self.divergence_direction!r}",
+        )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -320,13 +362,14 @@ class ShapeMetrics:
     strategy_params: Dict[str, Any] = field(default_factory=dict)
     
     def validate(self):
-        """Validate metric correctness."""
-        # Skewness can be any value, but typically in range [-3, 3]
-        # Kurtosis can be any positive value
-        assert not pd.isna(self.hist_skewness), "hist_skewness must not be NaN"
-        assert not pd.isna(self.hist_kurtosis), "hist_kurtosis must not be NaN"
-        assert not pd.isna(self.hist_smoothness), "hist_smoothness must not be NaN"
-        assert self.hist_smoothness >= 0, "hist_smoothness must be >= 0"
+        """Проверить, что метрики не противоречат своему определению."""
+
+        # Асимметрия может быть любой, эксцесс — любым положительным; проверяется
+        # не диапазон, а определённость: NaN здесь означает, что считать было не по
+        # чему, и такую величину нельзя класть в статистику как измерение.
+        for name in ("hist_skewness", "hist_kurtosis", "hist_smoothness"):
+            _require(not pd.isna(getattr(self, name)), f"{name} is NaN: величина не измерена")
+        _require(self.hist_smoothness >= 0, f"hist_smoothness must be >= 0, got {self.hist_smoothness}")
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -385,13 +428,21 @@ class VolumeMetrics:
     strategy_params: Dict[str, Any] = field(default_factory=dict)
     
     def validate(self):
-        """Validate metric correctness."""
-        if self.volume_zone_ratio is not None:
-            assert self.volume_zone_ratio >= 0, "volume_zone_ratio must be >= 0"
-        if self.avg_volume_zone is not None:
-            assert self.avg_volume_zone >= 0, "avg_volume_zone must be >= 0"
+        """Проверить, что метрики не противоречат своему определению."""
+
+        for name in ("volume_zone_ratio", "avg_volume_zone"):
+            value = getattr(self, name)
+            if value is None:
+                continue
+            _require(_is_defined(value), f"{name} is NaN: величина не измерена")
+            _require(value >= 0, f"{name} must be >= 0, got {value}")
+
         if self.volume_indicator_corr is not None:
-            assert -1 <= self.volume_indicator_corr <= 1, "volume_indicator_corr must be in [-1, 1]"
+            _require(_is_defined(self.volume_indicator_corr), "volume_indicator_corr is NaN")
+            _require(
+                -1 <= self.volume_indicator_corr <= 1,
+                f"volume_indicator_corr must be in [-1, 1], got {self.volume_indicator_corr}",
+            )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -453,33 +504,64 @@ class VolatilityMetrics:
         strategy_name: Name of the strategy used
         strategy_params: Parameters of the strategy
     """
-    bollinger_width_pct: float
-    bollinger_width_std: float
-    bollinger_squeeze_ratio: float
-    bollinger_upper_touches: int
-    bollinger_lower_touches: int
+    # Полосы Боллинджера считаются по окну `bb_length`; в зоне короче двух окон
+    # часть величин не определена. `None` здесь означает «не измерено» и это не то
+    # же самое, что `0.0`: ноль утверждал бы, что ширина полос нулевая, а разброс
+    # отсутствует (G37).
+    bollinger_width_pct: Optional[float]
+    bollinger_width_std: Optional[float]
+    bollinger_squeeze_ratio: Optional[float]
+    bollinger_upper_touches: Optional[int]
+    bollinger_lower_touches: Optional[int]
     atr_normalized_range: float
     atr_trend: str
     avg_atr: float
-    volatility_score: float
-    volatility_regime: str
+    # Композит по шкале 0–10 складывается из трёх компонент, две из которых
+    # боллинджеровские. Без них число по той же шкале несопоставимо, поэтому его
+    # не существует, а не «оно маленькое».
+    volatility_score: Optional[float]
+    volatility_regime: Optional[str]
     strategy_name: str
     strategy_params: Dict[str, Any] = field(default_factory=dict)
     
     def validate(self):
-        """Validate metric correctness."""
-        assert self.bollinger_width_pct >= 0, "bollinger_width_pct must be >= 0"
-        assert self.bollinger_width_std >= 0, "bollinger_width_std must be >= 0"
-        assert self.bollinger_squeeze_ratio >= 0, "bollinger_squeeze_ratio must be >= 0"
-        assert self.bollinger_upper_touches >= 0, "bollinger_upper_touches must be >= 0"
-        assert self.bollinger_lower_touches >= 0, "bollinger_lower_touches must be >= 0"
-        assert self.atr_normalized_range >= 0, "atr_normalized_range must be >= 0"
-        assert self.atr_trend in ['increasing', 'decreasing', 'stable'], \
-            f"atr_trend must be in ['increasing', 'decreasing', 'stable'], got {self.atr_trend}"
-        assert self.avg_atr >= 0, "avg_atr must be >= 0"
-        assert 0 <= self.volatility_score <= 10, "volatility_score must be in [0, 10]"
-        assert self.volatility_regime in ['low', 'medium', 'high', 'extreme'], \
-            f"volatility_regime must be in ['low', 'medium', 'high', 'extreme'], got {self.volatility_regime}"
+        """Проверить, что метрики не противоречат своему определению."""
+
+        for name in (
+            "bollinger_width_pct",
+            "bollinger_width_std",
+            "bollinger_squeeze_ratio",
+            "bollinger_upper_touches",
+            "bollinger_lower_touches",
+            "atr_normalized_range",
+            "avg_atr",
+        ):
+            value = getattr(self, name)
+            _require(_is_defined(value), f"{name} is NaN: величина не измерена, а не отрицательна")
+            _require(value is None or value >= 0, f"{name} must be >= 0, got {value}")
+
+        valid_trends = ['increasing', 'decreasing', 'stable']
+        _require(
+            self.atr_trend in valid_trends,
+            f"atr_trend must be in {valid_trends}, got {self.atr_trend!r}",
+        )
+
+        _require(_is_defined(self.volatility_score), "volatility_score is NaN")
+        _require(
+            self.volatility_score is None or 0 <= self.volatility_score <= 10,
+            f"volatility_score must be in [0, 10], got {self.volatility_score}",
+        )
+
+        valid_regimes = ['low', 'medium', 'high', 'extreme']
+        _require(
+            self.volatility_regime is None or self.volatility_regime in valid_regimes,
+            f"volatility_regime must be in {valid_regimes} or None, got {self.volatility_regime!r}",
+        )
+        # Режим — подпись к числу: без числа подписи не бывает и наоборот.
+        _require(
+            (self.volatility_score is None) == (self.volatility_regime is None),
+            "volatility_score и volatility_regime обязаны отсутствовать вместе",
+        )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""

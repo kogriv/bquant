@@ -342,11 +342,18 @@ def main() -> None:
     vol_zone = extract_matching_zone(result_vol.zones, zone)
 
     if vol_zone and vol_zone.features:
-        features = vol_zone.features
+        # Метрики стратегий лежат в features['metadata'], а не на верхнем уровне.
+        # Читая их через features.get(..., 0), пример печатал ноль по умолчанию —
+        # то есть выдавал отсутствие ключа за измеренную волатильность. И ноль же
+        # печатался бы там, где величина честно не определена (зона короче окна
+        # Боллинджера), поэтому отсутствие названо словами.
+        volatility = (vol_zone.features.get('metadata') or {}).get('volatility_metrics') or {}
+        score = volatility.get('volatility_score')
+        width = volatility.get('bollinger_width_pct')
         print(f"   Volatility metrics:")
-        print(f"      Score: {features.get('volatility_score', 0):.1f}/10")
-        print(f"      Regime: {features.get('volatility_regime', 'unknown')}")
-        print(f"      Bollinger width: {features.get('bollinger_width_pct', 0):.2%}")
+        print(f"      Score: {f'{score:.1f}/10' if score is not None else 'не измерен'}")
+        print(f"      Regime: {volatility.get('volatility_regime') or 'не определён'}")
+        print(f"      Bollinger width: {f'{width:.2f}%' if width is not None else 'не измерена'}")
 
     result_volume = (
         analyze_zones(data)

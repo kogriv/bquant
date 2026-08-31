@@ -32,7 +32,6 @@ result = (
     .with_strategies(swing='zigzag', shape='statistical', divergence='classic',
                      volume='standard', volatility='combined')
     .with_swing_preset('narrow_zone')
-    .with_cache(enable=False)
     .analyze(clustering=True, n_clusters=3, regression=False, validation=False)
     .build()
 )
@@ -40,17 +39,9 @@ result = (
 print(type(result).__name__, len(result.zones))   # ZoneAnalysisResult 83
 ```
 
-Две строки здесь не украшение.
-
-`with_swing_preset('narrow_zone')` — потому что с пресетом по умолчанию две стратегии
-свингов из трёх не находят на этих данных ничего, и `swing_metrics` придёт нулевым:
-[Анализ зон на практике](zone_analysis.md).
-
-`with_cache(enable=False)` — потому что **кэш-ключ не различает стратегии метрик**.
-`shape`, `divergence`, `volatility` и `volume` в ключ не входят (свинги входят), поэтому
-включённая стратегия может молча получить результат прошлого прогона, посчитанный без
-неё. Пока это не исправлено, при смене или добавлении стратегий метрик кэш выключайте.
-Разбор: `devref/gaps/cache/g36_the_cache_key_does_not_see_the_strategies_2026-08.md`.
+`with_swing_preset('narrow_zone')` здесь не украшение: с пресетом по умолчанию две
+стратегии свингов из трёх не находят на этих данных ничего, и `swing_metrics` придёт
+нулевым — [Анализ зон на практике](zone_analysis.md).
 
 **Этапы пайплайна и что они заполняют:**
 
@@ -196,7 +187,7 @@ print(len(result.zones), result.zones[0].start_time)
 | **swing_metrics** | Словарь метрик свингов (если включена стратегия свингов). См. ниже. |
 | **shape_metrics** | Словарь метрик формы (если включена shape-стратегия): hist_skewness, hist_kurtosis, hist_smoothness, strategy_name, strategy_params. |
 | **divergence_metrics** | Словарь метрик дивергенций: divergence_type, divergence_count, divergence_strength, divergence_direction, strategy_name, strategy_params. |
-| **volatility_metrics** | Словарь метрик волатильности: volatility_score, volatility_regime, bollinger_width_pct и др. Появляется не у каждой зоны: если окно Боллинджера (`bb_length`, по умолчанию 20) в зоне наполнилось меньше двух раз, группа отбрасывается целиком, и узнать об этом можно только из лога. На встроенном сэмпле это 3 зоны из 32 — `devref/gaps/metrics/g37_nan_fails_a_non_negativity_assert_2026-08.md`. |
+| **volatility_metrics** | Словарь метрик волатильности: volatility_score, volatility_regime, bollinger_width_pct и др. **Часть величин может быть `None`** — это «не измерено», а не ноль: полосы Боллинджера считаются по окну `bb_length` (20), и в зоне короче окна боллинджеровских величин не существует, а ATR-часть при этом измерена. Вместе с `volatility_score` отсутствует и `volatility_regime`: композит по шкале 0–10 на две трети складывается из боллинджеровских компонент. У зон короче трёх баров группы нет вовсе. |
 | **volume_metrics** | Словарь метрик объёма: avg_volume_zone, volume_indicator_corr и др. (при наличии колонки volume и стратегии). |
 
 ### 4.3. Содержимое `metadata['swing_metrics']`
