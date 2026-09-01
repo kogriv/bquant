@@ -1,14 +1,17 @@
 """
 Data schemas for BQuant
 
-This module defines data schemas and models for structured data validation.
-Currently contains placeholders for future development.
+Схемы данных: какие поля обязательны, каких типов и каким правилам обязаны
+удовлетворять их значения. Схема умеет проверить кадр (`validate_dataframe`)
+и объяснить отказ.
 """
 
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from datetime import datetime
 import pandas as pd
+
+from ..core.logging_config import get_logger
 
 
 @dataclass
@@ -97,9 +100,10 @@ class DataValidationResult:
 
 class DataSchema:
     """
-    Base class for data schemas.
-    
-    This is a placeholder for future schema validation functionality.
+    Базовый класс схем данных.
+
+    Несёт перечень обязательных и опциональных полей, их типы и правила для
+    значений; :meth:`validate_dataframe` проверяет кадр по всему этому разом.
     """
     
     def __init__(self, schema_type: str):
@@ -114,27 +118,88 @@ class DataSchema:
         self.optional_fields = []
         self.field_types = {}
         self.validation_rules = {}
-    
+        self.logger = get_logger(f"{__name__}.{schema_type}")
+
     def validate_dataframe(self, df: pd.DataFrame) -> DataValidationResult:
         """
-        Validate DataFrame against schema.
-        
+        Проверить кадр по схеме: обязательные поля, типы и правила.
+
+        До 2026-09-01 здесь стояла заглушка, безусловно возвращавшая
+        ``is_valid=True`` — на любом кадре, включая пустой и не содержащий ни
+        одного объявленного поля. Схема ``macd`` требует три колонки, которых у
+        встроенного сэмпла нет, и всё равно объявляла его валидным (G42).
+        Признание «не реализовано» стояло в ``recommendations``, то есть в поле,
+        которое никто не читает, когда вердикт уже получен.
+
         Args:
-            df: DataFrame to validate
-        
+            df: кадр для проверки
+
         Returns:
-            DataValidationResult object
-            
-        Note:
-            This is a placeholder implementation.
+            DataValidationResult: вердикт, перечень проблем и статистика
         """
-        # Placeholder implementation
+        issues: List[str] = []
+        warnings: List[str] = []
+
+        present = set(df.columns)
+        missing = [field for field in self.required_fields if field not in present]
+        if missing:
+            issues.append(f"Missing required fields: {missing}")
+
+        absent_optional = [f for f in self.optional_fields if f not in present]
+
+        type_mismatches = []
+        checked_fields = [f for f in self.required_fields + self.optional_fields
+                          if f in present]
+        for field in checked_fields:
+            expected = self.field_types.get(field)
+            if expected in (float, int) and not pd.api.types.is_numeric_dtype(df[field]):
+                type_mismatches.append(f"{field}: expected {expected.__name__}, "
+                                       f"got {df[field].dtype}")
+        if type_mismatches:
+            issues.append(f"Field type mismatches: {type_mismatches}")
+
+        rule_violations: Dict[str, int] = {}
+        for field, rules in self.validation_rules.items():
+            if field not in present:
+                continue
+            values = df[field].dropna()
+            if values.empty:
+                warnings.append(f"Rules for '{field}' not applied: no values to check")
+                continue
+            for rule in rules:
+                try:
+                    failed = int((~values.map(rule).astype(bool)).sum())
+                except Exception as exc:
+                    warnings.append(f"Rule for '{field}' could not be applied: {exc}")
+                    continue
+                if failed:
+                    rule_violations[field] = rule_violations.get(field, 0) + failed
+        if rule_violations:
+            issues.append(f"Values violating field rules: {rule_violations}")
+
+        recommendations = []
+        if missing:
+            recommendations.append(f"Add the missing columns or pick another schema: {missing}")
+        if type_mismatches:
+            recommendations.append("Convert the listed columns to a numeric dtype")
+        if rule_violations:
+            recommendations.append("Inspect the rows violating field rules before analysis")
+
         return DataValidationResult(
-            is_valid=True,
-            issues=[],
-            warnings=[],
-            stats={'rows': len(df), 'columns': len(df.columns)},
-            recommendations=["Schema validation is not yet implemented"]
+            is_valid=not issues,
+            issues=issues,
+            warnings=warnings,
+            stats={
+                'rows': len(df),
+                'columns': len(df.columns),
+                'schema_type': self.schema_type,
+                'required_fields': list(self.required_fields),
+                'checked_fields': checked_fields,
+                'missing_required': missing,
+                'absent_optional': absent_optional,
+                'rule_violations': rule_violations,
+            },
+            recommendations=recommendations
         )
     
     def add_required_field(self, field_name: str, field_type: type):
@@ -156,9 +221,7 @@ class DataSchema:
 
 class OHLCVSchema(DataSchema):
     """
-    Schema for OHLCV data validation.
-    
-    This is a placeholder for future OHLCV-specific validation.
+    Схема OHLCV: цены обязательны и положительны, объём опционален и неотрицателен.
     """
     
     def __init__(self):
@@ -184,9 +247,10 @@ class OHLCVSchema(DataSchema):
 
 class IndicatorSchema(DataSchema):
     """
-    Schema for technical indicator data.
-    
-    This is a placeholder for future indicator validation.
+    Схема выходов технического индикатора.
+
+    Обязательные поля **спрашиваются у самого индикатора**
+    (:meth:`get_output_columns`), а не перечисляются здесь литералами.
     """
     
     def __init__(self, indicator_name: str):

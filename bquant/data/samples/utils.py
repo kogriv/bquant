@@ -152,6 +152,69 @@ def convert_to_list_of_dicts(df: pd.DataFrame, dataset_name: str) -> List[Dict[s
         raise ValueError(f"Cannot convert DataFrame to list: {e}")
 
 
+def _validate_declared_period(
+    data: List[Dict[str, Any]],
+    dataset_info: Dict[str, Any],
+    time_column: str,
+    validation_result: Dict[str, Any]
+) -> None:
+    """
+    Сверить объявленный период датасета с периодом данных, которые он несёт.
+
+    Объявленный период — часть метаданных, по которой датасет выбирают, поэтому
+    расхождение с данными это ошибка, а не примечание. Раньше проверки не было
+    вовсе, и `mt_xauusd_m15` три месяца объявлял май там, где нёс август, а
+    валидация отвечала `is_valid: True` — вердикт о том, чего не смотрели.
+    """
+    declared_start = dataset_info.get('period_start')
+    declared_end = dataset_info.get('period_end')
+
+    if declared_start is None or declared_end is None:
+        validation_result['errors'].append(
+            "Declared period is missing: metadata does not say what the data covers "
+            f"(period_start={declared_start!r}, period_end={declared_end!r})"
+        )
+        validation_result['is_valid'] = False
+        return
+
+    actual_start_raw = data[0].get(time_column)
+    actual_end_raw = data[-1].get(time_column)
+
+    parsed = {}
+    for label, raw in (
+        ('declared_start', declared_start), ('declared_end', declared_end),
+        ('actual_start', actual_start_raw), ('actual_end', actual_end_raw),
+    ):
+        try:
+            parsed[label] = pd.to_datetime(raw)
+        except (ValueError, TypeError) as e:
+            validation_result['errors'].append(f"Cannot parse {label} ({raw!r}): {e}")
+            validation_result['is_valid'] = False
+            return
+
+    validation_result['stats']['period'] = {
+        'declared': [str(declared_start), str(declared_end)],
+        'actual': [str(actual_start_raw), str(actual_end_raw)],
+    }
+
+    edges = (
+        ('start', declared_start, actual_start_raw),
+        ('end', declared_end, actual_end_raw),
+    )
+    for edge, declared_raw, actual_raw in edges:
+        try:
+            matches = parsed[f'declared_{edge}'] == parsed[f'actual_{edge}']
+        except TypeError:
+            # Одна метка со смещением, другая без — сравнить нельзя, и это тоже расхождение
+            matches = False
+        if not matches:
+            validation_result['errors'].append(
+                f"Declared period_{edge} does not match the data: "
+                f"declared {declared_raw!r}, data has {actual_raw!r}"
+            )
+            validation_result['is_valid'] = False
+
+
 def validate_data_integrity(data: List[Dict[str, Any]], dataset_info: Dict[str, Any]) -> Dict[str, Any]:
     """
     Валидировать целостность загруженных данных.
@@ -233,7 +296,9 @@ def validate_data_integrity(data: List[Dict[str, Any]], dataset_info: Dict[str, 
         time_cols = [col for col in actual_columns if 'time' in col.lower()]
         if not time_cols:
             validation_result['warnings'].append("No time column found")
-        
+        else:
+            _validate_declared_period(data, dataset_info, sorted(time_cols)[0], validation_result)
+
         # Статистика по типам данных
         type_stats = {}
         for key in first_record.keys():

@@ -44,8 +44,12 @@ AVAILABLE_DATASETS = {
         'columns': [
             'time', 'open', 'high', 'low', 'close', 'volume', 'spread'
         ],
-        'period_start': '2025-05-20T02:00:00',
-        'period_end': '2025-05-30T07:30:00',
+        # Период получен из самих данных (2026-09-01, G40): в реестре три месяца
+        # стояло '2025-05-20T02:00:00' … '2025-05-30T07:30:00' при данных за август.
+        # Значения обязаны совпадать с первой и последней записью DATA — это
+        # проверяет validate_data_integrity().
+        'period_start': '2025-08-07T19:15:00',
+        'period_end': '2025-08-22T16:00:00',
         'license': 'Open data, free for research and educational use',
         'disclaimer': 'For demonstration purposes only. Not for production trading.',
         'file_module': 'embedded.mt_xauusd_m15',

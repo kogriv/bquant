@@ -649,12 +649,23 @@ def prepare_data_for_analysis(
         
         # Select feature columns
         if feature_columns is None:
-            feature_columns = [col for col in prepared_df.select_dtypes(include=[np.number]).columns 
+            feature_columns = [col for col in prepared_df.select_dtypes(include=[np.number]).columns
                              if col != target_column]
         else:
             # Filter to existing columns
             feature_columns = [col for col in feature_columns if col in prepared_df.columns]
-        
+
+        # Колонка, пустая целиком, признаком быть не может: значения в ней нет ни в
+        # одной строке, а при отсеве NaN она уносит с собой весь кадр. Именно так
+        # встроенный сэмпл превращался в ноль строк (G41): колонки маркеров
+        # дивергенций TradingView заполнены только на сигнальных барах.
+        empty_columns = [col for col in feature_columns if prepared_df[col].isna().all()]
+        if empty_columns:
+            logger.warning(
+                f"Columns dropped from features — no value in any row: {empty_columns}"
+            )
+            feature_columns = [col for col in feature_columns if col not in empty_columns]
+
         # Normalize features if requested
         if normalize and feature_columns:
             prepared_df = normalize_prices(
@@ -663,14 +674,26 @@ def prepare_data_for_analysis(
                 method='z_score'
             )
         
-        # Remove rows with NaN values (from lagging, etc.)
+        # Отсев строк с пропусками — только по колонкам, ради которых кадр готовился
+        # (цель и признаки). Раньше отсев шёл по всему кадру, включая колонки, к
+        # анализу отношения не имеющие, и одна такая колонка обнуляла выборку.
+        subset = [target_column] + [col for col in feature_columns if col != target_column]
         initial_rows = len(prepared_df)
-        prepared_df.dropna(inplace=True)
+        prepared_df.dropna(subset=subset, inplace=True)
         final_rows = len(prepared_df)
-        
+
         if final_rows < initial_rows:
             logger.info(f"Removed {initial_rows - final_rows} rows with missing values")
-        
+
+        # Пустой результат — это не результат. Вернуть его молча значит выдать
+        # отсутствие данных за подготовленные данные.
+        if final_rows == 0:
+            raise ValueError(
+                f"Preparation left no rows: all {initial_rows} were dropped by the NaN "
+                f"filter over {len(subset)} columns. Check the windowed features "
+                f"(price_ma_50 needs 50 bars) and the input length."
+            )
+
         logger.info(f"Data preparation completed. Final shape: {prepared_df.shape}")
         return prepared_df
         

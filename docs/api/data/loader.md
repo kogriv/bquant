@@ -1,80 +1,131 @@
-# bquant.data.loader — Загрузка данных
+# `bquant.data.loader` — загрузка данных
 
-## Обзор
+Чтение OHLCV из CSV: определение кодировки, нормализация имён колонок, разбор времени и
+перенос его в индекс.
 
-Функции для загрузки OHLCV‑данных из CSV и по символу/таймфрейму на основе конфигурации. Включает нормализацию колонок, разбор дат, валидацию структуры.
+## Функции
 
-## Основные функции
+| Сигнатура | Что делает |
+|---|---|
+| `load_ohlcv_data(file_path, symbol=None, timeframe=None, validate_data=True)` | читает один файл |
+| `load_symbol_data(symbol, timeframe, data_source='tradingview', quote_provider='default')` | находит файл по конфигурации и читает его |
+| `load_xauusd_data(timeframe='1h')` | то же для XAUUSD |
+| `load_all_data_files(data_dir=None)` | читает все CSV каталога |
+| `get_data_info(df)` | сводка по загруженному кадру |
+| `get_available_symbols(data_dir=None)` | какие символы есть в каталоге |
+| `get_available_timeframes(symbol, data_dir=None)` | какие таймфреймы есть **у символа** |
 
-- `load_ohlcv_data(file_path, symbol=None, timeframe=None, validate_data=True) -> DataFrame`
-  - Загружает CSV, нормализует имена колонок (`open/high/low/close/volume`), пытается распарсить дату, опционально валидирует структуру.
+`get_available_timeframes()` требует символ — без него вопрос не имеет смысла, и
+до 2026-09-01 эта страница объявляла его необязательным.
 
-- `load_symbol_data(symbol, timeframe, data_source='tradingview', quote_provider='default', validate_data=True) -> DataFrame`
-  - Находит путь с помощью `bquant.core.config.get_data_path()` и загружает файл.
+## Чтение файла
 
-- `load_xauusd_data(timeframe='1h', data_source='tradingview', quote_provider='oanda') -> DataFrame`
-  - Удобный хелпер для XAUUSD.
+Пример самодостаточен: файл делается из встроенных данных, потому что внешних CSV в
+репозитории нет и быть не должно.
 
-- `load_all_data_files(data_dir=None, pattern='*.csv', recursive=False) -> Dict[str, DataFrame]`
-  - Загружает все подходящие файлы из директории (по умолчанию `DATA_DIR`), без рекурсии по умолчанию.
-
-- Информация/списки:
-  - `get_data_info(df) -> Dict[str, Any]`
-  - `get_available_symbols(data_dir=None) -> List[str]`
-  - `get_available_timeframes(data_dir=None, data_source='tradingview') -> List[str]`
-
-## Примеры
-
-Загрузка из файла и базовая информация:
 ```python
-from bquant.data.loader import load_ohlcv_data, get_data_info
+import tempfile
+from pathlib import Path
 
-df = load_ohlcv_data('data/XAUUSD_1h.csv', symbol='XAUUSD', timeframe='1h')
-print(get_data_info(df))
+from bquant.data.loader import get_data_info, load_ohlcv_data
+from bquant.data.samples import get_sample_data
+
+path = Path(tempfile.mkdtemp()) / 'XAUUSD_1h.csv'
+get_sample_data('tv_xauusd_1h').to_csv(path, index=False)
+
+df = load_ohlcv_data(path, symbol='XAUUSD', timeframe='1h')
+
+print(df.shape, type(df.index).__name__)
+print(df.columns[:5].tolist())
+# (1000, 14) DatetimeIndex
+# ['open', 'high', 'low', 'close', 'volume']
 ```
 
-Загрузка по символу/таймфрейму:
+**Колонки `time` в результате нет** — она стала индексом. Это отличает загрузчик от
+`get_sample_data()`, который отдаёт время колонкой при позиционном индексе. Разница
+существенна: `resample_ohlcv()` и `detect_market_sessions()` требуют `DatetimeIndex` и на
+кадре из sample-данных откажут, пока время не переставлено (`resolve_time_index()`).
+Разбор двух контрактов — `devref/gaps/detection/g30_…`.
+
+## Что известно о загруженном кадре
+
+```python
+import tempfile
+from pathlib import Path
+
+from bquant.data.loader import get_data_info, load_ohlcv_data
+from bquant.data.samples import get_sample_data
+
+path = Path(tempfile.mkdtemp()) / 'XAUUSD_1h.csv'
+get_sample_data('tv_xauusd_1h').to_csv(path, index=False)
+info = get_data_info(load_ohlcv_data(path))
+
+print(sorted(info.keys()))
+print(info['rows'], round(info['memory_usage_mb'], 3))
+print(str(info['date_range']['start']), '→', str(info['date_range']['end']))
+# ['columns', 'data_types', 'date_range', 'memory_usage_mb', 'missing_values', 'rows']
+# 1000 0.114
+# 2025-06-11 20:00:00+07:00 → 2025-08-12 13:00:00+07:00
+```
+
+`date_range` содержит два ключа, `start` и `end`, и значения в нём — `Timestamp`, а не
+строки.
+
+## Загрузка по символу и таймфрейму
+
 ```python
 from bquant.data.loader import load_symbol_data
-
-df = load_symbol_data('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
 ```
 
-Загрузка всех файлов:
+`load_symbol_data('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')`
+собирает путь через `bquant.core.config.get_data_path()` и читает файл. Каталог данных
+по умолчанию — `DATA_DIR` из конфигурации; в чистой установке он пуст, поэтому вызов
+завершится `DataLoadingError` с именем пути, которого не нашлось. Это не отказ функции,
+а отсутствие файла: положите данные в каталог или укажите путь напрямую через
+`load_ohlcv_data()`.
+
+`load_xauusd_data(timeframe='1h')` — то же самое с зафиксированными символом и
+провайдером; других параметров у неё нет.
+
+## Что есть в каталоге
+
 ```python
-from bquant.data.loader import load_all_data_files
+from bquant.data.loader import get_available_symbols, get_available_timeframes
 
-datasets = load_all_data_files()
-print(list(datasets.keys()))
+print(get_available_symbols())
+# []
 ```
+
+Пустой список означает пустой `DATA_DIR`, а не отсутствие поддержки. Имея символ, можно
+спросить его таймфреймы: `get_available_timeframes('XAUUSD')`.
+
+`load_all_data_files()` читает все CSV каталога и возвращает словарь «имя файла →
+кадр». Рекурсии нет, шаблон имени не настраивается — параметров, кроме `data_dir`,
+у функции не существует.
 
 ## Логирование
 
-Модуль использует контекстное логирование с детальными техническими сообщениями:
+Загрузчик пишет контекстно — символ и таймфрейм попадают в каждую строку:
 
 ```text
-# Пример вывода логгера
-10:54:37 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Loading data from: /path/to/file.csv
-10:54:37 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Detected encoding: ascii
-10:54:39 - bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Successfully loaded 21357 rows of data
+bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Loading data from: …
+bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Detected encoding: ascii
+bquant.data.loader - INFO - [symbol=XAUUSD, timeframe=1h] Successfully loaded 1000 rows
 ```
 
-**Управление уровнем логирования:**
+Приглушить:
 
 ```python
 import logging
 
-# Скрыть технические детали загрузчика
 logging.getLogger('bquant.data.loader').setLevel(logging.WARNING)
-
-# Или для всех data модулей
-logging.getLogger('bquant.data').setLevel(logging.WARNING)
 ```
 
-**См. подробности:** [Управление логированием](../core/logging.md#-модульная-настройка)
+## Дальше
 
-## Замечания
-
-- При `validate_data=True` используются внутренние проверки структуры (OHLCV) и консистентности.
-- Поддерживаются различные форматы дат; при невозможности — будет предупреждение.
-
+| | |
+|---|---|
+| [Sample-данные](samples.md) | что можно взять без файлов |
+| [Обработка](processor.md) | чистка, ресемплинг, признаки |
+| [Валидация](validator.md) | что с данными не так |
+| [Конфигурация](../core/config.md) | `DATA_DIR`, пути, провайдеры |

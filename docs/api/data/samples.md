@@ -1,324 +1,207 @@
-# BQuant Sample Data
+# Sample-данные — `bquant.data.samples`
 
-Встроенные тестовые данные для демонстрации возможностей BQuant и разработки примеров.
+Два датасета, вшитых в пакет. Они всегда на месте, не требуют внешних файлов и на них
+написаны все примеры этой документации.
 
-## 📊 Доступные датасеты
+## Что есть
 
-### TradingView XAUUSD 1H (`tv_xauusd_1h`)
-- Источник: TradingView via OANDA
-- Символ: XAUUSD (золото)
-- Таймфрейм: 1 час
-- Записей: 1,000
-- Размер: ~540 KB
-- Период: Июнь-Август 2025
-- Колонки: time, OHLCV, volume, accumulation_distribution, MACD, signal, RSI, RSI-based MA, regular bullish/bearish signals
-
-### MetaTrader XAUUSD M15 (`mt_xauusd_m15`)
-- Источник: MetaTrader
-- Символ: XAUUSD (золото)
-- Таймфрейм: 15 минут
-- Записей: 1,000
-- Размер: ~210 KB
-- Период: Май 2025
-- Колонки: time, OHLCV, volume, spread
-
-## 🚀 Быстрый старт
+Список не переписывайте отсюда — спрашивайте у пакета:
 
 ```python
-from bquant.data.samples import get_sample_data, list_datasets
+from bquant.data.samples import list_datasets
 
-# Получить список всех датасетов
-datasets = list_datasets()
-for dataset in datasets:
-    print(f"{dataset['title']}: {dataset['rows']} rows")
-
-# Загрузить данные как pandas DataFrame
-df = get_sample_data('tv_xauusd_1h')
-print(df.head())
-print(f"Shape: {df.shape}")
-
-# Загрузить данные как список словарей
-data = get_sample_data('tv_xauusd_1h', format='dict')
-print(f"Records: {len(data)}")
-print(f"Columns: {list(data[0].keys())}")
+for entry in list_datasets():
+    print(f"{entry['name']:<15} {entry['rows']} строк, {entry['columns_count']} колонок, "
+          f"{entry['size_kb']} КБ — {entry['source']}")
+# tv_xauusd_1h    1000 строк, 15 колонок, 542.4 КБ — TradingView via OANDA
+# mt_xauusd_m15   1000 строк, 7 колонок, 202.5 КБ — MetaTrader
 ```
 
-## 📋 API функции
+| | `tv_xauusd_1h` | `mt_xauusd_m15` |
+|---|---|---|
+| Источник | TradingView через OANDA | MetaTrader |
+| Инструмент | XAUUSD | XAUUSD |
+| Таймфрейм | 1 час | 15 минут |
+| Период | 2025-06-11 20:00 … 2025-08-12 13:00 (+07:00) | 2025-08-07 19:15 … 2025-08-22 16:00 |
+| Строк | 1000 | 1000 |
+| Помимо OHLCV | `accumulation_distribution`, `macd`, `signal`, `rsi`, `rsi_based_ma`, четыре колонки маркеров дивергенций | `spread` |
 
-### Основные функции
+Колонки `macd`, `signal`, `rsi` — **выгрузка TradingView**, а не выход индикатора пакета:
+их посчитал источник, у них свои параметры и своё именование. Индикатор пакета назвал бы
+их `macd_12_26_9__line` и `rsi_14`. Читать готовые колонки умеет
+[preloaded-индикатор](../indicators/preloaded.md).
 
-#### `get_sample_data(dataset_name, format='pandas')`
-Загружает sample данные в указанном формате.
-
-- Параметры: `dataset_name` — `'tv_xauusd_1h'` или `'mt_xauusd_m15'`; `format` — `'pandas'|'dataframe'` либо `'dict'|'list'`.
-- Возвращает: `pandas.DataFrame` или `List[Dict[str, Any]]`.
-
-```python
-# Как DataFrame (по умолчанию)
-df = get_sample_data('tv_xauusd_1h')
-
-# Как список словарей
-data = get_sample_data('tv_xauusd_1h', format='dict')
-```
-
-#### `list_datasets()`
-Возвращает список всех доступных датасетов с основной информацией.
-
-```python
-datasets = list_datasets()
-# [{'name': 'tv_xauusd_1h', 'title': 'TradingView XAUUSD 1H', ...}, ...]
-```
-
-#### `get_dataset_info(dataset_name)`
-Возвращает детальную информацию о конкретном датасете.
-
-```python
-info = get_dataset_info('tv_xauusd_1h')
-print(info['columns'])  # Список колонок
-print(info['period_start'])  # Начало периода
-```
-
-#### `validate_dataset(dataset_name)`
-Валидирует целостность и корректность данных.
-
-```python
-result = validate_dataset('tv_xauusd_1h')
-if result['is_valid']:
-    print("✅ Dataset is valid")
-else:
-    print("❌ Errors:", result['errors'])
-```
-
-### Дополнительные функции
-
-#### `get_sample_preview(dataset_name, n=5)`
-Возвращает первые n записей для предварительного просмотра.
-
-```python
-preview = get_sample_preview('tv_xauusd_1h', 3)
-for record in preview:
-    print(f"Time: {record['time']}, Close: {record['close']}")
-```
-
-#### `find_datasets(symbol=None, timeframe=None, source=None)`
-Находит датасеты по заданным критериям.
-
-```python
-# Все датасеты для XAUUSD
-xauusd_data = find_datasets(symbol='XAUUSD')
-
-# Все часовые данные
-hourly_data = find_datasets(timeframe='1h')
-
-# Все данные от TradingView
-tv_data = find_datasets(source='TradingView')
-```
-
-#### `get_datasets_by_symbol(symbol)` / `get_datasets_by_timeframe(timeframe)` / `get_datasets_by_source(source)`
-Однокритериальные сёстры `find_datasets()`. Каждая возвращает список имён датасетов.
-
-```python
-from bquant.data.samples import (
-    get_datasets_by_symbol,
-    get_datasets_by_timeframe,
-    get_datasets_by_source,
-)
-
-print(get_datasets_by_symbol('XAUUSD'))       # ['tv_xauusd_1h', 'mt_xauusd_m15']
-print(get_datasets_by_timeframe('1H'))        # ['tv_xauusd_1h']
-print(get_datasets_by_source('MetaTrader'))   # ['mt_xauusd_m15']
-```
-
-Таймфрейм сравнивается без учёта регистра: `'1H'` и `'1h'` дают одно и то же.
-
-Множество результатов у них и у `find_datasets()` с тем же критерием совпадает, а вот
-**порядок — нет**: `find_datasets()` сортирует, эти три отдают в порядке реестра.
-Полагаться на порядок не стоит ни у тех, ни у других.
-
-#### `print_datasets_info()`
-Печатает карточку каждого встроенного датасета: источник, символ, таймфрейм, число
-строк и колонок, размер, период и дату обновления. Ничего не возвращает — для
-структурного доступа есть `list_datasets()` и `get_dataset_info()`.
-
-```python
-from bquant.data.samples import print_datasets_info
-
-print_datasets_info()
-```
-
-#### `compare_sample_datasets(dataset1, dataset2)`
-Сравнивает два датасета.
-
-```python
-comparison = compare_sample_datasets('tv_xauusd_1h', 'mt_xauusd_m15')
-print(f"Common columns: {comparison['common_columns']}")
-print(f"Dataset 1 unique: {comparison['unique_columns']['tv_xauusd_1h']}")
-```
-
-#### `print_sample_data_status()`
-Выводит статус всех sample данных.
-
-```python
-print_sample_data_status()
-# 🎯 BQuant Sample Data Status
-# ================================
-# 📊 TradingView XAUUSD 1H (tv_xauusd_1h)
-# ...
-```
-
-## 🔧 Интеграция с BQuant
-
-### С индикаторами
+## Загрузка
 
 ```python
 from bquant.data.samples import get_sample_data
-from bquant.analysis.zones import analyze_macd_zones
 
-# Загружаем данные
-data = get_sample_data('tv_xauusd_1h')
+df = get_sample_data('tv_xauusd_1h')                 # DataFrame по умолчанию
+records = get_sample_data('tv_xauusd_1h', format='dict')  # список словарей
 
-# Анализ MACD-зон через универсальный пайплайн
-result = analyze_macd_zones(data)
-
-print(f"Found {len(result.zones)} MACD zones")
+print(type(df).__name__, df.shape)
+print(type(records).__name__, len(records), type(records[0]).__name__)
+# DataFrame (1000, 15)
+# list 1000 dict
 ```
 
-### С визуализацией
+`format` принимает `'pandas'`/`'dataframe'` и `'dict'`/`'list'`. Имя `load_sample_data`
+— тот же вызов под старым именем.
+
+## Метаданные
 
 ```python
-from bquant.data.samples import get_sample_data
-from bquant.visualization import FinancialCharts
+from bquant.data.samples import get_dataset_info
 
-# Загружаем данные
-data = get_sample_data('tv_xauusd_1h')
+info = get_dataset_info('mt_xauusd_m15')
 
-# Создаем график
-charts = FinancialCharts()
-fig = charts.create_candlestick_chart(data, title="Sample XAUUSD Data")
-fig.show()
+print(info['name'], '|', info['timeframe'], '|', info['rows'])
+print(info['period_start'], '→', info['period_end'])
+print(info['columns'])
+# MetaTrader XAUUSD 15M | 15M | 1000
+# 2025-08-07T19:15:00 → 2025-08-22T16:00:00
+# ['time', 'open', 'high', 'low', 'close', 'volume', 'spread']
 ```
 
-### С анализом
+**Осторожно с ключом `name`.** В `get_dataset_info()` это человеческое название
+(`'MetaTrader XAUUSD 15M'`), а в элементах `list_datasets()` — идентификатор
+(`'mt_xauusd_m15'`), тот самый, что принимает `get_sample_data()`. Одно слово, два разных
+предмета.
+
+## Проверка целостности
 
 ```python
-from bquant.data.samples import get_sample_data
-from bquant.analysis.zones import analyze_macd_zones
-from bquant.analysis.zones.detection import resolve_vocabulary
-from bquant.analysis.statistical import run_all_hypothesis_tests
-from bquant.analysis.zones.zone_features import ZoneFeaturesAnalyzer
+from bquant.data.samples import list_dataset_names, validate_dataset
 
-# Загружаем данные
-data = get_sample_data('tv_xauusd_1h')
-
-# Анализируем MACD зоны через универсальный пайплайн
-result = analyze_macd_zones(data)
-
-# Статистические тесты
-features = ZoneFeaturesAnalyzer().extract_all_zones_features(result.zones)
-zones_features = [feature.to_dict() for feature in features]
-
-# Словарь типов зон передаётся отдельно: `to_dict()` оставляет ИМЯ типа
-# ('bull'), но не его свойства (polarity, counterpart). Без словаря два теста
-# из семи откажутся считать направленные метрики и объяснят, чего им не хватает.
-vocabulary = resolve_vocabulary(result.zones)
-test_results = run_all_hypothesis_tests(zones_features, vocabulary=vocabulary)
-for test_name, outcome in test_results["tests"].items():
-    if "p_value" in outcome:
-        print(f"{test_name}: p-value = {outcome['p_value']:.4f}")
-    else:
-        print(f"{test_name}: не посчитан — {outcome.get('error')}")
+for name in list_dataset_names():
+    result = validate_dataset(name)
+    print(name, result['is_valid'], result['errors'])
+    print('   период:', result['stats']['period'])
+# tv_xauusd_1h True []
+#    период: {'declared': ['2025-06-11T20:00:00+07:00', '2025-08-12T13:00:00+07:00'], 'actual': ['2025-06-11T20:00:00+07:00', '2025-08-12T13:00:00+07:00']}
+# mt_xauusd_m15 True []
+#    период: {'declared': ['2025-08-07T19:15:00', '2025-08-22T16:00:00'], 'actual': ['2025.08.07 19:15', '2025.08.22 16:00']}
 ```
 
-## 📁 Структура данных
+Сверяются число строк, набор колонок и **объявленный период против несомого**. Последнее
+появилось 2026-09-01: до того период не проверялся вовсе, и `mt_xauusd_m15` объявлял май
+там, где нёс август, а валидация отвечала `is_valid: True` — вердикт о том, чего не
+смотрели (`devref/gaps/data/g40_…`). Совпадение теперь видно в `stats['period']`:
+«проверено» должно быть отличимо от «пропущено» и в успешном случае.
 
-### TradingView данные (`tv_xauusd_1h`)
+## Поиск и сравнение
 
 ```python
-{
-    'time': '2025-06-11T20:00:00+07:00',
-    'open': 3336.94,
-    'high': 3344.77,
-    'low': 3327.95,
-    'close': 3330.0,
-    'volume': 54323.0,
-    'accumulation_distribution': 6642770.32110492,
-    'macd': 1.9401445111593605,
-    'signal': 2.76537114439529,
-    'rsi': 47.8275212676637,
-    'rsi_based_ma': 55.23196702366443,
-    'regular_bullish': None,
-    'regular_bullish_label': '',
-    'regular_bearish': None,
-    'regular_bearish_label': ''
-}
+from bquant.data.samples import (find_datasets, get_datasets_by_symbol,
+                                 get_datasets_by_timeframe, get_datasets_by_source)
+
+print(find_datasets(symbol='XAUUSD'))
+print(get_datasets_by_timeframe('1H'), get_datasets_by_source('MetaTrader'))
+# ['mt_xauusd_m15', 'tv_xauusd_1h']
+# ['tv_xauusd_1h'] ['mt_xauusd_m15']
 ```
 
-### MetaTrader данные (`mt_xauusd_m15`)
+`find_datasets()` принимает `symbol`, `timeframe` и `source` вместе; три односложные
+сестры — по одному критерию каждая. Таймфрейм сравнивается без учёта регистра. Множество
+результатов у них совпадает, **порядок — нет**: `find_datasets()` сортирует, остальные
+отдают в порядке реестра. Полагаться на порядок не стоит нигде.
 
 ```python
-{
-    'time': '2025-05-20T02:00:00',
-    'open': 2425.15,
-    'high': 2425.79,
-    'low': 2424.85,
-    'close': 2425.56,
-    'volume': 7.0,
-    'spread': 4.0
-}
+from bquant.data.samples import compare_sample_datasets
+
+diff = compare_sample_datasets('tv_xauusd_1h', 'mt_xauusd_m15')
+
+print(sorted(diff['common_columns']))
+print(diff['unique_columns']['mt_xauusd_m15'])
+print(diff['comparison']['timeframes'])
+# ['close', 'high', 'low', 'open', 'time', 'volume']
+# ['spread']
+# ['1H', '15M']
 ```
 
-## ⚠️ Важные замечания
-
-### Лицензия и использование
-- Лицензия: Open data, свободно для исследований и образования
-- Disclaimer: Только для демонстрации. Не для production торговли
-- Источники: TradingView (OANDA), MetaTrader
-
-### Технические детали
-- Формат хранения: Embedded Python структуры (List[Dict])
-- Кодировка: UTF-8 для TradingView, Windows-1251 для MetaTrader
-- Размер в памяти: ~1-2 MB при загрузке в DataFrame
-- Числовые типы: float для всех числовых значений, None для NaN
-
-### Ограничения
-- Фиксированное количество записей (1,000 на датасет)
-- Только XAUUSD данные в текущей версии
-- Статические данные (обновляются вручную)
-
-## 🔄 Обновление данных
-
-```bash
-# Обновить все датасеты
-python scripts/data/extract_samples.py --extract-all
-
-# Обновить конкретный датасет
-python scripts/data/extract_samples.py --dataset tv_xauusd_1h
-
-# Проверить доступность источников
-python scripts/data/extract_samples.py --validate-sources
-```
-
-## 🧪 Тестирование
+## Статистика и предпросмотр
 
 ```python
-# Валидация всех датасетов
-from bquant.data.samples import validate_dataset, list_dataset_names
+from bquant.data.samples import get_data_statistics, get_sample_preview
 
-for dataset_name in list_dataset_names():
-    result = validate_dataset(dataset_name)
-    if result['is_valid']:
-        print(f"✅ {dataset_name}: Valid")
-    else:
-        print(f"❌ {dataset_name}: {result['errors']}")
+stats = get_data_statistics('tv_xauusd_1h')
+print(stats['total_records'], stats['total_columns'])
+print({k: round(v, 2) for k, v in stats['column_statistics']['close'].items()
+       if k in ('min_value', 'max_value', 'mean_value')})
+# 1000 15
+# {'min_value': 3263.82, 'max_value': 3448.49, 'mean_value': 3350.64}
 
-# Общий статус
-from bquant.data.samples import print_sample_data_status
-print_sample_data_status()
+print(get_sample_preview('mt_xauusd_m15', 1))
+# [{'time': '2025.08.07 19:15', 'open': 3390.72, 'high': 3391.52, 'low': 3389.29, 'close': 3389.69, 'volume': 2072.0, 'spread': 0.0}]
 ```
 
----
+Формат времени у датасетов разный — `'2025-06-11T20:00:00+07:00'` у TradingView и
+`'2025.08.07 19:15'` у MetaTrader: каждый несёт то, что дал источник. В `DataFrame`
+обе формы приводятся к `datetime`.
 
-Обновлено: 2025-08-25  
-Версия BQuant: 1.0.0-dev  
-Общий размер: ~750 KB (2 датасета)
+## Конвертация формата
 
+```python
+from bquant.data.samples import convert_to_dataframe, convert_to_list_of_dicts, get_sample_data
+
+records = get_sample_data('tv_xauusd_1h', format='dict')
+frame = convert_to_dataframe(records, 'tv_xauusd_1h')
+back = convert_to_list_of_dicts(frame, 'tv_xauusd_1h')
+
+print(frame.shape, frame['time'].dtype)
+print(len(back), type(back[0]['time']).__name__)
+# (1000, 15) datetime64[ns, UTC+07:00]
+# 1000 Timestamp
+```
+
+Обратная конвертация **не даёт исходных строк**: время возвращается объектом
+`Timestamp`, потому что через `DataFrame` оно уже разобрано. Круг не замкнут, и
+рассчитывать на побайтовое совпадение с `format='dict'` нельзя.
+
+## Печать карточек
+
+```python
+from bquant.data.samples import print_datasets_info, print_sample_data_status
+```
+
+Обе печатают и ничего не возвращают: `print_datasets_info()` — карточку каждого
+датасета, `print_sample_data_status()` — сводку по всем. Для программного доступа есть
+`list_datasets()` и `get_dataset_info()`.
+
+## Откуда берутся встроенные данные
+
+`SampleDataGenerator` — то, чем они сделаны: он читает исходные CSV загрузчиком пакета и
+пишет из них Python-модули в `bquant/data/samples/embedded/`.
+
+```python
+from bquant.data.samples import SampleDataGenerator
+```
+
+Три метода: `validate_source_files()` — есть ли исходники на месте,
+`generate_embedded_data(name)` — один датасет, `generate_all()` — все. Обычный вызов —
+через `scripts/data/extract_samples.py`. Всё это нужно только тому, кто обновляет сами
+sample-данные; чтобы ими пользоваться, генератор не требуется.
+
+**Исходных CSV в репозитории нет** — это внешние выгрузки, и без них генератор ничего не
+сделает. Метаданные, которые он записывает в сгенерированный файл, не совпадают с
+реестром в `datasets.py`: у `mt_xauusd_m15` они испорчены на извлечении (MT-CSV идёт без
+заголовка, и первая строка данных попала в список колонок). API читает реестр, поэтому на
+работу это не влияет; разбор — `devref/gaps/data/g40_…`, §5.
+
+## Ограничения
+
+* По 1000 строк в каждом датасете — этого хватает на демонстрацию и на тесты, но не на
+  статистику: 83 зоны MACD при детекции по гистограмме, 32 по линии.
+* Только XAUUSD и только два источника.
+* Данные статические. Обновление — `scripts/data/extract_samples.py`, которому нужны
+  исходные CSV; в репозитории их нет и не должно быть.
+* Лицензия — open data, для исследований и обучения. Не для торговли.
+
+## Дальше
+
+| | |
+|---|---|
+| [Загрузка](loader.md) | как читать свои файлы |
+| [Обработка](processor.md) | что делать с кадром дальше |
+| [Preloaded-индикатор](../indicators/preloaded.md) | как читать готовые колонки `macd`/`signal` |
+| [Анализ зон](../analysis/README.md) | ради чего всё это |

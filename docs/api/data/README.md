@@ -1,226 +1,129 @@
-# Data Modules - Модули данных BQuant
+# Данные — `bquant.data`
 
-## 📚 Обзор
+Пять модулей: откуда взять кадр, как его причесать, как проверить, чем описать и что
+уже лежит в пакете.
 
-Data модули обеспечивают работу с финансовыми данными: загрузку, обработку, валидацию и управление sample данными.
+| Модуль | Отвечает на вопрос | Страница |
+|---|---|---|
+| `samples` | что можно взять прямо сейчас, без файлов | [Sample-данные](samples.md) |
+| `loader` | как прочитать свой CSV | [Загрузка](loader.md) |
+| `processor` | как почистить, пересобрать, добавить признаки | [Обработка](processor.md) |
+| `validator` | что с этими данными не так | [Валидация](validator.md) |
+| `schemas` | какие поля обязательны и каким правилам подчиняются | [Схемы](schemas.md) |
 
-## 🗂️ Модули
+## С чего начинать
 
-### 📥 [bquant.data.loader](loader.md) — Загрузка данных
-- `load_ohlcv_data()` — загрузка OHLCV из CSV с автопарсингом дат
-- `load_symbol_data()` — загрузка по символу и таймфрейму через config
-- `load_xauusd_data()` — быстрая загрузка данных XAUUSD
-- `load_all_data_files()` — загрузка всех CSV из `DATA_DIR` (без рекурсии)
-- `get_data_info()` — информация о загруженных данных
-- `get_available_symbols()` / `get_available_timeframes()` — доступные символы/таймфреймы
-
-### 🔄 [bquant.data.processor](processor.md) — Обработка данных
-- `clean_ohlcv_data()` — очистка данных с удалением выбросов
-- `remove_price_outliers()` — удаление ценовых выбросов
-- `calculate_derived_indicators()` — расчет производных индикаторов
-- `resample_ohlcv()` — изменение временного интервала
-- `normalize_prices()` — нормализация цен
-- `detect_market_sessions()` — определение торговых сессий
-- `add_technical_features()` — добавление технических признаков
-- `create_lagged_features()` — генерация лаговых признаков
-- `prepare_data_for_analysis()` — комплексная подготовка для анализа
-
-### ✅ [bquant.data.validator](validator.md) — Валидация данных
-- `validate_ohlcv_data()` — валидация OHLCV с детальными проверками
-- `validate_data_completeness()` — проверка полноты данных
-- `validate_price_consistency()` — проверка логической связности цен
-- `validate_time_series_continuity()` — проверка непрерывности временных рядов
-- `validate_statistical_properties()` — проверка статистических свойств
-
-### 📊 [bquant.data.samples](samples.md) — Sample данные
-- `get_sample_data()` — получение embedded данных в pandas/dict формате
-- `list_datasets()` / `list_dataset_names()` — список доступных датасетов
-- `get_dataset_info()` — детальная информация о датасете
-- `validate_dataset()` — валидация целостности датасета
-- `get_sample_preview()` — предварительный просмотр данных
-- `find_datasets()` — поиск по критериям (symbol, timeframe, source)
-- `compare_sample_datasets()` — сравнение датасетов
-- `get_data_statistics()` — статистика по датасету
-- `convert_to_dataframe()` / `convert_to_list_of_dicts()` — конвертация формата
-- `load_sample_data` — алиас `get_sample_data` (обратная совместимость)
-- `SampleDataGenerator` — генератор embedded данных
-
-### 📋 [bquant.data.schemas](schemas.md) — Схемы данных
-- `OHLCVRecord` — Dataclass для OHLCV записи с валидацией
-- `DataSourceConfig` — конфигурация источника данных
-- `DataValidationResult` — результат валидации (как структура данных)
-- `DataSchema` / `OHLCVSchema` / `IndicatorSchema` — базовые схемы
-- Предопределенные схемы: `OHLCV_SCHEMA`, `MACD_SCHEMA`, `RSI_SCHEMA`
-- `get_schema()` / `validate_with_schema()` — функции работы со схемами (пока stub)
-
-## 🔍 Быстрый поиск
-
-### По функциональности
-
-#### Загрузка данных
-- `load_ohlcv_data()` — Загрузка OHLCV из файла
-- `load_symbol_data()` — Загрузка по символу/таймфрейму
-- `load_xauusd_data()` — Быстрый хелпер для XAUUSD
-- `load_all_data_files()` — Пакетная загрузка CSV из `DATA_DIR`
-
-#### Обработка данных
-- `clean_ohlcv_data()` — Очистка данных
-- `prepare_data_for_analysis()` — Подготовка к анализу
-- `resample_ohlcv()` — Изменение интервала
-- `remove_price_outliers()` — Удаление выбросов
-- `calculate_derived_indicators()` — Производные индикаторы
-- `normalize_prices()` — Нормализация цен
-- `detect_market_sessions()` — Сессии
-- `add_technical_features()` — Техпризнаки
-- `create_lagged_features()` — Лаги
-
-#### Валидация данных
-- `validate_ohlcv_data()` — Валидация OHLCV
-- `validate_data_completeness()` — Полнота
-- `validate_price_consistency()` — Логика цен
-- `validate_time_series_continuity()` — Непрерывность ряда
-- `validate_statistical_properties()` — Статистика
-
-#### Sample данные
-- `get_sample_data()` — Получение sample данных
-- `list_datasets()` / `list_dataset_names()` — Список datasets
-- `get_dataset_info()` — Информация о dataset
-- `get_data_statistics()` — Статистика по датасету
-- `convert_to_dataframe()` / `convert_to_list_of_dicts()` — Конвертация формата
-
-### По типу
-
-#### 🏗️ Классы/структуры
-- `OHLCVRecord`, `DataSourceConfig`, `DataValidationResult`, `SampleDataGenerator`
-
-#### 🔧 Функции
-- `load_ohlcv_data()`, `clean_ohlcv_data()`, `validate_ohlcv_data()`, `get_sample_data()`
-
-#### 📋 Типы данных
-- `DataSchema`, `OHLCVSchema`, `IndicatorSchema`, предопределенные `OHLCV_SCHEMA/MACD_SCHEMA/RSI_SCHEMA`
-
-## 💡 Примеры использования
-
-### Загрузка данных
+Со встроенных данных: они всегда на месте, у них известны границы, и на них написаны
+все примеры документации.
 
 ```python
-from bquant.data.loader import load_ohlcv_data, load_symbol_data, load_xauusd_data
+from bquant.data.samples import get_sample_data
 
-# Загрузка из CSV файла (с указанием контекста)
-data = load_ohlcv_data('data.csv', symbol='XAUUSD', timeframe='1h')
+data = get_sample_data('tv_xauusd_1h')
 
-# Загрузка по символу/таймфрейму через конфиг
-tv_data = load_symbol_data('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
-
-# Быстрая загрузка XAUUSD
-xau = load_xauusd_data('1h')
+print(data.shape)
+print(list(data.columns[:6]))
+print(data['time'].iloc[0], '→', data['time'].iloc[-1])
+# (1000, 15)
+# ['time', 'open', 'high', 'low', 'close', 'volume']
+# 2025-06-11 20:00:00+07:00 → 2025-08-12 13:00:00+07:00
 ```
 
-### Обработка данных
+Время здесь **колонка**, а не индекс. Пайплайн зон переставляет его сам; функциям,
+которым нужен `DatetimeIndex` (ресемплинг, сессии, непрерывность ряда), его надо дать —
+для этого есть `resolve_time_index()`.
+
+## Свой файл
 
 ```python
-from bquant.data.processor import (
-    clean_ohlcv_data, prepare_data_for_analysis, resample_ohlcv,
-    remove_price_outliers
-)
+import tempfile
+from pathlib import Path
 
-# Очистка данных
-clean_data = clean_ohlcv_data(data, remove_outliers=True, fill_method='forward')
+from bquant.data.loader import load_ohlcv_data
+from bquant.data.samples import get_sample_data
 
-# Подготовка для анализа
-analysis_data = prepare_data_for_analysis(clean_data, add_tech_features=True, normalize=True)
+path = Path(tempfile.mkdtemp()) / 'XAUUSD_1h.csv'
+get_sample_data('tv_xauusd_1h').to_csv(path, index=False)
 
-# Изменение временного интервала
-hourly_data = resample_ohlcv(data, '1H')
-daily_data = resample_ohlcv(data, '1D')
+df = load_ohlcv_data(path, symbol='XAUUSD', timeframe='1h')
+
+print(df.shape, type(df.index).__name__)
+# (1000, 14) DatetimeIndex
 ```
 
-### Валидация данных
+Колонок стало 14, а не 15: `time` ушёл в индекс. Загрузчик и sample-данные отдают кадр
+**по-разному**, и это не мелочь — половина функций обработки требует `DatetimeIndex`, а
+половина работает с любым. Подробности — [загрузка](loader.md).
+
+## Проверить
 
 ```python
-from bquant.data.validator import (
-    validate_ohlcv_data, validate_data_completeness
-)
+from bquant.data.samples import get_sample_data
+from bquant.data.validator import validate_ohlcv_data
 
-# Валидация OHLCV данных
-validation_result = validate_ohlcv_data(data)
+report = validate_ohlcv_data(get_sample_data('tv_xauusd_1h'))
 
-if not validation_result['is_valid']:
-    print(f"Validation errors: {validation_result['issues']}")
-    print(f"Warnings: {validation_result['warnings']}")
-
-# Проверка полноты
-completeness = validate_data_completeness(data)
-print(f"Data completeness: {completeness['is_complete']}")
+print(report['is_valid'], report['issues'])
+print(report['warnings'])
+# True []
+# ['High missing data ratio: 26.67%']
 ```
 
-### Sample данные
+Предупреждение настоящее и объяснимое: четыре колонки маркеров дивергенций TradingView
+заполнены только на сигнальных барах, а в выгрузке пусты целиком — четыре пустых колонки
+из пятнадцати и дают 26.67%. Разбор — [валидация](validator.md).
+
+## Подготовить к анализу
 
 ```python
-from bquant.data.samples import (
-    get_sample_data, list_datasets, list_dataset_names, get_dataset_info,
-    convert_to_dataframe, convert_to_list_of_dicts, get_data_statistics
-)
+from bquant.data.processor import clean_ohlcv_data, prepare_data_for_analysis
+from bquant.data.samples import get_sample_data
 
-# Список доступных datasets
-datasets_summary = list_datasets()
-names = list_dataset_names()
+clean = clean_ohlcv_data(get_sample_data('tv_xauusd_1h'))
+prepared = prepare_data_for_analysis(clean)
 
-# Информация о датасете
-info = get_dataset_info('tv_xauusd_1h')
-
-# Загрузка sample данных (по умолчанию DataFrame)
-df = get_sample_data('tv_xauusd_1h')
-
-# Загрузка как список словарей и конвертация в DataFrame
-data_list = get_sample_data('tv_xauusd_1h', format='dict')
-df2 = convert_to_dataframe(data_list, 'tv_xauusd_1h')
-
-# Обратная конвертация
-data_list2 = convert_to_list_of_dicts(df, 'tv_xauusd_1h')
-
-# Статистика по данным
-stats = get_data_statistics('tv_xauusd_1h')
+print(prepared.shape, prepared.index[0])
+# (951, 36) 49
 ```
 
-### Генератор Sample данных
+Снято ровно 49 строк — прогрев самого длинного окна (`price_ma_50`). До 2026-09-01 та же
+пара вызовов давала кадр `(0, 36)`: отсев пропусков шёл по всем колонкам сразу, и одна
+пустая колонка уносила выборку целиком (`devref/gaps/data/g41_…`).
+
+## Описать схемой
 
 ```python
-from bquant.data.samples import SampleDataGenerator
+from bquant.data.samples import get_sample_data
+from bquant.data.schemas import validate_with_schema
 
-generator = SampleDataGenerator()
-# generator.generate_all()  # создаст embedded-файлы согласно конфигурации
+data = get_sample_data('tv_xauusd_1h')
+
+print(validate_with_schema(data, 'ohlcv').is_valid)
+print(validate_with_schema(data, 'macd').issues)
+# True
+# ["Missing required fields: ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']"]
 ```
+
+Второй вердикт верен: колонки MACD в сэмпле называются `macd` и `signal` — это выгрузка
+TradingView, а не выход индикатора пакета. До 2026-09-01 обе строки печатали `True`
+(`devref/gaps/data/g42_…`).
 
 ## Логирование
 
-Data модули используют контекстное логирование с техническими деталями загрузки и обработки данных. При использовании с NotebookSimulator может возникать дублирование сообщений.
+Модули данных пишут подробно — при работе из research-скрипта это мешает:
 
-**Настройка для research скриптов:**
 ```python
 import logging
 
-# Скрыть технические логи data модулей
 logging.getLogger('bquant.data').setLevel(logging.WARNING)
 ```
 
-**См. подробности:** [Управление логированием](../core/logging.md#-модульная-настройка)
+Подробнее — [управление логированием](../core/logging.md).
 
-## 🔗 Связанные разделы
+## Дальше
 
-- **[Core Modules](../core/README.md)** — Базовые модули
-- **[Indicators](../indicators/README.md)** — Технические индикаторы
-- **[Analysis](../analysis/README.md)** — Аналитические модули
-- **[Visualization](../visualization/README.md)** — Модули визуализации
-
-## 📖 Детальная документация
-
-- Loader: loader.md — загрузка данных (файлы, символ/таймфрейм, списки доступных)
-- Processor: processor.md — очистка, ресемплинг, производные индикаторы
-- Validator: validator.md — комплексная валидация, полнота, логика цен, непрерывность
-- Schemas: schemas.md — схемы данных и предопределённые схемы
-- Samples: samples.md — API sample‑данных (структура, функции, примеры)
-
----
-
-**Следующий раздел:** [Indicators](../indicators/README.md) 📈
+| | |
+|---|---|
+| [Индикаторы](../indicators/README.md) | что считать поверх этого кадра |
+| [Анализ зон](../analysis/README.md) | куда кадр идёт дальше |
+| [Ядро](../core/README.md) | конфигурация, кэш, логирование |
