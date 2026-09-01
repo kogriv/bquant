@@ -156,13 +156,25 @@ def get_performance_monitor() -> PerformanceMonitor:
     return _global_monitor
 
 
-def performance_monitor(enable_cpu: bool = True, enable_memory: bool = True):
+def performance_monitor(func: Optional[Callable] = None, *, enable_cpu: bool = True,
+                        enable_memory: bool = True):
     """
     Декоратор для мониторинга производительности функций.
-    
+
+    Принимает обе формы записи:
+
+    ``@performance_monitor`` — без скобок, и ``@performance_monitor()`` — со
+    скобками. До 2026-09-01 работала только вторая, а первая **молча ломала
+    функцию**: декоратор без скобок получал саму функцию вместо флага, и
+    декорированное имя начинало возвращать внутренний ``wrapper`` вместо
+    результата. Ни исключения, ни предупреждения — вызов возвращал объект, у
+    которого правильный вид (G43). Форма без скобок при этом стояла в
+    инструкции проекта (`AGENTS.md`) как рекомендуемый образец.
+
     Args:
-        enable_cpu: Мониторить CPU usage
-        enable_memory: Мониторить memory usage
+        func: декорируемая функция при записи без скобок
+        enable_cpu: мониторить CPU usage
+        enable_memory: мониторить memory usage
     """
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
@@ -204,8 +216,16 @@ def performance_monitor(enable_cpu: bool = True, enable_memory: bool = True):
             except Exception as e:
                 logger.error(f"Performance monitoring failed for {func.__name__}: {e}")
                 raise
-        
+
         return wrapper
+
+    if func is not None:
+        if not callable(func):
+            raise TypeError(
+                "performance_monitor: first argument must be the decorated function. "
+                "Pass enable_cpu/enable_memory by keyword: @performance_monitor(enable_cpu=False)"
+            )
+        return decorator(func)
     return decorator
 
 
@@ -263,14 +283,17 @@ class OptimizedIndicators:
         """
         if len(prices) < period:
             return np.full(len(prices), np.nan)
-        
-        # Используем convolution для быстрого расчета
+
+        # Окно — хвостовое: значение в точке i считается по prices[i-period+1 : i+1].
+        # Было `np.convolve(..., mode='same')`, то есть окно **центрированное** и
+        # дополненное нулями с обоих концов: индикатор заглядывал вперёд, а последние
+        # period//2 значений усреднялись с нулями и падали почти вдвое — 1597 при
+        # ценах около 2900 (G44). `mode='valid'` даёт ровно len-period+1 значений,
+        # посчитанных без единого добавленного нуля.
         kernel = np.ones(period) / period
-        sma_values = np.convolve(prices, kernel, mode='same')
-        
-        # Устанавливаем NaN для первых period-1 значений
-        sma_values[:period-1] = np.nan
-        
+        sma_values = np.full(len(prices), np.nan)
+        sma_values[period - 1:] = np.convolve(prices, kernel, mode='valid')
+
         return sma_values
     
     @staticmethod
@@ -332,13 +355,28 @@ class OptimizedIndicators:
         avg_gains = OptimizedIndicators.ema(gains, period)
         avg_losses = OptimizedIndicators.ema(losses, period)
         
-        # Избегаем деления на ноль
-        rs = np.where(avg_losses != 0, avg_gains / avg_losses, 0)
-        rsi_values = 100 - (100 / (1 + rs))
-        
+        # Деление на ноль — не «ноль», а край шкалы. Раньше здесь стояло
+        # `np.where(avg_losses != 0, avg_gains / avg_losses, 0)`: при отсутствии
+        # падений RS обнулялся, и строго растущий ряд получал **RSI 0** — отметку
+        # предельной перепроданности, ту же, что у строго падающего и у плоского
+        # (G44). Плюс обе ветви `np.where` вычисляются, поэтому деление на ноль
+        # исполнялось всегда и сыпало RuntimeWarning.
+        rsi_values = np.full(len(prices), np.nan)
+
+        both_zero = (avg_gains == 0) & (avg_losses == 0)
+        no_losses = (avg_losses == 0) & ~both_zero
+        measurable = avg_losses != 0
+
+        rs = np.divide(avg_gains, avg_losses, out=np.zeros_like(avg_gains),
+                       where=measurable)
+        rsi_values[measurable] = 100 - (100 / (1 + rs[measurable]))
+        rsi_values[no_losses] = 100.0
+        # Ряд без движения в обе стороны: RSI не определён, и это не 50 и не 0.
+        rsi_values[both_zero] = np.nan
+
         # Устанавливаем NaN для первых period значений
         rsi_values[:period] = np.nan
-        
+
         return rsi_values
     
     @staticmethod

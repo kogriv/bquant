@@ -272,17 +272,26 @@ class BQuantErrorContext:
             if self.logger:
                 self.logger.error(f"Ошибка в операции '{self.operation}': {exc_val}")
             
-            # Если это не наше исключение, оборачиваем его
+            # Если это не наше исключение, оборачиваем его.
+            # Имя операции и тип исходной ошибки идут в `details` — программе, а не
+            # только в текст сообщения: тот же принцип, что в G31 («свойство, а не
+            # проза»). Раньше их можно было достать лишь разбором строки.
+            details = {
+                'operation': self.operation,
+                'original_error': exc_type.__name__,
+            }
             if not isinstance(exc_val, BQuantError):
                 if exc_type in (ValueError, TypeError):
                     # Конвертируем стандартные исключения в наши
                     raise ConfigurationError(
-                        f"Ошибка в операции '{self.operation}': {exc_val}"
+                        f"Ошибка в операции '{self.operation}': {exc_val}",
+                        details
                     ) from exc_val
                 else:
                     # Оборачиваем все остальные в базовое исключение
                     raise BQuantError(
-                        f"Неожиданная ошибка в операции '{self.operation}': {exc_val}"
+                        f"Неожиданная ошибка в операции '{self.operation}': {exc_val}",
+                        details
                     ) from exc_val
         
         return False  # Не подавляем исключение

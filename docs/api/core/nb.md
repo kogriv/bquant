@@ -38,14 +38,17 @@ nb.finish()
 NotebookSimulator(
     description: Optional[str] = None,
     default_log_name: Optional[str] = None,
-    auto_setup: bool = True
+    auto_setup: bool = True,
+    catch_traceback: bool = True
 )
 ```
 
 **Параметры:**
 - `description` (str, optional): Описание скрипта (автоопределение из имени файла если None)
 - `default_log_name` (str, optional): Имя лог файла (автогенерация если None)
-- `auto_setup` (bool): Автоматически парсить аргументы и настроить логирование
+- `auto_setup` (bool): Автоматически парсить аргументы CLI и настроить логирование
+- `catch_traceback` (bool): Перехватывать необработанные исключения и писать трассировку
+  в лог; при `False` она уходит в stderr как обычно
 
 #### Основные методы
 

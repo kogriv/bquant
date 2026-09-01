@@ -62,24 +62,6 @@ from tests.unit.test_docs_parity import (  # noqa: E402
 #: Образец — ``KNOWN_COLLISIONS`` в ``tests/unit/test_public_name_collisions.py``:
 #: «ожидаемо падает» должно быть **заявлено**, а не получаться само.
 EXPECTED_TO_FAIL = {
-    ("docs/api/core/config.md", "validate_timeframe('2D')"):
-        "показывает отказ намеренно: комментарий в примере так и говорит — # ValueError",
-    ("docs/api/core/config.md", "set_data_dir("):
-        "пишет в путь, которого у читателя нет; иллюстрация переопределения каталога",
-    ("docs/api/core/exceptions.md", "create_data_validation_error("):
-        "демонстрирует обёртывание чужого исключения — деление на ноль здесь намеренное",
-    ("docs/api/core/logging.md", "❌ НЕПРАВИЛЬНО"):
-        "показывает НЕВЕРНЫЙ порядок вызова: setup_logging до собственного импорта",
-    ("docs/api/core/logging.md", "load_ohlcv_data('file.csv')"):
-        "читает файл, который приносит читатель",
-    ("docs/api/core/README.md", "runner.wait()"):
-        "демонстрирует интерактивную паузу: без терминала читать ввод неоткуда",
-    ("docs/api/data/README.md", "load_ohlcv_data('data.csv', symbol="):
-        "читает файл, который приносит читатель",
-    ("docs/api/data/loader.md", "'data/XAUUSD_1h.csv'"):
-        "читает файл, который приносит читатель",
-    ("docs/api/data/loader.md", "load_symbol_data("):
-        "ищет файл в каталоге данных, который наполняет читатель",
     ("docs/api/extension_guide.md", "my_bquant_extension"):
         "импортирует гипотетический пакет расширения — он и есть предмет примера",
     ("docs/api/extension_guide.md", "setup("):
@@ -487,3 +469,27 @@ def test_the_expected_failure_registry_is_not_a_dumping_ground():
     )
     for key, reason in EXPECTED_TO_FAIL.items():
         assert len(reason) > 20, f"{key}: причина не объяснена"
+
+
+def test_every_expected_failure_still_points_at_an_example():
+    """Запись, не совпадающая ни с одним блоком, — мёртвая, и это опасно.
+
+    Реестр ловит только обратный случай: пример **числится** и при этом отработал.
+    Запись, переставшая совпадать с чем-либо (пример переписали, раздел убрали),
+    не краснеет никогда и тихо лежит — пока однажды её фрагмент не совпадёт с
+    новым примером и не прикроет настоящую поломку.
+
+    Найдено проходом по справочнику ядра: из пятнадцати записей шесть указывали в
+    никуда — на разделы, переписанные волной 3.
+    """
+    orphans = []
+    for rel, fragment in EXPECTED_TO_FAIL:
+        matches = [code for doc_rel, _, code in EXAMPLES
+                   if doc_rel == rel and fragment in code]
+        if not matches:
+            orphans.append(f"{rel} :: {fragment!r}")
+
+    assert not orphans, (
+        "записи реестра не совпадают ни с одним примером — уберите их:\n  "
+        + "\n  ".join(orphans)
+    )

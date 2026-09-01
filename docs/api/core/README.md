@@ -1,102 +1,137 @@
-# Core Modules - Базовые модули BQuant
+# Ядро — `bquant.core`
 
-## 📚 Обзор
+Шесть модулей, на которых стоит всё остальное: пути и параметры, исключения,
+логирование, замер производительности, утилиты и сценарии в стиле ноутбука.
 
-Core модули содержат базовую функциональность BQuant: конфигурацию, исключения, логирование, производительность и утилиты.
+| Модуль | Отвечает за | Страница |
+|---|---|---|
+| `config` | пути проекта, таймфреймы, параметры по умолчанию, фабрики стратегий | [Конфигурация](config.md) |
+| `exceptions` | иерархия ошибок, фабрики сообщений, контекст | [Исключения](exceptions.md) |
+| `logging_config` | профили, модульные уровни, контекстные логгеры | [Логирование](logging.md) |
+| `performance` | декоратор и контекст замера, монитор, бенчмарки | [Производительность](performance.md) |
+| `utils` | доходности, нормировка, сохранение, проверки | [Утилиты](utils.md) |
+| `nb` | `NotebookSimulator` — пошаговые research-скрипты | [Notebook-скрипты](nb.md) |
 
-## 🗂️ Модули
+Сорок одно имя поднято в `bquant.core` напрямую — исключения, `get_logger`,
+`setup_logging`, `NotebookSimulator`, константы путей и утилиты; спрашивать у
+`bquant.core.__all__`, а не переписывать список сюда.
 
-### 🔧 [bquant.core.config](config.md) - Конфигурация и настройки
-- Константы путей и конфигураций (PROJECT_ROOT, DATA_DIR, RESULTS_DIR, LOGGING, и др.)
-- Помощники: `get_data_path()`, `get_indicator_params()`, `get_analysis_params()`, `validate_timeframe()`, `get_results_path()`, `get_cache_config()`
+## Конфигурация
 
-### ⚠️ [bquant.core.exceptions](exceptions.md) - Исключения и ошибки
-- **BQuantError** - Базовое исключение BQuant
-- **DataError** - Ошибки данных
-- **AnalysisError** - Ошибки анализа
-- **VisualizationError** - Ошибки визуализации
+```python
+from bquant.core.config import get_indicator_params, validate_timeframe
 
-### 📝 [bquant.core.logging_config](logging.md) - Настройка логирования
-- `setup_logging()` — инициализация логирования
-- `get_logger()` — получение логгера (с контекстом)
-- Декораторы и контекст логирования
+print(validate_timeframe('1h'))
+print(get_indicator_params('macd'))
+print(get_indicator_params('macd', fast=5))
+# 1h
+# {'fast': 12, 'slow': 26, 'signal': 9}
+# {'fast': 5, 'slow': 26, 'signal': 9}
+```
 
-### ⚡ [bquant.core.performance](performance.md) - Производительность и профилирование
-- Декоратор `@performance_monitor` и контекст `performance_context`
-- Глобальный монитор `PerformanceMonitor`, сбор и экспорт метрик
-- Оптимизированные индикаторы (NumPy): `sma`, `ema`, `rsi`, `macd`, `bollinger_bands`
+Имена параметров здесь — в стиле внешних библиотек (`fast`/`slow`/`signal`), а
+встроенные индикаторы принимают свои (`fast_period`). Словарь сюда не передаётся как
+есть; подробности — [конфигурация](config.md).
 
-### 🛠️ [bquant.core.utils](utils.md) - Утилиты и вспомогательные функции
-- `setup_project_logging()`, `calculate_returns()`, `normalize_data()`
-- `save_results()`, `validate_ohlcv_columns()`, `create_timestamp()`
-- `memory_usage_info()`, `ensure_directory()`
+## Исключения
 
-### 📓 [bquant.core.nb](nb.md) - Notebook-Style Scripts API
-- **NotebookSimulator** - Класс для управления пошаговым выполнением скриптов
-- Утилиты логирования: `log()`, `success()`, `error()`, `warning()`, `info()`
-- Интерактивное управление: `step()`, `wait()`, `substep()`
-- Настройка окружения: `setup_logging()`, `set_trap_mode()`
+```python
+from bquant.core.exceptions import BQuantError, DataError, create_data_validation_error
 
-## 🔍 Быстрый поиск
+try:
+    raise create_data_validation_error("нужен DataFrame", expected_type="DataFrame",
+                                       actual_type="dict")
+except DataError as error:
+    print(type(error).__name__, isinstance(error, BQuantError))
+    print(error.details)
+# DataValidationError True
+# {'expected_type': 'DataFrame', 'actual_type': 'dict'}
+```
 
-### По функциональности
+Всё семейство наследует `BQuantError`, поэтому одна ветка `except` ловит любую ошибку
+пакета и не ловит чужие. Разбор — [исключения](exceptions.md).
 
-#### Конфигурация
-- `get_data_path()` - Получение пути к данным
-- `validate_timeframe()` - Проверка таймфрейма
-- `get_indicator_params()` - Параметры индикатора
+## Логирование
 
-#### Логирование
-- `setup_logging()` - Настройка логирования
-- `get_logger()` - Получение логгера
-- `logger.info()` - Информационные сообщения
+```python
+import logging
 
-#### Производительность
-- `@performance_monitor()` - Декоратор профилирования
-- `performance_context()` - Контекстный менеджер
-- `get_performance_monitor().get_stats()` - Получение метрик
+from bquant.core.logging_config import LOGGING_PROFILES, get_logger, setup_logging
 
-#### Утилиты
-- `validate_ohlcv_columns()` - Проверка структуры данных
-- `calculate_returns()` - Доходности (simple/log)
-- `normalize_data()` - Нормализация данных
+print(sorted(LOGGING_PROFILES))
+# ['audit', 'clean', 'critical', 'debug', 'focused', 'research', 'verbose']
 
-#### Notebook-style скрипты
-- `NotebookSimulator()` - Создание runner для скрипта
-- `step()` / `wait()` - Пошаговое выполнение
-- `success()` / `error()` - Логирование с эмодзи
+setup_logging(profile='research')
+logger = get_logger(__name__, context={'symbol': 'XAUUSD'})
+logger.info('готово')
+```
 
-### По типу
+Семь профилей — от `research` (технические детали в файл, не в консоль) до `debug`.
+Профиль применяется ко всему дереву `bquant.*`; отдельные модули настраиваются через
+`modules_config` и `exceptions`. Подробности — [логирование](logging.md).
 
-#### 🏗️ Классы
-- `BQuantError` - Базовое исключение
-- `PerformanceMonitor` - Сбор метрик
-- `NotebookSimulator` - Управление notebook-style скриптами
+## Замер производительности
 
-#### 🔧 Функции
-- `setup_logging()` - Настройка логирования
-- `get_logger()` - Получение логгера
-- `validate_ohlcv_columns()` - Валидация данных
+```python
+from bquant.core.performance import get_performance_monitor, performance_monitor
 
-#### 📋 Исключения
-- `BQuantError` - Базовое исключение
-- `DataError` - Ошибки данных
-- `AnalysisError` - Ошибки анализа
+@performance_monitor
+def analyse(values):
+    return sum(values)
 
-### 🧩 Совместимость с numpy
+analyse([1, 2, 3])
+
+print('analyse' in ' '.join(get_performance_monitor().get_stats()))
+# True
+```
+
+Декоратор пишется **и без скобок, и со скобками** — обе формы равноправны. До
+2026-09-01 работала только форма со скобками, а без них декоратор молча подменял
+функцию: вызов возвращал внутренний объект вместо результата
+(`devref/gaps/core/g43_…`). Подробности и монитор — [производительность](performance.md).
+
+## Утилиты
+
+```python
+from bquant.core.utils import calculate_returns, validate_ohlcv_columns
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+check = validate_ohlcv_columns(data)
+
+print(check['is_valid'], check['missing_required'])
+print(round(float(calculate_returns(data['close'], method='log').iloc[1]), 6))
+# True []
+# 0.00229
+```
+
+## Notebook-скрипты
+
+```python
+from bquant.core.nb import NotebookSimulator
+
+nb = NotebookSimulator("Пример анализа")
+
+nb.step("Загрузка данных")
+nb.success("Данные загружены")
+nb.wait()
+
+nb.finish()
+```
+
+Полный справочник — [notebook-скрипты](nb.md).
+
+## Совместимость с numpy
 
 `bquant.core` поднимает три функции из `bquant.core.numpy_fix` и константу `NaN`.
-**Вызывать функции вручную не нужно** — `apply_numpy_fixes()` выполняется сам при
-импорте модуля, до того как пакетом начнут пользоваться. Экспортированы они, чтобы
-состояние совместимости можно было *спросить*, а не чтобы им управлять.
+**Вызывать их вручную не нужно** — `apply_numpy_fixes()` выполняется при импорте, до
+того как пакетом начнут пользоваться. Экспортированы они, чтобы состояние совместимости
+можно было *спросить*, а не чтобы им управлять.
 
-- `apply_numpy_fixes()` — восстанавливает `np.NaN`, убранный в numpy 2.x, от
-  которого зависят некоторые сторонние библиотеки. Идемпотентна: если атрибут уже
-  есть, ничего не делает.
-- `ensure_numpy_compatibility()` — то же самое, но сперва проверяет, нужно ли.
-  Пригодна как явный вызов перед импортом библиотеки, ломающейся о numpy 2.x.
-- `check_numpy_compatibility() -> dict` — отчёт, ничего не меняет. Ключи:
-  `numpy_version`, `has_nan`, `has_NaN`, `fixes_applied`, `issues`.
+* `apply_numpy_fixes()` — восстанавливает `np.NaN`, убранный в numpy 2.x, от которого
+  зависят некоторые сторонние библиотеки. Идемпотентна.
+* `ensure_numpy_compatibility()` — то же, но сперва проверяет, нужно ли.
+* `check_numpy_compatibility() -> dict` — отчёт, ничего не меняет.
 
 ```python
 from bquant.core import check_numpy_compatibility
@@ -109,124 +144,11 @@ print(sorted(info))
 `fixes_applied` отвечает на вопрос «понадобилось ли чинить», а не «вызывали ли
 функцию»: на numpy, где `NaN` на месте, там будет `False`.
 
-## 💡 Примеры использования
+## Дальше
 
-### Конфигурация
-
-```python
-from bquant.core.config import get_data_path, validate_timeframe
-
-# Проверка таймфрейма
-validate_timeframe('1h')
-
-# Путь к данным TradingView/OANDA для XAUUSD 1h
-path = get_data_path('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
-```
-
-### Логирование
-
-```python
-from bquant.core.logging_config import setup_logging, get_logger
-
-# Настройка логирования
-setup_logging(level='INFO', log_file='bquant.log')
-
-# Получение логгера
-logger = get_logger(__name__)
-
-# Использование логгера
-logger.info("Starting analysis...")
-logger.debug("Processing data...")
-logger.warning("Data validation failed")
-logger.error("Analysis failed")
-```
-
-### Производительность
-
-```python
-from bquant.core.performance import performance_monitor, performance_context
-
-# Декоратор для профилирования
-@performance_monitor()
-def slow_function():
-    """Функция с профилированием"""
-    import time
-    time.sleep(1)
-    return "result"
-
-# Контекстный менеджер
-with performance_context("data_processing"):
-    # Код для профилирования
-    process_large_dataset()
-```
-
-### Обработка ошибок
-
-```python
-from bquant.core.exceptions import BQuantError, DataError, AnalysisError
-
-try:
-    # Попытка загрузки данных
-    data = load_data('invalid_file.csv')
-except DataError as e:
-    logger.error(f"Data error: {e}")
-    # Обработка ошибки данных
-except BQuantError as e:
-    logger.error(f"BQuant error: {e}")
-    # Обработка общей ошибки
-```
-
-### Утилиты
-
-```python
-from bquant.core.utils import validate_ohlcv_columns, calculate_returns
-
-check = validate_ohlcv_columns(df)
-if not check['is_valid']:
-    raise DataError('; '.join(check['messages']))
-
-ret = calculate_returns(df['close'], method='log')
-```
-
-### Notebook-style скрипты
-
-```python
-from bquant.core.nb import NotebookSimulator
-
-# Создание и настройка runner
-runner = NotebookSimulator("Data Analysis Script", auto_setup=False)
-runner.setup_logging('analysis.log')
-
-# Пошаговое выполнение
-runner.step("Loading Data")
-# код загрузки данных
-runner.success("Data loaded successfully")
-runner.wait()
-
-runner.step("Processing Data")
-# код обработки
-runner.success("Processing completed")
-runner.wait()
-
-runner.finish()
-```
-
-## 🔗 Связанные разделы
-
-- **[Data Modules](../data/README.md)** - Модули для работы с данными
-- **[Indicators](../indicators/README.md)** - Технические индикаторы
-- **[Analysis](../analysis/README.md)** - Аналитические модули
-- **[Visualization](../visualization/README.md)** - Модули визуализации
-
-## 📖 Детальная документация
-
-- **[Config Module](config.md)** - Подробная документация конфигурации
-- **[Exceptions Module](exceptions.md)** - Документация исключений
-- **[Logging Module](logging.md)** - Документация логирования
-- **[Performance Module](performance.md)** - Документация производительности
-- **[Utils Module](utils.md)** - Документация утилит
-- **[Notebook-Style API](nb.md)** - Документация notebook-style скриптов
-
----
-
-**Следующий раздел:** [Data Modules](../data/README.md) 📊
+| | |
+|---|---|
+| [Данные](../data/README.md) | загрузка, обработка, валидация |
+| [Индикаторы](../indicators/README.md) | что считать |
+| [Анализ](../analysis/README.md) | зоны, статистика, стратегии |
+| [Визуализация](../visualization/README.md) | графики |

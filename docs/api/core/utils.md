@@ -1,110 +1,157 @@
-# bquant.core.utils — Утилиты
+# `bquant.core.utils` — утилиты
 
-## Обзор
+Восемь функций общего назначения плюс декоратор устаревания. Ничего специфичного для
+анализа зон здесь нет — это то, что нужно любому скрипту поверх пакета.
 
-Вспомогательные функции: логгирование проекта, расчёт доходностей, нормализация данных, сохранение результатов, валидации, полезные утилиты.
+| Сигнатура | Что делает |
+|---|---|
+| `calculate_returns(prices, method='simple', periods=1)` | доходности ряда цен |
+| `normalize_data(data, method='zscore', columns=None)` | нормировка кадра |
+| `validate_ohlcv_columns(data, strict=True)` | есть ли обязательные колонки |
+| `memory_usage_info(data)` | сколько кадр занимает в памяти |
+| `save_results(data, filepath, format='csv', **kwargs)` | сохранить результат |
+| `ensure_directory(path)` | создать каталог, если его нет |
+| `create_timestamp(format='compact')` | метка времени для имён файлов |
+| `setup_project_logging(name='bquant', level=None, …)` | логгер проекта |
+| `deprecated(message)` | декоратор устаревания |
 
-## Функции
+## Доходности
 
-- `setup_project_logging(name='bquant', level=None, log_to_file=None, log_file=None) -> logging.Logger`
-- `calculate_returns(prices, method='simple', periods=1) -> pd.Series`
-- `normalize_data(data, method='zscore', columns=None) -> pd.DataFrame`
-- `save_results(data, filepath, format='csv', **kwargs) -> bool`
-- `validate_ohlcv_columns(data, strict=True) -> Dict[str, Any]`
-- `create_timestamp(format='compact') -> str`
-- `memory_usage_info(data) -> Dict[str, Any]`
-- `ensure_directory(path) -> Path`
-
-## Примеры
-
-Доходности и нормализация:
 ```python
-import pandas as pd
-from bquant.core.utils import calculate_returns, normalize_data
+from bquant.core.utils import calculate_returns
+from bquant.data.samples import get_sample_data
 
-prices = pd.Series([1, 1.1, 1.2])
-r = calculate_returns(prices, method='simple')
+close = get_sample_data('tv_xauusd_1h')['close']
 
-df = pd.DataFrame({
-    'open': [100, 102, 105],
-    'high': [101, 103, 106],
-    'low': [99, 101, 104],
-    'close': [100.5, 102.5, 105.5],
-    'volume': [1200, 1350, 1280],
-})
-norm = normalize_data(df, method='zscore')
+simple = calculate_returns(close, method='simple')
+log_returns = calculate_returns(close, method='log')
+
+print(round(float(simple.iloc[1]), 6), round(float(log_returns.iloc[1]), 6))
+print(bool(simple.isna().iloc[0]), len(simple))
+# 0.002293 0.00229
+# True 1000
 ```
 
-Сохранение результатов:
+Первое значение — `NaN`: сравнивать не с чем. Длина ряда сохраняется, поэтому результат
+можно приложить к исходному кадру без выравнивания. `periods` задаёт горизонт: `1` —
+бар к бару, `24` — сутки к суткам на часовых данных.
+
+## Нормировка
+
 ```python
-from bquant.core.utils import save_results
-ok = save_results(df, 'results/out.csv', index=False)
+from bquant.core.utils import normalize_data
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')[['open', 'high', 'low', 'close']]
+normalized = normalize_data(data, method='zscore')
+
+print(list(normalized.columns))
+print(round(float(normalized['close'].mean()), 10), round(float(normalized['close'].std()), 4))
+# ['open', 'high', 'low', 'close']
+# -0.0 1.0
 ```
 
-Валидация колонок OHLCV:
+Колонки **заменяются**, а не добавляются — в отличие от
+[`normalize_prices()`](../data/processor.md) из модуля обработки, которая дописывает
+`*_normalized`. Две похожие функции с разным поведением: здесь нормируется произвольный
+кадр, там — цены OHLC внутри пайплайна данных.
+
+## Проверка структуры
+
 ```python
 from bquant.core.utils import validate_ohlcv_columns
-result = validate_ohlcv_columns(df)
-print(result['is_valid'], result['messages'])
+from bquant.data.samples import get_sample_data
+
+check = validate_ohlcv_columns(get_sample_data('tv_xauusd_1h'))
+
+print(sorted(check))
+print(check['is_valid'], check['missing_required'], check['missing_optional'])
+# ['extra_columns', 'is_valid', 'messages', 'missing_optional', 'missing_required']
+# True [] []
 ```
 
-Прочие утилиты:
+Лишние колонки не делают кадр невалидным — они попадают в `extra_columns` и в
+`messages`. Это проверка **наличия**, а не качества; за качеством —
+[валидатор данных](../data/validator.md).
+
+## Память
+
 ```python
-from bquant.core.utils import create_timestamp, ensure_directory
-ts = create_timestamp('readable')
-ensure_directory('results/charts')
+from bquant.core.utils import memory_usage_info
+from bquant.data.samples import get_sample_data
+
+info = memory_usage_info(get_sample_data('tv_xauusd_1h'))
+
+print(sorted(info))
+print(info['shape'], round(float(info['total_memory_mb']), 3))
+# ['columns_memory_mb', 'dtypes', 'index_memory_mb', 'shape', 'total_memory_mb']
+# (1000, 15) 0.176
 ```
 
----
+## Сохранение и каталоги
 
-## Инструменты устаревания (новое во второй фазе)
+```python
+import tempfile
+from pathlib import Path
 
-> **Стабильность API:** 🟢 СТАБИЛЬНО
+from bquant.core.utils import create_timestamp, ensure_directory, save_results
+from bquant.data.samples import get_sample_data
 
-### @deprecated decorator
+directory = ensure_directory(Path(tempfile.mkdtemp()) / 'results')
+path = directory / f'zones_{create_timestamp()}.csv'
 
-Помечает методы как устаревшие и автоматически формирует предупреждение.
+ok = save_results(get_sample_data('tv_xauusd_1h').head(10), path, index=False)
 
-**Назначение:** Аккуратно отмечать методы как устаревшие, сохраняя обратную совместимость.
+print(ok, path.exists())
+print(len(create_timestamp()), create_timestamp('readable')[:2])
+# True True
+# 15 20
+```
 
-**Использование:**
+`create_timestamp()` даёт компактную метку вида `20260901_191317` — годится для имени
+файла; `'readable'` даёт `2026-09-01 19:13:17` — для текста. `save_results()` возвращает
+`bool`, а не путь, и понимает `format='csv'`, `'json'`, `'excel'`; лишние именованные
+аргументы уходят в pandas.
+
+## Устаревание
+
 ```python
 from bquant.core.utils import deprecated
 
-@deprecated("Use new_method() instead")
+
+@deprecated("используйте new_method()")
 def old_method():
-    """This method is deprecated."""
-    pass
+    return 'работает'
 
-# When called
-old_method()
-# DeprecationWarning: old_method is deprecated. Use new_method() instead
+
+print(old_method())
+# работает
 ```
 
-**Эффект:**
-- Генерирует `DeprecationWarning` при первом вызове в рамках сессии
-- Записывает предупреждение в логгер bquant
-- Метод продолжает работать (обратная совместимость сохраняется)
-- При необходимости предупреждение можно отфильтровать
+`DeprecationWarning` выдаётся при первом вызове за сессию, запись уходит в лог, а метод
+продолжает работать. Так помечают то, что снимут в следующих версиях.
 
-**Параметры:**
-- `message`: строка с описанием альтернативы
+В этом репозитории декоратор применяется редко и осознанно: переименования проводятся
+целиком, одним изменением, без окна совместимости и алиасов. `@deprecated` нужен для
+внешнего API, у которого есть чужие вызывающие, а не для внутренних правок.
 
-**Рекомендации:**
-1. Всегда указывайте понятную альтернативу в сообщении
-2. Поддерживайте устаревший метод 1–2 версии до удаления
-3. Документируйте факт устаревания в changelog
-4. Обновляйте примеры, чтобы они не использовали устаревшие методы
-5. При необходимости добавляйте миграционное руководство
+## Логгер проекта
 
-**Пример из BQuant:**
 ```python
-@deprecated("Use ZoneFeaturesAnalyzer.extract_zone_features() from bquant.analysis.zones instead")
-def calculate_zone_features(self, zone):
-    # Old implementation kept for compatibility
-    pass
+from bquant.core.utils import setup_project_logging
+
+logger = setup_project_logging(name='bquant', level='WARNING')
+print(logger.name)
+# bquant
 ```
 
-**См. также:**
-- Миграция фазы 4: удалены 5 устаревших методов
-- `docs/api/indicators/macd.md` — уведомление о миграции
+Тонкая обёртка над [`setup_logging()`](logging.md) для скриптов, которым не нужны
+профили и модульные уровни. Всё, что сложнее одного уровня, настраивается там.
+
+## Дальше
+
+| | |
+|---|---|
+| [Логирование](logging.md) | профили и модульные уровни |
+| [Конфигурация](config.md) | пути и параметры по умолчанию |
+| [Обработка данных](../data/processor.md) | `normalize_prices()` и другие соседи |

@@ -83,18 +83,32 @@ print(get_indicator_params('несуществующий'))      # {}
 ```python
 from bquant.core.config import get_data_path
 
-# OANDA XAUUSD, TradingView 1h
 path = get_data_path('XAUUSD', '1h', data_source='tradingview', quote_provider='oanda')
-print(path)
+print(path.name)
+# OANDA_XAUUSD, 60.csv
 ```
+
+Функция **собирает путь, а не проверяет файл**: она отвечает на вопрос «как назывался бы
+файл», и вернёт имя даже для символа, которого нет. Существование проверяет загрузчик.
 
 Проверка таймфрейма:
 ```python
-from bquant.core.config import validate_timeframe
+from bquant.core.config import SUPPORTED_TIMEFRAMES, validate_timeframe
 
-validate_timeframe('1h')   # '1h'
-validate_timeframe('2D')   # ValueError
+print(validate_timeframe('1h'), len(SUPPORTED_TIMEFRAMES))
+try:
+    validate_timeframe('2D')
+except ValueError as error:
+    print(str(error)[:37])
+# 1h 27
+# Unsupported timeframe: 2D. Supported:
 ```
+
+Поддерживаются 27 обозначений, и регистр в них значим по-разному: `1d` и `1D` — оба
+приняты, `2D` — нет, потому что двухдневного таймфрейма в списке нет вовсе. Здесь
+поднимается обычный `ValueError`; одноимённая
+[`exceptions.validate_timeframe(timeframe, supported)`](exceptions.md) принимает список
+аргументом и поднимает `InvalidTimeframeError` — это разные функции.
 
 Параметры индикатора:
 ```python
@@ -107,7 +121,9 @@ macd_params = get_indicator_params('macd', fast=8)
 ```python
 from bquant.core.config import get_results_path
 
-csv_path = get_results_path('zone_analysis_2025-08-29', file_type='csv')
+path = get_results_path('zone_analysis', file_type='csv')
+print(path.name, path.suffix)
+# zone_analysis.csv .csv
 ```
 
 ---
@@ -121,55 +137,35 @@ csv_path = get_results_path('zone_analysis_2025-08-29', file_type='csv')
 
 Фабричные функции создают экземпляры стратегий на основе конфигурации.
 
-### create_swing_strategy()
-
-Создание стратегии для определения свингов.
-
-```python
-from bquant.core.config import create_swing_strategy
-
-strategy_default = create_swing_strategy()
-strategy_by_name = create_swing_strategy('find_peaks')
-strategy_custom = create_swing_strategy({
-    'type': 'zigzag',
-    'params': {'legs': 15, 'deviation': 0.03}
-})
-```
-
-### create_shape_strategy()
+Каждая принимает имя, словарь `{'type': ..., 'params': {...}}` или готовый экземпляр и
+возвращает **экземпляр**, а не класс.
 
 ```python
-from bquant.core.config import create_shape_strategy
+from bquant.core.config import (
+    create_divergence_strategy, create_shape_strategy, create_swing_strategy,
+    create_volatility_strategy, create_volume_strategy,
+)
 
-strategy = create_shape_strategy('statistical')
+print(create_swing_strategy())
+print(create_swing_strategy('find_peaks'))
+print(create_swing_strategy({'type': 'zigzag', 'params': {'legs': 15, 'deviation': 0.03}}))
+# ZigZagSwingStrategy(legs=10, deviation=0.05)
+# FindPeaksSwingStrategy(prominence=None, distance=5, min_amplitude_pct=0.02, prominence_warmup=200)
+# ZigZagSwingStrategy(legs=15, deviation=0.03)
+
+print(create_shape_strategy('statistical'))
+print(create_divergence_strategy('classic'))
+print(create_volatility_strategy({'type': 'combined', 'params': {'bb_length': 20}}))
+print(create_volume_strategy('standard'))
+# StatisticalShapeStrategy(calculate_smoothness=True, bias_correction=True)
+# ClassicDivergenceStrategy(min_peak_distance=5, min_divergence_strength=0.01)
+# CombinedVolatilityStrategy(bb_length=20, bb_std=2.0, touch_threshold=0.01)
+# StandardVolumeStrategy(baseline_window=50, correlation_min_periods=3)
 ```
 
-### create_divergence_strategy()
-
-```python
-from bquant.core.config import create_divergence_strategy
-
-strategy = create_divergence_strategy('classic')
-```
-
-### create_volatility_strategy()
-
-```python
-from bquant.core.config import create_volatility_strategy
-
-strategy = create_volatility_strategy({
-    'type': 'combined',
-    'params': {'bb_length': 20, 'bb_std': 2.0, 'touch_threshold': 0.02}
-})
-```
-
-### create_volume_strategy()
-
-```python
-from bquant.core.config import create_volume_strategy
-
-strategy = create_volume_strategy('standard')
-```
+Значения без аргументов — **конструкторские**, а не те, с которыми стратегия
+поедет в анализ: для свингов их перекрывает пресет, и именно пресет определяет, найдётся
+ли хоть что-нибудь. См. [свинг-стратегии](../../user_guide/swing_strategies.md).
 
 ### ANALYSIS_CONFIG
 
@@ -218,20 +214,26 @@ ANALYSIS_CONFIG = {
 
 Управление директориями:
 ```python
+import tempfile
+
 from bquant.core.config import (
-    get_data_dir, set_data_dir, get_directory_status, reset_directories_to_defaults
+    get_data_dir, get_directory_status, reset_directories_to_defaults, set_data_dir
 )
 
-# Получить текущий путь к данным
-current_data_dir = get_data_dir()
-
-# Установить кастомный путь
-set_data_dir('/custom/data/path')
-
-# Проверить статус всех директорий
 status = get_directory_status()
-print(status['data_dir']['is_custom'])  # True
+print(sorted(status))
+print(sorted(status['data_dir']))
+# ['data_dir', 'notebooks_dir', 'processed_data_dir', 'results_dir']
+# ['current', 'default', 'exists', 'is_custom']
 
-# Сбросить к умолчаниям
+set_data_dir(tempfile.mkdtemp())
+print(get_directory_status()['data_dir']['is_custom'])
+# True
+
 reset_directories_to_defaults()
+print(get_directory_status()['data_dir']['is_custom'])
+# False
 ```
+
+`is_custom` отвечает на вопрос «переставляли ли путь», а не «существует ли он» — на это
+есть отдельный ключ `exists`. Установка пути каталог не создаёт.

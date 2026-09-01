@@ -102,8 +102,14 @@ class MemoryCache:
     def _generate_key(self, func_name: str, args: tuple, kwargs: dict) -> str:
         """Генерирует ключ кэша на основе функции и аргументов."""
         # Создаем строку для хэширования
-        key_parts = [func_name]
-        
+        # Версия пакета входит в ключ: значение в кэше произведено кодом этой версии,
+        # и после обновления оно к ней уже не относится. Без этой части исправленная
+        # функция ещё час отдавала бы прежние — неверные — числа с диска (G44); ровно
+        # тот же силуэт, что G36, где ключ не видел, чем результат посчитан.
+        from bquant import __version__
+
+        key_parts = [f"v{__version__}", func_name]
+
         # Добавляем args
         for arg in args:
             if isinstance(arg, pd.DataFrame):
