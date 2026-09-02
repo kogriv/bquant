@@ -815,6 +815,18 @@ class ZoneAnalysisResult:
             # Поддержка date_range для режима overview
             if date_range is not None:
                 start_date, end_date = date_range
+                # Границы приводим к представлению времени самих данных: наивная
+                # `pd.Timestamp('2025-06-01')` рядом с tz-aware индексом давала голый
+                # `TypeError` из pandas, по которому неясно, что чинить. Сэмплы идут
+                # с зоной (`UTC+07:00`), так что случай обычный, а не экзотический.
+                index_tz = getattr(self.data.index, 'tz', None)
+                if index_tz is not None:
+                    start_date = pd.Timestamp(start_date)
+                    end_date = pd.Timestamp(end_date)
+                    if start_date.tzinfo is None:
+                        start_date = start_date.tz_localize(index_tz)
+                    if end_date.tzinfo is None:
+                        end_date = end_date.tz_localize(index_tz)
                 # Фильтруем данные по датам
                 filtered_data = self.data[
                     (self.data.index >= start_date) & (self.data.index <= end_date)

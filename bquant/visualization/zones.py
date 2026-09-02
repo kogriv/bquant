@@ -13,6 +13,7 @@ from ..core.logging_config import get_logger
 from ..indicators.schema import resolve_role_columns
 from ..core.exceptions import AnalysisError
 from ..analysis.zones.models import ZoneInfo, SwingContext, SwingPoint, ZoneVocabulary
+from .charts import themed
 from .themes import ChartThemes
 from .utils import find_all_gaps, generate_dense_axis_labels
 
@@ -497,6 +498,25 @@ class ZoneChartBuilder:
             return zones
 
         start_range, end_range = date_range
+
+        # Границы диапазона приводим к тому же представлению времени, что у зон.
+        # Наивный `datetime(2025, 6, 15)` рядом с tz-aware индексом давал голый
+        # `TypeError: can't compare offset-naive and offset-aware datetimes` из
+        # недр datetime — сообщение, по которому неясно, что чинить. Сэмплы идут
+        # с зоной (`UTC+07:00`), так что случай не экзотический, а обычный.
+        reference = next(
+            (zone.get('start_time') for zone in zones if zone.get('start_time') is not None),
+            None,
+        )
+        tzinfo = getattr(reference, 'tzinfo', None)
+        if tzinfo is not None:
+            start_range = pd.Timestamp(start_range)
+            end_range = pd.Timestamp(end_range)
+            if start_range.tzinfo is None:
+                start_range = start_range.tz_localize(tzinfo)
+            if end_range.tzinfo is None:
+                end_range = end_range.tz_localize(tzinfo)
+
         filtered: List[Dict[str, Any]] = []
         for zone in zones:
             start_time = zone.get('start_time')
@@ -533,15 +553,14 @@ class ZoneVisualizer(ZoneChartBuilder):
         super().__init__(backend)
 
         self.theme_manager = ChartThemes()
-        requested_theme = kwargs.get('theme') or 'bquant_light'
-        available_themes = self.theme_manager.get_available_themes()
-        theme_name = requested_theme if requested_theme in available_themes else available_themes[0]
-        try:
-            theme_config = deepcopy(self.theme_manager.get_theme(theme_name))
-        except Exception:
-            fallback = available_themes[0]
-            theme_config = deepcopy(self.theme_manager.get_theme(fallback))
-            theme_name = fallback
+        # Незнакомое имя темы — отказ (G47). Прежде здесь стояла двойная подстраховка:
+        # сначала подмена умолчанием, потом ещё и `except Exception` вокруг неё, — и
+        # `theme='dark'` (такой темы нет) молча становился `bquant_light`.
+        theme_name = kwargs.get('theme') or 'bquant_light'
+        theme_config = deepcopy(self.theme_manager.get_theme(theme_name))
+        # Только явно запрошенная тема применяется к фигуре: умолчание оставлено
+        # как было, чтобы вывод без `theme=` не изменился.
+        self._explicit_theme = kwargs.get('theme')
 
         colors = theme_config.setdefault('colors', {})
         colors.setdefault('swing_peak', '#d62728')
@@ -716,7 +735,7 @@ class ZoneVisualizer(ZoneChartBuilder):
             parts.append(f"  Avg Drop: {float(avg_drop):+.2f}%{dur_text}")
 
         if ratio is not None:
-            parts.append(f"  Rally/Drop Ratio: {float(ratio):.2f}x")
+            parts.append(f"  Mean per-zone Rally/Drop: {float(ratio):.2f}x")
 
         return separator.join(parts)
 
@@ -806,6 +825,7 @@ class ZoneVisualizer(ZoneChartBuilder):
 
         return separator.join(parts) if parts else ""
     
+    @themed
     def plot_zones_on_price_chart(self, price_data: pd.DataFrame,
                                  zones_data: Union[List[Dict], pd.DataFrame],
                                  title: str = "Price Chart with Zones",
@@ -1129,9 +1149,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                 else:
                     parts.append("  Avg Drop: N/A (no aggregated data)")
                 if ratio_mean is not None:
-                    parts.append(f"  Rally/Drop Ratio: {float(ratio_mean):.2f}x")
+                    parts.append(f"  Mean per-zone Rally/Drop: {float(ratio_mean):.2f}x")
                 else:
-                    parts.append("  Rally/Drop Ratio: N/A (no aggregated data)")
+                    parts.append("  Mean per-zone Rally/Drop: N/A (no aggregated data)")
             else:
                 rally_line = "  Avg Rally:"
                 if rally_mean is not None:
@@ -1168,9 +1188,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                 parts.append(drop_line)
 
                 if ratio_mean is not None:
-                    parts.append(f"  Rally/Drop Ratio: {float(ratio_mean):.2f}x")
+                    parts.append(f"  Mean per-zone Rally/Drop: {float(ratio_mean):.2f}x")
                 else:
-                    parts.append("  Rally/Drop Ratio: N/A (no aggregated data)")
+                    parts.append("  Mean per-zone Rally/Drop: N/A (no aggregated data)")
 
                 avg_duration_mean = stats.get('avg_duration_mean')
                 avg_duration_std = stats.get('avg_duration_std')
@@ -1185,6 +1205,7 @@ class ZoneVisualizer(ZoneChartBuilder):
 
         return separator.join(parts) if parts else ""
 
+    @themed
     def plot_zone_detail(self, price_data: pd.DataFrame,
                          zone: Union[Dict[str, Any], ZoneInfo, Any],
                          context_bars: int = 20,
@@ -1536,6 +1557,7 @@ class ZoneVisualizer(ZoneChartBuilder):
 
         self.logger.warning("Swing overlay not supported for backend %s", self.backend)
 
+    @themed
     def plot_zones_comparison(self, price_data: pd.DataFrame,
                               zones_data: Union[List[Dict], pd.DataFrame, List[Any]],
                               max_zones: int = 5,
@@ -1693,6 +1715,7 @@ class ZoneVisualizer(ZoneChartBuilder):
                 **kwargs,
             )
 
+    @themed
     def plot_macd_zones(self, macd_data: pd.DataFrame,
                        zones_data: Union[List[Dict], pd.DataFrame],
                        title: str = "MACD with Zones",
@@ -1728,6 +1751,7 @@ class ZoneVisualizer(ZoneChartBuilder):
         else:
             return self._create_matplotlib_macd_zones(macd_data, zones, title, resolved, **kwargs)
     
+    @themed
     def plot_zones_analysis(self, zones_data: Union[List[Dict], pd.DataFrame],
                            analysis_data: Dict[str, Any] = None,
                            title: str = "Zones Analysis",
@@ -1751,6 +1775,7 @@ class ZoneVisualizer(ZoneChartBuilder):
         else:
             return self._create_matplotlib_zones_analysis(zones, analysis_data, title, **kwargs)
     
+    @themed
     def plot_zones_distribution(self, zones_data: Union[List[Dict], pd.DataFrame],
                                feature: str = 'duration',
                                title: str = "Zones Distribution",
@@ -1774,6 +1799,7 @@ class ZoneVisualizer(ZoneChartBuilder):
         else:
             return self._create_matplotlib_zones_distribution(zones, feature, title, **kwargs)
     
+    @themed
     def plot_zones_correlation(self, zones_data: Union[List[Dict], pd.DataFrame],
                               title: str = "Zones Characteristics Correlation",
                               **kwargs) -> Union[go.Figure, plt.Figure]:

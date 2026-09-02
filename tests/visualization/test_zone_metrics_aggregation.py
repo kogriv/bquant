@@ -105,7 +105,10 @@ def test_aggregate_metrics_compact() -> None:
     )
 
     annotations = [annotation.text for annotation in fig.layout.annotations if "📊" in annotation.text]
-    assert any("📊 Bull Zones" in text and "Rally/Drop Ratio" in text for text in annotations)
+    # Подпись отношения названа явно: величина считается по зонам, а не делением
+    # двух средних, показанных строкой выше (G47-блок, см. docs/api/visualization/zones.md).
+    assert any("📊 Bull Zones" in text and "Mean per-zone Rally/Drop" in text
+               for text in annotations)
     assert any("📊 Bear Zones" in text for text in annotations)
 
 

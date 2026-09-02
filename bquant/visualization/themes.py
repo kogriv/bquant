@@ -78,9 +78,14 @@ class ChartThemes:
             Словарь с конфигурацией темы
         """
         if theme_name not in self._themes:
-            self.logger.warning(f"Theme '{theme_name}' not found, using default")
-            theme_name = self._current_theme
-        
+            # Незнакомое имя — отказ, а не подмена умолчанием (G47). Раньше здесь
+            # стояло предупреждение в лог и возврат текущей темы: опечатка в имени
+            # выглядела как успешно применённая тема, а под профилями `research`
+            # и `clean` предупреждение уходит в файл и до глаз не доходит.
+            raise ValueError(
+                f"Unknown theme: {theme_name!r}. Available: {sorted(self._themes)}"
+            )
+
         return self._themes[theme_name].copy()
     
     def set_default_theme(self, theme_name: str) -> bool:

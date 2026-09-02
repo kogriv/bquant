@@ -1,142 +1,98 @@
-# Visualization - Модули визуализации BQuant
+# `bquant.visualization` — графики
 
-## 📚 Обзор
+Три класса и несколько коротких функций поверх Plotly. Всё, что рисует пакет, —
+финансовые графики цен, зоны на них и статистические разрезы — собирается этими
+инструментами и возвращается объектом `plotly.graph_objects.Figure`: показать
+(`fig.show()`), сохранить (`fig.write_html(...)`) или встроить его — уже дело
+вызывающего.
 
-Visualization модули предоставляют инструменты для создания финансовых графиков, визуализации зон, статистических графиков и настройки тем с **Universal Pipeline v2.1** интеграцией.
+| Модуль | Класс | О чём |
+|---|---|---|
+| `charts.py` | `FinancialCharts` | свечи, OHLC, линия, область, объёмы |
+| [`zones.py`](zones.md) | `ZoneVisualizer` | зоны на цене, разбор одной зоны, сравнение, статистика зон |
+| `statistical.py` | `StatisticalPlots` | гистограммы, распределения, корреляции, боксплоты, результаты гипотез |
+| `themes.py` | `ChartThemes` | пять тем и применение их к готовой фигуре |
 
-> **✅ v2.1 - Modern Visualization Architecture**
-> 
-> **ZoneVisualizer Integration:** Встроенная визуализация из ZoneAnalysisResult
-> 
-> **Universal Pipeline Support:** Работает с любыми индикаторами
-> 
-> **Advanced Features:** Auto-detect indicators, context bars, date range filtering
-
-## 🗂️ Модули
-
-### 📊 bquant.visualization.charts - Финансовые графики
-- **FinancialCharts** - Создание финансовых графиков
-- **create_candlestick_chart()** - Candlestick график
-- **create_ohlc_chart()** - OHLC график
-- **create_line_chart()** - Линейный график
-
-### 🎯 [bquant.visualization.zones](zones.md) - Universal Zone Visualization
-
-📘 **[Подробная документация →](zones.md)**
-
-**ZoneVisualizer - Core Class:**
-- **plot_zones_on_price_chart()** - общий график цен с зонами
-- **plot_zone_detail()** - детальный просмотр одной зоны
-- **plot_zones_comparison()** - сравнение нескольких зон
-- **plot_zones_analysis()** - статистический анализ зон
-
-**ZoneAnalysisResult Integration:**
-- **Встроенная визуализация** из результата Universal Pipeline
-- **Auto-detect Indicators** - автоматическое определение индикаторов
-- **Context Bars** - настраиваемый контекст вокруг зоны
-- **Date Range Filtering** - фильтрация зон по диапазону дат
-
-### 📈 bquant.visualization.statistical - Статистические графики
-- **StatisticalPlots** - Статистические графики
-- **plot_correlation_matrix()** - Матрица корреляции
-- **plot_distribution()** - Распределение данных
-- **plot_hypothesis_results()** - Результаты гипотез
-- > **Примечание:** Модуль доступен в коде, детальная документация будет добавлена позже.
-
-### 🎨 bquant.visualization.themes - Темы и стили
-- **ChartThemes** - Темы графиков
-- **set_theme()** - Установка темы
-- **create_custom_theme()** - Создание кастомной темы
-- **ThemeManager** - Управление темами
-- > **Примечание:** Модуль доступен в коде, детальная документация будет добавлена позже.
-
-## 🔍 Быстрый поиск
-
-### По функциональности
-
-#### Финансовые графики
-- `FinancialCharts.create_candlestick_chart()` - Candlestick график
-- `FinancialCharts.create_ohlc_chart()` - OHLC график
-- `FinancialCharts.create_line_chart()` - Линейный график
-- `FinancialCharts.create_area_chart()` - Площадной график
-
-#### Визуализация зон
-- `ZoneVisualizer.plot_macd_zones()` / `FinancialCharts.plot_macd_with_zones()` — MACD с зонами.
-  **Имена колонок графики не угадывают**: они спрашивают роли (`line`, `signal`, `hist`).
-  Передайте `column_schema=result.column_schema` — или, для кадра, собранного не
-  пайплайном, явное `columns={'line': ..., 'signal': ..., 'hist': ...}`. Если ни того,
-  ни другого нет и имена колонок не каноничны, график **отказывается рисовать** и
-  называет недостающие роли: нарисовать не ту колонку значит утверждать графиком то,
-  чего никто не считал.
-- `ZoneVisualizer.highlight_zones()` - Подсветка зон
-- `ZoneVisualizer.create_zone_chart()` - График зон
-- `ZoneVisualizer.plot_zone_statistics()` - Статистика зон
-
-#### Статистические графики
-- `StatisticalPlots.plot_correlation_matrix()` - Матрица корреляции
-- `StatisticalPlots.plot_distribution()` - Распределение
-- `StatisticalPlots.plot_hypothesis_results()` - Результаты тестов
-- `StatisticalPlots.plot_box_plot()` - Box plot
-
-#### Темы и стили
-- `ChartThemes.set_theme()` - Установка темы
-- `ChartThemes.create_custom_theme()` - Кастомная тема
-- `ChartThemes.get_available_themes()` - Доступные темы
-- `ChartThemes.apply_theme()` - Применение темы
-
-### По типу
-
-#### 🏗️ Классы
-- `FinancialCharts` - Финансовые графики
-- `ZoneVisualizer` - Визуализация зон
-- `StatisticalPlots` - Статистические графики
-- `ChartThemes` - Темы графиков
-
-#### 🔧 Функции
-- `create_financial_chart()` - Финансовый график по типу (`candlestick`/`ohlc`/`line`/`area`)
-- `create_statistical_plot()` - Статистический график по типу
-- `check_visualization_dependencies()` - Готова ли визуализация (bool)
-- `get_visualization_info()` - Структурный статус модуля
-- `print_visualization_status()` - Тот же статус печатью
-- `create_candlestick_chart()` - Candlestick график
-- `plot_macd_with_zones()` - MACD с зонами
-- `plot_correlation_matrix()` - Матрица корреляции
-- `set_theme()` - Установка темы
-
-#### 📋 Типы данных
-- `ChartConfig` - Конфигурация графика
-- `ThemeConfig` - Конфигурация темы
-- `ZoneVisualizationConfig` - Конфигурация визуализации зон
-- `StatisticalPlotConfig` - Конфигурация статистического графика
-
-## 🚪 Функции уровня пакета
-
-Короткие входы, доступные прямо из `bquant.visualization` — не требуют знать, в каком
-подмодуле лежит нужный класс.
-
-### `create_financial_chart(chart_type='candlestick', **kwargs)`
-
-Строит финансовый график, делегируя в `FinancialCharts`. Принимает четыре типа —
-`'candlestick'`, `'ohlc'`, `'line'`, `'area'`; на любом другом поднимает `ValueError`,
-а если модуль графиков не загрузился — `VisualizationError`.
+## Быстрый старт
 
 ```python
 from bquant.data.samples import get_sample_data
-from bquant.visualization import create_financial_chart
+from bquant.visualization import FinancialCharts
 
 data = get_sample_data('tv_xauusd_1h')
 
-fig = create_financial_chart('candlestick', data=data)
-print(type(fig).__name__)   # Figure
+charts = FinancialCharts()
+figure = charts.create_candlestick_chart(data, title="XAUUSD 1H")
+
+print(type(figure).__name__)
+# Figure
 ```
 
-Остальные аргументы уходят в соответствующий метод `FinancialCharts` как есть.
+Показать график — `figure.show()`; в примерах ниже вызов опущен, чтобы их можно было
+прогонять без браузера.
 
-### `create_statistical_plot(plot_type, data, **kwargs)`
+## Финансовые графики
 
-То же для статистических графиков: `'histogram'`, `'scatter'`, `'correlation'`,
-`'distribution'`. **Форма данных у типов разная** — гистограмме и распределению
-достаточно ряда, диаграмме рассеяния нужны кадр и имена колонок, матрице корреляций —
+`FinancialCharts` — семь методов, все возвращают `Figure`:
+
+| Метод | Что строит |
+|---|---|
+| `create_candlestick_chart(data, title, show_volume=True)` | свечи, при наличии `volume` — вторая панель |
+| `create_ohlc_chart(data, title)` | OHLC-бары |
+| `create_line_chart(data, title)` | линия по колонкам кадра |
+| `create_area_chart(data, title)` | область |
+| `plot_ohlcv(data, title)` | цена и объём вместе |
+| `plot_macd_with_zones(macd_data, zones, ...)` | MACD с подсветкой зон |
+| `plot_zones_over_indicator(data, zones, ...)` | зоны поверх произвольного осциллятора |
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.visualization import FinancialCharts
+
+data = get_sample_data('tv_xauusd_1h')
+charts = FinancialCharts()
+
+candles = charts.create_candlestick_chart(data, title="XAUUSD 1H", show_volume=True)
+ohlc = charts.create_ohlc_chart(data, title="OHLC")
+line = charts.create_line_chart(data[['close']], title="Close")
+
+print(type(candles).__name__, type(ohlc).__name__, type(line).__name__)
+# Figure Figure Figure
+```
+
+Параметр объёма называется `show_volume`, а не `volume`. Это существенно: лишние
+именованные аргументы уходят в `**kwargs` и **молча отбрасываются**, поэтому опечатка
+в имени параметра не вызовет ошибки — просто ничего не произойдёт. Реально читаются
+девять ключей:
+
+`width`, `height`, `title_font_size`, `show_volume`, `volume_ratio`,
+`bullish_color`, `bearish_color`, `volume_color`, `background_color` —
+
+и они же принимаются конструктором `FinancialCharts(...)` как умолчания на все
+последующие графики.
+
+### Короткие входы
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.visualization import create_financial_chart, create_statistical_plot
+
+data = get_sample_data('tv_xauusd_1h')
+
+figure = create_financial_chart('candlestick', data=data)
+histogram = create_statistical_plot('histogram', data['close'])
+
+print(type(figure).__name__, type(histogram).__name__)
+# Figure Figure
+```
+
+`create_financial_chart` принимает `'candlestick'`, `'ohlc'`, `'line'`, `'area'`;
+`create_statistical_plot` — `'histogram'`, `'scatter'`, `'correlation'`,
+`'distribution'`. На неизвестном типе — `ValueError`, при недоступном модуле графиков —
+`VisualizationError`.
+
+**Форма данных у статистических типов разная:** гистограмме и распределению довольно
+ряда, диаграмме рассеяния нужны кадр и `x_column`/`y_column`, матрице корреляций —
 кадр из числовых колонок.
 
 ```python
@@ -145,244 +101,124 @@ from bquant.visualization import create_statistical_plot
 
 data = get_sample_data('tv_xauusd_1h')
 
-hist = create_statistical_plot('histogram', data['close'])
 scatter = create_statistical_plot('scatter', data, x_column='open', y_column='close')
 corr = create_statistical_plot('correlation', data[['open', 'high', 'low', 'close']])
 
-print(type(hist).__name__, type(scatter).__name__, type(corr).__name__)
+print(type(scatter).__name__, type(corr).__name__)
+# Figure Figure
 ```
 
-### `check_visualization_dependencies() -> bool`
+## Зоны
 
-Есть ли всё нужное для отрисовки. Полезно в скриптах, которые должны деградировать
-до текстового вывода, а не падать на середине.
-
-```python
-from bquant.visualization import check_visualization_dependencies
-
-if check_visualization_dependencies():
-    ...   # строим графики
-```
-
-### `get_visualization_info() -> dict`
-
-Структурная версия того же: что доступно и что загрузилось. Ключи —
-`version`, `available_libraries`, `modules_loaded`, `dependencies_met`.
-
-```python
-from bquant.visualization import get_visualization_info
-
-info = get_visualization_info()
-print(sorted(info))   # ['available_libraries', 'dependencies_met', 'modules_loaded', 'version']
-```
-
-`version` — версия самого пакета BQuant.
-
-### `print_visualization_status()`
-
-То же самое, но печатью для человека: список библиотек, список загруженных модулей и
-итоговая готовность. Ничего не возвращает.
-
-```python
-from bquant.visualization import print_visualization_status
-
-print_visualization_status()
-```
-
-## 💡 Примеры использования
-
-### Создание финансовых графиков
-
-```python
-from bquant.visualization import FinancialCharts
-from bquant.data.samples import get_sample_data
-
-# Загрузка данных
-data = get_sample_data('tv_xauusd_1h')
-
-# Создание финансовых графиков
-charts = FinancialCharts()
-
-# Candlestick график
-candlestick_fig = charts.create_candlestick_chart(
-    data,
-    title="XAUUSD 1H - Candlestick Chart",
-    volume=True,
-    theme='dark'
-)
-
-# OHLC график
-ohlc_fig = charts.create_ohlc_chart(
-    data,
-    title="XAUUSD 1H - OHLC Chart",
-    theme='light'
-)
-
-# Линейный график
-line_fig = charts.create_line_chart(
-    data[['close']],
-    title="XAUUSD 1H - Close Price",
-    theme='blue'
-)
-
-# Показ графиков
-candlestick_fig.show()
-ohlc_fig.show()
-line_fig.show()
-```
-
-### Universal Pipeline Visualization
+Готовый результат пайплайна умеет рисовать себя сам — четыре режима:
 
 ```python
 from bquant.analysis.zones import analyze_zones
-from bquant.visualization import ZoneVisualizer
+from bquant.data.samples import get_sample_data
 
-# Universal Pipeline анализ
+data = get_sample_data('tv_xauusd_1h')
+
 result = (
     analyze_zones(data)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .with_indicator('custom', 'macd')
     .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True)
     .build()
 )
 
-# Встроенная визуализация из результата
-fig = result.visualize('overview')  # Общий обзор
-fig.show()
+overview = result.visualize('overview')
+detail = result.visualize('detail', zone_id=result.zones[0].zone_id)
+comparison = result.visualize('comparison', max_zones=5)
+statistics = result.visualize('statistics')
 
-fig = result.visualize('detail', zone_id=result.zones[0].zone_id)  # Детальный просмотр
-fig.show()
-
-fig = result.visualize('comparison', max_zones=5)  # Сравнение
-fig.show()
-
-fig = result.visualize('statistics')  # Статистика
-fig.show()
+print(type(overview).__name__, len(result.zones))
 ```
 
-### Advanced Zone Visualization
+Тот же результат через `ZoneVisualizer` напрямую — когда нужны параметры, которых
+`visualize()` не предлагает:
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 from bquant.visualization import ZoneVisualizer
 
-# Создание визуализатора зон
-zone_viz = ZoneVisualizer()
-
-# Детальный просмотр зоны с индикаторами.
-# Используем result.data — датафрейм с вычисленными индикаторами (`macd_12_26_9__hist` и т.п.);
-# исходный `data` их не содержит, поэтому show_indicators=True требует именно result.data.
-fig = zone_viz.plot_zone_detail(
-    result.data,
-    result.zones[0],
-    context_bars=15,
-    show_indicators=True,
-    title="Zone Detail Analysis"
-)
-fig.show()
-
-# Сравнение зон по датам
-from datetime import datetime
-fig = zone_viz.plot_zones_comparison(
-    result.data,
-    result.zones,
-    date_range=(datetime(2024, 1, 1), datetime(2024, 3, 1)),
-    max_zones=min(5, len(result.zones)),
-    title="Zones Comparison"
-)
-fig.show()
-
-# Прямое использование ZoneVisualizer
-fig = zone_viz.plot_zones_on_price_chart(result.data, result.zones)
-fig.show()
-```
-
-### Статистические графики (Universal Pipeline)
-
-```python
-from bquant.visualization import StatisticalPlots
-
-# Universal Pipeline с автоматическими hypothesis tests
+data = get_sample_data('tv_xauusd_1h')
 result = (
     analyze_zones(data)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .with_indicator('custom', 'macd')
     .detect_zones('zero_crossing', indicator_role='hist')
-    .analyze(clustering=True)  # Автоматически включает hypothesis tests
+    .analyze(clustering=False)
     .build()
 )
 
-# Создание статистических графиков
-stat_plots = StatisticalPlots()
-
-# Матрица корреляции
-corr_fig = stat_plots.plot_correlation_matrix(
-    data[['open', 'high', 'low', 'close', 'volume']],
-    title="Correlation Matrix",
-    theme='heatmap'
+visualizer = ZoneVisualizer()
+figure = visualizer.plot_zone_detail(
+    result.data, result.zones[0], context_bars=15, show_indicators=True
 )
-
-# Распределение цен закрытия
-dist_fig = stat_plots.plot_distribution(
-    data['close'],
-    title="Close Price Distribution",
-    plot_type='histogram',
-    theme='blue'
-)
-
-# Результаты гипотезных тестов из Universal Pipeline
-if result.hypothesis_tests:
-    hypothesis_fig = stat_plots.plot_hypothesis_results(
-        result.hypothesis_tests.results,
-        title="Hypothesis Test Results",
-        theme='dark'
-    )
-    hypothesis_fig.show()
-
-# Box plot для сравнения зон. Метрики стратегий лежат в features['metadata'],
-# а не на верхнем уровне: `features.get('volatility_score', 0)` вернул бы ноль
-# по умолчанию у каждой зоны и построил бы график из выдуманных нулей.
-def volatility_of(zone):
-    metrics = (zone.features.get('metadata') or {}).get('volatility_metrics') or {}
-    return metrics.get('volatility_score')
-
-bull_volatility = [v for zone in result.zones if zone.type == 'bull' and zone.features
-                   for v in [volatility_of(zone)] if v is not None]
-bear_volatility = [v for zone in result.zones if zone.type == 'bear' and zone.features
-                   for v in [volatility_of(zone)] if v is not None]
-
-box_fig = stat_plots.plot_box_plot(
-    data=[bull_volatility, bear_volatility],
-    labels=['Bull Zones', 'Bear Zones'],
-    title="Volatility Comparison",
-    theme='light'
-)
-
-# Показ графиков
-corr_fig.show()
-dist_fig.show()
-box_fig.show()
+print(type(figure).__name__)
+# Figure
 ```
 
-### Настройка тем
+**Передавайте `result.data`, а не исходный `data`.** Индикаторы вычисляет пайплайн, и
+живут они в `result.data`; в исходном кадре их нет, поэтому `show_indicators=True` там
+рисовать нечего.
+
+Подробности всех методов, ролей колонок и разбор одной зоны — [zones.md](zones.md).
+
+## Темы
+
+Пять тем: `bquant_light` (текущая по умолчанию), `bquant_dark`, `financial`, `minimal`,
+`professional`.
 
 ```python
-from bquant.visualization.themes import (
-    ChartThemes,
-    create_custom_theme,
-    apply_theme,
-    apply_theme_to_figure,
-)
+from bquant.data.samples import get_sample_data
+from bquant.visualization import FinancialCharts, get_available_themes
 
-# Создание менеджера тем
-themes = ChartThemes()
+data = get_sample_data('tv_xauusd_1h')
 
-# Получение доступных тем
-available_themes = themes.get_available_themes()
-print(f"Available themes: {available_themes}")
+print(get_available_themes())
+# ['bquant_light', 'bquant_dark', 'financial', 'minimal', 'professional']
 
-# Установка базовой темы
-apply_theme('bquant_dark')
+charts = FinancialCharts()
+dark = charts.create_candlestick_chart(data, title="XAUUSD", theme='bquant_dark')
+print(type(dark).__name__)
+# Figure
+```
 
-# Создание кастомной темы
+Тему можно задать вызову (`theme=`) или объекту (`FinancialCharts(theme='bquant_dark')`,
+`ZoneVisualizer(theme=...)`, `StatisticalPlots(theme=...)`); аргумент вызова
+сильнее. **Без явного `theme=` тема не применяется** — фигура выходит с оформлением
+Plotly по умолчанию.
+
+Имя темы проверяется. Несуществующее — отказ с перечнем настоящих:
+
+```python
+from bquant.visualization import FinancialCharts
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+
+try:
+    FinancialCharts().create_candlestick_chart(data, theme='dark')
+except ValueError as error:
+    print(error)
+# Unknown theme: 'dark'. Available: ['bquant_dark', 'bquant_light', 'financial', 'minimal', 'professional']
+```
+
+> До сентября 2026 `theme=` принимали три класса и не применял ни один: светлая и
+> тёмная давали побайтно одинаковую фигуру, а `'dark'`, `'light'`, `'blue'` —
+> несуществующие имена — выглядели как настоящие темы. Разбор:
+> `devref/gaps/core/g47_the_theme_was_accepted_and_ignored_2026-09.md`.
+
+Своя тема и применение к уже готовой фигуре:
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.visualization import FinancialCharts
+from bquant.visualization.themes import apply_theme_to_figure, create_custom_theme
+
+data = get_sample_data('tv_xauusd_1h')
+
 create_custom_theme(
     name='my_theme',
     colors={
@@ -392,276 +228,98 @@ create_custom_theme(
         'grid': '#d1d5db',
         'bullish': '#1f77b4',
         'bearish': '#ff7f0e',
-        'volume': '#2c3e50'
+        'volume': '#2c3e50',
     },
-    layout={
-        'font_family': 'Arial',
-        'font_size': 12,
-        'title_font_size': 16,
-        'show_legend': True
-    }
 )
 
-# Активация кастомной темы
-apply_theme('my_theme')
-
-# Создание графика и применение темы
-fig = charts.create_candlestick_chart(
-    data,
-    title="Custom Theme Chart"
-)
-fig = apply_theme_to_figure(fig, 'my_theme')
-fig.show()
+figure = FinancialCharts().create_candlestick_chart(data, title="Custom")
+figure = apply_theme_to_figure(figure, 'my_theme')
+print(type(figure).__name__)
+# Figure
 ```
 
-### Комбинированная визуализация (Universal Pipeline)
+Прочее из `bquant.visualization.themes`: `apply_theme(name)` делает тему текущей для
+последующих графиков (возвращает `bool`), `get_theme_colors(name)` отдаёт палитру,
+`list_theme_info()` печатает перечень для человека, `reset_theme()` возвращает
+умолчание.
+
+## Статистические графики
 
 ```python
-from bquant.visualization import FinancialCharts, ZoneVisualizer, StatisticalPlots
+from bquant.data.samples import get_sample_data
+from bquant.visualization import StatisticalPlots
 
-# Universal Pipeline анализ
-result = (
-    analyze_zones(data)
-    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-    .detect_zones('zero_crossing', indicator_role='hist')
-    .analyze(clustering=True)
-    .build()
-)
+data = get_sample_data('tv_xauusd_1h')
+plots = StatisticalPlots()
 
-# Создание комплексной визуализации
-def create_comprehensive_analysis(data, result):
-    """Создание комплексной визуализации анализа с Universal Pipeline"""
-    
-    charts = FinancialCharts()
-    zone_viz = ZoneVisualizer()
-    stat_plots = StatisticalPlots()
-    
-    # result.data содержит вычисленные индикаторы (`macd_12_26_9__hist` и т.п.);
-    # передаём его, а не исходный data, чтобы панели индикаторов строились.
-    # 1. Ценовой график с зонами
-    price_fig = zone_viz.plot_zones_on_price_chart(
-        result.data, result.zones,
-        title="Price Analysis with Universal Zones",
-        theme='dark'
-    )
-    
-    # 2. Детальный анализ зоны
-    detail_fig = zone_viz.plot_zone_detail(
-        result.data, result.zones[0],
-        context_bars=20,
-        title="Zone Detail Analysis",
-        theme='dark'
-    )
-    
-    # 3. Сравнение зон
-    comparison_fig = zone_viz.plot_zones_comparison(
-        result.data, result.zones,
-        max_zones=min(5, len(result.zones)),
-        title="Zones Comparison",
-        theme='blue'
-    )
-    
-    # 4. Результаты гипотезных тестов
-    hypothesis_fig = None
-    if result.hypothesis_tests:
-        hypothesis_fig = stat_plots.plot_hypothesis_results(
-            result.hypothesis_tests.results,
-            title="Statistical Test Results",
-            theme='dark'
-        )
-    
-    return {
-        'price_chart': price_fig,
-        'detail_chart': detail_fig,
-        'comparison_chart': comparison_fig,
-        'hypothesis_results': hypothesis_fig
-    }
+correlation = plots.plot_correlation_matrix(data[['open', 'high', 'low', 'close']])
+distribution = plots.plot_distribution(data['close'], plot_type='histogram')
 
-# Создание комплексной визуализации
-analysis_figures = create_comprehensive_analysis(data, result)
-
-# Показ всех графиков
-for name, fig in analysis_figures.items():
-    if fig is not None:
-        print(f"Showing {name}...")
-        fig.show()
+print(type(correlation).__name__, type(distribution).__name__)
+# Figure Figure
 ```
 
-### Экспорт графиков
+Есть и `create_*`-версии тех же графиков (`create_histogram`, `create_scatter_plot`,
+`create_correlation_matrix`, `create_distribution_plot`, `create_box_plot`,
+`create_time_series_plot`), и `plot_hypothesis_results(results)` для вывода
+статистических тестов пайплайна — они лежат в `result.hypothesis_tests`.
+
+## Готовность окружения
 
 ```python
-import os
-from bquant.visualization import FinancialCharts
+from bquant.visualization import check_visualization_dependencies, get_visualization_info
 
-# Создание графика
-charts = FinancialCharts()
-fig = charts.create_candlestick_chart(
-    data,
-    title="XAUUSD 1H Analysis",
-    theme='dark'
-)
+print(check_visualization_dependencies())
+# True
 
-# Экспорт в различные форматы
-export_dir = 'exports'
-os.makedirs(export_dir, exist_ok=True)
-
-# PNG
-fig.write_image(f"{export_dir}/chart.png", width=1200, height=800)
-
-# HTML (интерактивный)
-fig.write_html(f"{export_dir}/chart.html")
-
-# JSON (для интеграции)
-fig.write_json(f"{export_dir}/chart.json")
-
-print(f"Charts exported to {export_dir}/")
+print(sorted(get_visualization_info()))
+# ['available_libraries', 'dependencies_met', 'modules_loaded', 'version']
 ```
 
-### Создание собственного графика
+`check_visualization_dependencies()` — для скриптов, которые должны деградировать до
+текста, а не падать на середине. `print_visualization_status()` печатает то же самое
+для человека.
+
+## Свой тип графика
+
+Наследуйте `ChartBuilder`: он даёт `self.backend`, `validate_data()`,
+`_prepare_datetime_index()` и `self.theme_manager`.
 
 ```python
-from bquant.visualization.charts import ChartBuilder
-from bquant.visualization.themes import ChartThemes
 import plotly.graph_objects as go
 
-class CustomVolatilityChart(ChartBuilder):
-    """Кастомный график волатильности"""
+from bquant.data.samples import get_sample_data
+from bquant.visualization.charts import ChartBuilder, themed
 
-    def __init__(self, theme='bquant_dark'):
-        super().__init__(backend='plotly')
-        self.theme_manager = ChartThemes()
-        self.theme_name = theme
-        self.theme_config = self.theme_manager.get_theme(self.theme_name)
 
-    def create_chart(self, data, window_size=20, title="Volatility Chart"):
-        """Создание графика волатильности"""
+class VolatilityChart(ChartBuilder):
+    """График скользящей волатильности."""
 
+    @themed
+    def create_chart(self, data, window=20, title="Volatility"):
         self.validate_data(data, ['close'])
         data = self._prepare_datetime_index(data.copy())
 
-        # Расчет волатильности
-        returns = data['close'].pct_change()
-        volatility = returns.rolling(window=window_size).std()
+        volatility = data['close'].pct_change().rolling(window=window).std()
 
-        colors = self.theme_config.get('colors', {})
+        figure = go.Figure()
+        figure.add_trace(go.Scatter(x=data.index, y=volatility, mode='lines', name='Volatility'))
+        figure.update_layout(title=title, xaxis_title="Date", yaxis_title="Volatility")
+        return figure
 
-        # Создание графика
-        fig = go.Figure()
 
-        # Добавление линии волатильности
-        fig.add_trace(go.Scatter(
-            x=data.index,
-            y=volatility,
-            mode='lines',
-            name='Volatility',
-            line=dict(color=colors.get('neutral', '#3498db'))
-        ))
-
-        # Настройка макета
-        fig.update_layout(
-            title=title,
-            xaxis_title="Date",
-            yaxis_title="Volatility",
-            height=600
-        )
-
-        return self.theme_manager.apply_theme_to_figure(fig, self.theme_name)
-
-# Использование кастомного графика
-volatility_chart = CustomVolatilityChart(theme='bquant_dark')
-vol_fig = volatility_chart.create_chart(data, window_size=20)
-vol_fig.show()
+chart = VolatilityChart().create_chart(get_sample_data('tv_xauusd_1h'), theme='bquant_dark')
+print(type(chart).__name__)
+# Figure
 ```
 
-### Интерактивные элементы
+Декоратор `@themed` — то, чем тема применяется к готовой фигуре; без него параметр
+`theme=` у вашего метода будет принят и проигнорирован.
 
-```python
-from bquant.visualization import FinancialCharts
+## Дальше
 
-# Создание интерактивного графика
-charts = FinancialCharts()
-
-fig = charts.create_candlestick_chart(
-    data,
-    title="Interactive XAUUSD Chart",
-    theme='dark',
-    interactive=True
-)
-
-# Добавление интерактивных элементов
-fig.update_layout(
-    hovermode='x unified',
-    showlegend=True,
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1
-    )
-)
-
-# Добавление кнопок
-fig.update_layout(
-    updatemenus=[
-        dict(
-            type="buttons",
-            direction="right",
-            x=0.1,
-            y=1.1,
-            showactive=False,
-            buttons=list([
-                dict(label="1H",
-                     method="relayout",
-                     args=[{"xaxis.range": [data.index[-100], data.index[-1]]}]),
-                dict(label="1D",
-                     method="relayout",
-                     args=[{"xaxis.range": [data.index[-24], data.index[-1]]}]),
-                dict(label="1W",
-                     method="relayout",
-                     args=[{"xaxis.range": [data.index[-168], data.index[-1]]}]),
-                dict(label="All",
-                     method="relayout",
-                     args=[{"xaxis.range": [data.index[0], data.index[-1]]}])
-            ])
-        )
-    ]
-)
-
-fig.show()
-```
-
-## 🔗 Связанные разделы
-
-- **[Core Modules](../core/)** - Базовые модули
-- **[Data Modules](../data/)** - Модули данных
-- **[Indicators](../indicators/README.md)** - Технические индикаторы
-- **[Analysis](../analysis/README.md)** - Аналитические модули
-
-## 📖 Детальная документация
-
-- **[Universal Pipeline](../analysis/pipeline.md)** - Полная документация Universal Pipeline v2.1
-- **[Zones Analysis](../analysis/zones.md)** - Детали работы с зонами и результатами анализа
-- **[Strategies](../analysis/strategies.md)** - Настройка стратегий и анализ зон
-- **[Core Logging](../core/logging.md)** - Настройка логирования и мониторинга выполнения
-- **[Indicators README](../indicators/README.md)** - Работа с индикаторами и фабрикой
-
-## 🚀 Руководство по расширению
-
-### Создание нового типа графика
-
-1. **Наследование от ChartBuilder**
-2. **Реализация метода create_chart()**
-3. **Настройка темы**
-4. **Добавление интерактивности**
-
-### Лучшие практики
-
-- Используйте консистентные цвета и стили
-- Добавляйте интерактивные элементы
-- Оптимизируйте производительность для больших данных
-- Поддерживайте различные форматы экспорта
-
----
-
-**Следующий раздел:** [Core Modules](../core/) 🏗️
+| | |
+|---|---|
+| [Зоны на графиках](zones.md) | `ZoneVisualizer` целиком, роли колонок, разбор зоны |
+| [Пайплайн зон](../analysis/pipeline.md) | откуда берётся `result` |
+| [Индикаторы](../indicators/README.md) | что рисовать поверх цены |

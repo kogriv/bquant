@@ -15,6 +15,7 @@ from typing import Dict, Any, List, Optional, Union, Tuple
 from datetime import datetime
 import warnings
 
+from .charts import themed
 from ..core.logging_config import get_logger
 from ..core.exceptions import AnalysisError
 
@@ -58,6 +59,14 @@ class StatisticalPlots:
         """
         self.backend = backend
         self.logger = get_logger(f"{__name__}.StatisticalPlots")
+
+        # Тема применяется к готовой фигуре декоратором `@themed` (G47). Без явного
+        # `theme=` не применяется ничего — вывод тот же, что и до правки.
+        from .themes import ChartThemes
+        self.theme_manager = ChartThemes()
+        self._explicit_theme = kwargs.get('theme')
+        if self._explicit_theme is not None:
+            self.theme_manager.get_theme(self._explicit_theme)
         
         # Проверяем доступность выбранной библиотеки
         if backend == 'plotly' and not PLOTLY_AVAILABLE:
@@ -84,6 +93,7 @@ class StatisticalPlots:
         
         self.logger.info(f"Statistical plots initialized with {self.backend} backend")
     
+    @themed
     def create_histogram(self, data: Union[pd.Series, pd.DataFrame, np.ndarray],
                         title: str = "Histogram",
                         bins: int = 30,
@@ -109,6 +119,7 @@ class StatisticalPlots:
         else:
             return self._create_matplotlib_histogram(data, title, bins, column, group_by, **kwargs)
     
+    @themed
     def create_scatter_plot(self, data: pd.DataFrame,
                            x_column: str,
                            y_column: str,
@@ -138,6 +149,7 @@ class StatisticalPlots:
             return self._create_matplotlib_scatter(data, x_column, y_column, title, 
                                                   color_column, size_column, **kwargs)
     
+    @themed
     def create_correlation_matrix(self, data: pd.DataFrame,
                                  title: str = "Correlation Matrix",
                                  method: str = 'pearson',
@@ -159,6 +171,7 @@ class StatisticalPlots:
         else:
             return self._create_matplotlib_correlation(data, title, method, **kwargs)
     
+    @themed
     def create_distribution_plot(self, data: Union[pd.Series, np.ndarray],
                                 title: str = "Distribution Plot",
                                 show_normal: bool = True,
@@ -180,6 +193,7 @@ class StatisticalPlots:
         else:
             return self._create_matplotlib_distribution(data, title, show_normal, **kwargs)
     
+    @themed
     def create_box_plot(self, data: pd.DataFrame,
                        y_column: str,
                        x_column: str = None,
@@ -204,11 +218,13 @@ class StatisticalPlots:
             return self._create_matplotlib_box(data, y_column, x_column, title, **kwargs)
 
     # Документационные алиасы
+    @themed
     def plot_correlation_matrix(self, data: pd.DataFrame,
                                 title: str = "Correlation Matrix",
                                 **kwargs) -> Union[go.Figure, plt.Figure]:
         return self.create_correlation_matrix(data, title=title, **kwargs)
 
+    @themed
     def plot_distribution(self, data: Union[pd.Series, np.ndarray],
                           title: str = "Distribution",
                           plot_type: str = "histogram",
@@ -217,6 +233,7 @@ class StatisticalPlots:
             return self.create_histogram(data, title=title, **kwargs)
         return self.create_distribution_plot(data, title=title, **kwargs)
 
+    @themed
     def plot_box_plot(self, data: List[List[float]],
                       labels: List[str],
                       title: str = "Box Plot",
@@ -229,6 +246,7 @@ class StatisticalPlots:
         frame = pd.DataFrame(records)
         return self.create_box_plot(frame, y_column="value", x_column="label", title=title, **kwargs)
 
+    @themed
     def plot_hypothesis_results(self, results: Dict[str, Any],
                                 title: str = "Hypothesis Test Results",
                                 **kwargs) -> Union[go.Figure, plt.Figure]:
@@ -278,6 +296,7 @@ class StatisticalPlots:
         ax.set_ylabel("metric")
         return fig  # type: ignore[return-value]
     
+    @themed
     def create_time_series_plot(self, data: pd.DataFrame,
                                y_columns: List[str],
                                title: str = "Time Series",
@@ -807,6 +826,7 @@ class DistributionPlotter(StatisticalPlots):
     Специализированный класс для анализа распределений.
     """
     
+    @themed
     def plot_multiple_distributions(self, data: pd.DataFrame,
                                    columns: List[str],
                                    title: str = "Multiple Distributions",

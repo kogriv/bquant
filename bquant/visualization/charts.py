@@ -9,6 +9,8 @@
 - Комбинированные графики с индикаторами
 """
 
+import functools
+
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Optional, Union, Tuple
@@ -45,6 +47,29 @@ except ImportError:
     logger.warning("Matplotlib not available - some chart functionality will be limited")
 
 
+def themed(method):
+    """Применить к готовой фигуре тему, о которой попросил вызывающий.
+
+    Тему принимали три класса и не применял ни один: аргумент уходил в `**kwargs`
+    и там оставался, а фигура выходила без темы. Светлая и тёмная давали побайтно
+    одинаковый результат (G47).
+
+    Умолчание сохранено намеренно: без явного `theme=` тема **не** применяется, и
+    вывод остаётся тем же, что и до правки. Меняется только тот вызов, который о
+    теме просил и до сих пор её не получал.
+    """
+
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        requested = kwargs.pop('theme', None) or getattr(self, '_explicit_theme', None)
+        figure = method(self, *args, **kwargs)
+        if requested is None or figure is None:
+            return figure
+        return self.theme_manager.apply_theme_to_figure(figure, requested)
+
+    return wrapper
+
+
 class ChartBuilder:
     """
     Базовый класс для построения графиков.
@@ -61,6 +86,12 @@ class ChartBuilder:
         """
         self.backend = backend
         self.logger = get_logger(f"{__name__}.ChartBuilder")
+
+        # Менеджер тем нужен каждому построителю: через него `@themed` применяет
+        # тему к готовой фигуре. Незнакомое имя он отвергает, а не подменяет.
+        from .themes import ChartThemes
+        self.theme_manager = ChartThemes()
+        self._explicit_theme = None
         
         # Проверяем доступность выбранной библиотеки
         if backend == 'plotly' and not PLOTLY_AVAILABLE:
@@ -137,7 +168,14 @@ class FinancialCharts(ChartBuilder):
             **kwargs: Дополнительные параметры
         """
         super().__init__(backend)
-        
+
+        # Имя темы проверяется здесь: отказ на незнакомом имени лучше, чем график,
+        # который выглядит как тематизированный и им не является.
+        theme = kwargs.get('theme')
+        if theme is not None:
+            self.theme_manager.get_theme(theme)
+            self._explicit_theme = theme
+
         # Настройки по умолчанию
         self.default_config = {
             'width': kwargs.get('width', 1200),
@@ -153,6 +191,7 @@ class FinancialCharts(ChartBuilder):
             }
         }
     
+    @themed
     def create_candlestick_chart(self, data: pd.DataFrame, 
                                 title: str = "Candlestick Chart",
                                 show_volume: bool = True,
@@ -177,6 +216,7 @@ class FinancialCharts(ChartBuilder):
         else:
             return self._create_matplotlib_candlestick(data, title, show_volume, **kwargs)
     
+    @themed
     def create_ohlc_chart(self, data: pd.DataFrame,
                          title: str = "OHLC Chart",
                          **kwargs) -> Union[go.Figure, plt.Figure]:
@@ -199,6 +239,7 @@ class FinancialCharts(ChartBuilder):
         else:
             return self._create_matplotlib_ohlc(data, title, **kwargs)
     
+    @themed
     def create_line_chart(self, data: pd.DataFrame,
                          columns: List[str] = None,
                          title: str = "Price Chart",
@@ -226,6 +267,7 @@ class FinancialCharts(ChartBuilder):
         else:
             return self._create_matplotlib_line(data, columns, title, **kwargs)
     
+    @themed
     def create_area_chart(self, data: pd.DataFrame,
                          columns: List[str] = None,
                          title: str = "Area Chart",
@@ -253,6 +295,7 @@ class FinancialCharts(ChartBuilder):
         else:
             return self._create_matplotlib_area(data, columns, title, **kwargs)
     
+    @themed
     def plot_ohlcv(self, data: pd.DataFrame,
                    title: str = "OHLCV Chart",
                    chart_type: str = 'candlestick',
@@ -278,6 +321,7 @@ class FinancialCharts(ChartBuilder):
         else:
             raise ValueError(f"Unknown chart type: {chart_type}")
     
+    @themed
     def plot_macd_with_zones(self, macd_data: pd.DataFrame, 
                            zones_data: List[Dict] = None,
                            title: str = "MACD with Zones",
@@ -316,6 +360,7 @@ class FinancialCharts(ChartBuilder):
         else:
             return self._create_matplotlib_macd_with_zones(macd_data, zones_data, title, resolved, **kwargs)
 
+    @themed
     def plot_zones_over_indicator(self, data: pd.DataFrame,
                                   zones_data: List[Dict] = None,
                                   title: str = "Zones",
