@@ -57,7 +57,12 @@ class TestMACDFullPipeline:
         # Проверка зон
         for zone in result.zones[:5]:  # Check first 5 zones
             assert zone.zone_id is not None
-            assert zone.start_idx < zone.end_idx
+            # Зона в один бар законна: гистограмма может сменить знак через бар, и
+            # `duration=1` — её честная длина. Проверка стояла строгой (`<`) и была
+            # неверна для корпуса и раньше — в прогоне до G45 однобаровая зона тоже
+            # была, просто не попадала в первые пять.
+            assert zone.start_idx <= zone.end_idx
+            assert zone.duration >= 1
             assert zone.type in ['bull', 'bear']  # v2.1: simplified zone types
             assert zone.features is not None, "Zone should have features"
             

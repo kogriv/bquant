@@ -65,7 +65,12 @@ class ExponentialMovingAverage(CustomIndicator):
             
             # Вычисляем EMA
             ema_values = data['close'].ewm(span=period, adjust=False).mean()
-            
+
+            # Прогрев: пока наблюдений меньше `period`, среднее по периоду не
+            # определено, и число публиковать нечем (G45). Маска той же формы, что у
+            # SMA и BollingerBands в этом же пакете, и та же, что у pandas-ta.
+            ema_values.iloc[:period - 1] = np.nan
+
             result_data = pd.DataFrame({
                 f'ema_{period}': ema_values
             }, index=data.index)

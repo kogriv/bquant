@@ -122,22 +122,19 @@ class MACDPreloadedIndicator(PreloadedIndicator):
     def get_required_columns(self) -> List[str]:
         """
         Возвращает колонки, которые должны быть в данных.
-        
+
+        Именно **запрошенные при создании**, а не умолчания класса. Ниже по коду
+        этим списком и извлекают, и валидируют, поэтому подмена его умолчаниями
+        означала, что параметр `required_columns` не действует ни там, ни там
+        (G46). Раньше сразу за этим методом стоял его же одноимённый двойник с
+        `@classmethod`, который молча выигрывал: Python оставляет последнее
+        определение в теле класса и ни о чём не предупреждает.
+
         Returns:
             Список требуемых колонок, переданных при инициализации
         """
         return self._required_columns.copy()
-    
-    @classmethod
-    def get_required_columns(cls) -> List[str]:
-        """
-        Возвращает колонки по умолчанию для PRELOADED MACD индикатора.
-        
-        Returns:
-            Список колонок по умолчанию: ['macd', 'signal']
-        """
-        return cls.get_default_columns()
-    
+
     def get_min_records(self) -> int:
         """
         Минимальное количество записей для работы.
@@ -274,7 +271,10 @@ class MACDPreloadedIndicator(PreloadedIndicator):
                     'first_valid_index': result_data.first_valid_index(),
                     'last_valid_index': result_data.last_valid_index(),
                     'total_records': len(result_data),
-                    'nan_counts': nan_counts.to_dict() if nan_counts.any() else None
+                    # Всегда словарь: `None` не отличить от «не считали», а здесь
+                    # считали всегда. Нули — такой же результат замера, как и всё
+                    # остальное.
+                    'nan_counts': nan_counts.to_dict()
                 }
             )
             

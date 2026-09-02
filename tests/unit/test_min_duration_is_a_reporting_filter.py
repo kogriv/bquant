@@ -67,16 +67,28 @@ class TestDetectionTiles:
             ZoneDetectionConfig(min_duration=2)
 
     def test_zones_tile_the_frame_exactly(self, data):
-        """Каждый бар принадлежит ровно одной зоне, стыки без зазоров."""
-        zones = sorted(_macd(data).zones, key=lambda z: z.start_idx)
+        """Каждый бар с определённым индикатором принадлежит ровно одной зоне.
 
-        assert zones[0].start_idx == 0
-        assert zones[-1].end_idx == len(data) - 1
+        Мостится не весь кадр, а его **определённая часть**: после G45 индикатор
+        не публикует значений на неполном окне, и голова ряда зонам не
+        принадлежит — принадлежать там нечему. Требование к детекции от этого не
+        слабеет: внутри определённой области ни один бар не выброшен и зазоров
+        между зонами нет.
+        """
+        result = _macd(data)
+        zones = sorted(result.zones, key=lambda z: z.start_idx)
+
+        hist = result.data[result.column_schema.column("hist")]
+        defined = hist.notna().to_numpy().nonzero()[0]
+        first_defined, last_defined = int(defined[0]), int(defined[-1])
+
+        assert zones[0].start_idx == first_defined
+        assert zones[-1].end_idx == last_defined
         for previous, following in zip(zones, zones[1:]):
             assert following.start_idx == previous.end_idx + 1, (
                 f"разрыв между зонами {previous.zone_id} и {following.zone_id}"
             )
-        assert sum(z.duration for z in zones) == len(data)
+        assert sum(z.duration for z in zones) == last_defined - first_defined + 1
 
     def test_zero_crossing_alternates_when_nothing_is_dropped(self, data):
         """Детектор режет по смене знака, поэтому типы обязаны чередоваться."""

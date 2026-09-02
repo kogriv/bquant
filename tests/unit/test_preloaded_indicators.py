@@ -37,10 +37,18 @@ class TestMACDPreloadedIndicator:
         assert isinstance(macd_default.get_default_columns(), list)
     
     def test_custom_columns_object_creation(self):
-        """Тест создания объекта с кастомными колонками."""
+        """Тест создания объекта с кастомными колонками.
+
+        Проверка требовала обратного — что запрошенные колонки **не** действуют
+        (`== ['macd', 'signal']`), и тем закрепляла G46: `get_required_columns`
+        был определён в классе дважды, и классовый двойник возвращал умолчания.
+        Тест назывался «с кастомными колонками» и утверждал, что кастомных
+        колонок не бывает.
+        """
         macd_custom = MACDPreloadedIndicator(required_columns=['macd', 'signal', 'histogram'])
         assert macd_custom.name == "macd_preloaded"
-        assert macd_custom.get_required_columns() == ['macd', 'signal']
+        assert macd_custom.get_required_columns() == ['macd', 'signal', 'histogram']
+        assert macd_custom.get_output_columns() == ['macd', 'signal', 'histogram']
     
     def test_class_methods(self):
         """Тест классных методов."""

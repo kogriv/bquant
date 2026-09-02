@@ -107,7 +107,21 @@ class MACD(CustomIndicator):
             
             # Вычисляем гистограмму
             histogram = macd_line - signal_line
-            
+
+            # Прогрев: значение, посчитанное на неполном окне, не публикуется (G45).
+            # `ewm` определён с первого бара и потому отдаёт число там, где медленная
+            # EMA ещё не набрала своих `slow_period` наблюдений. На нулевом баре обе
+            # EMA равны одной и той же цене закрытия, поэтому линия там — ровно 0.0,
+            # и детектор пересечений нуля читает это как сигнал. Маска той же формы,
+            # что у SMA и BollingerBands в этом же пакете (`period-1`), и совпадает с
+            # соглашением pandas-ta: линия `slow-1`, сигнал и гистограмма — плюс
+            # прогрев самой сигнальной EMA.
+            line_warmup = slow_period - 1
+            signal_warmup = line_warmup + signal_period - 1
+            macd_line.iloc[:line_warmup] = np.nan
+            signal_line.iloc[:signal_warmup] = np.nan
+            histogram.iloc[:signal_warmup] = np.nan
+
             # Имена берутся у идентичности, посчитанной по **фактическим**
             # параметрам этого вызова: `calculate(data, fast_period=5)` считает
             # не то, что объявлял конструктор, и колонка обязана это сказать.
