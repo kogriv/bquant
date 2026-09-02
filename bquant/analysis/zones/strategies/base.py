@@ -88,6 +88,22 @@ class SwingMetrics:
         # === METADATA ===
         strategy_name: Name of the strategy used
         strategy_params: Parameters of the strategy
+
+    Note on adding a position-within-the-zone field (`rel_time`, `rel_price`, or
+    anything normalised by the zone's span or price range):
+
+        Such a value is **post-hoc**. It divides by a quantity — the zone's duration
+        or its high-low range — that is known only once the zone has ended. It is a
+        legitimate descriptor of a finished zone and it is NOT a feature available at
+        bar `k`: using it as one leaks the future into the past, the same class of
+        error as counting a leg that has not finished yet.
+
+        The trap is the name. A field called "the swing's position in the zone" reads
+        like a ready-made feature, and that is how it will be taken. If such a field
+        is ever added here, the caveat goes with it, in this docstring, in the same
+        change. Raised by the consumer on `kogriv/bquearch#2` after they measured it
+        on their own side; the causal counterpart they use is normalised by the
+        zone's *start* price, which is known immediately.
     """
     # Existing fields (6)
     num_swings: int
