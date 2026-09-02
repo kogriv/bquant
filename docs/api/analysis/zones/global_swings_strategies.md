@@ -4,7 +4,7 @@
 > **глобального расчёта** (`calculate_global`/`aggregate_for_zone`). Обзор всех метрик-стратегий
 > (swing/shape/divergence/volatility/volume) — в [Strategy Pattern](../strategies.md).
 
-Раздел описывает контракт `SwingCalculationStrategy` и обновлённые реализации ZigZag, FindPeaks и PivotPoints после перехода на глобальный расчёт свингов.
+Контракт `SwingCalculationStrategy` и три реализации: ZigZag, FindPeaks, PivotPoints.
 
 ## Протокол `SwingCalculationStrategy`
 
@@ -43,7 +43,7 @@
 
 Файл: `bquant/analysis/zones/strategies/swing/find_peaks.py`
 
-- `calculate_global()` использует `scipy.signal.find_peaks`/`find_troughs` и формирует `SwingContext`.
+- `calculate_global()` дважды вызывает `scipy.signal.find_peaks` — по ряду и по его отражению; отдельной `find_troughs` в scipy нет.
 - `aggregate_for_zone()` применяет общую вспомогательную функцию `_aggregate_metrics()` для расчёта амплитуд и длительностей.
 - Локальный метод `calculate()` продолжает работать для совместимости, но теперь реиспользует глобальную логику.
 
@@ -58,7 +58,23 @@
 ## Общие рекомендации
 
 - Для пользовательских стратегий реализуйте `calculate_global` и `aggregate_for_zone`, затем зарегистрируйте стратегию через `StrategyRegistry`.
-- Если необходимо поддержать только локальный режим, явно документируйте это и бросайте `NotImplementedError` в `calculate_global` — пайплайн отработает фолбэком.
-- Проверьте, что `strategy_params` включают ключевые настройки (например, `deviation` для ZigZag или `min_prominence` для FindPeaks) — это повышает трассируемость.
+- Если необходимо поддержать только локальный режим, явно документируйте это и бросайте
+  `NotImplementedError` в `calculate_global` — пайплайн поймает исключение, запишет
+  предупреждение и оставит зоны без глобального контекста.
+- Проверьте, что `strategy_params` включают ключевые настройки — это повышает
+  трассируемость. Параметры конструкторов, как они называются на самом деле:
 
-Такая унификация интерфейса упрощает расширение набора стратегий и делает результаты свингов сопоставимыми между зонами.
+  | Стратегия | Параметры |
+  |---|---|
+  | `ZigZagSwingStrategy` | `legs=10`, `deviation=0.05` |
+  | `FindPeaksSwingStrategy` | `prominence=None`, `distance=5`, `min_amplitude_pct=0.02`, `prominence_warmup=200` |
+  | `PivotPointsSwingStrategy` | `left_bars=2`, `right_bars=2`, `min_amplitude_pct=0.015` |
+
+  У FindPeaks параметр называется `prominence`, а не `min_prominence`; `prominence=None`
+  означает не «без порога», а порог, выводимый из данных и **замороженный** на первых
+  `prominence_warmup` барах (G15).
+
+  Обратите внимание: перечисленные значения — умолчания *конструкторов*. Пайплайн по
+  умолчанию применяет пресет `narrow_zone`, поэтому в прогоне через `analyze_zones()`
+  параметры будут другими — фактические лежат в `zone.swing_context.strategy_params`.
+

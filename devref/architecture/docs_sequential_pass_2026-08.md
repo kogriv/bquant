@@ -124,7 +124,7 @@
 | ✅ | 787 → 878 | `docs/user_guide/caching.md` — точечно, но правки существенные. Утверждала: «при любом изменении (… пресет, **стратегия**) генерируется другой ключ» — неверно, это и есть G36. `CACHE_VERSION` названа равной 2 при фактических **15**: номер переписали в доку один раз и он отстал на тринадцать. Вывод `cache_stats()` описан неточно. Про lambda в правилах сказано «кэш может не работать» — на деле не работает никогда, и по конкретной причине: в ключ попадает адрес функции |
 | ✅ | 577 → 662 | `docs/user_guide/best_practices.md` — переписана. Все примеры были псевдокодом с **несуществующими функциями** (`save`, `load`, `extract_features`, `analyze_statistics`, `full_analysis`) — форма, которая читается как API и им не является. Заменены тремя исполняемыми паттернами. Ссылка в `devref/` (за пределы дерева доков) убрана |
 
-### Волна 3 — справочник API
+### Волна 3 — справочник API · **закрыта 2026-09-02**
 
 | Статус | Слов | Страница |
 |---|---|---|
@@ -136,10 +136,10 @@
 | ✅ | 284 | `docs/api/analysis/base.md` |
 | ✅ | 2667 | `docs/api/indicators/README.md` |
 | ✅ | 497 | `docs/api/indicators/base.md` |
-| ⬜ | 479 | `docs/api/indicators/custom.md` |
+| ✅ | 479 → 690 | `docs/api/indicators/custom.md` — точечно, но правки существенные. Добавлен столбец прогрева и раздел про него: под этой страницей нашёлся **G45** (EMA и MACD публиковали значения на неполном окне, детектор строил на них шесть зон из 83). Оговорка «самосогласованность сохраняется», которой оправдывалось расхождение с pandas-ta, верна не полностью: `ExponentialMovingAverage` сглаживает с `adjust=False`, а `MACD` внутри себя — с `adjust=True`, поэтому `EMA(12) − EMA(26)` ≠ линии MACD этого же пакета |
 | ✅ | 383 | `docs/api/indicators/factory.md` |
 | ✅ | 550 | `docs/api/indicators/library_manager.md` |
-| ⬜ | 1064 | `docs/api/indicators/preloaded.md` |
+| ✅ | 1064 → 1120 | `docs/api/indicators/preloaded.md` — переписана. Страница была буквальной расшифровкой реализации: перечень методов с описанием их внутренней логики и ни одного исполнявшегося примера. Под ней **G46**: `get_required_columns` объявлен в классе дважды, классовый двойник молча побеждал, и параметр `required_columns` не действовал ни при извлечении, ни при валидации. Проверка в сьюте это **утверждала** |
 | ✅ | 137 | `docs/api/indicators/macd.md` |
 | ✅ | 839 | `docs/api/data/README.md` |
 | ✅ | 908 | `docs/api/data/samples.md` |
@@ -154,11 +154,11 @@
 | ✅ | 330 | `docs/api/core/utils.md` |
 | ✅ | 195 | `docs/api/core/exceptions.md` |
 | ✅ | 165 | `docs/api/core/performance.md` |
-| ⬜ | 1792 | `docs/api/visualization/README.md` |
-| ⬜ | 2017 | `docs/api/visualization/zones.md` |
-| ⬜ | 476 | `docs/api/analysis/zones/global_swings_models.md` |
-| ⬜ | 378 | `docs/api/analysis/zones/global_swings_pipeline.md` |
-| ⬜ | 361 | `docs/api/analysis/zones/global_swings_strategies.md` |
+| ✅ | 1792 → 1180 | `docs/api/visualization/README.md` — переписана. Раздел «быстрого поиска» перечислял **шестнадцать несуществующих имён**: шесть функций уровня пакета, четыре типа конфигурации, шесть методов. Под страницей **G47**: `theme=` принимали три класса и не применял ни один — светлая и тёмная давали побайтно одинаковую фигуру |
+| ✅ | 2017 | `docs/api/visualization/zones.md` — точечно. Страница содержательная и по механике верная; неверны были числа. Пример вывода агрегированных метрик устарел во всех цифрах и в подписи типа зон; `Rally/Drop Ratio` стоял под двумя средними и их частным **не является** (1.94x против 0.90 у медвежьих) — подпись исправлена на `Mean per-zone Rally/Drop`. Путь `save_figure` назван как `output/vis`, фактический — `outputs/vis`. Пример с наивной датой в `date_range` падал `TypeError` |
+| ✅ | 476 → 700 | `docs/api/analysis/zones/global_swings_models.md` — точечно. В таблице полей `SwingPoint` не хватало **`confirmation_index`** — того самого поля, ради которого делались G14 и G15: `index` говорит, где экстремум, а `confirmation_index` — с какого бара о нём можно было знать (задержка 1–11 баров, медиана 2). Оба примера не исполнялись |
+| ✅ | 378 → 520 | `docs/api/analysis/zones/global_swings_pipeline.md` — точечно. `config.with_swing_scope(...)` из «минимального примера» не существует (метод у билдера, не у конфигурации); в диаграмме три имени шага из пяти не совпадали с кодом; `swing_calculation_mode` объявлен в `ZoneAnalysisResult.metadata`, а лежит в метаданных **зоны** |
+| ✅ | 361 → 470 | `docs/api/analysis/zones/global_swings_strategies.md` — точечно. `scipy.signal.find_troughs` не существует (find_peaks зовётся дважды, по ряду и по отражению); параметр FindPeaks называется `prominence`, а не `min_prominence`. Добавлена таблица настоящих параметров конструкторов с оговоркой, что в прогоне через пайплайн действуют значения пресета |
 
 ### Волна 4 — обучающее и примеры
 

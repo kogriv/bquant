@@ -4,7 +4,9 @@
 > относящиеся к **глобальному расчёту свингов** (`swing_scope="global"`). Полный справочник
 > публичного builder-API — в [Universal Pipeline](../pipeline.md).
 
-Этот документ фиксирует ключевые изменения API, связанные с глобальным расчётом свингов.
+Всё перечисленное ниже — **внутренние** методы пайплайна. Снаружи режим включается
+одной строкой билдера, `with_swing_scope`; знать эти шаги нужно при отладке и при
+написании своей свинг-стратегии.
 
 ## Обзор рабочего процесса
 
@@ -17,14 +19,14 @@
 Диаграмма последовательности:
 
 ```
-prepare_dataframe() ──▶ _calculate_global_swings()
+_prepare_data()  ────▶ _calculate_global_swings()
          │                    │
          │                    └──► SwingContext (глобальные точки)
          ▼
- detect_zones() ──▶ _inject_swing_context(zones, context)
+ _detect_zones() ──▶ _inject_swing_context(zones, context)
          │
          ▼
- analyze_zones() ──▶ ZoneAnalysisResult (zones + features + metadata)
+ _analyze_zones() ──▶ ZoneAnalysisResult (zones + features + metadata)
 ```
 
 ## `_calculate_global_swings(data: pd.DataFrame) -> SwingContext`
@@ -38,10 +40,27 @@ prepare_dataframe() ──▶ _calculate_global_swings()
 
 ### Минимальный пример
 
+Режим задаётся билдеру, а не конфигурации: у `ZoneAnalysisConfig` метода
+`with_swing_scope` нет — это метод `ZoneAnalysisBuilder`. Готовый контекст доступен
+из любой зоны, обращаться к приватному методу для этого не нужно:
+
 ```python
-pipeline = ZoneAnalysisPipeline(config.with_swing_scope("global"), analyzer)
-context = pipeline._calculate_global_swings(prepared_df)
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd')
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .with_strategies(swing='zigzag')
+    .with_swing_scope('global')
+    .analyze(clustering=False)
+    .build()
+)
+
+context = result.zones[0].swing_context
 print(len(context.swing_points))
+# 402
 ```
 
 ## `_inject_swing_context(zones: List[ZoneInfo], swing_context: SwingContext)`
@@ -53,10 +72,25 @@ print(len(context.swing_points))
 
 ### Контрольный сценарий
 
+Контекст один на прогон, и все зоны ссылаются на **один и тот же** объект — это и есть
+смысл режима: свинги считаются однажды.
+
 ```python
-zones = pipeline._detect_zones(prepared_df)
-pipeline._inject_swing_context(zones, context)
-assert all(zone.swing_context is context for zone in zones)
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd')
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .with_strategies(swing='zigzag')
+    .analyze(clustering=False)
+    .build()
+)
+
+context = result.zones[0].swing_context
+print(all(zone.swing_context is context for zone in result.zones))
+# True
 ```
 
 ## `ZoneAnalysisBuilder.with_swing_scope(scope: Literal["per_zone", "global"])`
@@ -84,6 +118,8 @@ result = (
 
 - Если стратегия не поддерживает `calculate_global`, пайплайн логирует предупреждение и переключается на `per_zone`.
 - При неуспешном глобальном расчёте (исключение в стратегии) `_run_without_cache()` оставляет зоны без контекста; анализатор признаков автоматически использует локальные данные.
-- В трассировке `ZoneAnalysisResult.metadata['swing_calculation_mode']` фиксируется фактический режим (глобальный или локальный).
+- Фактический режим фиксируется **у каждой зоны**, а не у результата:
+  `zone.features['metadata']['swing_calculation_mode']` даёт `'global'` или `'per_zone'`.
+  В `ZoneAnalysisResult.metadata` этого ключа нет — там лежат `swing_coverage`,
+  `duration_filter`, `zone_types` и прочая сводка по прогону.
 
-Эти изменения делают работу пайплайна предсказуемой и прозрачной, а также упрощают диагностику при интеграции глобальных свингов в пользовательские сценарии.
