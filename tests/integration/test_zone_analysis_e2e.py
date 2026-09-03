@@ -210,21 +210,26 @@ class TestPreloadedZonesPipeline:
     """End-to-end тесты для preloaded зон"""
     
     @pytest.mark.integration
-    @pytest.mark.skip(reason="Preloaded zones require specific format - TODO: fix zones_data structure")
     def test_preloaded_zones_pipeline(self):
         """
         Тест пайплайна с preloaded зонами:
         Зоны созданы внешним источником
         
-        TODO: Fix zones_data format - requires investigation of PreloadedZonesDetection strategy
+        Зоны задаются временем, и время у встроенного сэмпла лежит в колонке
+        `time`, а не в индексе: индекс там позиционный. Прежняя версия этого
+        теста брала `df.index[10]` и получала целое 10, которое ниже по течению
+        становилось `Timestamp(10)` — 1970 годом. Тест был выключен пропуском с
+        причиной «требует специфического формата»; формат был обычный, неверна
+        была фикстура.
         """
         df = get_sample_data('tv_xauusd_1h')
-        
-        # Создаем тестовые preloaded зоны с правильной структурой
+        time = df['time']
+
+        # Границы зон — время, на тех же часах, что и данные
         zones_data = pd.DataFrame({
             'zone_id': [1, 2, 3],  # Required field
-            'start_time': [df.index[10], df.index[50], df.index[100]],
-            'end_time': [df.index[20], df.index[60], df.index[110]],
+            'start_time': [time.iloc[10], time.iloc[50], time.iloc[100]],
+            'end_time': [time.iloc[20], time.iloc[60], time.iloc[110]],
             'type': ['bull', 'bear', 'bull']  # v2.1: simplified zone types
         })
         
@@ -249,6 +254,34 @@ class TestPreloadedZonesPipeline:
             if zone.features:
                 assert 'duration' in zone.features
                 assert 'zone_type' in zone.features
+
+
+    @pytest.mark.integration
+    def test_preloaded_zones_reject_positional_boundaries(self):
+        """Позиции вместо времени должны получить внятный отказ, а не падение pandas.
+
+        Это ровно та ошибка, на которой споткнулся тест выше: границы, снятые с
+        позиционного индекса, доезжают до сравнения с временной осью и падают
+        внутри pandas сообщением про tz-naive и tz-aware. Сообщение верно и
+        бесполезно — оно называет следствие. Отказ должен называть причину.
+        """
+        df = get_sample_data('tv_xauusd_1h')
+
+        zones_data = pd.DataFrame({
+            'zone_id': [1],
+            'start_time': [df.index[10]],   # позиция, а не время
+            'end_time': [df.index[20]],
+            'type': ['bull'],
+        })
+
+        with pytest.raises(ValueError, match=r"zones_data\['start_time'\] has dtype"):
+            (
+                analyze_zones(df)
+                .detect_zones('preloaded', zones_data=zones_data)
+                .analyze(clustering=False)
+                .with_cache(enable=False)
+                .build()
+            )
 
 
 class TestPipelinePerformance:

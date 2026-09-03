@@ -90,7 +90,9 @@ class PreloadedZonesDetection:
         missing = [c for c in required_cols if c not in zones_df.columns]
         if missing:
             raise ValueError(f"Missing required columns in zones data: {missing}")
-        
+
+        self._require_comparable_clock(zones_df, data)
+
         # Объединить с OHLCV
         zones = []
         for _, zone_row in zones_df.iterrows():
@@ -129,6 +131,33 @@ class PreloadedZonesDetection:
         
         return df
     
+    @staticmethod
+    def _require_comparable_clock(zones_df: pd.DataFrame, ohlcv: pd.DataFrame) -> None:
+        """Отказать сразу, если границы зон и ось данных живут в разных системах.
+
+        `analyze_zones()` ставит время на индекс сам (`resolve_time_index`, G30),
+        а `zones_data` приходит от вызывающего в его собственных координатах. Кто
+        построил границы по позиционному индексу исходного кадра — как это делал
+        наш же e2e-тест, беря `df.index[10]` у кадра со временем в **колонке**, —
+        получал `Timestamp(10)`, то есть 1970 год, и сравнение падало внутри
+        pandas сообщением про tz-naive и tz-aware. Сообщение верное и бесполезное:
+        оно называет следствие, а причина в том, что переданы позиции, а не время.
+        """
+        if not isinstance(ohlcv.index, pd.DatetimeIndex):
+            return
+
+        for column in ('start_time', 'end_time'):
+            values = zones_df[column]
+            if pd.api.types.is_datetime64_any_dtype(values):
+                continue
+            raise ValueError(
+                f"zones_data['{column}'] has dtype {values.dtype}, but the data is "
+                f"indexed by time ({ohlcv.index.dtype}). Zone boundaries must be "
+                f"timestamps on the same clock as the data. If you built them from "
+                f"a positional index, take the time column instead — for the bundled "
+                f"samples that is df['time'], not df.index."
+            )
+
     def _merge_zone_with_ohlcv(self, 
                                 zone_row: pd.Series, 
                                 ohlcv: pd.DataFrame,
