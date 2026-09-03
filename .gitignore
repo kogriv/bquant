@@ -380,3 +380,8 @@ research/**/*_log.txt
 
 # GitNexus code-intelligence index (123 MB binary LadybugDB — never commit)
 .gitnexus/
+
+# codemap code graph (6.5 MB JSON, rebuilt on demand — never commit).
+# It was already out of git, but only by accident: the `*.json` rule above is a
+# data-file rule. Name it here so moving that rule cannot drag the graph in.
+.codemap/
