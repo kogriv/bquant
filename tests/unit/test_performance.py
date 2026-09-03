@@ -26,6 +26,7 @@ from bquant.indicators.calculators import (
     create_indicator_suite
 )
 from bquant.analysis.zones import analyze_macd_zones
+from bquant.analysis import AnalysisResult
 from bquant.data.processor import (
     calculate_derived_indicators,
     clean_ohlcv_data,
@@ -394,22 +395,33 @@ class TestMACDAnalyzerPerformance:
         logger.info(f"Zone features calculation completed for {len(zones)} zones")
     
     @performance_test
-    @pytest.mark.skip(reason="API changed - hypothesis_tests structure changed")
     def test_statistical_analysis_performance(self, trending_data):
-        """Тест производительности статистических тестов через модульный анализатор."""
-        # Используем analyze_macd_zones для полного анализа
+        """Тест производительности статистических тестов через модульный анализатор.
+
+        `result.hypothesis_tests` — это `AnalysisResult`, а не словарь: сами
+        тесты лежат в `results['tests']`, сводка по ним — в `results['summary']`.
+        Прежде тест был выключен пропуском с причиной «API changed», и причина
+        была верной; выключение — нет, потому что вместе с формой перестала
+        проверяться и производительность.
+        """
         result = analyze_macd_zones(trending_data, clustering=False)
-        
+
         hypothesis_tests = result.hypothesis_tests
-        
-        assert isinstance(hypothesis_tests, dict)
-        assert len(hypothesis_tests) > 0
-        
-        for test_name, test_data in hypothesis_tests.items():
+        assert isinstance(hypothesis_tests, AnalysisResult)
+
+        tests = hypothesis_tests.results['tests']
+        assert isinstance(tests, dict)
+        assert len(tests) > 0
+
+        for test_name, test_data in tests.items():
             if 'error' not in test_data:
-                assert 'significant' in test_data
-        
-        logger.info(f"Statistical analysis completed: {len(hypothesis_tests)} tests")
+                assert 'significant' in test_data, f"{test_name} reports no verdict"
+                assert 'p_value' in test_data, f"{test_name} reports no p-value"
+
+        summary = hypothesis_tests.results['summary']
+        assert summary['tests_executed'] == len(tests)
+
+        logger.info(f"Statistical analysis completed: {len(tests)} tests")
     
     @performance_test
     def test_clustering_performance(self, trending_data):
