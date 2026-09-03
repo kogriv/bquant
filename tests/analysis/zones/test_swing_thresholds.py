@@ -39,17 +39,18 @@ def test_auto_thresholds_scale_with_range() -> None:
 
     for value in (
         narrow_thresholds.zigzag_deviation,
-        narrow_thresholds.peak_min_amplitude,
-        narrow_thresholds.pivot_deviation,
         wide_thresholds.zigzag_deviation,
-        wide_thresholds.peak_min_amplitude,
-        wide_thresholds.pivot_deviation,
     ):
         assert value >= 0.01
 
     assert wide_thresholds.zigzag_deviation > narrow_thresholds.zigzag_deviation
-    assert wide_thresholds.peak_min_amplitude > narrow_thresholds.peak_min_amplitude
-    assert wide_thresholds.pivot_deviation > narrow_thresholds.pivot_deviation
+
+    # The two amplitude floors this class used to carry were removed in G38: they
+    # were computed, they scaled, and they zeroed the strategies they reached. This
+    # very test is why that went unnoticed — it asserted that a value scales with the
+    # range, which the broken value did impeccably.
+    assert not hasattr(narrow_thresholds, "peak_min_amplitude")
+    assert not hasattr(narrow_thresholds, "pivot_deviation")
 
 
 @pytest.mark.slow
@@ -122,10 +123,13 @@ def test_adaptive_never_sets_find_peaks_prominence() -> None:
         "adaptive layer must not overwrite find_peaks' prominence — it is absolute "
         "while SwingThresholds are relative"
     )
-    # the relative floor it IS allowed to set must have arrived
-    thresholds = auto_swing_thresholds(df, base_deviation=0.01)
+    # And since G38 it does not touch `min_amplitude_pct` either: the strategy keeps
+    # whatever the preset gave it. Units were never the problem here — the value was.
+    untouched = FindPeaksSwingStrategy(distance=3)
     assert wrapper.base_strategy.min_amplitude_pct == pytest.approx(
-        thresholds.peak_min_amplitude)
+        untouched.min_amplitude_pct), (
+        "adaptive layer must leave find_peaks' amplitude floor at its preset value"
+    )
 
 
 def test_adaptive_relative_values_stay_relative() -> None:
@@ -145,6 +149,55 @@ def test_adaptive_relative_values_stay_relative() -> None:
             assert 0 < value < 1, f"{name}.{attr}={value} is not a fraction"
             assert value < price_scale / 100, (
                 f"{name}.{attr} looks like a price, not a fraction")
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("strategy", ["find_peaks", "pivot_points"])
+def test_adaptive_mode_does_not_zero_a_strategy(strategy) -> None:
+    """Turning the mode on must not cost a strategy every swing it had (G38).
+
+    For nine months `with_auto_swing_thresholds(True)` reduced `find_peaks` and
+    `pivot_points` to zero swings in every zone, and a published report read that as
+    a property of the strategies. Nothing failed: zero swings is a valid result, and
+    the only test on this layer asserted that thresholds *scale*, which the zeroing
+    value did perfectly.
+
+    The guard is coverage, not thresholds: with the layer adapting only ZigZag, these
+    two must land exactly where they land with the layer switched off.
+    """
+    from bquant.analysis.zones import analyze_zones
+
+    df = get_sample_data("tv_xauusd_1h")
+
+    def coverage(auto: bool) -> int:
+        builder = (
+            analyze_zones(df)
+            .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
+            .detect_zones("zero_crossing", indicator_role="hist")
+            .with_strategies(swing=strategy)
+            .with_swing_preset("narrow_zone")
+            .analyze(clustering=False)
+            .with_cache(enable=False)
+        )
+        if auto:
+            builder = builder.with_auto_swing_thresholds(True)
+        result = builder.build()
+        # Swing metrics live under features['metadata']['swing_metrics'] — reading the
+        # top level of `features` returns nothing and yields a clean, wrong zero.
+        return sum(
+            1
+            for zone in result.zones
+            if (((zone.features or {}).get("metadata") or {}).get("swing_metrics") or {}).get("num_swings", 0) > 0
+        )
+
+    without_auto = coverage(auto=False)
+    with_auto = coverage(auto=True)
+
+    assert without_auto > 0, "fixture is not exercising the strategy at all"
+    assert with_auto == without_auto, (
+        f"{strategy}: adaptive mode changed coverage from {without_auto} zones to "
+        f"{with_auto} — this layer must adapt ZigZag's deviation and nothing else"
+    )
 
 
 def test_adaptive_find_peaks_still_filters() -> None:

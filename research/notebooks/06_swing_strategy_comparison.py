@@ -84,10 +84,12 @@ def _run_pipeline(df, strategy: str, scope: str) -> Dict[str, float]:
         .detect_zones("zero_crossing", indicator_role="hist")
         .with_strategies(swing=strategy)
         .with_swing_preset("narrow_zone")
-        # Адаптивный слой сегодня обнуляет find_peaks и pivot_points: он поднимает
-        # min_amplitude_pct выше размаха типичной зоны (G38). Скрипт оставлен как есть —
-        # он воспроизводит отчёт 2025-11, — но сравнивать стратегии по его выводу нельзя,
-        # пока строка ниже включена. Поправка в отчёте:
+        # До 0.0.11 эта строка обнуляла find_peaks и pivot_points — она поднимала их
+        # min_amplitude_pct выше движения типичной зоны (G38), и отчёт 2025-11 прочитал
+        # ноль свингов как свойство стратегий. С 0.0.11 слой адаптирует только deviation
+        # ZigZag, а эти две остаются на пороге пресета, поэтому прогон снова сравнивает
+        # стратегии, а не конфигурации. Числа отчёта 2025-11 этим прогоном больше не
+        # воспроизводятся — это и есть починка. Поправка в отчёте:
         # docs/analytics/zones/swing_strategy_comparison_case_study.md
         .with_auto_swing_thresholds(True)
         .with_swing_scope(scope)

@@ -12,29 +12,42 @@ from ..registry import StrategyRegistry
 
 @dataclass(frozen=True)
 class SwingThresholds:
-    """Dynamically computed swing thresholds.
+    """The swing threshold this layer adapts. One value, because one is applied.
 
-    **Every field here is RELATIVE — a fraction of price, never an amount of price.**
-    They are derived as ``price_range / mid_price * k``, so 0.019 means 1.9%.
+    **The field is RELATIVE — a fraction of price, never an amount of price.** It is
+    derived as ``price_range / mid_price * k``, so 0.019 means 1.9%. Routing such a
+    value into a knob that expects absolute price units was gap G16: a fraction of
+    ~0.019 handed to scipy's ``prominence``, on an instrument trading near 3350, reads
+    as under two cents and switches the filter off.
 
-    That is not a detail: routing one of these into a knob that expects absolute price
-    units was gap G16. A fraction of ~0.019 handed to scipy's ``prominence``, on an
-    instrument trading near 3350, reads as under two cents and switches the filter off.
-    Nor can it be repaired by multiplying back by price — the coefficients below are
-    chosen for the relative meaning, and converting them yields ~30% of the whole
-    observed range, which filters almost everything out.
+    The class carried two more fields — ``peak_min_amplitude`` and ``pivot_deviation``,
+    the amplitude floors for find_peaks and pivot_points. They were measured out in G38.
+    Both were computed as ``max(base_deviation, range * k)``, and on zones of ordinary
+    size the ``base_deviation`` floor of 0.01 always won — while the ``narrow_zone``
+    preset asks for 0.006 and the median zone moves 0.0075. So the "adaptive" value was
+    a constant, it was larger than the preset it replaced, and it put the threshold
+    above the movement it had to admit. Measured on 77 zones of ``tv_xauusd_1h``:
 
-    So: only assign these to parameters that are themselves relative
-    (``deviation``, ``min_amplitude_pct``).
+    =============  ==========  ==============
+    strategy       adaptive    layer disabled
+    =============  ==========  ==============
+    find_peaks     0 %         36.4 %
+    pivot_points   0 %         49.4 %
+    zigzag         90.9 %      90.9 %
+    =============  ==========  ==============
+
+    Two of three strategies were switched off by a mode advertised as adaptation, and
+    the third was unaffected. Keeping the fields would mean computing and reporting
+    thresholds nobody applies, so they are gone rather than merely unused.
+
+    Deriving the floor from the *zone* scale instead — dropping the 0.01 floor — is a
+    separate, measured direction: it takes those two to 84.4 %. It is not shipped here
+    because higher coverage is not by itself evidence that the extra swings are real.
+    See ``devref/gaps/swing/g38_adaptive_thresholds_restore_the_threshold_g35_removed_2026-08.md``.
     """
 
     #: relative price move required by ZigZag
     zigzag_deviation: float
-    #: relative amplitude floor for find_peaks movements. Named for what it IS, not for
-    #: the ``prominence`` knob it must NOT be assigned to (G16).
-    peak_min_amplitude: float
-    #: relative amplitude floor for pivot_points movements
-    pivot_deviation: float
 
 
 def _safe_mid_price(close_series: pd.Series) -> Optional[float]:
@@ -58,11 +71,7 @@ def auto_swing_thresholds(
     """Scale swing thresholds based on the price range of a zone."""
 
     if zone_df.empty:
-        return SwingThresholds(
-            zigzag_deviation=base_deviation,
-            peak_min_amplitude=base_deviation,
-            pivot_deviation=base_deviation,
-        )
+        return SwingThresholds(zigzag_deviation=base_deviation)
 
     if not {"high", "low", "close"}.issubset(zone_df.columns):
         raise KeyError("Zone dataframe must contain 'high', 'low', and 'close' columns")
@@ -76,14 +85,8 @@ def auto_swing_thresholds(
         relative_range = price_range / mid_price
 
     deviation = max(base_deviation, relative_range * 0.5)
-    prominence = max(base_deviation, relative_range * 0.3)
-    pivot_dev = max(base_deviation, relative_range * 0.25)
 
-    return SwingThresholds(
-        zigzag_deviation=deviation,
-        peak_min_amplitude=prominence,
-        pivot_deviation=pivot_dev,
-    )
+    return SwingThresholds(zigzag_deviation=deviation)
 
 
 class _AdaptiveSwingStrategy:
@@ -156,23 +159,25 @@ class _AdaptiveSwingStrategy:
     ) -> None:
         if self.base_strategy_name == 'zigzag':
             strategy.deviation = thresholds.zigzag_deviation
-        elif self.base_strategy_name == 'find_peaks':
-            # `prominence` is deliberately NOT set here (G16). It is absolute — an amount
-            # of price — while everything in SwingThresholds is a fraction, so assigning
-            # one to the other switched the filter off (~0.019 read as under two cents).
-            # find_peaks already derives its own range-adaptive prominence, and since G15
-            # that one is frozen on a warm-up window and replay-safe; leaving it on auto
-            # is both correct in units and better behaved than anything this layer could
-            # supply. The adaptive layer contributes only the relative amplitude floor.
-            strategy.min_amplitude_pct = thresholds.peak_min_amplitude
-        elif self.base_strategy_name == 'pivot_points':
-            strategy.min_amplitude_pct = thresholds.pivot_deviation
+        # find_peaks and pivot_points are deliberately left alone.
+        #
+        # `prominence` was removed first (G16): it is absolute, an amount of price, and
+        # a fraction assigned to it read as under two cents and switched the filter off.
+        # `min_amplitude_pct` survived that round because it is relative, so the units
+        # matched — but matching units is not the same as a meaningful value, and G38
+        # measured what the value did: it zeroed both strategies outright, because the
+        # `max(base_deviation, ...)` floor of 0.01 stands above both the preset (0.006)
+        # and the median zone's own movement (0.0075). A threshold above the movement it
+        # must admit admits nothing, and "no swings" is indistinguishable from "the
+        # market stood still".
+        #
+        # So this layer adapts ZigZag's `deviation` and nothing else. Both strategies
+        # keep the preset's floor, which is what they use with the layer switched off,
+        # and find_peaks keeps its own range-adaptive, warm-up-frozen prominence (G15).
 
     @staticmethod
     def _thresholds_to_dict(thresholds: SwingThresholds) -> Dict[str, float]:
-        return {
-            'zigzag_deviation': thresholds.zigzag_deviation,
-            # renamed from 'peak_prominence' in G16 — it never was a prominence
-            'peak_min_amplitude': thresholds.peak_min_amplitude,
-            'pivot_deviation': thresholds.pivot_deviation,
-        }
+        # Only what is applied is reported. The two amplitude floors were removed in
+        # G38 together with the fields behind them: a metadata key naming a threshold
+        # that reaches no strategy is a claim the run cannot support.
+        return {'zigzag_deviation': thresholds.zigzag_deviation}

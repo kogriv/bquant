@@ -88,7 +88,11 @@ class ZoneAnalysisCache:
     # v20 (G45): встроенные EMA и MACD больше не публикуют значения на неполном
     # окне. Голова ряда стала NaN, поэтому зоны, стоявшие целиком в прогреве
     # индикатора, исчезают — записи v19 посчитаны с ними.
-    CACHE_VERSION = 20
+    # v21 (G38): адаптивный слой больше не выставляет `min_amplitude_pct`. Записи v20,
+    # сделанные с `with_auto_swing_thresholds(True)` для `find_peaks` и
+    # `pivot_points`, содержат ноль свингов во всех зонах — порог стоял выше движения,
+    # которое должен был пропускать. Теперь те же прогоны дают 36.4% и 49.4% покрытия.
+    CACHE_VERSION = 21
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
