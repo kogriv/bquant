@@ -59,9 +59,6 @@ class MockSwingStrategy:
     def calculate(self, zone_data: pd.DataFrame) -> SwingMetrics:
         return self.calculate_swings(zone_data)
 
-    def get_metadata(self) -> Dict[str, Any]:
-        return {'name': 'mock', 'params': {'threshold': self.threshold}}
-
     def config_hash(self) -> Dict[str, Any]:
         return {'threshold': self.threshold}
 
