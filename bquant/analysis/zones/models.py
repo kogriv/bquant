@@ -31,6 +31,11 @@ from ...core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+#: Zone fields that hold containers. Parquet cannot infer a usable struct for
+#: them — an empty dict has no child fields at all — so they are stored as JSON
+#: text and named in the artifact's metadata for the reader.
+_ZONE_JSON_COLUMNS = ('features', 'indicator_context')
+
 
 @dataclass
 class SwingPoint:
@@ -571,6 +576,21 @@ class ZoneAnalysisResult:
         # Persist zones metadata
         zones_data = [self._zone_to_dict(z) for z in self.zones]
         zones_df = pd.DataFrame(zones_data)
+
+        # `features` and `indicator_context` are containers, and letting Parquet
+        # infer a struct for them fails in two measured ways. An all-empty column
+        # infers to a struct with no child fields and Arrow refuses to write it
+        # at all. Worse, zones with *different* keys are written happily: Arrow
+        # unions the keys and pads every zone with the ones it never had, so a
+        # context of {'indicator': 'macd'} reads back carrying `threshold: None`,
+        # an empty context reads back as {'a': None}, and integers arrive as
+        # floats. The crash is loud; the padding is silent and would be believed.
+        # So they travel as JSON text, and `_load_parquet` reads them back
+        # through the column list recorded below.
+        json_columns = [c for c in _ZONE_JSON_COLUMNS if c in zones_df.columns]
+        for column in json_columns:
+            zones_df[column] = zones_df[column].map(lambda v: json.dumps(v, default=str))
+
         zones_df.to_parquet(output_dir / 'zones.parquet', compression='gzip' if compress else None)
         
         # Persist aggregate analysis outputs
@@ -582,7 +602,8 @@ class ZoneAnalysisResult:
             'column_schema': self.column_schema.to_dict() if self.column_schema else None,
             'regression_results': self.regression_results,
             'validation_results': self.validation_results,
-            'metadata': self.metadata
+            'metadata': self.metadata,
+            'zone_json_columns': json_columns
         }
         
         with open(output_dir / 'metadata.json', 'w') as f:
@@ -637,11 +658,18 @@ class ZoneAnalysisResult:
         
         # Загружаем зоны
         zones_df = pd.read_parquet(parquet_dir / 'zones.parquet')
-        zones = [cls._zone_from_dict(row.to_dict()) for _, row in zones_df.iterrows()]
-        
-        # Загружаем метаданные
+
+        # Метаданные читаем до зон: в них лежит список колонок, уехавших в JSON
         with open(parquet_dir / 'metadata.json', 'r') as f:
             metadata = json.load(f)
+
+        for column in metadata.get('zone_json_columns', []):
+            if column in zones_df.columns:
+                zones_df[column] = zones_df[column].map(
+                    lambda v: json.loads(v) if isinstance(v, str) else v
+                )
+
+        zones = [cls._zone_from_dict(row.to_dict()) for _, row in zones_df.iterrows()]
         
         # Загружаем исходные данные если есть
         data_file = parquet_dir / 'data.parquet'

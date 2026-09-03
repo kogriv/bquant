@@ -267,7 +267,6 @@ class TestZoneAnalysisResult:
             assert loaded.data is None  # We didn't save data
     
     @pytest.mark.skipif(not PYARROW_AVAILABLE, reason="pyarrow not installed")
-    @pytest.mark.skip(reason='Windows file lock issue')
     def test_save_load_parquet(self, sample_result):
         """Test save/load with parquet format."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -287,6 +286,43 @@ class TestZoneAnalysisResult:
             # Verify
             assert len(loaded.zones) == len(sample_result.zones)
             assert loaded.statistics == sample_result.statistics
+            # Containers must come back as containers, not as the JSON text they
+            # travel in: a round trip that returns strings is not a round trip.
+            assert [z.features for z in loaded.zones] == [z.features for z in sample_result.zones]
+            assert [z.indicator_context for z in loaded.zones] == [
+                z.indicator_context for z in sample_result.zones
+            ]
+
+    @pytest.mark.skipif(not PYARROW_AVAILABLE, reason="pyarrow not installed")
+    def test_save_load_parquet_heterogeneous_context(self, sample_result):
+        """Zones whose contexts have different keys still round-trip.
+
+        Two failure modes killed the parquet path, both from inferring a struct
+        out of Python dicts. An all-empty `indicator_context` infers to a struct
+        with no child fields and Arrow refuses to write it — that is the crash
+        the old skip hid. Different keys across zones do *not* crash: Arrow
+        unions them and pads each zone with keys it never had, turning
+        {'indicator': 'macd'} into one that also reports `threshold: None` and
+        an empty dict into {'a': None}. The second is the dangerous one, because
+        nothing fails and the padded value would be read as data.
+        """
+        sample_result.zones[0].indicator_context = {'indicator': 'macd', 'fast': 12}
+        sample_result.zones[1].indicator_context = {'threshold': 0.7, 'note': 'other keys entirely'}
+        sample_result.zones[0].features = {}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = Path(tmpdir) / 'heterogeneous.parquet'
+            sample_result.save(filepath, format='parquet')
+            loaded = ZoneAnalysisResult.load(filepath, format='parquet')
+
+        assert loaded.zones[0].indicator_context == {'indicator': 'macd', 'fast': 12}
+        # Not merely equal: the keys of the other zone must not have leaked in,
+        # and 12 must still be an int rather than the 12.0 a struct column gives.
+        assert set(loaded.zones[0].indicator_context) == {'indicator', 'fast'}
+        assert isinstance(loaded.zones[0].indicator_context['fast'], int)
+        assert loaded.zones[1].indicator_context == {'threshold': 0.7, 'note': 'other keys entirely'}
+        assert loaded.zones[0].features == {}
+        assert loaded.zones[1].features == sample_result.zones[1].features
     
     def test_save_without_data(self, sample_result):
         """Test save without including DataFrame."""
