@@ -208,7 +208,7 @@ class PositiveCloseStrategy:
 strategy = PositiveCloseStrategy()
 config = ZoneDetectionConfig(strategy_name="positive_close", rules={"indicator_col": "close"})
 sample = pd.DataFrame(
-    {"close": [-1.0, 0.2, 0.4, -0.1]}, index=pd.date_range("2024-01-01", periods=4, freq="H")
+    {"close": [-1.0, 0.2, 0.4, -0.1]}, index=pd.date_range("2024-01-01", periods=4, freq="h")
 )
 custom_zones = strategy.detect_zones(sample, config)
 print(f"Зон найдено: {len(custom_zones)}")
@@ -248,7 +248,7 @@ class _DemoHypothesisSuite:
         return {"duration_vs_return": {"significant": False, "alpha": 0.05}}
 
 
-index = pd.date_range("2024-01-01", periods=3, freq="H")
+index = pd.date_range("2024-01-01", periods=3, freq="h")
 data = pd.DataFrame({"close": [1.0, 1.2, 1.1]}, index=index)
 zone = ZoneInfo(
     zone_id=1,
@@ -466,7 +466,7 @@ from bquant.analysis.zones.models import ZoneAnalysisResult, ZoneInfo
 def create_sample_zone() -> ZoneInfo:
     """Создаёт минимальную зону для unit-тестов."""
     # NOTE: пример обновлен для использования универсальных моделей v2.1
-    index = pd.date_range("2024-01-01", periods=3, freq="H")
+    index = pd.date_range("2024-01-01", periods=3, freq="h")
     data = pd.DataFrame({"close": [1.0, 1.1, 1.2]}, index=index)
     return ZoneInfo(
         zone_id=0,
@@ -499,7 +499,7 @@ from bquant.analysis.zones.models import ZoneAnalysisResult, ZoneInfo
 
 
 def build_result() -> ZoneAnalysisResult:
-    index = pd.date_range("2024-01-01", periods=2, freq="H")
+    index = pd.date_range("2024-01-01", periods=2, freq="h")
     data = pd.DataFrame({"close": [1.0, 1.2]}, index=index)
     zone = ZoneInfo(
         zone_id=1,

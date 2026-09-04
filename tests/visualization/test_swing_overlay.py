@@ -9,7 +9,7 @@ from bquant.visualization import zones as zones_module
 
 
 def _build_price_data() -> pd.DataFrame:
-    index = pd.date_range("2025-01-01", periods=50, freq="H")
+    index = pd.date_range("2025-01-01", periods=50, freq="h")
     close = 1800 + np.linspace(0, 10, len(index))
     df = pd.DataFrame(
         {

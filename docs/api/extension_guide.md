@@ -919,7 +919,7 @@ class TestCustomIndicator:
     @pytest.fixture
     def sample_data(self):
         """Тестовые данные"""
-        dates = pd.date_range('2024-01-01', periods=100, freq='H')
+        dates = pd.date_range('2024-01-01', periods=100, freq='h')
         data = pd.DataFrame({
             'close': np.random.randn(100).cumsum() + 100,
             'volume': np.random.randint(1000, 10000, 100)
@@ -952,7 +952,7 @@ class TestCustomAnalyzer:
     @pytest.fixture
     def sample_data(self):
         """Тестовые данные"""
-        dates = pd.date_range('2024-01-01', periods=100, freq='H')
+        dates = pd.date_range('2024-01-01', periods=100, freq='h')
         data = pd.DataFrame({
             'close': np.random.randn(100).cumsum() + 100
         }, index=dates)

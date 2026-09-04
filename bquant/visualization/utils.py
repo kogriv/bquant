@@ -85,7 +85,7 @@ def generate_dense_axis_labels(
         >>> from bquant.visualization.utils import generate_dense_axis_labels
         >>> 
         >>> # Подготовка данных
-        >>> timestamps = pd.date_range('2025-01-01', periods=100, freq='H')
+        >>> timestamps = pd.date_range('2025-01-01', periods=100, freq='h')
         >>> positions = list(range(len(timestamps)))
         >>> 
         >>> # Генерация меток

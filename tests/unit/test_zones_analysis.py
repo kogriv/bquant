@@ -59,7 +59,7 @@ def create_test_ohlcv_data(n_periods: int = 100, seed: int = 42) -> pd.DataFrame
     np.random.seed(seed)
     
     # Создаем временные индексы
-    timestamps = pd.date_range('2024-01-01', periods=n_periods, freq='1H')
+    timestamps = pd.date_range('2024-01-01', periods=n_periods, freq='1h')
     
     # Создаем базовую цену с трендом
     base_price = 2000

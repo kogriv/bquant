@@ -50,7 +50,7 @@ def compare_swing_coverage() -> Dict[str, float]:
     """Run the pipeline in both modes and report swing coverage improvement."""
 
     data = create_sample_ohlcv_data(110)
-    data.index = pd.date_range("2024-10-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-10-01", periods=len(data), freq="h")
     zones_df = _build_zones_df(data)
     pivot_indices = [0, 30, 60, 90, len(data) - 1]
     pivot_timestamps = [data.index[i] for i in pivot_indices]

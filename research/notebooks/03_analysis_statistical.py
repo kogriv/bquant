@@ -44,7 +44,7 @@ np.random.seed(42)  # Для воспроизводимости
 nb.log("\nСоздание тестовых данных...")
 
 # Создаем OHLCV данные с различными характеристиками
-dates = pd.date_range('2024-01-01', periods=500, freq='H')
+dates = pd.date_range('2024-01-01', periods=500, freq='h')
 returns = np.random.randn(500) * 0.02  # 2% волатильность
 prices = 100 * np.exp(np.cumsum(returns))  # Логарифмические доходности
 

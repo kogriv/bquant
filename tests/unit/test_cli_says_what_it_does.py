@@ -167,7 +167,7 @@ def test_the_time_axis_comes_from_the_data_not_from_a_default(analyze_run):
 
     ``_prepare_datetime_index`` не знал про колонку ``time`` — имя из собственного
     стандарта проекта (``AGENTS.md``, «Column Standards»), — и, не найдя ``timestamp``
-    или ``date``, **синтезировал** ось ``date_range('2024-01-01', periods=…, freq='1H')``.
+    или ``date``, **синтезировал** ось ``date_range('2024-01-01', periods=…, freq='1h')``.
     Замер до правки: график начинался с ``2024-01-01T00:00:00``, тогда как данные
     начинаются 2025-06-11. Это опаснее умолчания: график не молчит, он утверждает.
     """

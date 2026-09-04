@@ -31,7 +31,7 @@ def synthetic_data():
     """Provide deterministic OHLCV data for swing tests."""
 
     df = create_sample_ohlcv_data(40)
-    df.index = pd.date_range("2024-01-01", periods=len(df), freq="H")
+    df.index = pd.date_range("2024-01-01", periods=len(df), freq="h")
     return df
 
 
@@ -216,7 +216,7 @@ def test_adaptive_thresholds_global_mode(monkeypatch):
     """Adaptive wrapper should compute thresholds on the full dataset once."""
 
     data = create_sample_ohlcv_data(60)
-    data.index = pd.date_range("2024-02-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-02-01", periods=len(data), freq="h")
     pivot_timestamps = [data.index[i] for i in range(0, len(data), 10)]
     use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
 
@@ -261,7 +261,7 @@ def test_calculate_global_handles_short_dataset(strategy_cls, kwargs):
             "low": [0.9, 1.0, 1.1],
             "close": [1.0, 1.1, 1.2],
         },
-        index=pd.date_range("2024-03-01", periods=3, freq="H"),
+        index=pd.date_range("2024-03-01", periods=3, freq="h"),
     )
 
     strategy = strategy_cls(**kwargs)

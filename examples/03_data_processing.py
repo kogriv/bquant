@@ -98,7 +98,7 @@ def demonstrate_data_creation():
 def create_trending_dataset(rows: int, symbol: str, trend_strength: float = 0.001) -> pd.DataFrame:
     """Создание данных с выраженным трендом."""
     
-    dates = pd.date_range(start='2024-01-01', periods=rows, freq='4H')
+    dates = pd.date_range(start='2024-01-01', periods=rows, freq='4h')
     np.random.seed(42)
     
     if symbol == "EURUSD":

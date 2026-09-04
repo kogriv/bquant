@@ -237,7 +237,7 @@ with nb.error_handling("Resampling to 4H timeframe"):
         nb.warning("Индекс не является DatetimeIndex, пропускаем ресемплинг")
         df_4h = df_sample.copy()
     else:
-        df_4h = resample_ohlcv(df_sample, target_timeframe='4H')
+        df_4h = resample_ohlcv(df_sample, target_timeframe='4h')
     
     nb.log(f"Результат ресемплинга:")
     nb.log(f"  - Исходная форма (1H): {df_sample.shape}")

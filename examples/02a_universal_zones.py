@@ -366,7 +366,7 @@ def main():
     high_14 = df_stoch['high'].rolling(14, min_periods=1).max()
     price_range = (high_14 - low_14).replace(0, np.nan)
     df_stoch['STOCH_K'] = 100 * (df_stoch['close'] - low_14) / price_range
-    df_stoch['STOCH_K'] = df_stoch['STOCH_K'].fillna(method='bfill').fillna(0)
+    df_stoch['STOCH_K'] = df_stoch['STOCH_K'].bfill().fillna(0)
     df_stoch['STOCH_D'] = df_stoch['STOCH_K'].rolling(3, min_periods=1).mean()
     
     result_stoch = (

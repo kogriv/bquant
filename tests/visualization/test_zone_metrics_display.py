@@ -12,7 +12,7 @@ from bquant.visualization import zones as zones_module
 
 @pytest.fixture
 def price_data() -> pd.DataFrame:
-    index = pd.date_range("2025-01-01", periods=120, freq="H")
+    index = pd.date_range("2025-01-01", periods=120, freq="h")
     close = 1800 + np.linspace(0, 24, len(index))
     df = pd.DataFrame(
         {

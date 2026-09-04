@@ -13,7 +13,7 @@ def _make_zone(
     zone_type: str,
     metrics: dict | None,
 ) -> dict:
-    index = pd.date_range("2025-01-01", periods=10, freq="H")
+    index = pd.date_range("2025-01-01", periods=10, freq="h")
     data = pd.DataFrame(
         {
             "open": np.linspace(100, 102, len(index)),

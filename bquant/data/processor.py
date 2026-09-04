@@ -429,11 +429,17 @@ def detect_market_sessions(
 def _handle_missing_values(df: pd.DataFrame, method: str) -> pd.DataFrame:
     """Handle missing values in DataFrame."""
     if method == 'forward':
-        return df.fillna(method='ffill')
+        return df.ffill()
     elif method == 'backward':
-        return df.fillna(method='bfill')
+        return df.bfill()
     elif method == 'interpolate':
-        return df.interpolate()
+        # Only numbers can be interpolated. pandas 2 skipped text columns on its
+        # own; pandas 3 refuses the whole frame, and the samples carry text
+        # (signal labels) next to OHLCV.
+        numeric = df.select_dtypes(include='number').columns
+        result = df.copy()
+        result[numeric] = df[numeric].interpolate()
+        return result
     else:
         raise ValueError(f"Unknown fill method: {method}")
 

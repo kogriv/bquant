@@ -8,7 +8,7 @@ from bquant.analysis.zones.pipeline import (
 
 
 def _empty_dataframe() -> pd.DataFrame:
-    index = pd.date_range("2024-01-01", periods=5, freq="H")
+    index = pd.date_range("2024-01-01", periods=5, freq="h")
     return pd.DataFrame(
         {
             "open": [1, 1, 1, 1, 1],

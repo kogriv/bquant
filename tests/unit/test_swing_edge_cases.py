@@ -95,7 +95,7 @@ STRATEGY_CASES = [
 )
 def test_single_bar_zone(strategy_name, strategy_cls, params):
     data = create_sample_ohlcv_data(100)
-    data.index = pd.date_range("2024-03-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-03-01", periods=len(data), freq="h")
 
     context = _make_context(
         [10, 30, 50, 70, 90],
@@ -123,7 +123,7 @@ def test_single_bar_zone(strategy_name, strategy_cls, params):
 )
 def test_zone_without_internal_swings(strategy_name, strategy_cls, params):
     data = create_sample_ohlcv_data(100)
-    data.index = pd.date_range("2024-03-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-03-01", periods=len(data), freq="h")
 
     context = _make_context(
         [10, 50, 90],
@@ -145,7 +145,7 @@ def test_zone_without_internal_swings(strategy_name, strategy_cls, params):
 
 def test_zone_at_dataset_boundaries():
     data = create_sample_ohlcv_data(100)
-    data.index = pd.date_range("2024-03-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-03-01", periods=len(data), freq="h")
 
     context = _make_context(
         [5, 30, 50, 70, 95],
@@ -173,7 +173,7 @@ def test_zone_at_dataset_boundaries():
 )
 def test_overlapping_zones(strategy_name, strategy_cls, params):
     data = create_sample_ohlcv_data(120)
-    data.index = pd.date_range("2024-04-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-04-01", periods=len(data), freq="h")
 
     context = _make_context(
         [20, 40, 60, 80],
@@ -202,7 +202,7 @@ def test_overlapping_zones(strategy_name, strategy_cls, params):
 )
 def test_zone_with_all_peaks_or_all_troughs(strategy_name, strategy_cls, params):
     data = create_sample_ohlcv_data(80)
-    data.index = pd.date_range("2024-05-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-05-01", periods=len(data), freq="h")
 
     context = _make_context(
         [10, 20, 30, 40],
@@ -223,7 +223,7 @@ def test_zone_with_all_peaks_or_all_troughs(strategy_name, strategy_cls, params)
 
 def test_zone_exactly_matching_swing_boundaries():
     data = create_sample_ohlcv_data(100)
-    data.index = pd.date_range("2024-06-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-06-01", periods=len(data), freq="h")
 
     context = _make_context(
         [10, 30, 50, 70, 90],
@@ -245,7 +245,7 @@ def test_zone_exactly_matching_swing_boundaries():
 )
 def test_empty_swing_context(strategy_name, strategy_cls, params):
     data = create_sample_ohlcv_data(50)
-    data.index = pd.date_range("2024-07-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-07-01", periods=len(data), freq="h")
 
     context = SwingContext(
         swing_points=[],

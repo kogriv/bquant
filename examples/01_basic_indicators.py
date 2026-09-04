@@ -47,7 +47,7 @@ def create_sample_ohlcv_data(rows: int = 100, symbol: str = "XAUUSD") -> pd.Data
     print(f"📊 Создание примера данных для {symbol}...")
     
     # Генерируем временной ряд
-    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1H')
+    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1h')
     np.random.seed(42)  # Для воспроизводимости
     
     # Создаем реалистичные ценовые данные

@@ -126,7 +126,7 @@ def test_data_processor_module():
     print("[OK] remove_price_outliers() удаляет выбросы")
     
     # Тест resample_ohlcv
-    resampled = resample_ohlcv(test_data.copy(), '4H')
+    resampled = resample_ohlcv(test_data.copy(), '4h')
     assert isinstance(resampled, pd.DataFrame)
     assert len(resampled) <= len(test_data)  # Ресемплинг уменьшает количество записей
     

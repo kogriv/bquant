@@ -34,7 +34,7 @@ from bquant.indicators import IndicatorFactory
 
 def create_comprehensive_data(rows: int = 500) -> pd.DataFrame:
     """Создание данных с разными рыночными режимами."""
-    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1H')
+    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1h')
     np.random.seed(123)
     
     base = 2000.0

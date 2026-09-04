@@ -26,7 +26,7 @@ def create_test_data(rows: int = 100) -> pd.DataFrame:
     Returns:
         DataFrame с тестовыми данными
     """
-    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1H')
+    dates = pd.date_range(start='2024-01-01', periods=rows, freq='1h')
     
     # Генерируем реалистичные ценовые данные
     np.random.seed(42)  # Для воспроизводимости
@@ -283,7 +283,7 @@ class TestIndicatorValidation:
             'high': [105, 106, 107],
             'low': [99, 100, 101]
             # Отсутствует 'close'
-        }, index=pd.date_range('2024-01-01', periods=3, freq='1H'))
+        }, index=pd.date_range('2024-01-01', periods=3, freq='1h'))
         
         sma = SimpleMovingAverage(period=2)
         

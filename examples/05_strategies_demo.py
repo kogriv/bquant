@@ -57,7 +57,7 @@ def prepare_sample_data(dataset: str = "mt_xauusd_m15") -> pd.DataFrame:
     if "volume" not in df.columns:
         df["volume"] = 0.0
     else:
-        df["volume"] = df["volume"].fillna(method="ffill").fillna(0)
+        df["volume"] = df["volume"].ffill().fillna(0)
 
     return df
 

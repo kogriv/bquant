@@ -243,7 +243,7 @@ nb.info("Функция validate_time_series_continuity() проверяет н�
 # Проверка непрерывности корректных данных
 with nb.error_handling("Checking time series continuity of correct data"):
     nb.info("5.1. Проверка непрерывности временных рядов корректных данных:")
-    continuity_correct = validate_time_series_continuity(df_sample, expected_frequency='1H')
+    continuity_correct = validate_time_series_continuity(df_sample, expected_frequency='1h')
     nb.log(f"Результат проверки непрерывности корректных данных:")
     nb.log(f"  - Непрерывны: {continuity_correct['is_continuous']}")
     nb.log(f"  - Обнаруженная частота: {continuity_correct['detected_frequency']}")
@@ -268,7 +268,7 @@ with nb.error_handling("Checking time series continuity of correct data"):
 # Проверка непрерывности проблемных данных
 with nb.error_handling("Checking time series continuity of problematic data"):
     nb.info("5.2. Проверка непрерывности временных рядов проблемных данных:")
-    continuity_problematic = validate_time_series_continuity(df_problematic, expected_frequency='1H')
+    continuity_problematic = validate_time_series_continuity(df_problematic, expected_frequency='1h')
     nb.log(f"Результат проверки непрерывности проблемных данных:")
     nb.log(f"  - Непрерывны: {continuity_problematic['is_continuous']}")
     nb.log(f"  - Обнаруженная частота: {continuity_problematic['detected_frequency']}")

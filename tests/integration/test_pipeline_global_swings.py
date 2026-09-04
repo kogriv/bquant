@@ -30,7 +30,7 @@ def _build_zones_df(data: pd.DataFrame) -> pd.DataFrame:
 
 def test_pipeline_global_swing_scope(monkeypatch):
     data = create_sample_ohlcv_data(80)
-    data.index = pd.date_range("2024-08-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-08-01", periods=len(data), freq="h")
     zones_df = _build_zones_df(data)
 
     pivot_timestamps = [data.index[i] for i in range(0, len(data), 10)]
@@ -57,7 +57,7 @@ def test_pipeline_global_swing_scope(monkeypatch):
 
 def test_fallback_to_per_zone(monkeypatch):
     data = create_sample_ohlcv_data(60)
-    data.index = pd.date_range("2024-09-01", periods=len(data), freq="H")
+    data.index = pd.date_range("2024-09-01", periods=len(data), freq="h")
     zones_df = _build_zones_df(data)
 
     pivot_timestamps = [data.index[i] for i in range(0, len(data), 8)]
