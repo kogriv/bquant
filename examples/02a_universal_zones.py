@@ -585,10 +585,10 @@ def main():
     
     if hasattr(result_macd, 'hypothesis_tests') and result_macd.hypothesis_tests:
         tests = result_macd.hypothesis_tests
-        print(f"   Tests based on {tests.data_size} zones")
+        print(f"   Tests based on {tests['summary']['total_zones']} zones")
         print("\n   Key tests (p < 0.05 = significant):")
         
-        for test_name, test_result in tests.results.items():
+        for test_name, test_result in tests['tests'].items():
             p_value = test_result.get('p_value', 'N/A')
             significant = test_result.get('significant', False)
             status = "[SIGNIFICANT]" if significant else "[not significant]"

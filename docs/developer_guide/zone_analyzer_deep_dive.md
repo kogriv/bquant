@@ -194,7 +194,7 @@ if swing_metrics:
 
 # Результаты тестов гипотез
 if result.hypothesis_tests:
-    print(result.hypothesis_tests.results)
+    print(result.hypothesis_tests['summary'])
 ```
 
 ---

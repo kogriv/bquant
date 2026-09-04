@@ -256,7 +256,10 @@ class UniversalZoneAnalyzer:
             for key, method in (('duration', self.regression.predict_zone_duration),
                                 ('return', self.regression.predict_price_return)):
                 try:
-                    regression_results[key] = method(features_dicts)
+                    # Словарь, не объект: результат обязан переживать JSON/Parquet
+                    # без потерь (G56). `RegressionResult.to_dict()` кладёт
+                    # предсказания и остатки списками.
+                    regression_results[key] = method(features_dicts).to_dict()
                 except Exception as e:
                     self.logger.warning("Regression '%s' could not be fitted: %s", key, e)
                     regression_results[key] = {'error': str(e)}
@@ -300,7 +303,10 @@ class UniversalZoneAnalyzer:
         result = ZoneAnalysisResult(
             zones=zones,
             statistics=statistics.results if hasattr(statistics, 'results') else statistics,
-            hypothesis_tests=hypothesis_tests,
+            # Один и тот же контракт для всех разделов: словарь `.results`, как у
+            # статистики, последовательностей и кластеров. До G56 сюда клали сам
+            # `AnalysisResult`, и в JSON/Parquet он уезжал строкой `repr`.
+            hypothesis_tests=hypothesis_tests.results if hasattr(hypothesis_tests, 'results') else hypothesis_tests,
             sequence_analysis=sequence_analysis.results if hasattr(sequence_analysis, 'results') else sequence_analysis,
             clustering=clustering.results if clustering and hasattr(clustering, 'results') else clustering,
             regression_results=regression_results,

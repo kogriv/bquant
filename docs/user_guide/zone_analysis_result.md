@@ -95,10 +95,10 @@ print(len(result.zones), result.zones[0].start_time)
 |------|-----|----------------|----------------------------|----------|
 | **zones** | `List[ZoneInfo]` | да | Детекция + анализ | Список зон; после анализа у каждой заполнены `data`, `features`, `indicator_context`, при global — `swing_context`. |
 | **statistics** | `Dict[str, Any]` | да | `ZoneFeaturesAnalyzer.analyze_zones_distribution()` → `AnalysisResult.results` | Агрегированная статистика по зонам: total_statistics, duration_distribution, return_distribution, oscillator_amplitude_distribution, line_amplitude_distribution, additional_metrics. В `total_statistics` — `total_zones`, `zones_by_type`, `ratios_by_type` по фактически встреченным типам; `bull_zones_count`/`bear_zones_count`/`bull_ratio`/`bear_ratio` присутствуют **только** у словаря, который содержит эти типы. |
-| **hypothesis_tests** | `Dict[str, Any]` или объект с атрибутом `.results` | да | `HypothesisTestSuite.run_all_tests()` | Результаты тестов гипотез. Если объект — у него есть `.results` с ключами `tests` (словарь тестов по имени) и `summary`. В коде часто: `getattr(result.hypothesis_tests, 'results', result.hypothesis_tests)`. |
+| **hypothesis_tests** | `Dict[str, Any]` | да | `HypothesisTestSuite.run_all_tests()` → `AnalysisResult.results` | Результаты тестов гипотез: `tests` (словарь тестов по имени: `p_value`, `significant`, `effect_size`, `metadata`; или `error`) и `summary` (`total_tests`, `tests_executed`, `tests_failed`, `significant_tests`, `significance_rate`, `alpha_level`, `total_zones`). Словарь, как и `statistics`: до 2026-09-04 здесь лежал сам объект `AnalysisResult`, и в JSON/Parquet он уезжал строкой (G56). |
 | **clustering** | `Optional[Dict[str, Any]]` | нет | `ZoneSequenceAnalyzer.cluster_zones()` → `AnalysisResult.results` | Есть только при `analyze(clustering=True)` и при числе зон ≥ n_clusters. Ключи: clustering_summary, cluster_labels, clusters_analysis, feature_importance. |
 | **sequence_analysis** | `Optional[Dict[str, Any]]` | нет | `ZoneSequenceAnalyzer.analyze_zone_transitions()` → `AnalysisResult.results` | Есть при числе зон ≥ 3. Переходы между типами зон (bull_to_bear и т.д.), вероятности, детали переходов. |
-| **regression_results** | `Optional[Dict[str, Any]]` | нет | `ZoneRegressionAnalyzer` (predict_zone_duration, predict_price_return) | Есть при `analyze(regression=True)` и числе зон > 10. Ключи: `duration`, `return` (модели/предсказания). |
+| **regression_results** | `Optional[Dict[str, Any]]` | нет | `ZoneRegressionAnalyzer` (predict_zone_duration, predict_price_return) → `RegressionResult.to_dict()` | Есть при `analyze(regression=True)` и числе зон > 10. Ключи: `duration`, `return`; под каждым — словарь модели (`r_squared`, `coefficients`, `p_values`, `predictions`, `residuals`, `n_observations`, `metadata`) или `{'error': …}`, если подгонка не удалась. |
 | **validation_results** | `Optional[Dict[str, Any]]` | нет | Пайплайн → `ValidationSuite.out_of_sample_test()` | Есть при `analyze(validation=True)`, если проверка посчиталась: `{'out_of_sample': ModelValidationResult.to_dict()}` — частота зон на бар в окнах 70/30, `success`, `degradation_pct`. Что произошло, говорит `metadata['validation']`: `executed` / `failed` (с `reason`) / `not_requested`. |
 | **data** | `Optional[pd.DataFrame]` | нет | Пайплайн: выход `_prepare_data()`; модульно: переданный DataFrame | Полный DataFrame с OHLCV и колонками индикаторов. Используется для визуализации и для доступа к «сырым» данным. |
 | **metadata** | `Dict[str, Any]` | да (по умолчанию `{}`) | Собирается в `UniversalZoneAnalyzer.analyze_zones()`; `validation` дописывает пайплайн | analysis_timestamp, total_zones, zone_types, clustering_performed, regression_performed, duration_filter, validation (`status`); при наличии — swing_coverage, symbol, timeframe, source, dataset_name из `data.attrs`. |
@@ -110,10 +110,20 @@ print(len(result.zones), result.zones[0].start_time)
 |-------|------------|
 | **save**(filepath, format='pickle', compress=False, include_data=True) | Сохранить результат целиком. Форматы: `pickle`, `json`, `parquet`. |
 | **load**(filepath, format='pickle') | Классовый метод: загрузить результат из файла. |
-| **to_dict**(include_data=False) | Словарь для JSON-сериализации; зоны сериализуются через `_zone_to_dict` (без `zone.data`). |
+| **to_dict**(include_data=False) | Словарь для JSON-сериализации: зоны (без `data`), `swing_contexts` — один раз на результат, кадр с индексом и типами при `include_data=True`. |
 | **visualize**(mode, zone_id=None, date_range=None, symbol=None, timeframe=None, source=None, **kwargs) | Построение графиков: режимы `overview`, `detail`, `comparison`, `statistics`. Требует `result.data` и непустой `result.zones`. |
 
-При сохранении в JSON/parquet поле `zone.data` в зонах не включается (слишком большой объём); при pickle по умолчанию сохраняется весь объект, включая `result.data` и `zone.data` у каждой зоны.
+**Что переживает JSON и parquet (с 2026-09-04, G56).** Все три формата — полный раунд-трип
+результата пайплайна: `statistics`, `hypothesis_tests`, `clustering`, `sequence_analysis`,
+`regression_results`, `validation_results`, `metadata`, `column_schema`, зоны с признаками и
+контекстом детекции, **свинг-контекст** (записывается один раз на результат, после загрузки
+`zone.get_zone_swings()` отдаёт те же точки) и, при `include_data=True`, кадр `result.data` с
+осью времени и типами колонок. `zone.data` в артефакт не пишется — это срез `result.data` по
+`start_idx:end_idx + 1`, и при загрузке с кадром срезы восстанавливаются из него; без кадра
+(`include_data=False`) у зон остаётся пустой `DataFrame`. Значения `numpy` (`np.float64`,
+`np.bool_`) уезжают числами и булевыми; объект, которого JSON не знает, — `TypeError` с именем
+типа, а не строка `repr`. До G56 `hypothesis_tests` уезжал строкой, `np.False_` — строкой
+`"False"` (истинной!), свинг-контекст и ось времени терялись.
 
 ---
 
@@ -239,7 +249,7 @@ swing_mode = meta.get('swing_calculation_mode')  # 'global' | 'per_zone'
 - full_data_length, strategy_name, strategy_params  
 - slice(start_idx, end_idx), get_swings_for_zone(zone)  
 
-При сериализации результата в JSON/parquet поле `zone.data` в каждой зоне не сохраняется; при загрузке из JSON/parquet у зон восстанавливается пустой DataFrame. Поле `swing_context` при сериализации через `_zone_to_dict` не включается (в текущей реализации в словарь зоны попадают zone_id, type, start_idx, end_idx, start_time, end_time, duration, features, indicator_context).
+При сериализации в JSON/parquet `zone.data` не пишется: это срез `result.data`, и при загрузке с кадром (`include_data=True`) он восстанавливается из него; без кадра остаётся пустым. `swing_context` пишется один раз на результат (`swing_contexts`), зона хранит номер своего контекста; после загрузки `zone.get_zone_swings()` отдаёт те же точки, что до сохранения.
 
 ---
 
@@ -254,7 +264,7 @@ swing_mode = meta.get('swing_calculation_mode')  # 'global' | 'per_zone'
 | **02_zones.csv** | Производное от `result.zones` | «Лёгкая» таблица: идентификатор, type, start_time, end_time, duration и т.п. без больших полей. Формат формируется вручную. |
 | **03_features.csv** | `result.zones[i].features` по всем зонам | Таблица признаков: одна строка на зону; колонки — ключи из `zone.features` (при необходимости с развёрнутым `metadata`). |
 | **04_statistics.json** | `result.statistics` | Словарь как есть. |
-| **05_hypotheses.json** | `result.hypothesis_tests` или `getattr(result.hypothesis_tests, 'results', result.hypothesis_tests)` | Рекомендуется сохранять `.results`, если тип — объект с атрибутом `results`. |
+| **05_hypotheses.json** | `result.hypothesis_tests` | Словарь как есть (`tests`, `summary`). |
 | **06_sequence.json** | `result.sequence_analysis` | Словарь как есть. |
 | **07_clustering.json** | `result.clustering` | Словарь как есть. |
 | **08_regression.json** | `result.regression_results` | Словарь как есть. |
@@ -344,9 +354,7 @@ def save_json(obj, path):
 
 save_json(result.statistics, out_dir / '04_statistics.json')
 
-# hypothesis_tests может быть объектом с .results
-ht = getattr(result.hypothesis_tests, 'results', result.hypothesis_tests)
-save_json(ht, out_dir / '05_hypotheses.json')
+save_json(result.hypothesis_tests, out_dir / '05_hypotheses.json')
 
 if result.sequence_analysis is not None:
     save_json(result.sequence_analysis, out_dir / '06_sequence.json')
@@ -437,7 +445,7 @@ def export_result_to_artifacts(result: ZoneAnalysisResult, out_dir: Path) -> Non
             json.dump(obj, f, indent=2, default=str, ensure_ascii=False)
 
     j(result.statistics, out_dir / '04_statistics.json')
-    j(getattr(result.hypothesis_tests, 'results', result.hypothesis_tests), out_dir / '05_hypotheses.json')
+    j(result.hypothesis_tests, out_dir / '05_hypotheses.json')
     if result.sequence_analysis is not None:
         j(result.sequence_analysis, out_dir / '06_sequence.json')
     if result.clustering is not None:
@@ -481,10 +489,9 @@ print(len(result.zones), result.data is not None, len(result.zones[0].data))
 # 32 True 3
 ```
 
-Из JSON результат читается тем же методом (`format='json'`), но без кадров: `result.data`
-будет `None`, а `zone.data` — пустым.
-
-После загрузки из JSON или parquet у зон в `zone.data` будет пустой DataFrame; при необходимости его можно восстановить по `result.data` и `zone.start_idx`/`zone.end_idx`, если сохраняли 01_indicator_data.parquet отдельно.
+Из JSON результат читается тем же методом (`format='json'`). Сохранённый с
+`include_data=True`, он возвращается с кадром, осью времени и срезами `zone.data`; сохранённый
+без кадра — с `result.data = None` и пустыми `zone.data`, но со свингами и всеми разделами.
 
 > **Важно (с 2026-08-24).** Четыре метрики — `drawdown_from_peak`, `rally_from_trough`,
 > `peak_time_ratio`, `trough_time_ratio` — считаются для **каждой** зоны, независимо от её

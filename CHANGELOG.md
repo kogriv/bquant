@@ -60,6 +60,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   держится. Ломает: сигнатуры четырёх методов (`metric_key` → `metric: MetricSpec`),
   `UniversalZoneAnalyzer.analyze_zones(run_validation=…)` удалён, ключи Monte Carlo
   (`real_metric_value` → `real_value`, `percentile_real` → нет), `CACHE_VERSION` 22 → 23.
+* **G56 — JSON и Parquet назывались round-trip и теряли структуру, не падая.** Все
+  JSON-писатели результата стояли на `default=str`: `hypothesis_tests` (объект
+  `AnalysisResult`) уезжал строкой `repr`, `RegressionResult` — тоже, а `np.False_` —
+  строкой `"False"`, которая **истинна**: после загрузки каждое «различие незначимо»
+  читалось как «значимо». Свинг-контекст не писался вовсе (`get_zone_swings()` после
+  загрузки — пусто у результата, посчитанного в `global`), `zone.data` не
+  восстанавливался, JSON с `include_data=True` терял ось времени. Теперь
+  `hypothesis_tests` и `regression_results` — словари, как остальные разделы; numpy
+  уезжает числами и булевыми, чужой объект — `TypeError` с именем типа; свинг-контекст
+  пишется один раз на результат и возвращается зонам; `zone.data` восстанавливается из
+  кадра; кадр в JSON — с индексом и типами; parquet возвращает исходный tz. Проверка —
+  на настоящем результате пайплайна в обоих форматах. Ломает: `result.hypothesis_tests`
+  — словарь (`['tests']`, `['summary']` вместо `.results[...]`),
+  `result.regression_results[key]` — словарь `to_dict()` (`['r_squared']` вместо
+  `.r_squared`); `CACHE_VERSION` 23 → 24.
 * `examples/03_data_processing.py` писал CSV в `examples/` относительно текущего каталога —
   в дерево исходников; артефакты идут в `outputs/`, как у остальных примеров.
 

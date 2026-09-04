@@ -37,6 +37,70 @@ logger = get_logger(__name__)
 _ZONE_JSON_COLUMNS = ('features', 'indicator_context')
 
 
+def _json_default(value: Any) -> Any:
+    """Encode the scalar types an analysis result legitimately holds — and refuse the rest.
+
+    Until G56 every JSON writer here used ``default=str``. That turned
+    ``np.False_`` into the string ``"False"`` — which is *truthy*, so
+    ``significant_difference`` read back as significant on every load — and an
+    ``AnalysisResult`` or ``RegressionResult`` into its ``repr``. A save that
+    stringifies a structure is not a save, so anything not listed here is an
+    error naming the type, not a string.
+    """
+
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, (pd.Timestamp, datetime)):
+        return value.isoformat()
+    if isinstance(value, pd.Timedelta):
+        return value.isoformat()
+    raise TypeError(
+        f"{type(value).__name__} cannot be written to JSON as part of a "
+        "ZoneAnalysisResult. Structural fields hold dicts, lists and scalars; "
+        "convert the object with its to_dict() before putting it into the result."
+    )
+
+
+def _frame_to_payload(df: pd.DataFrame) -> Dict[str, Any]:
+    """A dataframe as JSON-native pieces, index and dtypes included.
+
+    ``to_dict('records')`` — the previous form — dropped the index, so a frame
+    saved with a time axis came back on a ``RangeIndex``.
+    """
+
+    index = df.index
+    if isinstance(index, pd.DatetimeIndex):
+        index_payload = {'kind': 'datetime', 'name': index.name,
+                         'values': [ts.isoformat() for ts in index]}
+    else:
+        index_payload = {'kind': 'plain', 'name': index.name, 'values': index.tolist()}
+    return {
+        'index': index_payload,
+        'columns': list(df.columns),
+        'dtypes': {str(c): str(t) for c, t in df.dtypes.items()},
+        'values': df.to_dict('split')['data'],
+    }
+
+
+def _frame_from_payload(payload: Dict[str, Any]) -> pd.DataFrame:
+    index_payload = payload['index']
+    if index_payload['kind'] == 'datetime':
+        index = pd.DatetimeIndex(pd.to_datetime(index_payload['values']), name=index_payload['name'])
+    else:
+        index = pd.Index(index_payload['values'], name=index_payload['name'])
+    frame = pd.DataFrame(payload['values'], columns=payload['columns'], index=index)
+    for column, dtype in payload.get('dtypes', {}).items():
+        if column in frame.columns and str(frame[column].dtype) != dtype:
+            frame[column] = frame[column].astype(dtype)
+    return frame
+
+
 @dataclass
 class SwingPoint:
     """Represents a single swing point (peak or trough) detected globally.
@@ -193,6 +257,33 @@ class SwingContext:
             "strategy_name": self.strategy_name,
             "strategy_params": self.strategy_params,
         }
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "SwingContext":
+        """Inverse of :meth:`to_dict`; timestamps come back as :class:`pandas.Timestamp`."""
+
+        points = [
+            SwingPoint(
+                point_id=sp["point_id"],
+                timestamp=pd.Timestamp(sp["timestamp"]),
+                index=sp["index"],
+                price=sp["price"],
+                swing_type=sp["swing_type"],
+                amplitude_to_next=sp.get("amplitude_to_next"),
+                duration_to_next=sp.get("duration_to_next"),
+                strategy_name=sp.get("strategy_name", ""),
+                strategy_params=sp.get("strategy_params") or {},
+                confirmation_index=sp.get("confirmation_index"),
+            )
+            for sp in payload["swing_points"]
+        ]
+        return cls(
+            swing_points=points,
+            indices=np.asarray(payload["indices"], dtype=int),
+            full_data_length=payload["full_data_length"],
+            strategy_name=payload["strategy_name"],
+            strategy_params=payload.get("strategy_params") or {},
+        )
 
 
 @dataclass(frozen=True)
@@ -565,7 +656,7 @@ class ZoneAnalysisResult:
         data_dict = self.to_dict(include_data=include_data)
         
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data_dict, f, indent=2, default=str, ensure_ascii=False)
+            json.dump(data_dict, f, indent=2, default=_json_default, ensure_ascii=False)
     
     def _save_parquet(self, filepath: Path, compress: bool, include_data: bool) -> None:
         """Serialize the result to a directory containing Parquet/JSON artifacts."""
@@ -573,9 +664,15 @@ class ZoneAnalysisResult:
         output_dir = filepath.with_suffix('.parquet')
         output_dir.mkdir(exist_ok=True)
         
-        # Persist zones metadata
-        zones_data = [self._zone_to_dict(z) for z in self.zones]
+        # Persist zones metadata; the swing contexts travel once, in metadata.json,
+        # and each zone carries the index of its context (nullable: per-zone mode
+        # has none). Until G56 the context was not written at all, and a loaded
+        # result answered `get_zone_swings()` with an empty list.
+        contexts, refs = self._swing_contexts()
+        zones_data = [self._zone_to_dict(z, refs.get(id(z.swing_context))) for z in self.zones]
         zones_df = pd.DataFrame(zones_data)
+        if 'swing_context' in zones_df.columns:
+            zones_df['swing_context'] = zones_df['swing_context'].astype('Int64')
 
         # `features` and `indicator_context` are containers, and letting Parquet
         # infer a struct for them fails in two measured ways. An all-empty column
@@ -589,7 +686,7 @@ class ZoneAnalysisResult:
         # through the column list recorded below.
         json_columns = [c for c in _ZONE_JSON_COLUMNS if c in zones_df.columns]
         for column in json_columns:
-            zones_df[column] = zones_df[column].map(lambda v: json.dumps(v, default=str))
+            zones_df[column] = zones_df[column].map(lambda v: json.dumps(v, default=_json_default))
 
         zones_df.to_parquet(output_dir / 'zones.parquet', compression='gzip' if compress else None)
         
@@ -603,11 +700,21 @@ class ZoneAnalysisResult:
             'regression_results': self.regression_results,
             'validation_results': self.validation_results,
             'metadata': self.metadata,
-            'zone_json_columns': json_columns
+            'swing_contexts': [ctx.to_dict() for ctx in contexts],
+            'zone_json_columns': json_columns,
+            # pyarrow hands a fixed-offset index back as `pytz.FixedOffset`; the
+            # instants are the same, the object is not, and `DataFrame.equals`
+            # says so. The name of the zone is enough to put it back.
+            'data_index_tz': (
+                str(self.data.index.tz)
+                if include_data and self.data is not None
+                and isinstance(self.data.index, pd.DatetimeIndex) and self.data.index.tz is not None
+                else None
+            ),
         }
         
         with open(output_dir / 'metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=2, default=str)
+            json.dump(metadata, f, indent=2, default=_json_default)
         
         # Persist raw dataframe if requested
         if include_data and self.data is not None:
@@ -674,6 +781,11 @@ class ZoneAnalysisResult:
         # Загружаем исходные данные если есть
         data_file = parquet_dir / 'data.parquet'
         data = pd.read_parquet(data_file) if data_file.exists() else None
+        if data is not None and metadata.get('data_index_tz') and isinstance(data.index, pd.DatetimeIndex):
+            data.index = data.index.tz_convert(metadata['data_index_tz'])
+
+        contexts = [SwingContext.from_dict(c) for c in metadata.get('swing_contexts', [])]
+        cls._reattach(zones, zones_df.get('swing_context'), contexts, data)
         
         return cls(
             zones=zones,
@@ -690,8 +802,10 @@ class ZoneAnalysisResult:
     
     def to_dict(self, include_data: bool = False) -> Dict[str, Any]:
         """Convert the result into a JSON-serializable dictionary."""
+        contexts, refs = self._swing_contexts()
         result = {
-            'zones': [self._zone_to_dict(z) for z in self.zones],
+            'zones': [self._zone_to_dict(z, refs.get(id(z.swing_context))) for z in self.zones],
+            'swing_contexts': [ctx.to_dict() for ctx in contexts],
             'statistics': self.statistics,
             'hypothesis_tests': self.hypothesis_tests,
             'clustering': self.clustering,
@@ -703,8 +817,9 @@ class ZoneAnalysisResult:
         }
         
         if include_data and self.data is not None:
-            # This may be large; use with caution
-            result['data'] = self.data.to_dict('records')
+            # This may be large; use with caution. Index and dtypes go with it —
+            # `to_dict('records')` used to drop the time axis on the floor.
+            result['data'] = _frame_to_payload(self.data)
         
         return result
     
@@ -716,7 +831,10 @@ class ZoneAnalysisResult:
         # Rebuild dataframe when present
         data = None
         if 'data' in data_dict and data_dict['data']:
-            data = pd.DataFrame(data_dict['data'])
+            data = _frame_from_payload(data_dict['data'])
+
+        contexts = [SwingContext.from_dict(c) for c in data_dict.get('swing_contexts', [])]
+        cls._reattach(zones, [z.get('swing_context') for z in data_dict['zones']], contexts, data)
         
         return cls(
             zones=zones,
@@ -731,9 +849,46 @@ class ZoneAnalysisResult:
             metadata=data_dict.get('metadata', {})
         )
     
+    def _swing_contexts(self) -> Tuple[List[SwingContext], Dict[int, int]]:
+        """Distinct swing contexts across the zones, and ``id(context) -> position``.
+
+        In global mode every zone points at the same object; writing it once
+        instead of per zone is what keeps the artifact the size of the analysis.
+        """
+        contexts: List[SwingContext] = []
+        refs: Dict[int, int] = {}
+        for zone in self.zones:
+            ctx = zone.swing_context
+            if ctx is not None and id(ctx) not in refs:
+                refs[id(ctx)] = len(contexts)
+                contexts.append(ctx)
+        return contexts, refs
+
     @staticmethod
-    def _zone_to_dict(zone: ZoneInfo) -> Dict[str, Any]:
-        """Convert a :class:`ZoneInfo` into a serializable dictionary."""
+    def _reattach(zones: List[ZoneInfo], refs, contexts: List[SwingContext],
+                  data: Optional[pd.DataFrame]) -> None:
+        """Give loaded zones back their swing context and their slice of the frame.
+
+        ``zone.data`` is, by construction, ``data.iloc[start_idx:end_idx + 1]``;
+        when the frame was saved, the slices are rebuilt from it rather than
+        written 77 times over. Without the frame they stay empty, and the doc
+        says so.
+        """
+        refs = list(refs) if refs is not None else [None] * len(zones)
+        for zone, ref in zip(zones, refs):
+            if ref is not None and not pd.isna(ref):
+                zone.swing_context = contexts[int(ref)]
+            if data is not None:
+                zone.data = data.iloc[zone.start_idx:zone.end_idx + 1]
+
+    @staticmethod
+    def _zone_to_dict(zone: ZoneInfo, swing_context_ref: Optional[int] = None) -> Dict[str, Any]:
+        """Convert a :class:`ZoneInfo` into a serializable dictionary.
+
+        ``swing_context_ref`` is the position of the zone's context in the
+        result-level ``swing_contexts`` list (``None`` in per-zone mode).
+        ``data`` is not written per zone: it is a slice of the result's frame.
+        """
         return {
             'zone_id': zone.zone_id,
             'type': zone.type,
@@ -743,24 +898,28 @@ class ZoneAnalysisResult:
             'end_time': zone.end_time.isoformat(),
             'duration': zone.duration,
             'features': zone.features,
-            'indicator_context': zone.indicator_context  # v2.1: Save indicator context
-            # data не сохраняем в dict (слишком большой)
+            'indicator_context': zone.indicator_context,
+            'swing_context': swing_context_ref,
         }
     
     @staticmethod
     def _zone_from_dict(zone_dict: Dict[str, Any]) -> ZoneInfo:
-        """Recreate a :class:`ZoneInfo` from its dictionary representation."""
+        """Recreate a :class:`ZoneInfo` from its dictionary representation.
+
+        The swing context and the data slice are attached afterwards by
+        :meth:`_reattach`, from the result-level pieces.
+        """
         return ZoneInfo(
-            zone_id=zone_dict['zone_id'],
+            zone_id=int(zone_dict['zone_id']),
             type=zone_dict['type'],
-            start_idx=zone_dict['start_idx'],
-            end_idx=zone_dict['end_idx'],
-            start_time=datetime.fromisoformat(zone_dict['start_time']),
-            end_time=datetime.fromisoformat(zone_dict['end_time']),
-            duration=zone_dict['duration'],
-            data=pd.DataFrame(),  # Пустой DataFrame, нужно загружать отдельно
+            start_idx=int(zone_dict['start_idx']),
+            end_idx=int(zone_dict['end_idx']),
+            start_time=pd.Timestamp(zone_dict['start_time']),
+            end_time=pd.Timestamp(zone_dict['end_time']),
+            duration=int(zone_dict['duration']),
+            data=pd.DataFrame(),
             features=zone_dict.get('features'),
-            indicator_context=zone_dict.get('indicator_context')  # v2.1: Load indicator context
+            indicator_context=zone_dict.get('indicator_context')
         )
     
     def visualize(self,

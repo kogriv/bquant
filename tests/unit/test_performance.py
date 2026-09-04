@@ -407,9 +407,11 @@ class TestMACDAnalyzerPerformance:
         result = analyze_macd_zones(trending_data, clustering=False)
 
         hypothesis_tests = result.hypothesis_tests
-        assert isinstance(hypothesis_tests, AnalysisResult)
+        # A dict, like statistics and sequence_analysis: the result has one
+        # contract for its sections, and it survives JSON/Parquet (G56).
+        assert isinstance(hypothesis_tests, dict)
 
-        tests = hypothesis_tests.results['tests']
+        tests = hypothesis_tests['tests']
         assert isinstance(tests, dict)
         assert len(tests) > 0
 
@@ -418,7 +420,7 @@ class TestMACDAnalyzerPerformance:
                 assert 'significant' in test_data, f"{test_name} reports no verdict"
                 assert 'p_value' in test_data, f"{test_name} reports no p-value"
 
-        summary = hypothesis_tests.results['summary']
+        summary = hypothesis_tests['summary']
         assert summary['tests_executed'] == len(tests)
 
         logger.info(f"Statistical analysis completed: {len(tests)} tests")

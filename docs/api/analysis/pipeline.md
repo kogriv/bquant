@@ -271,7 +271,10 @@ print(result.zones[0].indicator_context)
 число**: он кладёт под своим ключом `error` с причиной.
 
 **Регрессия** (`regression=True`, нужно больше 10 зон) попадает в
-`result.regression_results` — словарь с ключами `duration` и `return`:
+`result.regression_results` — словарь с ключами `duration` и `return`; под каждым —
+словарь `RegressionResult.to_dict()` (`r_squared`, `coefficients`, `p_values`, `predictions`,
+`residuals`, `n_observations`, `metadata`), а не объект: результат обязан переживать
+JSON/Parquet без потерь. Неудачная подгонка — словарь с ключом `error`:
 
 - **пустой предиктор.** Набор по умолчанию начинается с `line_amplitude` — амплитуды
   *линии* индикатора. У осциллятора без линии (RSI, AO) её нет, предиктор пуст во всех
@@ -293,11 +296,11 @@ result = (
 )
 
 model = result.regression_results['duration']
-if isinstance(model, dict):
+if 'error' in model:
     print('регрессия не построена:', model['error'])
 else:
-    print(round(model.r_squared, 3), model.n_observations)
-    print('выброшены как пустые:', model.metadata['empty_predictors'])
+    print(round(model['r_squared'], 3), model['n_observations'])
+    print('выброшены как пустые:', model['metadata']['empty_predictors'])
 ```
 
 **Тесты гипотез** отказываются так же: у теста, которому не хватило данных или словаря

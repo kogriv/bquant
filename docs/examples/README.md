@@ -95,7 +95,7 @@ result = (
     .build()
 )
 
-tests = result.hypothesis_tests.results['tests']
+tests = result.hypothesis_tests['tests']
 for name, test in tests.items():
     print(f"{name}: p={test['p_value']:.4f}")
 ```

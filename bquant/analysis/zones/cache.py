@@ -100,7 +100,10 @@ class ZoneAnalysisCache:
     # содержит out-of-sample проверку, `metadata['validation']` различает
     # `not_requested` / `executed` / `failed`. Записи v22 с `run_validation=True`
     # несут `None` и ключа в метаданных не имеют.
-    CACHE_VERSION = 23
+    # v24 (G56): `hypothesis_tests` — словарь `.results`, `regression_results` —
+    # словари `to_dict()`, как у остальных разделов. Записи v23 несут объекты
+    # `AnalysisResult`/`RegressionResult`, которых читатели больше не ждут.
+    CACHE_VERSION = 24
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

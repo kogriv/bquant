@@ -290,7 +290,7 @@ class TestHypothesisSummary:
     def test_every_test_runs_on_both_vocabularies(self, fixture, request):
         """Two of seven used to fail on MACD and on any threshold vocabulary."""
         result = request.getfixturevalue(fixture)
-        summary = result.hypothesis_tests.results["summary"]
+        summary = result.hypothesis_tests["summary"]
         assert summary["tests_failed"] == 0, summary["failed_tests"]
         assert summary["tests_executed"] == summary["total_tests"]
 
@@ -300,10 +300,10 @@ class TestHypothesisSummary:
         It used to land in the denominator all the same, diluting the rate while
         saying nothing about the gap.
         """
-        summary = macd_result.hypothesis_tests.results["summary"]
+        summary = macd_result.hypothesis_tests["summary"]
         expected = summary["significant_tests"] / summary["tests_executed"]
         assert summary["significance_rate"] == pytest.approx(expected)
 
     def test_contrast_pair_is_named_in_the_result(self, threshold_result):
-        asymmetry = threshold_result.hypothesis_tests.results["tests"]["contrast_asymmetry"]
+        asymmetry = threshold_result.hypothesis_tests["tests"]["contrast_asymmetry"]
         assert asymmetry["metadata"]["pair_tested"] == ["overbought", "oversold"]

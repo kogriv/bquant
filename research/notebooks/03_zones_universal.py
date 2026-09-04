@@ -458,14 +458,13 @@ else:
 nb.substep("5.5: Statistical Hypothesis Tests (MACD)")
 if hasattr(result_macd_full, 'hypothesis_tests') and result_macd_full.hypothesis_tests:
     tests = result_macd_full.hypothesis_tests
-    if hasattr(tests, 'results') and tests.results:
+    if tests:
         nb.log("  Hypothesis tests executed")
-        if hasattr(tests, 'data_size'):
-            nb.log(f"  Tests based on {tests.data_size} zones")
+        nb.log(f"  Tests based on {tests['summary']['total_zones']} zones")
         
-        # Вложенная структура: tests.results['tests'] содержит индивидуальные тесты
-        if 'tests' in tests.results and isinstance(tests.results['tests'], dict):
-            individual_tests = tests.results['tests']
+        # Словарь: tests['tests'] содержит индивидуальные тесты, tests['summary'] — сводку
+        if 'tests' in tests and isinstance(tests['tests'], dict):
+            individual_tests = tests['tests']
             
             for tname, tres in individual_tests.items():
                 # tres - это dict, не объект! Используем dict keys

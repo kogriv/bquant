@@ -120,7 +120,7 @@ from bquant.analysis.zones import analyze_macd_zones
 
 result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
 
-tests = result.hypothesis_tests.results['tests']
+tests = result.hypothesis_tests['tests']
 print(len(tests))          # 7
 print(sorted(tests)[:3])   # ['contrast_asymmetry', 'correlation_drawdown', 'duration_stationarity']
 ```
@@ -134,7 +134,7 @@ from bquant.analysis.zones import analyze_macd_zones
 
 result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
 
-for name, outcome in result.hypothesis_tests.results['tests'].items():
+for name, outcome in result.hypothesis_tests['tests'].items():
     if 'p_value' in outcome:
         print(f"{name}: p={outcome['p_value']:.4f}")
     else:

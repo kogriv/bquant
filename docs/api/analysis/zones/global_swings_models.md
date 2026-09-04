@@ -59,7 +59,9 @@
 - `get_swings_for_zone(zone: ZoneInfo) -> List[SwingPoint]`
   - Удобный враппер над `slice`, использующий `zone.start_idx` и `zone.end_idx`.
 - `to_dict() -> Dict[str, Any]`
-  - Сериализует весь контекст в словарь. Используется кэшем и для трассировки.
+  - Сериализует весь контекст в словарь. Используется кэшем, JSON/Parquet-артефактами результата и для трассировки.
+- `from_dict(payload) -> SwingContext` (classmethod)
+  - Обратная операция; метки времени точек возвращаются `pandas.Timestamp`. Через неё `ZoneAnalysisResult.load()` возвращает зонам их свинги (G56).
 
 ### Типичные сценарии
 

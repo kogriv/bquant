@@ -456,12 +456,12 @@ with nb.error_handling("Hypothesis tests"):
     if hasattr(result_with_tests, 'hypothesis_tests') and result_with_tests.hypothesis_tests:
         tests = result_with_tests.hypothesis_tests
         
-        nb.log(f"  Tests based on {tests.data_size} zones")
+        nb.log(f"  Tests based on {tests['summary']['total_zones']} zones")
         nb.log("")
         nb.log(f"  All hypothesis tests (p < 0.05 = significant):")
         
-        # Show all tests (not just 3)
-        for test_name, test_result in tests.results.items():
+        # `hypothesis_tests` is a dict: `tests` by name, `summary`
+        for test_name, test_result in tests['tests'].items():
             if test_result:
                 p_value = test_result.get('p_value', 'N/A')
                 significant = test_result.get('significant', False)
@@ -476,9 +476,9 @@ with nb.error_handling("Hypothesis tests"):
 
         # Count significant tests
         significant_count = sum(
-            1 for r in tests.results.values() if r and r.get('significant', False)
+            1 for r in tests['tests'].values() if r and r.get('significant', False)
         )
-        total_count = len(tests.results)
+        total_count = len(tests['tests'])
 
         nb.log(f"  Significant tests: {significant_count}/{total_count}")
 

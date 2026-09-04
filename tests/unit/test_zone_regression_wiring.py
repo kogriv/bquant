@@ -72,9 +72,11 @@ def test_pipeline_produces_regression_when_asked(data):
     assert result.regression_results, "regression was requested but nothing came back"
     for key in ("duration", "return"):
         model = result.regression_results[key]
-        assert not isinstance(model, dict), f"{key} regression failed: {model}"
-        assert model.n_observations > 0
-        assert 0.0 <= model.r_squared <= 1.0
+        # A dict from `RegressionResult.to_dict()`, so it survives JSON/Parquet
+        # (G56); a failed fit is a dict with `error` instead.
+        assert "error" not in model, f"{key} regression failed: {model}"
+        assert model["n_observations"] > 0
+        assert 0.0 <= model["r_squared"] <= 1.0
 
 
 def test_regression_is_absent_only_when_not_requested(data):
@@ -108,10 +110,10 @@ def test_all_nan_predictor_is_dropped_and_named(data):
     )
 
     model = result.regression_results["duration"]
-    assert not isinstance(model, dict), f"regression should have fitted, got {model}"
-    assert model.n_observations > 0
+    assert "error" not in model, f"regression should have fitted, got {model}"
+    assert model["n_observations"] > 0
 
-    metadata = model.metadata
+    metadata = model["metadata"]
     assert "line_amplitude" in metadata["empty_predictors"], (
         "an empty predictor must be reported, not silently absent"
     )
