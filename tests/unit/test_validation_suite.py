@@ -11,6 +11,7 @@ import numpy as np
 from typing import Dict, Any
 
 from bquant.analysis.validation import (
+    MetricSpec,
     ModelValidationResult,
     ValidationSuite
 )
@@ -52,6 +53,12 @@ def create_test_data(n_bars: int = 1000, seed: int = 42) -> pd.DataFrame:
     data.set_index('timestamp', inplace=True)
     
     return data
+
+
+#: `simple_analyze_func` puts exactly one zone per ten bars — a stationary process.
+#: Compared as a rate it holds on any split; compared as a raw count it would read
+#: as "degraded" on every train/test split, which is what G55 removed.
+ZONE_RATE = MetricSpec('total_zones', direction='stable', per_bar=True)
 
 
 def simple_analyze_func(data: pd.DataFrame) -> Dict[str, Any]:
@@ -131,6 +138,7 @@ class TestValidationSuite:
         result = suite.out_of_sample_test(
             analyze_func=simple_analyze_func,
             data=test_data,
+            metric=ZONE_RATE,
             train_ratio=0.7
         )
         
@@ -147,6 +155,7 @@ class TestValidationSuite:
         result = suite.out_of_sample_test(
             simple_analyze_func,
             test_data,
+            ZONE_RATE,
             train_ratio=0.7
         )
         
@@ -162,6 +171,7 @@ class TestValidationSuite:
             result = suite.out_of_sample_test(
                 simple_analyze_func,
                 test_data,
+                ZONE_RATE,
                 train_ratio=ratio
             )
             
@@ -173,6 +183,7 @@ class TestValidationSuite:
         result = suite.walk_forward_test(
             analyze_func=simple_analyze_func,
             data=test_data,
+            metric=ZONE_RATE,
             train_window=500,
             test_window=100,
             step_size=100
@@ -189,6 +200,7 @@ class TestValidationSuite:
         result = suite.walk_forward_test(
             simple_analyze_func,
             test_data,
+            ZONE_RATE,
             train_window=500,
             test_window=100,
             step_size=100
@@ -206,6 +218,7 @@ class TestValidationSuite:
         result = suite.walk_forward_test(
             simple_analyze_func,
             test_data,
+            ZONE_RATE,
             train_window=500,
             test_window=100,
             step_size=100
@@ -235,7 +248,8 @@ class TestValidationSuite:
         result = suite.sensitivity_analysis(
             analyze_func=parameterized_analyze,
             data=test_data,
-            param_ranges=param_ranges
+            param_ranges=param_ranges,
+            metric=ZONE_RATE
         )
         
         assert isinstance(result, ModelValidationResult)
@@ -253,7 +267,7 @@ class TestValidationSuite:
             parameterized_analyze,
             test_data,
             param_ranges,
-            metric_key='metric'
+            metric=MetricSpec('metric', direction='higher_is_better')
         )
         
         # Best should be multiplier=2.0
@@ -272,7 +286,7 @@ class TestValidationSuite:
             stable_analyze,
             test_data,
             param_ranges,
-            metric_key='metric'
+            metric=MetricSpec('metric', direction='higher_is_better')
         )
         
         # Perfect stability (no variation)
@@ -285,7 +299,7 @@ class TestValidationSuite:
             analyze_func=simple_analyze_func,
             data=test_data,
             n_simulations=50,  # Reduced for speed
-            metric_key='total_zones'
+            metric=ZONE_RATE
         )
         
         assert isinstance(result, ModelValidationResult)
@@ -301,6 +315,7 @@ class TestValidationSuite:
             result = suite.monte_carlo_test(
                 simple_analyze_func,
                 test_data,
+                ZONE_RATE,
                 n_simulations=20,
                 shuffle_method=method
             )
@@ -313,31 +328,33 @@ class TestValidationSuite:
         result = suite.monte_carlo_test(
             simple_analyze_func,
             test_data,
+            ZONE_RATE,
             n_simulations=30
         )
         
-        assert 'real_metric_value' in result.metadata
+        assert 'real_value' in result.metadata
         assert 'sim_mean' in result.metadata
         assert 'sim_std' in result.metadata
         assert 'z_score' in result.metadata
         assert 'p95_threshold' in result.metadata
+        assert 'percentile_rank' in result.metadata
     
     def test_insufficient_data_errors(self, suite):
         """Test error handling for insufficient data."""
         tiny_data = create_test_data(5)
         
         with pytest.raises(AnalysisError, match="Insufficient data"):
-            suite.out_of_sample_test(simple_analyze_func, tiny_data)
+            suite.out_of_sample_test(simple_analyze_func, tiny_data, ZONE_RATE)
     
     def test_invalid_train_ratio(self, suite, test_data):
         """Test error for invalid train ratio."""
         with pytest.raises(AnalysisError, match="train_ratio must be between"):
-            suite.out_of_sample_test(simple_analyze_func, test_data, train_ratio=1.5)
+            suite.out_of_sample_test(simple_analyze_func, test_data, ZONE_RATE, train_ratio=1.5)
     
     def test_insufficient_simulations(self, suite, test_data):
         """Test error for too few simulations."""
         with pytest.raises(AnalysisError, match="at least 10 simulations"):
-            suite.monte_carlo_test(simple_analyze_func, test_data, n_simulations=5)
+            suite.monte_carlo_test(simple_analyze_func, test_data, ZONE_RATE, n_simulations=5)
 
 
 class TestSyntheticDataGeneration:
@@ -404,13 +421,14 @@ class TestValidationIntegration:
     def test_all_validation_methods(self, suite, large_data):
         """Test that all validation methods can run successfully."""
         # Out-of-sample
-        oos_result = suite.out_of_sample_test(simple_analyze_func, large_data)
+        oos_result = suite.out_of_sample_test(simple_analyze_func, large_data, ZONE_RATE)
         assert isinstance(oos_result, ModelValidationResult)
         
         # Walk-forward
         wf_result = suite.walk_forward_test(
             simple_analyze_func,
             large_data,
+            ZONE_RATE,
             train_window=800,
             test_window=200,
             step_size=200
@@ -421,14 +439,14 @@ class TestValidationIntegration:
         def param_func(data, window=10):
             return {'metric': len(data) / window}
         
-        # metric_key обязателен: param_func отдаёт ключ `metric`, а умолчание —
-        # `total_zones`. Пока отсутствие метрики подменялось нулём, эта проверка
-        # проходила на нулях и ничего не проверяла (G39).
+        # Метрика названа явно: param_func отдаёт ключ `metric`. Пока отсутствие
+        # метрики подменялось нулём, эта проверка проходила на нулях и ничего не
+        # проверяла (G39); с G55 умолчания нет вовсе.
         sens_result = suite.sensitivity_analysis(
             param_func,
             large_data,
             {'window': [8, 10, 12]},
-            metric_key='metric'
+            metric=MetricSpec('metric', direction='higher_is_better')
         )
         assert isinstance(sens_result, ModelValidationResult)
         assert sens_result.metadata['best_params'] is not None
@@ -437,6 +455,7 @@ class TestValidationIntegration:
         mc_result = suite.monte_carlo_test(
             simple_analyze_func,
             large_data.iloc[:500],  # Subset for speed
+            ZONE_RATE,
             n_simulations=20
         )
         assert isinstance(mc_result, ModelValidationResult)
@@ -448,16 +467,17 @@ class TestValidationIntegration:
     
     def test_degradation_calculation(self, suite):
         """Test degradation percentage calculation."""
+        higher = MetricSpec('m', direction='higher_is_better')
         # No degradation
-        deg1 = suite._calculate_degradation(100, 100)
+        deg1 = suite._degradation(100, 100, higher)
         assert deg1 == 0
         
         # 10% degradation
-        deg2 = suite._calculate_degradation(100, 90)
+        deg2 = suite._degradation(100, 90, higher)
         assert abs(deg2 - 10.0) < 0.01
         
         # Improvement (negative degradation)
-        deg3 = suite._calculate_degradation(100, 110)
+        deg3 = suite._degradation(100, 110, higher)
         assert deg3 < 0
     
     def test_extract_metrics_from_dict(self, suite):
@@ -479,6 +499,7 @@ class TestValidationIntegration:
 
 # Export
 __all__ = [
+    'ZONE_RATE',
     'create_test_data',
     'simple_analyze_func',
     'TestValidationResult',

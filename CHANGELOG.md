@@ -43,6 +43,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   объект пайплайна строил разные ключи на первом и втором прогоне; `config_hash`
   find_peaks не включал `prominence_warmup`. Хэш теперь по всему кадру, конфиг не
   мутирует, warm-up в ключе, `CACHE_VERSION` 21 → 22.
+* **G55 — валидация выносила вердикты, не зная, что сравнивает, а `validation=True`
+  ничего не делал.** `ValidationSuite` сравнивал `total_zones` как есть между окнами 70 %
+  и 30 %: стационарный процесс с одной зоной на десять баров читался как «деградация
+  57 %» — и именно этот ответ README приводил как правильный после G39. `abs(degradation)`
+  называл провалом метрику, выросшую вдвое; нулевая база давала «0 %, устойчиво» при любом
+  тесте; `percentile_real` в Monte Carlo хранил значение метрики, подписанное как ранг.
+  Теперь каждый метод принимает `MetricSpec(key, direction, per_bar)` — обязательный,
+  умолчания нет: направление решает, что считать хуже; `per_bar` делит счётчик на длину
+  окна; ноль в базе — отказ с обоими значениями; `percentile_rank` — ранг, `success_rule`
+  называет правило. В пайплайне `.analyze(validation=True)` проходил до анализатора и
+  оставлял `validation_results=None` — неотличимо от «не просили». Теперь пайплайн
+  исполняет out-of-sample проверку настроенной детекции (частота зон на бар, 70/30) и
+  пишет `metadata['validation']` — `executed` / `failed` с причиной / `not_requested`;
+  на сэмпле 52 зоны на 700 барах против 26 на 300 — по счётчикам «вдвое», на бар −16.7 %,
+  держится. Ломает: сигнатуры четырёх методов (`metric_key` → `metric: MetricSpec`),
+  `UniversalZoneAnalyzer.analyze_zones(run_validation=…)` удалён, ключи Monte Carlo
+  (`real_metric_value` → `real_value`, `percentile_real` → нет), `CACHE_VERSION` 22 → 23.
 * `examples/03_data_processing.py` писал CSV в `examples/` относительно текущего каталога —
   в дерево исходников; артефакты идут в `outputs/`, как у остальных примеров.
 

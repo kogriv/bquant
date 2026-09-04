@@ -20,6 +20,7 @@ from bquant.indicators import IndicatorFactory
 from bquant.indicators.schema import ColumnSchema
 from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
+from bquant.core.exceptions import AnalysisError
 from bquant.core.cache import get_cache_manager
 from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
 from bquant.data.processor import resolve_time_index
@@ -27,6 +28,7 @@ from .strategies.swing.thresholds import _AdaptiveSwingStrategy
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
+from ..validation import MetricSpec
 from .models import ZoneInfo, ZoneAnalysisResult, SwingContext
 from .cache import ZoneAnalysisCache
 from .strategies.registry import StrategyRegistry
@@ -266,6 +268,12 @@ class ZoneAnalysisPipeline:
 
         # Step 5: run feature analysis
         result = self._analyze_zones(zones, df_prepared)
+
+        # Step 6: validation (optional) — the pipeline's, because it re-runs detection
+        if self.config.run_validation:
+            self._validate(df_prepared, result)
+        else:
+            result.metadata['validation'] = {'status': 'not_requested'}
         # Схема уезжает вместе с результатом: визуализатору и прочим потребителям
         # передают именно его, и они смогут спросить роль вместо строки.
         if self.column_schema:
@@ -461,9 +469,71 @@ class ZoneAnalysisPipeline:
             perform_clustering=self.config.perform_clustering,
             n_clusters=self.config.n_clusters,
             run_regression=self.config.run_regression,
-            run_validation=self.config.run_validation,
             column_schema=self.column_schema or None,
             min_duration=self.config.min_duration,
+        )
+
+    #: What `.analyze(validation=True)` checks: the rate of zones per bar has to
+    #: hold from the train window to the test window. A rate, not a count — the
+    #: windows are 70 % and 30 % of the frame, and a count on them says nothing
+    #: (G55). `stable`: a rate that doubles out of sample is as much a finding as
+    #: one that halves.
+    VALIDATION_METRIC = MetricSpec('total_zones', direction='stable', per_bar=True)
+    VALIDATION_TRAIN_RATIO = 0.7
+
+    def _validate(self, df_prepared: pd.DataFrame, result: ZoneAnalysisResult) -> None:
+        """Run the out-of-sample check of the configured detection, into the result.
+
+        The analyzer cannot do this: it receives zones already detected and does
+        not own detection, while validation has to re-detect on each window. So
+        the pipeline does it, on the same prepared frame the result was built
+        from. Until G55 the flag passed through builder, presets and config and
+        the analyzer logged "requested but not executed".
+
+        What lands in the result:
+
+        - ``validation_results['out_of_sample']`` — the
+          :class:`ModelValidationResult` as a dict, or ``None`` when the check
+          could not be computed;
+        - ``metadata['validation']`` — ``{'status': 'executed'}`` or
+          ``{'status': 'failed', 'reason': ...}``; ``{'status':
+          'not_requested'}`` is written by the caller when the flag is off.
+          The three are distinguishable on purpose.
+        """
+
+        suite = getattr(self.analyzer, 'validation', None)
+        if suite is None:
+            raise RuntimeError(
+                "Validation was requested, but the analyzer has no validation suite "
+                "(UniversalZoneAnalyzer(validation_suite=...)). The run was not "
+                "continued without it: a result without validation_results is "
+                "indistinguishable from one that was never asked to validate."
+            )
+
+        def detect(window: pd.DataFrame) -> Dict[str, float]:
+            return {'total_zones': float(len(self._detect_zones(window)))}
+
+        try:
+            outcome = suite.out_of_sample_test(
+                detect, df_prepared, self.VALIDATION_METRIC,
+                train_ratio=self.VALIDATION_TRAIN_RATIO,
+            )
+        except AnalysisError as exc:
+            self.logger.warning("Validation could not be computed: %s", exc)
+            result.validation_results = None
+            result.metadata['validation'] = {'status': 'failed', 'reason': str(exc)}
+            return
+
+        result.validation_results = {'out_of_sample': outcome.to_dict()}
+        result.metadata['validation'] = {
+            'status': 'executed',
+            'metric': self.VALIDATION_METRIC.to_dict(),
+            'success': outcome.success,
+        }
+        self.logger.info(
+            "Validation: zones per bar %.4f (train) vs %.4f (test), change %.1f%%, holds=%s",
+            outcome.metadata['train_value'], outcome.metadata['test_value'],
+            outcome.degradation_pct, outcome.success,
         )
 
     def _get_cache_wrapper(self) -> Optional[ZoneAnalysisCache]:
@@ -776,7 +846,13 @@ class ZoneAnalysisBuilder:
             clustering: Run zone clustering.
             n_clusters: Number of clusters to ask for.
             regression: Run the regression step.
-            validation: Run the validation suite.
+            validation: Run the out-of-sample check of the configured detection:
+                the frame is split 70/30, detection runs on each part, and the
+                rate of zones per bar has to hold within the suite's
+                ``degradation_threshold`` (20 % by default). The outcome lands
+                in ``result.validation_results['out_of_sample']`` and
+                ``result.metadata['validation']`` (``executed`` / ``failed`` /
+                ``not_requested``).
             min_duration: Length threshold for the **aggregates**. Zones shorter
                 than this stay in ``result.zones`` with their features, but are
                 left out of the statistics, hypothesis tests, sequence analysis,

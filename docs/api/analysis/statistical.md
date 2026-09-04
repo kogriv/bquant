@@ -340,94 +340,149 @@ print(f"Coefficients: {return_model.coefficients}")
 
 ## Валидация моделей (ValidationSuite)
 
+`ValidationSuite` сравнивает **одну метрику** между окнами или с распределением симуляций.
+Какую и как — говорит `MetricSpec`:
+
+| Поле | Что задаёт |
+|---|---|
+| `key` | имя метрики в том, что вернула `analyze_func` (`dict` или `AnalysisResult.results`) |
+| `direction` | `'higher_is_better'` — падение на тесте есть деградация, рост нет; `'lower_is_better'` — зеркально; `'stable'` — сдвиг в любую сторону за порог есть провал |
+| `per_bar` | делить значение на число баров окна. **Обязательно для счётчиков**: окна 70 % и 30 % содержат разное число чего угодно, и сырой счётчик на них ничего не говорит о процессе |
+
+Умолчания нет: набор не может знать, какое из ваших чисел — качество и в какую сторону.
+До 2026-09-04 умолчанием был `total_zones` как есть, и стационарный процесс на разбиении
+70/30 читался как «деградация 57 %» (G55).
+
+`degradation_pct` — насколько тест **хуже** обучения в процентах от обучения, в
+направлении метрики: положительное — хуже, отрицательное — лучше. Для `'stable'` знак лишь
+говорит, куда сдвинулось (положительное — на тесте ниже), вердикт смотрит на модуль.
+Нулевое значение на обучении при ненулевом на тесте — отказ (`AnalysisError`): процента
+от нуля не существует, а «0 %» здесь означало бы «стабильно» при любом тесте.
+
 ```python
+import numpy as np
+import pandas as pd
+
 from bquant.analysis import AnalysisResult
-from bquant.analysis.statistical import StatisticalAnalyzer
-from bquant.analysis.validation import ValidationSuite
+from bquant.analysis.validation import MetricSpec, ValidationSuite
 
-validator = ValidationSuite(degradation_threshold=0.25)
+rng = np.random.default_rng(7)
+periods = 720
+close = 2000 + np.cumsum(rng.normal(0, 3, periods))
+market_data = pd.DataFrame({'close': close},
+                           index=pd.date_range('2024-01-01', periods=periods, freq='h'))
 
 
-def analyze_for_validation(data, min_duration: int = 6, min_amplitude: float = 0.004):
-    analyzer = StatisticalAnalyzer({'alpha': 0.05, 'min_sample_size': 5})
-    analyzer.analyze(data[['close', 'indicator']])
+def analyze_for_validation(data, min_amplitude: float = 0.0015):
     returns = data['close'].pct_change().dropna()
-    event_count = int((returns.abs() > min_amplitude).sum())
-    total_zones = max(event_count // max(min_duration, 1), 1)
-
+    events = int((returns.abs() > min_amplitude).sum())
     return AnalysisResult(
         analysis_type='statistical_validation',
         results={
-            'total_zones': float(total_zones),
-            'avg_return': float(returns.mean()),
-            'volatility': float(returns.std()),
+            'events': float(events),
+            'avg_abs_return': float(returns.abs().mean()),
         },
         data_size=len(data),
-        metadata={
-            'min_duration': min_duration,
-            'min_amplitude': min_amplitude,
-            'event_count': event_count,
-        }
     )
-```
 
-### Out-of-sample
 
-```python
+validator = ValidationSuite(degradation_threshold=0.25)
+event_rate = MetricSpec('events', direction='stable', per_bar=True)
+
 oos = validator.out_of_sample_test(
-    analyze_for_validation,
-    market_data,
-    train_ratio=0.7,
-    metric_key='total_zones'
+    analyze_for_validation, market_data, event_rate, train_ratio=0.7
 )
-print(oos.metadata['split_index'])
-print(oos.train_metrics['total_zones'], oos.test_metrics['total_zones'])
+print(oos.metadata['train_size'], oos.metadata['test_size'])
+print(round(oos.metadata['train_value'], 3), round(oos.metadata['test_value'], 3))
+print(round(oos.degradation_pct, 1), oos.success)
+# 503 217
+# 0.342 0.318
+# 7.0 True
 ```
+
+Сырые значения метрики лежат в `train_metrics`/`test_metrics` как их вернула функция;
+то, что сравнивалось (после нормировки), — в `metadata['train_value']`/`['test_value']`
+вместе с самим `metadata['metric']`.
 
 ### Walk-forward
+
+Окна `train_window`/`test_window` разной длины — счётчику нужен `per_bar`.
 
 ```python
 wf = validator.walk_forward_test(
     analyze_for_validation,
     market_data,
-    train_window=120,
-    test_window=60,
-    step_size=60,
-    metric_key='total_zones'
+    event_rate,
+    train_window=240,
+    test_window=120,
+    step_size=120,
 )
 print(wf.metadata['iterations_count'])
-print(wf.metadata['avg_train_metric'], wf.metadata['avg_test_metric'])
+print(round(wf.metadata['train_value'], 3), round(wf.metadata['test_value'], 3))
+print(round(wf.degradation_pct, 1), wf.success)
+# 4
+# 0.34 0.35
+# -3.1 True
 ```
 
 ### Sensitivity analysis
+
+`direction` решает, какая комбинация «лучшая»; для `'stable'` лучшей и худшей нет
+(`best_params`/`worst_params` — `None`), только разброс. `stability_score` — единица минус
+коэффициент вариации; успех при > 0.8.
 
 ```python
 sensitivity = validator.sensitivity_analysis(
     analyze_for_validation,
     market_data,
-    param_ranges={
-        'min_duration': [4, 6, 8],
-        'min_amplitude': [0.003, 0.004, 0.005]
-    },
-    metric_key='total_zones'
+    param_ranges={'min_amplitude': [0.001, 0.0015, 0.002]},
+    metric=MetricSpec('events', direction='higher_is_better'),
 )
-print(sensitivity.metadata['stability_score'])
-print(sensitivity.metadata['best_params'])
+print(round(sensitivity.metadata['stability_score'], 2), sensitivity.success)
+print(sensitivity.metadata['best_params'], sensitivity.metadata['worst_params'])
+# 0.62 False
+# {'min_amplitude': 0.001} {'min_amplitude': 0.002}
 ```
 
+Число событий закономерно зависит от порога — и набор так и говорит: разброс между
+комбинациями велик, стабильности нет.
+
 ### Monte Carlo
+
+Где должно оказаться реальное значение относительно симуляций, тоже решает `direction`:
+`'higher_is_better'` — выше p95, `'lower_is_better'` — ниже p05, `'stable'` — вне
+центральных 95 % (вопрос тогда только «отличимо ли от случайного»). `percentile_rank` — ранг
+реального значения в распределении симуляций, 0–100 (средний ранг при совпадениях).
 
 ```python
 monte_carlo = validator.monte_carlo_test(
     analyze_for_validation,
     market_data,
-    n_simulations=32,
-    metric_key='total_zones',
-    shuffle_method='prices'
+    MetricSpec('avg_abs_return', direction='higher_is_better'),
+    n_simulations=40,
+    shuffle_method='returns',
 )
-print(monte_carlo.metadata['real_metric_value'])
-print(monte_carlo.metadata['p95_threshold'])
+print(round(monte_carlo.metadata['real_value'], 5), round(monte_carlo.metadata['sim_mean'], 5))
+print(round(monte_carlo.metadata['percentile_rank'], 1), monte_carlo.metadata['success_rule'])
+print(monte_carlo.success)
+# 0.0012 0.0012
+# 47.5 real > p95 of simulations
+# False
 ```
+
+Здесь отказ — правильный ответ: `shuffle_method='returns'` переставляет доходности, а
+средний модуль доходности от перестановки не меняется. Метрика, которую симуляция не может
+сдвинуть, ничего и не проверяет — выбирайте ту, что зависит от порядка баров.
+
+### В пайплайне
+
+`.analyze(validation=True)` у `analyze_zones(...)` запускает out-of-sample проверку
+настроенной детекции: кадр делится 70/30, детекция прогоняется на каждой части, и частота зон
+на бар (`MetricSpec('total_zones', 'stable', per_bar=True)`) обязана удержаться в пороге
+набора. Итог — в `result.validation_results['out_of_sample']` и
+`result.metadata['validation']`; см. [пайплайн](pipeline.md#analyzeclustering-true-n_clusters-3-regression-false-validation-false-min_duration-1).
+Свой порог — через `UniversalZoneAnalyzer(validation_suite=ValidationSuite(0.1))`; свою
+метрику или другой метод — вызовом набора вручную, как выше.
 
 ---
 

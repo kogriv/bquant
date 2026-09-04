@@ -134,7 +134,6 @@ class UniversalZoneAnalyzer:
                       perform_clustering: bool = True,
                       n_clusters: int = 3,
                       run_regression: bool = False,
-                      run_validation: bool = False,
                       column_schema: Optional[Any] = None,
                       min_duration: int = 1) -> ZoneAnalysisResult:
         """
@@ -148,7 +147,6 @@ class UniversalZoneAnalyzer:
             perform_clustering: Выполнять ли кластеризацию
             n_clusters: Количество кластеров
             run_regression: Выполнять ли регрессионный анализ
-            run_validation: Выполнять ли валидацию
             column_schema: Отображение ``(индикатор, роль) → колонка``, если оно
                 известно. Извлечение признаков спрашивает по нему роль вместо
                 того, чтобы угадывать имя колонки.
@@ -264,13 +262,14 @@ class UniversalZoneAnalyzer:
                     regression_results[key] = {'error': str(e)}
             self.logger.info("Performed regression analysis")
         
-        # 7. Валидация (опционально)
+        # 7. Валидация здесь не выполняется — и не принимается. Анализатор получает
+        # готовые зоны и не владеет детекцией, а валидация обязана заново прогнать
+        # детекцию на каждом окне. Это делает пайплайн (`ZoneAnalysisPipeline`) —
+        # он и заполняет `validation_results`. До G55 параметр `run_validation`
+        # здесь принимался, писал «requested but not executed» в лог и оставлял
+        # `None`, неотличимый от «не просили».
         validation_results = None
-        if run_validation and self.validation and len(zones_features) > 20:
-            # Валидация требует функцию анализа и DataFrame
-            # Это будет реализовано позже в integration тестах
-            self.logger.info("Validation requested but not executed (need analyze_func)")
-        
+
         # Извлекаем метаданные из DataFrame.attrs (если есть)
         metadata = {
             'analysis_timestamp': datetime.now().isoformat(),

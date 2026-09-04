@@ -544,22 +544,33 @@ with nb.error_handling("Regression & Validation"):
             else:
                 nb.warning("  Insufficient features for regression (need 10+)")
         
-        nb.info("8.3. v2.1 Validation with updated analyze_func:")
-        
+        nb.info("8.3. Validation through the pipeline (.analyze(validation=True)):")
+
         if validation_available:
-            # v2.1: analyze_func uses the pipeline (MACDZoneAnalyzer removed in 0.0.5)
-            def analyze_func_v2(data):
-                """v2.1 analyze function for validation."""
-                return (
-                    analyze_zones(data)
-                    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
-                    .detect_zones('zero_crossing', indicator_role='hist')
-                    .build()
-                )
-            
-            nb.log("  analyze_func uses v2.1 builder pattern (not deprecated API)")
-            nb.success("  ValidationSuite compatible with v2.1 API")
-            nb.log("  Note: Validation is advanced feature - for robustness testing")
+            # The pipeline splits the frame 70/30, re-runs the configured detection
+            # on each part and compares zones *per bar* (a count on windows of
+            # different length says nothing). Until G55 the flag was accepted and
+            # never executed.
+            validated = (
+                analyze_zones(df)
+                .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+                .detect_zones('zero_crossing', indicator_role='hist')
+                .analyze(validation=True)
+                .build()
+            )
+            status = validated.metadata['validation']['status']
+            nb.log(f"  metadata['validation']['status']: {status}")
+            if status == 'executed':
+                check = validated.validation_results['out_of_sample']
+                meta = check['metadata']
+                nb.log(f"  train: {check['train_metrics']['total_zones']:.0f} zones / {meta['train_size']} bars "
+                       f"= {meta['train_value']:.4f} per bar")
+                nb.log(f"  test:  {check['test_metrics']['total_zones']:.0f} zones / {meta['test_size']} bars "
+                       f"= {meta['test_value']:.4f} per bar")
+                nb.log(f"  change: {check['degradation_pct']:.1f}%  holds: {check['success']}")
+            else:
+                nb.warning(f"  Validation not computed: {validated.metadata['validation'].get('reason')}")
+            nb.log("  Custom metric / walk-forward / Monte Carlo: call ValidationSuite directly with a MetricSpec")
         
         nb.info("8.4. Educational note:")
         nb.log("  - Regression: Predictive modeling (optional, advanced)")

@@ -160,6 +160,42 @@ print(len(result.zones), report['zones_analysed'], report['zones_excluded'])
 # 83 59 24
 ```
 
+`validation=True` — out-of-sample проверка настроенной детекции: кадр делится 70/30,
+детекция прогоняется на каждой части, и частота зон **на бар** обязана удержаться в пороге
+набора (20 % по умолчанию). Сравнивается частота, а не число зон: окна разной длины
+содержат разное число чего угодно. Итог — в `result.validation_results['out_of_sample']`
+(см. [`ValidationSuite`](statistical.md#валидация-моделей-validationsuite)), а
+`result.metadata['validation']['status']` различает `executed`, `failed` (с причиной) и
+`not_requested`. До 2026-09-04 флаг принимался и не исполнялся (G55).
+
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze(validation=True)
+    .build()
+)
+
+check = result.validation_results['out_of_sample']
+print(result.metadata['validation']['status'], check['success'])
+print(check['train_metrics']['total_zones'], check['metadata']['train_size'],
+      check['test_metrics']['total_zones'], check['metadata']['test_size'])
+print(round(check['metadata']['train_value'], 4), round(check['metadata']['test_value'], 4),
+      round(check['degradation_pct'], 1))
+# executed True
+# 52.0 700 26.0 300
+# 0.0743 0.0867 -16.7
+```
+
+52 зоны против 26 — по счётчикам «падение вдвое»; на бар — 0.074 против 0.087, частота на
+тесте на 16.7 % выше, в пороге. Свой порог — через
+`UniversalZoneAnalyzer(validation_suite=ValidationSuite(0.1))` в `ZoneAnalysisPipeline`;
+свою метрику или walk-forward — вызовом набора вручную.
+
 ### `.build()`
 
 Запускает расчёт и возвращает [`ZoneAnalysisResult`](../../user_guide/zone_analysis_result.md).

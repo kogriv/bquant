@@ -96,7 +96,11 @@ class ZoneAnalysisCache:
     # быть сохранены под ключом, общим для кадров с разными `RSI_14`, `volume` или
     # колонками combined-условий, — и отдавались на любой из них; а у find_peaks в
     # ключ не входил `prominence_warmup`.
-    CACHE_VERSION = 22
+    # v23 (G55): `.analyze(validation=True)` исполняется — `validation_results`
+    # содержит out-of-sample проверку, `metadata['validation']` различает
+    # `not_requested` / `executed` / `failed`. Записи v22 с `run_validation=True`
+    # несут `None` и ключа в метаданных не имеют.
+    CACHE_VERSION = 23
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

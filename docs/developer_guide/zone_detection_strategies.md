@@ -170,8 +170,10 @@ result = (
 1. **Извлечение признаков.** Вызывает `ZoneFeaturesAnalyzer.extract_all_zones_features` и дописывает полученные признаки обратно в `zone.features`.
 2. **Статистика и гипотезы.** Передаёт признаки в `ZoneFeaturesAnalyzer.analyze_zones_distribution` и `HypothesisTestSuite.run_all_tests`.
 3. **Последовательности и кластеры.** Через `ZoneSequenceAnalyzer` выполняет анализ переходов и (опционально) кластеризацию.
-4. **Регрессия и валидация.** При включённых флагах делегирует работу `ZoneRegressionAnalyzer` и `ValidationSuite`.
+4. **Регрессия.** При включённом флаге делегирует работу `ZoneRegressionAnalyzer`.
 5. **Сбор результатов.** Формирует `ZoneAnalysisResult` с агрегированной метаинформацией.
+
+Валидация (`.analyze(validation=True)`) — **не** шаг анализатора: он получает готовые зоны и не владеет детекцией, а проверка обязана заново прогнать детекцию на каждом окне. Её выполняет `ZoneAnalysisPipeline` после анализа, через `ValidationSuite`, который анализатор держит как DI-компонент (`validation_suite`).
 
 Полный код жизненного цикла см. в `bquant/analysis/zones/analyzer.py`.
 
@@ -183,7 +185,7 @@ result = (
 - **Hypothesis Suite** (`hypothesis_suite`): предоставьте `run_all_tests`, возвращающий словарь результатов гипотез.
 - **Sequence Analyzer** (`sequence_analyzer`): реализуйте `analyze_zone_transitions` и, при необходимости, `cluster_zones`.
 - **Regression Analyzer** (`regression_analyzer`): предоставьте методы `predict_zone_duration` и `predict_price_return`.
-- **Validation Suite** (`validation_suite`): внедрите проверки качества, совместимые с сигнатурой `.validate(...)` (см. текущую реализацию в `bquant.analysis.validation`).
+- **Validation Suite** (`validation_suite`): предоставьте `out_of_sample_test(analyze_func, data, metric, train_ratio=...)`, возвращающий `ModelValidationResult` — это единственный метод, который зовёт пайплайн; `degradation_threshold` у стандартного `ValidationSuite` — способ задать свой порог без замены класса.
 
 При добавлении новых DI-компонентов синхронизируйте описание с документацией и обновите примеры использования в API-документации.
 

@@ -94,17 +94,19 @@ for name in ('SwingMetrics', 'ShapeMetrics', 'DivergenceMetrics',
 
 `bquant.analysis.validation.ValidationSuite` — четыре метода проверки устойчивости:
 `out_of_sample_test`, `walk_forward_test`, `sensitivity_analysis`, `monte_carlo_test`.
-Включается через `.analyze(validation=True)` и требует больше 20 зон.
+Каждый сравнивает одну метрику, описанную `MetricSpec(key, direction, per_bar)`: какой
+ключ читать, в какую сторону «лучше», делить ли на число баров окна. Умолчания нет.
 
 Каждый возвращает `ModelValidationResult`: `validation_type`, `success`, `train_metrics`,
-`test_metrics`, `degradation_pct`, `iterations`, `metadata`.
+`test_metrics`, `degradation_pct`, `iterations`, `metadata` (в нём — `metric` и сравнённые
+значения).
 
 ```python
 import numpy as np
 import pandas as pd
 
 from bquant.analysis import AnalysisResult
-from bquant.analysis.validation import ValidationSuite
+from bquant.analysis.validation import MetricSpec, ValidationSuite
 
 rng = np.random.default_rng(0)
 market = pd.DataFrame({'close': 2000 + np.cumsum(rng.normal(0, 2, 400))})
@@ -115,20 +117,30 @@ def analyse(window):
                           data_size=len(window))
 
 
-result = ValidationSuite().out_of_sample_test(
-    analyse, market, train_ratio=0.7, metric_key='total_zones'
-)
+zone_rate = MetricSpec('total_zones', direction='stable', per_bar=True)
+result = ValidationSuite().out_of_sample_test(analyse, market, zone_rate, train_ratio=0.7)
 
 print(result.train_metrics['total_zones'], result.test_metrics['total_zones'])
+print(result.metadata['train_value'], result.metadata['test_value'])
 print(round(result.degradation_pct, 1), result.success)
 # 28.0 12.0
-# 57.1 False
+# 0.1 0.1
+# 0.0 True
 ```
+
+**Счётчик на окнах разной длины — не метрика.** Функция выше кладёт ровно одну зону на
+десять баров: 28 на обучающих 280, 12 на тестовых 120. Без `per_bar` те же 28 и 12
+сравниваются как есть и дают «деградация 57.1 %, `success=False`» — вердикт о длине окна,
+а не о процессе. До 2026-09-04 именно так выглядело умолчание, и именно это README называл
+правильным ответом (G55, `devref/gaps/validation/`).
 
 **Метрика, которую попросили, обязана найтись.** Если её нет в том, что вернула ваша
 функция анализа, набор откажется считать и назовёт доступные ключи — вместо того чтобы
 подставить ноль и сообщить «деградации нет». До 2026-08-31 подставлял:
 `devref/gaps/validation/g39_validation_answered_holds_up_without_measuring_2026-08.md`.
+
+В пайплайне `.analyze(validation=True)` запускает out-of-sample проверку частоты зон на
+бар и кладёт итог в `result.validation_results` — см. [статистика](statistical.md#в-пайплайне).
 
 ## Модули-заглушки — что это и как их отличить
 
