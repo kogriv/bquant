@@ -241,13 +241,21 @@ class ZoneAnalysisPipeline:
         # Step 2: run global swing calculation (optional)
         global_swing_context: Optional[SwingContext] = None
         if self.config.swing_scope == "global":
+            # No fallback. Until G54 any exception here was logged and the run
+            # went on in per_zone mode: the caller asked for one scope and got
+            # another, with no trace of it in the result — and the result was
+            # then saved under the global cache key. The two scopes are not
+            # interchangeable (different visibility, and for ZigZag until G54 a
+            # different detector), so a failed global pass is a failed run.
             try:
                 global_swing_context = self._calculate_global_swings(df_prepared)
-            except Exception as exc:  # noqa: BLE001 - стратегические исключения логируются
-                self.logger.warning(
-                    "Global swing calculation failed, falling back to per_zone mode: %s",
-                    exc,
-                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Global swing calculation failed: {exc}. The analysis was "
+                    "not continued in per_zone mode — the two scopes are not "
+                    "comparable. Fix the cause, or ask for "
+                    ".with_swing_scope('per_zone') explicitly."
+                ) from exc
 
         # Step 3: detect zones
         zones = self._detect_zones(df_prepared)

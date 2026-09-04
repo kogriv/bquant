@@ -55,21 +55,26 @@ def test_pipeline_global_swing_scope(monkeypatch):
         assert zone.swing_context is not None
 
 
-def test_fallback_to_per_zone(monkeypatch):
+def test_a_failed_global_pass_does_not_become_a_per_zone_result(monkeypatch):
+    """A failure in the global pass stops the run instead of changing scope.
+
+    Until G54 the pipeline caught any exception here, logged "falling back to
+    per_zone mode" and went on: the caller asked for global swings and received
+    per-zone ones, with nothing in the result to say so — and the result went
+    into the cache under the global key. The scopes are not interchangeable
+    (different visibility; for ZigZag, until G54, a different detector too).
+    """
     data = create_sample_ohlcv_data(60)
     data.index = pd.date_range("2024-09-01", periods=len(data), freq="h")
     zones_df = _build_zones_df(data)
-
-    pivot_timestamps = [data.index[i] for i in range(0, len(data), 8)]
-    use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
 
     def _raise_global(self, full_data):  # pylint: disable=unused-argument
         raise RuntimeError("forced global failure")
 
     monkeypatch.setattr(ZigZagSwingStrategy, "calculate_global", _raise_global, raising=False)
 
-    with patch("bquant.analysis.zones.pipeline.logger.warning") as warning_mock:
-        result = (
+    with pytest.raises(RuntimeError, match=r"Global swing calculation failed.*forced global failure") as failure:
+        (
             analyze_zones(data)
             .with_cache(enable=False)
             .with_strategies(swing="zigzag")
@@ -78,19 +83,8 @@ def test_fallback_to_per_zone(monkeypatch):
             .build()
         )
 
-    warning_messages = " ".join(call.args[0] for call in warning_mock.call_args_list)
-    assert "falling back to per_zone mode" in warning_messages
-    assert len(result.zones) == len(zones_df)
-    assert all(zone.swing_context is None for zone in result.zones)
-
-    for zone in result.zones:
-        assert zone.features is not None
-        metadata = zone.features.get("metadata", {})
-        assert "swing_metrics" in metadata
-        metrics = metadata["swing_metrics"]
-        assert isinstance(metrics, dict)
-        assert metrics.get("strategy_name") == "zigzag"
-
+    assert "per_zone" in str(failure.value)
+    assert "with_swing_scope" in str(failure.value)
 
 def test_global_mode_improves_swing_coverage():
     """Global mode should have higher swing coverage than per-zone mode."""

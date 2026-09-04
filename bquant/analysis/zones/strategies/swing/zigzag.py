@@ -40,21 +40,40 @@ class ZigZagSwingStrategy:
     def calculate_global(self, full_data: pd.DataFrame) -> SwingContext:
         """Run a single ZigZag pass on the full dataset and build context."""
 
+        return self._swing_context(full_data, scope='global')
+
+    def _swing_context(self, full_data: pd.DataFrame, *, scope: str) -> SwingContext:
+        """One detector, two scopes.
+
+        ``scope`` only chooses how loudly degradations are reported: on the
+        global pass a short or degenerate series is worth a warning, inside a
+        zone it is the normal case for a short zone and is logged at debug.
+
+        Until G54 the per-zone path ran its own pandas-ta ZigZag **without**
+        ``backtest=True`` — the repainting, centred detector that #110 removed
+        from the global pass — so ``per_zone`` and ``global`` compared two
+        algorithms, not two scopes: on 17 of the 18 sample zones longer than
+        20 bars the two placed their pivots on different bars.
+        """
+
+        report = logger.warning if scope == 'global' else logger.debug
         self._validate_input(full_data)
 
         if len(full_data) < self.legs * 2:
-            logger.warning(
-                "ZigZag global: data too short (%d bars, need >= %d). "
+            report(
+                "ZigZag %s: data too short (%d bars, need >= %d). "
                 "Returning empty SwingContext.",
+                scope,
                 len(full_data),
                 self.legs * 2,
             )
             return self._empty_context(len(full_data))
 
         if self._is_degenerate(full_data):
-            logger.warning(
-                "ZigZag global: degenerate input (near-constant high/low). "
-                "Skipping pandas-ta zigzag and returning empty SwingContext."
+            report(
+                "ZigZag %s: degenerate input (near-constant high/low). "
+                "Skipping pandas-ta zigzag and returning empty SwingContext.",
+                scope,
             )
             return self._empty_context(len(full_data))
 
@@ -80,25 +99,22 @@ class ZigZagSwingStrategy:
             )
             result = zigzag.calculate(full_data)
         except Exception as exc:
-            logger.warning(
-                "ZigZag global: pandas-ta 'zigzag' unavailable (%s). "
+            report(
+                "ZigZag %s: pandas-ta 'zigzag' unavailable (%s). "
                 "Returning empty SwingContext.",
+                scope,
                 exc,
             )
             return self._empty_context(len(full_data))
 
         if result.data.shape[1] < 2:
-            logger.warning(
-                "ZigZag returned insufficient columns, no swings detected"
-            )
+            report("ZigZag %s: insufficient columns returned, no swings detected", scope)
             return self._empty_context(len(full_data))
 
         swing_values = result.data.iloc[:, 1].dropna()
 
         if len(swing_values) < 2:
-            logger.warning(
-                "ZigZag detected fewer than two swing points in global mode"
-            )
+            report("ZigZag %s: fewer than two swing points detected", scope)
             return self._empty_context(len(full_data))
 
         swing_points: List[SwingPoint] = []
@@ -173,7 +189,21 @@ class ZigZagSwingStrategy:
                 swing_points[1].confirmation_index,
             )
 
-        logger.info("ZigZag global: detected %d swing points", len(swing_points))
+        # Nothing is observable before the detector can run at all: this method
+        # returns an empty context for fewer than ``legs * 2`` bars, so a pivot
+        # claiming confirmation earlier than bar ``legs * 2 - 1`` claims a bar on
+        # which a truncated replay would find nothing. Inside short zones the
+        # first pivots do land that early (G54: bars 2 and 3 confirmed "at 4"
+        # with a six-bar floor); on the full sample they never did, which is why
+        # the global oracle never met the case.
+        first_observable = self.legs * 2 - 1
+        for point in swing_points:
+            if point.confirmation_index is not None and point.confirmation_index < first_observable:
+                point.confirmation_index = first_observable
+
+        (logger.info if scope == 'global' else logger.debug)(
+            "ZigZag %s: detected %d swing points", scope, len(swing_points)
+        )
 
         return SwingContext(
             swing_points=swing_points,
@@ -199,7 +229,12 @@ class ZigZagSwingStrategy:
 
     def calculate(self, zone_data: pd.DataFrame) -> SwingMetrics:
         """
-        Calculate comprehensive swing metrics using ZigZag algorithm.
+        Calculate comprehensive swing metrics using ZigZag algorithm on the
+        zone's own bars.
+
+        The same detector and the same movement arithmetic as the global pass
+        (:meth:`calculate_global` + :meth:`aggregate_for_zone`); the only
+        difference is what the detector sees — this zone, nothing outside it.
 
         Args:
             zone_data: DataFrame with columns: high, low, close, open
@@ -210,103 +245,11 @@ class ZigZagSwingStrategy:
         Raises:
             ValueError: If zone_data is empty or missing required columns
         """
-        self._validate_input(zone_data)
-
-        if self._is_degenerate(zone_data):
-            logger.debug(
-                "ZigZag: degenerate zone input (near-constant high/low), "
-                "returning empty metrics"
-            )
+        context = self._swing_context(zone_data, scope='per_zone')
+        if len(context.swing_points) < 2:
             return self._empty_metrics()
-
-        try:
-            # Import LibraryManager dynamically to avoid circular imports
-            from .....indicators import LibraryManager
-
-            # Create ZigZag indicator
-            zigzag = LibraryManager.create_indicator(
-                'pandas_ta',
-                'zigzag',
-                legs=self.legs,
-                deviation=self.deviation
-            )
-            
-            # Calculate ZigZag
-            result = zigzag.calculate(zone_data)
-            
-            # Extract swing data
-            # ZigZag may return 1-3 columns depending on results
-            # Usually: Column 0=signal, 1=values, 2=distance
-            # But if no swings found, may return only 1 column
-            
-            if result.data.shape[1] < 2:
-                # Not enough columns - no swings detected
-                logger.debug(
-                    f"ZigZag returned only {result.data.shape[1]} column(s), no swings detected"
-                )
-                return self._empty_metrics()
-            
-            swing_signal = result.data.iloc[:, 0]
-            swing_values = result.data.iloc[:, 1]
-            
-            # Get swing points (non-NaN values)
-            swing_points = swing_values.dropna()
-
-            if len(swing_points) < 2:
-                logger.debug(
-                    f"Not enough swings detected: {len(swing_points)} points "
-                    f"(legs={self.legs}, deviation={self.deviation})"
-                )
-                return self._empty_metrics()
-
-            rallies, drops = self._build_movements_from_series(
-                swing_points,
-                zone_data.index,
-            )
-            return self._aggregate_metrics(rallies, drops)
-
-        except Exception as e:
-            logger.error(f"ZigZag swing calculation failed: {e}", exc_info=True)
-            # Return empty metrics on error
-            return self._empty_metrics()
-    def _build_movements_from_series(
-        self,
-        swing_points: pd.Series,
-        time_index: pd.Index,
-    ) -> Tuple[List[Dict[str, float]], List[Dict[str, float]]]:
-        rallies: List[Dict[str, float]] = []
-        drops: List[Dict[str, float]] = []
-
-        for i in range(1, len(swing_points)):
-            prev_price = swing_points.iloc[i - 1]
-            curr_price = swing_points.iloc[i]
-
-            prev_idx = swing_points.index[i - 1]
-            curr_idx = swing_points.index[i]
-
-            prev_pos = time_index.get_loc(prev_idx)
-            curr_pos = time_index.get_loc(curr_idx)
-            duration_bars = curr_pos - prev_pos
-
-            if duration_bars <= 0 or prev_price == 0:
-                continue
-
-            price_change_pct = (curr_price / prev_price - 1) * 100
-
-            movement = {
-                'amplitude_pct': abs(price_change_pct),
-                'duration_bars': int(duration_bars),
-                'speed_pct_per_bar': abs(price_change_pct) / duration_bars
-                if duration_bars > 0
-                else 0.0,
-            }
-
-            if price_change_pct > 0:
-                rallies.append(movement)
-            elif price_change_pct < 0:
-                drops.append(movement)
-
-        return rallies, drops
+        rallies, drops = self._build_movements_from_points(context.swing_points)
+        return self._aggregate_metrics(rallies, drops)
 
     def _build_movements_from_points(
         self,
