@@ -452,7 +452,11 @@ def save_processed_data(data: pd.DataFrame, filename: str = "processed_data.csv"
     print(f"\n💾 Сохранение обработанных данных:")
     
     try:
-        filepath = os.path.join("examples", filename)
+        # Artifacts go under outputs/, next to what the other examples write —
+        # not into the examples/ source directory, and not relative to whatever
+        # the current directory happens to be.
+        os.makedirs("outputs", exist_ok=True)
+        filepath = os.path.join("outputs", filename)
         data.to_csv(filepath)
         
         print(f"   ✅ Данные сохранены: {filepath}")
