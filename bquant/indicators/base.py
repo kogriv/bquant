@@ -867,24 +867,17 @@ class IndicatorFactory:
                 return indicator_class(**params)
             logger.warning(f"Indicator {indicator} is not LIBRARY type")
 
-        # Если не найден, пробуем создать по шаблону
-        if source == 'talib':
-            if indicator_lower == 'sma':
-                from .library.talib import TALibSMA
-                return TALibSMA(**params)
-            elif indicator_lower == 'ema':
-                from .library.talib import TALibEMA
-                return TALibEMA(**params)
-            elif indicator_lower == 'rsi':
-                from .library.talib import TALibRSI
-                return TALibRSI(**params)
-            elif indicator_lower == 'macd':
-                from .library.talib import TALibMACD
-                return TALibMACD(**params)
-            elif indicator_lower == 'bbands':
-                from .library.talib import TALibBBands
-                return TALibBBands(**params)
-        raise KeyError(f"LIBRARY indicator '{indicator}' from '{source}' not found")
+        # Library indicators exist only through their loader: it registers them when
+        # the library imports. An unregistered name therefore means the library is
+        # not installed or has not been loaded — say that, not the name of a class.
+        # (A "template" fallback used to live here and imported TALibSMA/TALibRSI/…
+        # from library.talib — classes that module never defined, so the error for a
+        # missing TA-Lib read "cannot import name 'TALibRSI'".)
+        raise KeyError(
+            f"LIBRARY indicator '{indicator}' from '{source}' is not registered: "
+            f"the library is not installed or its loader has not run "
+            f"(LibraryManager.load_all_libraries())"
+        )
     
     @classmethod
     def create_indicator(cls, name: str, data: pd.DataFrame = None, **kwargs) -> BaseIndicator:
