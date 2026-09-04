@@ -92,7 +92,11 @@ class ZoneAnalysisCache:
     # сделанные с `with_auto_swing_thresholds(True)` для `find_peaks` и
     # `pivot_points`, содержат ноль свингов во всех зонах — порог стоял выше движения,
     # которое должен был пропускать. Теперь те же прогоны дают 36.4% и 49.4% покрытия.
-    CACHE_VERSION = 21
+    # v22 (G53): хэш данных берётся по всему кадру, а не по OHLC. Записи v21 могли
+    # быть сохранены под ключом, общим для кадров с разными `RSI_14`, `volume` или
+    # колонками combined-условий, — и отдавались на любой из них; а у find_peaks в
+    # ключ не входил `prominence_warmup`.
+    CACHE_VERSION = 22
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
@@ -206,11 +210,23 @@ class ZoneAnalysisCache:
 
     @staticmethod
     def compute_data_hash(df: pd.DataFrame) -> str:
-        """Compute a deterministic hash for the OHLC portion of the dataframe."""
+        """Compute a deterministic hash of everything in the dataframe.
+
+        Every column, the column names and the index. Until CACHE_VERSION 22 only
+        ``open/high/low/close`` were hashed, and the cache is on by default — so
+        the same OHLC with a different precomputed ``RSI_14`` returned the zones
+        cut on the other RSI (64 zones from cache against 1 on a cold run), and a
+        volume strategy returned volume metrics of a frame whose volume was ten
+        times smaller (G53). What a strategy reads is not known here — combined
+        conditions read whatever they like — so the honest key is the whole frame.
+        """
 
         if not set(["open", "high", "low", "close"]).issubset(df.columns):
             raise ValueError("Dataframe must contain open, high, low, close columns")
-        return str(pd.util.hash_pandas_object(df[["open", "high", "low", "close"]]).sum())
+        digest = hashlib.sha256()
+        digest.update("|".join(map(str, df.columns)).encode())
+        digest.update(pd.util.hash_pandas_object(df, index=True).values.tobytes())
+        return digest.hexdigest()
 
     @staticmethod
     def config_signature(config: "ZoneAnalysisConfig") -> str:

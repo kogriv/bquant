@@ -87,12 +87,16 @@ def test_pipeline_recomputes_after_preset_switch() -> None:
 
     default_result = pipeline.run(df)
 
-    pipeline.with_swing_preset("narrow_zone")
-    narrow_result = pipeline.run(df)
+    # The default preset is `narrow_zone` (G35), so switching to it changes
+    # nothing. This test used to switch to it anyway and still saw two different
+    # keys — because role resolution rewrote the config between runs (G53), and
+    # the second key differed for that reason alone. Switch to the other preset.
+    pipeline.with_swing_preset("wide_zone")
+    wide_result = pipeline.run(df)
 
     get_calls = [key for action, key in recording_cache.calls if action == "get"]
 
     assert len(get_calls) == 2
     assert get_calls[0] != get_calls[1]
-    assert default_result is not narrow_result
+    assert default_result is not wide_result
     assert len(recording_cache.storage) == 2

@@ -11,7 +11,7 @@ Components:
 * ``ZoneAnalysisBuilder`` – fluent API entry point used by ``analyze_zones``.
 """
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, replace
 from typing import Any, Dict, List, Literal, Optional
 import pandas as pd
 import json
@@ -386,8 +386,9 @@ class ZoneAnalysisPipeline:
 
         return df_with_indicator
     
-    def _resolve_indicator_role(self) -> None:
-        """Turn every ``*_role`` detection rule into the column that holds it.
+    def _resolve_indicator_role(self) -> ZoneDetectionConfig:
+        """Return the detection config with every ``*_role`` rule turned into the
+        column that holds it.
 
         ``indicator_role='hist'`` becomes ``indicator_col='macd_12_26_9__hist'``;
         ``line1_role``/``line2_role`` become ``line1_col``/``line2_col``. The
@@ -397,8 +398,15 @@ class ZoneAnalysisPipeline:
         The pipeline knows the identity of the indicator because it created it,
         so a role is enough. Resolution happens here rather than in the builder
         because the schema is only populated once the indicator has run.
+
+        The caller's config is left as it was. This used to pop the role out of
+        ``self.config.zone_detection.rules`` and write the column in, so the
+        same pipeline object built one cache key on its first run
+        (``indicator_role``) and another on every run after (``indicator_col``):
+        the first repeat was always a miss, and ``invalidate_cache()`` after a
+        run could compute a key nothing was stored under (G53).
         """
-        rules = self.config.zone_detection.rules
+        rules = dict(self.config.zone_detection.rules)
         # `*_role` — обычные публичные ключи правил, а не приватный канал
         # билдера: конфиг детекции собирают и напрямую, и такой код тоже вправе
         # адресоваться по роли, а не по имени колонки.
@@ -430,14 +438,13 @@ class ZoneAnalysisPipeline:
 
             self.logger.debug("Resolved %s=%r to column %r", role_key, role, column)
             rules[column_key] = column
+        return replace(self.config.zone_detection, rules=rules)
 
     def _detect_zones(self, df: pd.DataFrame) -> List[ZoneInfo]:
         """Run the configured detection strategy and return zones."""
-        self._resolve_indicator_role()
-        detector = ZoneDetectionRegistry.get(
-            self.config.zone_detection.strategy_name
-        )
-        return detector.detect_zones(df, self.config.zone_detection)
+        detection = self._resolve_indicator_role()
+        detector = ZoneDetectionRegistry.get(detection.strategy_name)
+        return detector.detect_zones(df, detection)
     
     def _analyze_zones(self, zones: List[ZoneInfo], df: pd.DataFrame) -> ZoneAnalysisResult:
         """Delegate zone feature extraction to :class:`UniversalZoneAnalyzer`."""

@@ -627,9 +627,12 @@ class FindPeaksSwingStrategy:
         }
 
     def config_hash(self) -> Dict[str, Any]:
-        """Return configuration parameters for cache key generation."""
-        return {
-            'prominence': self.prominence,
-            'distance': self.distance,
-            'min_amplitude_pct': self.min_amplitude_pct,
-        }
+        """Return configuration parameters for cache key generation.
+
+        The same dict the strategy records as its parameters: on the auto path
+        that includes ``prominence_warmup``, which changes the swings produced.
+        A hand-written copy here listed three keys and left the warm-up out, so
+        two auto-prominence strategies differing only in warm-up shared a cache
+        entry (G53).
+        """
+        return self._build_strategy_params(None)
