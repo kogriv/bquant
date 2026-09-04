@@ -4,6 +4,7 @@ Universal configuration supporting multiple instruments, indicators, and analysi
 """
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -439,6 +440,29 @@ def validate_timeframe(timeframe: str) -> str:
     if timeframe not in SUPPORTED_TIMEFRAMES:
         raise ValueError(f"Unsupported timeframe: {timeframe}. Supported: {list(SUPPORTED_TIMEFRAMES.keys())}")
     return timeframe
+
+
+_PROJECT_TIMEFRAME = re.compile(r'^(\d+)([mhdwM])$')
+_PANDAS_UNIT = {'m': 'min', 'h': 'h', 'd': 'D', 'w': 'W', 'M': 'ME'}
+
+
+def pandas_offset_alias(timeframe: str) -> str:
+    """
+    Translate a project timeframe ('5m', '1h', '1d', '1w', '1M') into the pandas
+    offset alias that means the same thing.
+
+    Handed to pandas as-is, the project's strings do not mean what they say:
+    pandas reads ``m`` as month-end, so ``resample_ohlcv(df, '5m')`` built
+    five-month bars and reported success. Strings that are not project
+    timeframes come back unchanged, so pandas' own aliases ('5min', 'D', 'ME')
+    keep working and anything unknown fails where it always did — inside
+    pandas, with its message.
+    """
+    match = _PROJECT_TIMEFRAME.match(timeframe)
+    if match is None:
+        return timeframe
+    count, unit = match.groups()
+    return f"{count}{_PANDAS_UNIT[unit]}"
 
 def get_results_path(experiment_name: str, file_type: str = 'csv') -> Path:
     """

@@ -10,7 +10,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List, Tuple, Union
 from datetime import datetime, timedelta
 
-from ..core.config import DATA_VALIDATION
+from ..core.config import DATA_VALIDATION, pandas_offset_alias
 from ..core.exceptions import DataValidationError, create_data_validation_error
 from ..core.logging_config import get_logger
 
@@ -228,7 +228,8 @@ def validate_time_series_continuity(
     
     Args:
         df: DataFrame with datetime index
-        expected_frequency: Expected frequency (e.g., '1H', '1D')
+        expected_frequency: Expected bar spacing in the project convention
+            ('15m', '1h', '1d') or as a pandas offset alias ('15min', 'D')
     
     Returns:
         Validation results dictionary
@@ -270,7 +271,7 @@ def validate_time_series_continuity(
         expected_index = pd.date_range(
             start=df.index.min(),
             end=df.index.max(),
-            freq=expected_frequency
+            freq=pandas_offset_alias(expected_frequency)
         )
         missing_timestamps = expected_index.difference(df.index)
         if len(missing_timestamps) > 0:

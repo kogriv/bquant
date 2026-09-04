@@ -10,6 +10,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List, Union, Tuple
 import warnings
 
+from ..core.config import pandas_offset_alias
 from ..core.exceptions import DataProcessingError, create_data_validation_error
 from ..core.logging_config import get_logger
 
@@ -256,7 +257,10 @@ def resample_ohlcv(
     
     Args:
         df: DataFrame with OHLCV data
-        target_timeframe: Target timeframe ('5min', '15min', '1H', '1D', etc.)
+        target_timeframe: Target timeframe in the project convention ('5m', '15m',
+            '1h', '1d', '1w', '1M') or a pandas offset alias ('5min', 'D', 'ME').
+            Project strings are translated before they reach pandas: '5m' is five
+            minutes here, not five months.
         method: Resampling method ('standard', 'custom')
     
     Returns:
@@ -290,7 +294,7 @@ def resample_ohlcv(
             raise DataProcessingError("No OHLCV columns found for resampling")
         
         # Perform resampling
-        resampled = df.resample(target_timeframe).agg(existing_agg_rules)
+        resampled = df.resample(pandas_offset_alias(target_timeframe)).agg(existing_agg_rules)
         
         # Remove rows with NaN values (incomplete periods)
         resampled.dropna(inplace=True)

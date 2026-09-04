@@ -8,6 +8,7 @@ from .config import (
     get_data_path,
     get_indicator_params,
     validate_timeframe,
+    pandas_offset_alias,
     PROJECT_ROOT,
     DATA_DIR,
     DEFAULT_INDICATORS,
@@ -67,7 +68,8 @@ __all__ = [
     # Config
     "get_data_path",
     "get_indicator_params",
-    "validate_timeframe", 
+    "validate_timeframe",
+    "pandas_offset_alias",
     "PROJECT_ROOT",
     "DATA_DIR",
     "DEFAULT_INDICATORS",
