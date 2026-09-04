@@ -17,6 +17,7 @@ from .base import ZoneDetectionStrategy, ZoneDetectionConfig
 from .registry import ZoneDetectionRegistry
 from ..models import ZoneInfo
 from bquant.core.logging_config import get_logger
+from bquant.data.processor import resolve_time_index
 
 
 @ZoneDetectionRegistry.register(
@@ -91,6 +92,11 @@ class PreloadedZonesDetection:
         if missing:
             raise ValueError(f"Missing required columns in zones data: {missing}")
 
+        # The pipeline puts time on the index before the data reaches a detector
+        # (G30). load_preloaded_zones() hands the caller's frame over directly, and
+        # the bundled samples carry time as a column — so resolve it here too, or
+        # the merge below compares timestamps against positions inside pandas.
+        data = resolve_time_index(data)
         self._require_comparable_clock(zones_df, data)
 
         # Объединить с OHLCV
@@ -144,6 +150,16 @@ class PreloadedZonesDetection:
         оно называет следствие, а причина в том, что переданы позиции, а не время.
         """
         if not isinstance(ohlcv.index, pd.DatetimeIndex):
+            # The mirror case: timestamps for the zones, positions for the data.
+            # resolve_time_index() has already run and found no time column, so
+            # there is nothing on the data side to compare a timestamp against.
+            for column in ('start_time', 'end_time'):
+                if pd.api.types.is_datetime64_any_dtype(zones_df[column]):
+                    raise ValueError(
+                        f"zones_data['{column}'] holds timestamps, but the data has no "
+                        f"time axis: its index is {ohlcv.index.dtype} and no time column "
+                        f"was recognised. Put the time on the index or in a 'time' column."
+                    )
             return
 
         for column in ('start_time', 'end_time'):
