@@ -73,3 +73,14 @@
 [included] [Changed] devref/gaps/gap_inventory_2026-07.md — семь открытых записей G53–G59 по аудиту; каждая ссылается на его раздел. Открытых стало восемь (с G48)
 [included] [Changed] tests/STATUS.md — «Production Ready, 670 passed» от 2025-10-28 заменено на текущее состояние и указатель на трейслоги как источник чисел
 [not_included] [Technical] Приоритет: следующая работа — этап 1 аудита (G53 кэш → G54 причинность → G55 валидация), волна 5 и G48 после
+
+[G53 — ключ кэша: замер, три починки, три мутации]
+
+[not_included] [Technical] Замер AQ-001 до правки, кэш тёплый: OHLC + `RSI_14` как посчитан → 64 зоны; тот же OHLC с `RSI_14`=50 везде → **64 из кэша**; холодный кэш → 1. `volume × 10` при `volume='standard'` — метрики объёма из кэша равны исходным, на холодном отличаются
+[included] [Fixed] bquant/analysis/zones/cache.py — `compute_data_hash` по всему кадру: SHA-256 от имён колонок и `hash_pandas_object(df, index=True)`; `CACHE_VERSION` 21 → 22 с записью причины
+[included] [Fixed] bquant/analysis/zones/pipeline.py — `_resolve_indicator_role` возвращает копию `ZoneDetectionConfig` с разрешёнными колонками вместо `rules.pop` в конфиге вызывающего; `_detect_zones` работает с копией. Ключ одного объекта стабилен между прогонами, `invalidate_cache()` после прогона попадает в ту же запись
+[included] [Fixed] bquant/analysis/zones/strategies/swing/find_peaks.py — `config_hash()` = `_build_strategy_params(None)`: `prominence_warmup` на авто-пути входит в ключ, рукописной копии параметров больше нет
+[included] [Added] tests/unit/test_cache_key_covers_what_the_result_reads.py — другая колонка индикатора, другой объём, колонка только для combined-условия, конфиг и ключ неизменны после `run()`, warm-up в `config_hash`. Мутации: хэш только по OHLC краснит три первых, возврат мутации конфига — четвёртый, старый `config_hash` — пятый
+[not_included] [Technical] Декларацию зависимостей стратегиями (предложение аудита) не вводил: хэш по всему кадру не может разойтись с тем, что читают; декларация — может
+[not_included] [Technical] Сьют на патче G53, оба плеча: **1 failed, 3263 passed** — `test_pipeline_recomputes_after_preset_switch` переключал пресет на `narrow_zone`, который с G35 и так умолчание, и всё же видел два разных ключа — потому что разрешение ролей переписывало конфиг между прогонами. Тест держался на дефекте, который G53 снял; переведён на `wide_zone`
+[not_included] [Technical] Сьют на итоговом G53, чистый клон, pandas 3.0.5: **3264 passed, 33 skipped, 0 failed**
