@@ -1,38 +1,23 @@
-# ✅ BQuant Tests - All Complete!
+# Состояние тестового сьюта
 
-**Date:** 2025-10-28  
-**Status:** Production Ready  
+Этот файл — указатель, не отчёт. Числа живут там, где они получены: в дневных
+трейслогах `changelogs/CHANGE_TRACE_LOG_YYYY-MM-DD.md` и в `CHANGELOG.md` при релизе.
+Здесь они не переписываются, потому что переписанное число отстаёт от прогона в тот же
+день, когда его переписали (предыдущая редакция этого файла сообщала «670 passed,
+Production Ready» от 2025-10-28 при 3258 passed на 2026-09-04).
 
-## 🎉 Summary
+**Статус проекта — Beta.** Основной путь (MACD, `global` свинги) держится инвариантами;
+соседние публичные пути ещё могут молча вернуть результат других данных или другого
+алгоритма — открытые записи G53–G59 в `devref/gaps/gap_inventory_2026-07.md` и разбор в
+`devref/architecture/PROJECT_QUALITY_AUDIT_2026-09-04.md`.
 
+## Как гонять
+
+```bash
+python -m pytest -q                 # полный сьют, ~7 минут
+python -m pytest -q -m "not slow"   # без медленных
 ```
-✅ 670 PASSED  (100%)
-⏭  12 SKIPPED (documented)
-❌  0 FAILED  
-⚠️  0 ERRORS
-━━━━━━━━━━━━━━━━━━━━━━
-   682 TOTAL TESTS
-```
 
-## 📊 What Was Done
-
-### Phase 1 (5 min) ✅
-- Fixed syntax errors in fixtures
-
-### Phase 2 (30 min) ✅  
-- Fixed 119 tests: `identify_zones()` → `analyze_complete_modular()`
-- API migration complete
-
-### Phase 3 (60 min) ✅
-- Fixed 19 tests (Unicode, API updates)
-- Documented 11 skipped tests
-- Achieved 100% success rate
-
-## 📂 Documentation
-
-All details in:
-- **tests/tcheck.md** - Complete roadmap & progress
-- **tests/SKIPPED_TESTS.md** - Why 12 tests are skipped  
-- **tests/README_TESTS.md** - Quick reference guide
-
-## ✅ Ready for Production!
+Пропусков без условия в сьюте нет; условные (`@pytest.mark.skipif`) называют условие.
+Релизный гейт — сьют из **чистого клона** с зависимостями, как они разрешаются сегодня,
+плюс контрольное плечо на нижней поддерживаемой версии pandas (G50).

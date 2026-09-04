@@ -65,3 +65,11 @@
 [included] [Added] tests/unit/test_preloaded_helper_resolves_the_sample_clock.py — хелпер на сэмпле даёт те же длительности и начала, что пайплайн; кадр без оси времени — `ValueError: … has no time axis`. Мутация (снять `resolve_time_index`) краснит прежним `TypeError`
 [included] [Changed] docs/tutorials/preloaded_zones_workflow.md — `load_preloaded_zones` возвращён самодостаточным блоком: пишет CSV из зон на часах сэмпла и читает его обратно
 [not_included] [Technical] Сьют на итоговом патче волны 4, чистый клон, pandas 3.0.5: **3258 passed, 33 skipped, 0 failed**; батарея 11 примеров и 24 рисёрч-скриптов — 35 из 35 с кодом 0, `03_data_processing.py` пишет в `outputs/`
+
+[Аудит качества (PR #117) влит; приоритет сменён на его этап 1]
+
+[not_included] [Technical] PR #117 (агент Cursor, только документ, база `08a58b1`): 55 находок AQ-001–055. Ядро P0 сверено с кодом на `f76d020` и **подтверждено**: ключ кэша только по OHLC (`cache.py:213`), `rules.pop` после ключа, per-zone ZigZag без `backtest=True`, `except Exception` → per-zone, `total_zones`/`abs(degradation)`/«percentile» в валидации, `validation=True` не исполняется, ATR-ветка в пайплайне недостижима, две формулы `true_range`, `config_hash` find_peaks без warm-up. AQ-008 (pandas 3) закрыт в тот же день как G50 — аудит нашёл его независимо. AQ-022 (EMA) грепом не подтверждён — оставлен как заявлено
+[included] [Added] devref/architecture/PROJECT_QUALITY_AUDIT_2026-09-04.md — влит с правками: предлагаемые G49–G56 перенумерованы в G53–G59 (G49–G52 к тому моменту заняты записями того же дня), AQ-008 отмечен закрытым, база и объём сверки названы в шапке. Его трейслог-файл не взят: конфликтовал с этим; вместо него — этот блок
+[included] [Changed] devref/gaps/gap_inventory_2026-07.md — семь открытых записей G53–G59 по аудиту; каждая ссылается на его раздел. Открытых стало восемь (с G48)
+[included] [Changed] tests/STATUS.md — «Production Ready, 670 passed» от 2025-10-28 заменено на текущее состояние и указатель на трейслоги как источник чисел
+[not_included] [Technical] Приоритет: следующая работа — этап 1 аудита (G53 кэш → G54 причинность → G55 валидация), волна 5 и G48 после
