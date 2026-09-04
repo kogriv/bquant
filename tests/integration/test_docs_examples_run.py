@@ -68,12 +68,8 @@ EXPECTED_TO_FAIL = {
         "фрагмент setup.py стороннего пакета расширения, а не исполняемый пример",
     ("docs/api/extension_guide.md", "create_swing_strategy('my_custom')"):
         "использует стратегию, которую читатель регистрирует у себя по инструкции выше",
-    ("docs/tutorials/preloaded_zones_workflow.md", "expert_zones.csv"):
-        "читает файл с готовыми зонами, который приносит читатель",
     ("docs/developer_guide/zone_detection_strategies.md", "from .base import"):
         "относительный импорт внутри пакета: так выглядит файл стратегии на месте",
-    ("docs/examples/README.md", "runpy.run_path"):
-        "запускает файл примера по пути от корня репозитория; тест работает во временном каталоге",
 }
 
 

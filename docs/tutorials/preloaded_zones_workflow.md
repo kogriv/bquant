@@ -1,110 +1,154 @@
-# Tutorial: Preloaded зоны (Пример 3 + Сценарий 9)
+# Tutorial: Preloaded зоны — внешняя разметка
 
 ## 🎯 Цели
-- Воспроизвести Пример 3: PRELOADED индикатор + зоны (см. документацию)
-- Повторить модульный Сценарий 9: работа с PRELOADED зонами (внешние данные)
-- Разобрать формат входного CSV и лучшие практики интеграции
+- Подать в конвейер зоны, размеченные снаружи (эксперт, другая система), и получить по ним
+  тот же анализ, что и по автоматическим
+- Разобрать формат входа и допуск по времени
+- Сравнить разметку с автоматической детекцией
 
-## 🔧 Предварительные требования
-- Готовый CSV/Excel с разметкой зон эксперта или внешней системы
-- OHLCV-данные, синхронизированные по времени (используем sample `tv_xauusd_1h`)
+Все блоки самодостаточны: зоны строятся на часах самого сэмпла, внешний файл не нужен.
 
-## 📥 Формат входных данных
-`PreloadedZonesDetection` ожидает минимум четыре колонки.
+## 📥 Формат входа
+`zones_data` — путь к CSV или `DataFrame`. Обязательны четыре колонки:
 
 | Колонка | Тип | Описание |
-|---------|-----|----------|
-| `zone_id` | int | Уникальный идентификатор |
-| `type` | str | Тип зоны (`bull`, `bear`, `support`, `resistance`, ...) |
-| `start_time` | datetime | Начало зоны (ISO 8601) |
-| `end_time` | datetime | Конец зоны (ISO 8601) |
+|---|---|---|
+| `zone_id` | int | идентификатор |
+| `type` | str | тип зоны — любое имя (`bull`, `bear`, `support`, …) |
+| `start_time` | datetime | начало |
+| `end_time` | datetime | конец |
 
-Дополнительно можно добавить `indicator`, `comment` и любые метаданные — они попадут в `ZoneInfo.data` и `indicator_context`.
+Колонка `indicator`, если есть, попадает в `indicator_context['detection_indicator']`.
 
-### Пример CSV
 ```csv
 zone_id,type,start_time,end_time,indicator
-0,bull,2025-01-01T00:00:00,2025-01-01T06:00:00,external_model
-1,bear,2025-01-02T12:00:00,2025-01-02T18:00:00,manual_markup
+0,bull,2025-06-18T05:00:00+07:00,2025-06-19T22:00:00+07:00,expert
+1,bear,2025-06-30T23:00:00+07:00,2025-07-02T07:00:00+07:00,expert
 ```
 
-## 🛠️ Шаг 1. Быстрый pipeline с preloaded зонами
-Воспользуемся fluent builder: индикатор внутри pipeline не нужен, потому что зоны уже размечены.
+**Границы — метки времени в часах данных, не позиции.** Пайплайн ставит время на индекс
+сам, а зоны приходят в координатах вызывающего; целые числа вместо дат отклоняются сразу:
+`ValueError: zones_data['start_time'] has dtype int64, but the data is indexed by time …`.
+У встроенных сэмплов время лежит в колонке `time` — берите метки оттуда.
+
+## 🛠️ Шаг 1. Pipeline с готовыми зонами
+Индикатор не нужен: зоны уже есть, конвейер только считает по ним признаки и статистику.
 
 ```python
-from bquant.data.samples import get_sample_data
+import pandas as pd
 from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 
 df = get_sample_data('tv_xauusd_1h')
+t = df['time']
+expert_zones = pd.DataFrame({
+    'zone_id': [0, 1, 2],
+    'type': ['bull', 'bear', 'bull'],
+    'start_time': [t.iloc[100], t.iloc[300], t.iloc[600]],
+    'end_time': [t.iloc[140], t.iloc[330], t.iloc[650]],
+    'indicator': ['expert'] * 3,
+})
 
 preloaded_result = (
     analyze_zones(df)
-    .detect_zones('preloaded', zones_data='expert_zones.csv', time_tolerance='5min')
+    .detect_zones('preloaded', zones_data=expert_zones, time_tolerance='5min')
     .analyze(clustering=False)
     .build()
 )
 
-print(f"Loaded zones: {len(preloaded_result.zones)}")
-print(preloaded_result.zones[0].indicator_context['source'])  # 'external'
+zone = preloaded_result.zones[0]
+print(f"Loaded zones: {len(preloaded_result.zones)}, durations: {[z.duration for z in preloaded_result.zones]}")
+print(zone.indicator_context['source'], zone.indicator_context['detection_indicator'])
+print(zone.start_time, '→', zone.end_time, '|', len(zone.data), 'bars')
+# Loaded zones: 3, durations: [41, 31, 51]
+# external expert
+# 2025-06-18 05:00:00+07:00 → 2025-06-19 22:00:00+07:00 | 41 bars
 ```
 
-## ♻️ Шаг 2. Модульный сценарий (zomodul #9)
-Для повторного использования сохраним зоны в pickle и сравним с автоматической детекцией, как показано в `zomodul.md`.
+То же одной строкой — пресет `analyze_preloaded_zones(df, expert_zones)` из
+`bquant.analysis.zones.presets`; путь к CSV передаётся туда же вместо `DataFrame`.
+
+Если нужны только зоны, без анализа, — `load_preloaded_zones(path, df)` из
+`bquant.analysis.zones.detection` возвращает список `ZoneInfo` из файла:
 
 ```python
-import pickle
-from bquant.analysis.zones.detection import ZoneDetectionRegistry, ZoneDetectionConfig
-from bquant.analysis.zones.detection.preloaded import load_preloaded_zones
-from bquant.indicators import IndicatorFactory
+import pandas as pd
+from bquant.analysis.zones.detection import load_preloaded_zones
+from bquant.data.samples import get_sample_data
 
-# 1. Загрузка preloaded зон
-zones = load_preloaded_zones('expert_zones.csv', df, time_tolerance='5min')
+df = get_sample_data('tv_xauusd_1h')
+t = df['time']
+pd.DataFrame({
+    'zone_id': [0, 1, 2],
+    'type': ['bull', 'bear', 'bull'],
+    'start_time': [t.iloc[100], t.iloc[300], t.iloc[600]],
+    'end_time': [t.iloc[140], t.iloc[330], t.iloc[650]],
+}).to_csv('expert_zones.csv', index=False)
 
-with open('expert_zones.pkl', 'wb') as f:
-    pickle.dump(zones, f)
-
-# 2. Рассчитываем MACD для автоматической стратегии
-indicator = IndicatorFactory.create('custom', 'macd', fast=12, slow=26, signal=9)
-macd_result = indicator.calculate(df)
-df_with_macd = df.join(macd_result.data)
-
-# 3. Анализ эксперта vs автоматической детекции
-from bquant.analysis.zones import UniversalZoneAnalyzer
-analyzer = UniversalZoneAnalyzer()
-expert_analysis = analyzer.analyze_zones(zones, df)
-
-auto_detector = ZoneDetectionRegistry.get('zero_crossing')
-# Детектор зовётся напрямую, минуя пайплайн, поэтому адресуемся именем колонки:
-# роль в имя колонки превращает пайплайн, у которого есть схема индикатора.
-hist_column = indicator.get_output_roles()['hist']
-auto_config = ZoneDetectionConfig(strategy_name='zero_crossing', rules={'indicator_col': hist_column})
-auto_zones = auto_detector.detect_zones(df_with_macd, auto_config)
-auto_analysis = analyzer.analyze_zones(auto_zones, df_with_macd)
-
-comparison = {
-    'expert': {'zones': len(zones), 'win_rate': expert_analysis.statistics.get('win_rate')},
-    'automatic': {'zones': len(auto_zones), 'win_rate': auto_analysis.statistics.get('win_rate')}
-}
-print(comparison)
+zones = load_preloaded_zones('expert_zones.csv', df)
+print(len(zones), [z.duration for z in zones], type(zones[0]).__name__)
+# 3 [41, 31, 51] ZoneInfo
 ```
 
-## 📊 Визуализация и контроль качества
+`time_tolerance` расширяет окно зоны с обеих сторон: с `'2h'` те же три зоны получают
+44, 35 и 54 бара вместо 41, 31 и 51. Увеличивайте его, когда метки разметки не совпадают
+с сеткой баров; по умолчанию — `'1min'`.
+
+## ♻️ Шаг 2. Разметка против автоматической детекции
+Обе стороны проходят один и тот же анализ, поэтому их статистику можно ставить рядом.
+
 ```python
-preloaded_result.visualize('overview', title='Expert Zones vs Price').show()
-preloaded_result.visualize('statistics').show()
+import pandas as pd
+from bquant.analysis.zones import analyze_zones
+from bquant.analysis.zones.presets import analyze_preloaded_zones
+from bquant.data.samples import get_sample_data
+
+df = get_sample_data('tv_xauusd_1h')
+t = df['time']
+expert_zones = pd.DataFrame({
+    'zone_id': [0, 1, 2],
+    'type': ['bull', 'bear', 'bull'],
+    'start_time': [t.iloc[100], t.iloc[300], t.iloc[600]],
+    'end_time': [t.iloc[140], t.iloc[330], t.iloc[650]],
+})
+
+expert = analyze_preloaded_zones(df, expert_zones, clustering=False)
+automatic = (
+    analyze_zones(df)
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze(clustering=False)
+    .build()
+)
+
+for name, result in [('expert', expert), ('automatic', automatic)]:
+    stats = result.statistics
+    print(f"{name:9} zones={len(result.zones):2} {stats['total_statistics']['zones_by_type']} "
+          f"mean duration={stats['duration_distribution']['overall']['mean']:.1f} "
+          f"mean return={stats['return_distribution']['overall']['mean']:+.4f}")
+# expert    zones= 3 {'bull': 2, 'bear': 1} mean duration=41.0 mean return=+0.0071
+# automatic zones=77 {'bull': 39, 'bear': 38} mean duration=12.6 mean return=-0.0000
 ```
 
-- Используйте `visualize('detail', zone_id=...)`, чтобы убедиться, что временные окна совпадают.
-- Если зона не отображается, проверьте `time_tolerance` и наличие строк в `ZoneInfo.data`.
+Три экспертные зоны здесь — иллюстрация формата, а не разметка; на трёх точках
+статистика не говорит ничего. Смысл блока — что обе стороны сравниваются одними ключами.
 
-## ✅ Лучшие практики
-1. **Валидируйте вход** — проверяйте `missing` колонки перед запуском (`ValueError` при отсутствии).
-2. **Сохраняйте оригинал** — держите исходный CSV рядом с pickle, чтобы отслеживать ревизии разметки.
-3. **Временной допуск** — увеличивайте `time_tolerance` для разреженных данных или нестандартных сессий.
-4. **Метаданные** — добавляйте столбцы с параметрами модели, чтобы в `indicator_context` сохранить источник.
-5. **Сравнение стратегий** — комбинируйте анализ эксперта с автоматическими зонами для контроля качества, как в коде выше.
+## 📊 Визуализация
+`preloaded_result.visualize('overview', title='Expert zones')` и
+`visualize('detail', zone_id=0)` работают так же, как для автоматических зон
+([MACD tutorial](macd_basic_pipeline.md), шаг 3). Если зона на графике короче ожидаемой —
+смотрите `time_tolerance` и число строк в `zone.data`.
+
+## ✅ Практика
+1. **Проверяйте колонки до запуска** — отсутствующие названы в `ValueError`.
+2. **Держите исходную разметку рядом с результатом** — `result.save(...)` сохраняет зоны,
+   но не файл, из которого они пришли.
+3. **`DataFrame` вместо пути** — если зоны приходят из базы или сервиса, передавайте кадр
+   напрямую, минуя CSV.
+4. **`indicator` в разметке** — заполняйте: это единственная колонка, которая переезжает
+   в контекст зоны и позволяет потом отличить источники.
 
 ## 🚀 Что дальше
-- Автоматизируйте загрузку из S3/БД, передавая `pd.DataFrame` вместо пути.
-- Используйте `ZoneFeaturesAnalyzer` для метрик качества preloaded зон.
-- Создайте CI-проверку, сравнивающую win-rate экспертов и автоматических стратегий.
+- `.with_strategies(swing='zigzag')` на preloaded-зонах — свинг-метрики внутри чужой
+  разметки; см. [свинг-стратегии](../user_guide/swing_strategies.md).
+- `examples/02a_universal_zones.py`, раздел preloaded — тот же путь в исполняемом скрипте.

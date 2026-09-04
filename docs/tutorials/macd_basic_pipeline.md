@@ -1,34 +1,33 @@
-# Tutorial: MACD zones (Пример 1) — базовый pipeline и визуализация
+# Tutorial: MACD zones — базовый pipeline и визуализация
 
 ## 🎯 Цели
-- Повторить базовый конвейер из [справочника пайплайна](../api/analysis/pipeline.md)
-- Получить результат `ZoneAnalysisResult` с минимальными настройками
-- Построить обзорную и детальную визуализацию через `ZoneVisualizer`
+- Собрать базовый конвейер `analyze_zones()` и получить `ZoneAnalysisResult`
+- Прочитать из результата то, что нужно чаще всего: зоны, их контекст, статистику
+- Построить обзорную, детальную и статистическую визуализацию
 
-## 🔧 Предварительные требования
-- Установленный `bquant`
-- Библиотеки для визуализации (`plotly` ставится как зависимость)
-- Понимание структуры OHLCV-данных
+Все блоки самодостаточны — каждый можно скопировать и запустить целиком.
 
 ## 📥 Данные
-Используем встроенный датасет `tv_xauusd_1h`, описанный в разделе [BQuant Sample Data](../api/data/samples.md). Он содержит 1000 строк с часовыми котировками XAUUSD и подходит для демонстрации MACD.
+Встроенный датасет `tv_xauusd_1h` ([описание](../api/data/samples.md)): 1000 часовых
+баров XAUUSD, время лежит в колонке `time`. Пайплайн сам переносит его в индекс.
 
 ```python
 from bquant.data.samples import get_sample_data
 
-# Загрузим данные как DataFrame
 raw = get_sample_data('tv_xauusd_1h')
-print(raw.head())
+print(raw.shape, list(raw.columns[:6]))
+# (1000, 15) ['time', 'open', 'high', 'low', 'close', 'volume']
 ```
 
-## 🛠️ Шаг 1. Сборка базового pipeline
-Используем fluent builder `analyze_zones()` с настройками из Примера 1. Главное — задать источник индикатора и стратегию детекции.
+## 🛠️ Шаг 1. Сборка pipeline
+Три обязательные стадии: откуда индикатор, как резать на зоны, что считать.
 
 ```python
 from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 
 result = (
-    analyze_zones(raw)
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
     .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
     .detect_zones('zero_crossing', indicator_role='hist')
     .analyze(clustering=True, n_clusters=3)
@@ -37,56 +36,99 @@ result = (
 
 print(f"Всего зон: {len(result.zones)}")
 print(f"Первые 3 типа зон: {[z.type for z in result.zones[:3]]}")
+# Всего зон: 77
+# Первые 3 типа зон: ['bull', 'bear', 'bull']
 ```
 
-### Что делает каждая стадия
-| Метод | Назначение |
-|-------|-----------|
-| `with_indicator` | рассчитывает MACD на базе исходного DataFrame |
-| `detect_zones` | применяет стратегию `zero_crossing` для MACD histogram |
-| `analyze` | включает кластеризацию (по умолчанию k=3) и извлечение признаков |
-| `build` | выполняет pipeline и возвращает `ZoneAnalysisResult` |
+| Метод | Что делает |
+|---|---|
+| `with_indicator` | считает MACD и добавляет его колонки к данным |
+| `detect_zones` | режет ряд по знаку гистограммы (`indicator_role='hist'` — роль, а не имя колонки) |
+| `analyze` | признаки зон, статистика, гипотезы; `clustering=True` — ещё и кластеризация |
+| `build` | исполняет конвейер и возвращает `ZoneAnalysisResult` |
 
-## 🔎 Шаг 2. Работа с результатами
-`ZoneAnalysisResult` содержит зоны, признаки и статистику. Через `indicator_context` можно проверить, как была настроена детекция.
+Первые 33 бара — прогрев индикатора, они не принадлежат ни одной зоне.
+
+## 🔎 Шаг 2. Чтение результата
+`indicator_context` зоны говорит, чем и по какой колонке её нашли; `statistics` —
+словарь распределений, а не плоский список чисел.
 
 ```python
-first_zone = result.zones[0]
-print(first_zone.indicator_context['detection_strategy'])  # 'zero_crossing'
-print(result.statistics['avg_duration'])
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
+)
+
+first = result.zones[0]
+print(first.indicator_context['detection_strategy'], first.indicator_context['detection_indicator'])
+# zero_crossing macd_12_26_9__hist
+
+print(result.statistics['total_statistics']['zones_by_type'])
+# {'bull': 39, 'bear': 38}
+
+duration = result.statistics['duration_distribution']['overall']
+print(f"длительность: среднее {duration['mean']:.1f}, медиана {duration['median']:.0f}, максимум {duration['max']:.0f}")
+# длительность: среднее 12.6, медиана 11, максимум 39
+
+print(result.clustering['clustering_summary']['n_clusters'], result.metadata['swing_coverage'])
+# 3 {'strategy': 'ZigZagSwingStrategy', 'zones': 77, 'zones_with_swings': 70}
 ```
 
-## 📈 Шаг 3. Визуализация зон
-В модели `ZoneAnalysisResult` уже встроен доступ к `ZoneVisualizer`. Используем стандартные режимы визуализации.
+Ключи `statistics`: `total_statistics`, `duration_distribution`, `return_distribution`,
+`line_amplitude_distribution`, `oscillator_amplitude_distribution`, `additional_metrics`.
+Полный разбор объекта — в [справочнике результата](../user_guide/zone_analysis_result.md).
+
+## 📈 Шаг 3. Визуализация
+`result.visualize(mode, ...)` возвращает фигуру Plotly. В интерактивной сессии —
+`fig.show()`; в скрипте — `write_html()` / `write_image()`.
 
 ```python
-# 1. Общий обзор зон на цене
-overview_fig = result.visualize('overview', title='MACD Zones Overview')
-overview_fig.show()
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 
-# 2. Детальный просмотр конкретной зоны
-zone_fig = result.visualize('detail', zone_id=0, context_bars=20)
-zone_fig.show()
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze(clustering=True, n_clusters=3)
+    .build()
+)
 
-# 3. Статистическое резюме
-stats_fig = result.visualize('statistics')
-stats_fig.show()
+overview = result.visualize('overview', title='MACD Zones Overview')      # все зоны на цене
+detail = result.visualize('detail', zone_id=0, context_bars=20)           # одна зона с контекстом
+stats = result.visualize('statistics')                                    # распределения
+
+overview.write_html('macd_overview.html')
+print(type(overview).__name__, len(overview.data))
+# Figure 1
 ```
 
-> ℹ️ `ZoneVisualizer` автоматически использует Plotly backend и поддерживает экспорт через `write_html()` или `write_image()`.
+Что рисуется в каждом режиме и как его настроить — в
+[справочнике визуализации зон](../api/visualization/zones.md).
 
-## ✅ Лучшие практики
-1. **Фильтрация по длительности** — по умолчанию (`min_duration=1`) зоны мостят
-   ряд точно и ничего не теряется. Если коротких зон слишком много для вашей
-   задачи, просите отсев на стадии анализа: `.analyze(min_duration=N)`. Он не
-   удаляет зоны из `result.zones`, а выводит их из агрегатов, и говорит об этом
-   в `result.metadata['duration_filter']` — иначе соседство зон в анализе
-   последовательностей перестаёт быть соседством.
-2. **Контекст индикатора** — сохраняйте `result.zones[i].indicator_context` для трассировки параметров, особенно при нескольких перезапусках pipeline.
-3. **Кэширование** — для больших данных включайте `.with_cache(enable=True, ttl=3600)` до `with_indicator`, чтобы повторные вызовы были быстрее.
-4. **Сохранение артефактов** — используйте `result.save('macd_result.pkl')`, чтобы потом строить графики без пересчёта.
+## ✅ Практика
+1. **Короткие зоны.** По умолчанию (`min_duration=1`) зоны мостят ряд без пропусков.
+   `.analyze(min_duration=N)` не удаляет короткие зоны из `result.zones`, а выводит их
+   из агрегатов и говорит об этом в `result.metadata['duration_filter']` — иначе
+   соседство зон в анализе последовательностей перестало бы быть соседством.
+2. **Контекст индикатора.** `zone.indicator_context` хранит стратегию, колонку и правила
+   детекции — сохраняйте его вместе с результатом, если перезапускаете конвейер с разными
+   настройками.
+3. **Кэш.** `.with_cache(enable=True, ttl=3600)` в любом месте цепочки; повторный `build()`
+   с теми же данными и настройками читает результат из кэша. Подробнее —
+   [кэширование](../user_guide/caching.md).
+4. **Артефакты.** `result.save('macd_result.pkl')` — и графики можно строить без пересчёта
+   (`ZoneAnalysisResult.load`). Форматы `pickle`, `json`, `parquet`.
 
 ## 🚀 Что дальше
-- Добавьте другие индикаторы в pipeline или переключите стратегию детекции (см. Tutorial по RSI).
-- Подключите swing/shape/divergence стратегии через `.with_strategies()`.
-- Сравните результаты с legacy-подходом из `examples/02_macd_zone_analysis.py`.
+- [RSI zones](rsi_strategy_switching.md) — другой индикатор и смена стратегии детекции.
+- `.with_strategies(swing=..., shape=..., divergence=...)` — метрики внутри зоны; см.
+  [свинг-стратегии](../user_guide/swing_strategies.md).
+- `examples/02_macd_zone_analysis.py` — тот же конвейер через пресет `analyze_macd_zones()`
+  и по частям.
