@@ -9,7 +9,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 
 from ..base import CustomIndicator, IndicatorResult, IndicatorConfig, IndicatorSource
-from ...core.exceptions import IndicatorCalculationError
+from ...core.exceptions import IndicatorCalculationError, DataValidationError
 from ...core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -40,9 +40,13 @@ class RelativeStrengthIndex(CustomIndicator):
         """Returns indicator description."""
         return f"Relative Strength Index with {self.period} period"
     
-    def get_min_records(self) -> int:
-        """Returns minimum records required."""
-        return self.period + 1
+    def get_required_columns(self) -> List[str]:
+        """The one input column; validation checks its dtype and finiteness on it."""
+        return ['close']
+
+    def get_min_records(self, **params) -> int:
+        """Minimum records for the effective parameters of a call, not of the constructor."""
+        return params.get('period', self.period) + 1
     
     def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
         """
@@ -55,10 +59,9 @@ class RelativeStrengthIndex(CustomIndicator):
         Returns:
             IndicatorResult with RSI values
         """
+        period = kwargs.get('period', self.period)
         try:
-            self.validate_data(data)
-            
-            period = kwargs.get('period', self.period)
+            self.validate_data(data, period=period)
             
             self.logger.info(f"Calculating RSI with period {period}")
             
@@ -95,6 +98,8 @@ class RelativeStrengthIndex(CustomIndicator):
                 }
             )
             
+        except DataValidationError:
+            raise
         except Exception as e:
             raise IndicatorCalculationError(
                 f"Failed to calculate RSI: {e}",

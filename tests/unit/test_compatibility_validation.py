@@ -6,6 +6,8 @@
 
 import pytest
 import pandas as pd
+
+from bquant.core.exceptions import DataValidationError
 import numpy as np
 
 from bquant.indicators import (
@@ -113,9 +115,10 @@ class TestCompatibilityValidation:
             'open': [100, 101, 102, 103, 104]
         })
         
-        # Проверяем, что валидация отклоняет невалидные данные
-        validation = sma.validate_data(invalid_data)
-        assert validation is False
+        # Проверяем, что валидация отклоняет невалидные данные — отказом по имени,
+        # а не `False` в лог, которого никто не читал (G58).
+        with pytest.raises(DataValidationError, match="missing required columns"):
+            sma.validate_data(invalid_data)
     
     def test_calculation_compatibility(self):
         """Тест совместимости расчета."""

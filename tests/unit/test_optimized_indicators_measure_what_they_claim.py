@@ -70,11 +70,17 @@ def test_bollinger_middle_band_is_the_sma(prices):
 
 
 def test_ema_matches_its_definition(prices):
-    """EMA была верна и до правки — пин, чтобы осталась верной."""
+    """EMA была верна и до правки — пин, чтобы осталась верной.
+
+    С G58 первые `period - 1` значений не публикуются — тот же прогрев, что у
+    custom-EMA; после него ряд совпадает с `ewm(adjust=False)` побитово.
+    """
 
     reference = pd.Series(prices).ewm(span=20, adjust=False).mean().to_numpy()
+    ema = OptimizedIndicators.ema(prices, 20)
 
-    assert np.allclose(OptimizedIndicators.ema(prices, 20), reference)
+    assert np.isnan(ema[:19]).all() and not np.isnan(ema[19:]).any()
+    assert np.allclose(ema[19:], reference[19:])
 
 
 def test_a_series_that_only_rises_is_not_oversold():

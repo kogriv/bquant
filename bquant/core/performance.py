@@ -262,9 +262,73 @@ def performance_context(name: str):
 
 
 # Оптимизированные NumPy функции для индикаторов
+def require_period(name: str, value: int) -> int:
+    """A period is a positive integer; anything else is refused by name."""
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value <= 0:
+        raise ValueError(f"{name} must be a positive integer, got {value!r}")
+    return int(value)
+
+
+def require_macd_periods(fast: int, slow: int, signal: int) -> Tuple[int, int, int]:
+    """``fast > 0``, ``slow > fast``, ``signal > 0`` — the one check for every MACD.
+
+    Until G58 the optimized MACD accepted ``fast=0`` (a division by one in the
+    smoothing factor, not an error) and ``slow <= fast`` (a line with the sign
+    flipped), and the custom MACD accepted the latter too.
+    """
+    fast, slow, signal = (require_period('fast', fast), require_period('slow', slow),
+                          require_period('signal', signal))
+    if slow <= fast:
+        raise ValueError(
+            f"slow period must exceed fast period, got fast={fast}, slow={slow}; "
+            "with them swapped the MACD line changes sign."
+        )
+    return fast, slow, signal
+
+
+def ema_warmup(period: int) -> int:
+    """Bars an EMA of ``period`` has not yet filled: ``period - 1``."""
+    return period - 1
+
+
+def macd_warmup(slow: int, signal: int) -> Tuple[int, int]:
+    """``(line_warmup, signal_warmup)`` — the contract every MACD publishes under.
+
+    The line waits for the slow EMA (``slow - 1``); the signal line and the
+    histogram wait for their own EMA on top of that (``slow + signal - 2``).
+    This is what the custom MACD masks (G45); until G58 the optimized MACD
+    published from bar 0 under the same name.
+    """
+    line = ema_warmup(slow)
+    return line, line + ema_warmup(signal)
+
+
+def _ema_raw(prices: np.ndarray, period: int) -> np.ndarray:
+    """Recursive EMA over the whole array, no warm-up mask — for internal chaining.
+
+    MACD feeds the line into another EMA and RSI feeds gains and losses into
+    one; a masked head would turn into NaN that never recovers, so the pieces
+    are chained unmasked and masked once at the end.
+    """
+    prices = np.asarray(prices, dtype=float)
+    if len(prices) == 0:
+        return np.array([], dtype=float)
+    alpha = 2.0 / (period + 1)
+    ema_values = np.empty(len(prices), dtype=float)
+    ema_values[0] = prices[0]
+    for i in range(1, len(prices)):
+        ema_values[i] = alpha * prices[i] + (1 - alpha) * ema_values[i - 1]
+    return ema_values
+
+
 class OptimizedIndicators:
     """
     Оптимизированные реализации популярных индикаторов с использованием NumPy.
+
+    Every method takes ``prices`` as float (G58: ``np.zeros_like`` on an integer
+    array used to truncate every EMA value to an integer, and the RSI and MACD
+    built on it inherited the loss) and publishes under the same warm-up
+    contract as the custom indicators.
     """
     
     @staticmethod
@@ -281,6 +345,8 @@ class OptimizedIndicators:
         Returns:
             Массив SMA значений
         """
+        prices = np.asarray(prices, dtype=float)
+        period = require_period('period', period)
         if len(prices) < period:
             return np.full(len(prices), np.nan)
 
@@ -310,17 +376,11 @@ class OptimizedIndicators:
         Returns:
             Массив EMA значений
         """
-        if len(prices) == 0:
-            return np.array([])
-        
-        alpha = 2.0 / (period + 1)
-        ema_values = np.zeros_like(prices)
-        ema_values[0] = prices[0]
-        
-        # Векторизованный расчет EMA
-        for i in range(1, len(prices)):
-            ema_values[i] = alpha * prices[i] + (1 - alpha) * ema_values[i-1]
-        
+        period = require_period('period', period)
+        ema_values = _ema_raw(prices, period)
+        # Warm-up: the first `period - 1` values are computed on an unfilled
+        # window and are not published — the same contract as the custom EMA.
+        ema_values[:ema_warmup(period)] = np.nan
         return ema_values
     
     @staticmethod
@@ -337,6 +397,8 @@ class OptimizedIndicators:
         Returns:
             Массив RSI значений
         """
+        prices = np.asarray(prices, dtype=float)
+        period = require_period('period', period)
         if len(prices) < period + 1:
             return np.full(len(prices), np.nan)
         
@@ -352,8 +414,8 @@ class OptimizedIndicators:
         losses = np.concatenate(([0], losses))
         
         # Рассчитываем RSI используя EMA для усреднения
-        avg_gains = OptimizedIndicators.ema(gains, period)
-        avg_losses = OptimizedIndicators.ema(losses, period)
+        avg_gains = _ema_raw(gains, period)
+        avg_losses = _ema_raw(losses, period)
         
         # Деление на ноль — не «ноль», а край шкалы. Раньше здесь стояло
         # `np.where(avg_losses != 0, avg_gains / avg_losses, 0)`: при отсутствии
@@ -395,22 +457,21 @@ class OptimizedIndicators:
         Returns:
             Кортеж (MACD line, Signal line, Histogram)
         """
+        prices = np.asarray(prices, dtype=float)
+        fast, slow, signal = require_macd_periods(fast, slow, signal)
         if len(prices) < slow:
             nan_array = np.full(len(prices), np.nan)
             return nan_array, nan_array, nan_array
         
-        # Рассчитываем EMA
-        ema_fast = OptimizedIndicators.ema(prices, fast)
-        ema_slow = OptimizedIndicators.ema(prices, slow)
-        
-        # MACD линия
-        macd_line = ema_fast - ema_slow
-        
-        # Сигнальная линия
-        signal_line = OptimizedIndicators.ema(macd_line, signal)
-        
-        # Гистограмма
+        # EMAs chained unmasked, masked once under the shared contract
+        macd_line = _ema_raw(prices, fast) - _ema_raw(prices, slow)
+        signal_line = _ema_raw(macd_line, signal)
         histogram = macd_line - signal_line
+
+        line_warmup, signal_warmup = macd_warmup(slow, signal)
+        macd_line[:line_warmup] = np.nan
+        signal_line[:signal_warmup] = np.nan
+        histogram[:signal_warmup] = np.nan
         
         return macd_line, signal_line, histogram
     
@@ -429,6 +490,8 @@ class OptimizedIndicators:
         Returns:
             Кортеж (Upper Band, Middle Band, Lower Band)
         """
+        prices = np.asarray(prices, dtype=float)
+        period = require_period('period', period)
         if len(prices) < period:
             nan_array = np.full(len(prices), np.nan)
             return nan_array, nan_array, nan_array
@@ -437,7 +500,7 @@ class OptimizedIndicators:
         middle_band = OptimizedIndicators.sma(prices, period)
         
         # Стандартное отклонение для окна
-        std_values = np.zeros_like(prices)
+        std_values = np.zeros(len(prices), dtype=float)
         for i in range(period-1, len(prices)):
             window = prices[i-period+1:i+1]
             std_values[i] = np.std(window)
@@ -586,6 +649,10 @@ __all__ = [
     'performance_monitor',
     'performance_context',
     'OptimizedIndicators',
+    'require_period',
+    'require_macd_periods',
+    'ema_warmup',
+    'macd_warmup',
     'benchmark_function',
     'compare_implementations',
     'memory_usage_analysis'

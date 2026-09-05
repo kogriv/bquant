@@ -103,7 +103,10 @@ class ZoneAnalysisCache:
     # v24 (G56): `hypothesis_tests` — словарь `.results`, `regression_results` —
     # словари `to_dict()`, как у остальных разделов. Записи v23 несут объекты
     # `AnalysisResult`/`RegressionResult`, которых читатели больше не ждут.
-    CACHE_VERSION = 24
+    # v25 (G58): `ColumnSchema` ключует записи `source.slug`, а не `slug`, и
+    # `IndicatorId.parameters` — `FrozenParameters`. Записи v24 несут схему,
+    # неотличающую два источника с одним slug.
+    CACHE_VERSION = 25
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

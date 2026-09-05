@@ -124,10 +124,22 @@ print(round(float(OptimizedIndicators.rsi(prices, 14)[-1]), 1))
 | Метод | Возвращает |
 |---|---|
 | `sma(prices, period)` | массив; первые `period-1` значений — `NaN` |
-| `ema(prices, period)` | массив; совпадает с `ewm(span=period, adjust=False)` |
+| `ema(prices, period)` | массив; совпадает с `ewm(span=period, adjust=False)` и с custom-EMA пакета; первые `period-1` значений — `NaN` |
 | `rsi(prices, period=14)` | массив; первые `period` значений — `NaN` |
-| `macd(prices, fast=12, slow=26, signal=9)` | кортеж `(line, signal, hist)` |
+| `macd(prices, fast=12, slow=26, signal=9)` | кортеж `(line, signal, hist)`; прогрев тот же, что у custom-MACD: линия `slow-1`, сигнал и гистограмма `slow+signal-2` |
 | `bollinger_bands(prices, period=20, std_dev=2.0)` | кортеж `(upper, middle, lower)` |
+
+Вход приводится к `float` — целые цены не усекают EMA (до 2026-09-05 `ema` на `int64`
+отдавала `[100, 100, 101, …]` вместо `[100, 100.5, 101.75, …]`, и RSI с MACD на нём
+наследовали потерю). Периоды проверяются: `require_period()` — положительное целое;
+`require_macd_periods()` — `fast > 0`, `slow > fast`, `signal > 0`; тем же хелпером
+проверяет себя custom-MACD. Прогрев задан одним местом — `ema_warmup(period)` и
+`macd_warmup(slow, signal)` — для обеих реализаций (G58).
+
+Что **не** совпадает: значения custom-MACD и оптимизированного после прогрева. Custom
+считает EMA с `adjust=True` (осознанный выбор, `devref/gaps/issue_indicator_consistency.md`),
+оптимизированный — рекурсивно (`adjust=False`); на часовом золоте расхождение линии
+достигает 3.5 пункта. Это два определения, а не дефект прогрева.
 
 **Это не замена `bquant.indicators`.** Здесь пять функций над `np.ndarray` без ролей,
 схемы колонок и связи с пайплайном зон; они существуют, чтобы было с чем сравнивать

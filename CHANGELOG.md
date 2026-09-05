@@ -96,6 +96,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   по исходному кадру, `NaN` не выброс; `calculate_true_range()` — одна на всех,
   `calculate_derived_indicators` пишет `intrabar_range` и настоящий `true_range`. Ломает:
   значение `true_range` в производных колонках, отказы там, где раньше молчали.
+* **G58 — реализации индикаторов не держали один контракт.** `validate_data()` писала
+  ошибку в лог и возвращала `False`, которого не читал ни один из восьми вызывающих: MACD
+  на десяти барах при минимуме тридцати пяти отдавал десять строк `NaN` — как прогрев;
+  минимум считался по конструктору, и `calculate(data, period=100)` проверял двадцать
+  баров; `close` из строк и `inf` считались молча. `OptimizedIndicators.ema` на целых
+  ценах усекала каждое значение до целого (`np.zeros_like` наследовал `int64`), RSI и
+  MACD на ней наследовали потерю; оптимизированный MACD публиковал непрогретую голову
+  под тем же именем, под которым custom её маскирует, и принимал `fast=0`, `slow <= fast`,
+  `signal=0`. `IndicatorId.parameters` под `frozen=True` был обычным `dict`: правка через
+  атрибут меняла slug и хэш; `ColumnSchema` ключевала по slug без источника, и custom-RSI
+  с pandas-ta-RSI затирали друг друга. Теперь `validate_data(data, **params)` возвращает
+  `True` или поднимает `DataValidationError` по имени; вход оптимизированных — float,
+  прогрев и проверка периодов — общие хелперы для обеих реализаций; `FrozenParameters`;
+  ключ схемы `source.slug`. Ломает: `validate_data` поднимает вместо `False`,
+  `get_min_records(**params)`, `OptimizedIndicators.ema/macd` с `NaN` в голове,
+  `ColumnSchema.entries` с ключом `('custom.macd_12_26_9', 'hist')`, артефакты со схемой
+  до 2026-09-05 не читаются; `CACHE_VERSION` 24 → 25.
 * `examples/03_data_processing.py` писал CSV в `examples/` относительно текущего каталога —
   в дерево исходников; артефакты идут в `outputs/`, как у остальных примеров.
 

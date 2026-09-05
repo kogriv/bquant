@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from bquant.core.logging_config import get_logger
-from bquant.core.exceptions import IndicatorCalculationError
+from bquant.core.exceptions import IndicatorCalculationError, DataValidationError
 from .schema import IndicatorId
 
 logger = get_logger(__name__)
@@ -80,36 +80,61 @@ class BaseIndicator(ABC):
         """
         pass
     
-    def validate_data(self, data: pd.DataFrame) -> bool:
-        """
-        Валидация входных данных.
-        
+    def validate_data(self, data: pd.DataFrame, **params) -> bool:
+        """Проверить кадр перед расчётом — и **отказать**, если он не годится.
+
+        Возвращает ``True`` или поднимает :class:`DataValidationError`. До G58
+        метод возвращал ``False`` и писал ошибку в лог, а ни один из пяти custom-
+        индикаторов и оба базовых пути (preloaded, library) возвращённое значение
+        не читали: расчёт шёл дальше и отдавал кадр из ``NaN`` той же длины, что
+        неотличимо от «прогрев». Лог — не поток управления.
+
+        Проверяется: обязательные колонки; число строк против
+        :meth:`get_min_records` **по параметрам этого вызова** (``calculate(data,
+        period=100)`` требует сто баров, а не двадцать из конструктора); числовой
+        dtype обязательных колонок; отсутствие бесконечностей (``NaN`` — пропуск,
+        это другая находка и дело чистки данных).
+
         Args:
             data: DataFrame с данными
-        
+            **params: параметры вызова, если они меняют требования к данным
+
         Returns:
-            True если данные валидны
+            ``True``
+
+        Raises:
+            DataValidationError: с причиной по имени.
         """
-        try:
-            # Проверяем наличие необходимых колонок
-            required_columns = self.get_required_columns()
-            if required_columns:
-                missing_columns = [col for col in required_columns if col not in data.columns]
-                if missing_columns:
-                    self.logger.error(f"Missing required columns: {missing_columns}")
-                    return False
-            
-            # Проверяем минимальное количество записей
-            min_records = self.get_min_records()
-            if min_records and len(data) < min_records:
-                self.logger.error(f"Insufficient data: {len(data)} records, need at least {min_records}")
-                return False
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Data validation failed: {e}")
-            return False
+        required_columns = self.get_required_columns() or []
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        if missing_columns:
+            raise DataValidationError(
+                f"{self.name}: missing required columns {missing_columns}; "
+                f"present: {list(data.columns)}"
+            )
+
+        min_records = self.get_min_records(**params)
+        if min_records and len(data) < min_records:
+            raise DataValidationError(
+                f"{self.name}: {len(data)} rows, but at least {min_records} are needed "
+                f"for these parameters. A shorter frame would yield nothing but NaN."
+            )
+
+        for col in required_columns:
+            if not pd.api.types.is_numeric_dtype(data[col]):
+                raise DataValidationError(
+                    f"{self.name}: column '{col}' has dtype {data[col].dtype}, not a number. "
+                    "Convert it before calculating."
+                )
+            values = data[col].to_numpy(dtype=float, na_value=np.nan)
+            infinite = int(np.isinf(values).sum())
+            if infinite:
+                raise DataValidationError(
+                    f"{self.name}: column '{col}' holds {infinite} infinite value(s); "
+                    "an indicator over them is not a number either."
+                )
+
+        return True
     
     def get_required_columns(self) -> List[str]:
         """
@@ -120,10 +145,15 @@ class BaseIndicator(ABC):
         """
         return []
     
-    def get_min_records(self) -> int:
+    def get_min_records(self, **params) -> int:
         """
         Получить минимальное количество записей.
-        
+
+        Args:
+            **params: параметры вызова, переопределяющие параметры конструктора
+                (``calculate(data, period=100)``). Реализация обязана считать
+                минимум по ним, а не по тому, с чем её создали.
+
         Returns:
             Минимальное количество записей
         """

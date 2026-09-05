@@ -855,16 +855,33 @@ nb.step("Step 11: Edge Cases & Error Handling")
 
 nb.substep("11.1: Small Dataset (< 50 bars)")
 with nb.error_handling("Small dataset"):
+    # MACD(12, 26, 9) needs slow + signal = 35 bars. On 30 the whole frame is
+    # warm-up: until G58 the indicator returned 30 rows of NaN, the pipeline found
+    # 0 zones and this step printed "works with minimal data [OK]". Now the
+    # indicator refuses by name, and that refusal is the honest result.
+    from bquant.core.exceptions import DataValidationError
     small_df = df.head(30)
+    try:
+        (
+            analyze_zones(small_df)
+            .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+            .detect_zones('zero_crossing', indicator_role='hist')
+            .analyze(clustering=False)
+            .build()
+        )
+        nb.warning("  30 bars accepted — the indicator should have refused")
+    except DataValidationError as exc:
+        nb.log(f"  30 bars refused by name: {exc}")
+
+    just_enough = df.head(60)
     res_small = (
-        analyze_zones(small_df)
+        analyze_zones(just_enough)
         .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
         .detect_zones('zero_crossing', indicator_role='hist')
         .analyze(clustering=False)
         .build()
     )
-    nb.log(f"  Small dataset (30 bars): {len(res_small.zones)} zones")
-    nb.log(f"  Pipeline works with minimal data [OK]")
+    nb.log(f"  60 bars (35 needed): {len(res_small.zones)} zones after a 33-bar warm-up")
 
 nb.substep("11.2: No Zones Detected")
 with nb.error_handling("No zones"):

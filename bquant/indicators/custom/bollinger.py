@@ -9,7 +9,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 
 from ..base import CustomIndicator, IndicatorResult, IndicatorConfig, IndicatorSource
-from ...core.exceptions import IndicatorCalculationError
+from ...core.exceptions import IndicatorCalculationError, DataValidationError
 from ...core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -55,9 +55,13 @@ class BollingerBands(CustomIndicator):
         """Returns indicator description."""
         return f"Bollinger Bands ({self.period}, {self.std_dev})"
     
-    def get_min_records(self) -> int:
-        """Returns minimum records required."""
-        return self.period
+    def get_required_columns(self) -> List[str]:
+        """The one input column; validation checks its dtype and finiteness on it."""
+        return ['close']
+
+    def get_min_records(self, **params) -> int:
+        """Minimum records for the effective parameters of a call, not of the constructor."""
+        return params.get('period', self.period)
     
     def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
         """
@@ -70,11 +74,10 @@ class BollingerBands(CustomIndicator):
         Returns:
             IndicatorResult with Bollinger Bands values
         """
+        period = kwargs.get('period', self.period)
+        std_dev = kwargs.get('std_dev', self.std_dev)
         try:
-            self.validate_data(data)
-            
-            period = kwargs.get('period', self.period)
-            std_dev = kwargs.get('std_dev', self.std_dev)
+            self.validate_data(data, period=period, std_dev=std_dev)
             
             self.logger.info(f"Calculating Bollinger Bands ({period}, {std_dev})")
             
@@ -115,6 +118,8 @@ class BollingerBands(CustomIndicator):
                 }
             )
             
+        except DataValidationError:
+            raise
         except Exception as e:
             raise IndicatorCalculationError(
                 f"Failed to calculate Bollinger Bands: {e}",

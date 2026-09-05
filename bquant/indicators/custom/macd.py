@@ -9,7 +9,8 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 
 from ..base import CustomIndicator, IndicatorResult, IndicatorConfig, IndicatorSource
-from ...core.exceptions import IndicatorCalculationError
+from ...core.exceptions import IndicatorCalculationError, DataValidationError
+from ...core.performance import require_macd_periods, macd_warmup
 from ...core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -67,9 +68,9 @@ class MACD(CustomIndicator):
         """Returns indicator description."""
         return f"MACD ({self.fast_period}, {self.slow_period}, {self.signal_period})"
     
-    def get_min_records(self) -> int:
-        """Returns minimum records required."""
-        return self.slow_period + self.signal_period
+    def get_min_records(self, **params) -> int:
+        """Minimum records for the effective periods of a call, not of the constructor."""
+        return params.get('slow_period', self.slow_period) + params.get('signal_period', self.signal_period)
     
     def get_required_columns(self) -> List[str]:
         """Returns required input columns."""
@@ -86,12 +87,18 @@ class MACD(CustomIndicator):
         Returns:
             IndicatorResult with MACD values
         """
+        fast_period = kwargs.get('fast_period', self.fast_period)
+        slow_period = kwargs.get('slow_period', self.slow_period)
+        signal_period = kwargs.get('signal_period', self.signal_period)
         try:
-            self.validate_data(data)
-            
-            fast_period = kwargs.get('fast_period', self.fast_period)
-            slow_period = kwargs.get('slow_period', self.slow_period)
-            signal_period = kwargs.get('signal_period', self.signal_period)
+            # The one check every MACD shares: fast > 0, slow > fast, signal > 0.
+            fast_period, slow_period, signal_period = require_macd_periods(
+                fast_period, slow_period, signal_period
+            )
+            self.validate_data(
+                data, fast_period=fast_period, slow_period=slow_period,
+                signal_period=signal_period,
+            )
             
             self.logger.info(f"Calculating MACD ({fast_period}, {slow_period}, {signal_period})")
             
@@ -116,8 +123,7 @@ class MACD(CustomIndicator):
             # что у SMA и BollingerBands в этом же пакете (`period-1`), и совпадает с
             # соглашением pandas-ta: линия `slow-1`, сигнал и гистограмма — плюс
             # прогрев самой сигнальной EMA.
-            line_warmup = slow_period - 1
-            signal_warmup = line_warmup + signal_period - 1
+            line_warmup, signal_warmup = macd_warmup(slow_period, signal_period)
             macd_line.iloc[:line_warmup] = np.nan
             signal_line.iloc[:signal_warmup] = np.nan
             histogram.iloc[:signal_warmup] = np.nan
@@ -150,11 +156,9 @@ class MACD(CustomIndicator):
                 }
             )
             
+        except (DataValidationError, ValueError):
+            raise
         except Exception as e:
-            fast_period = kwargs.get('fast_period', self.fast_period)
-            slow_period = kwargs.get('slow_period', self.slow_period)
-            signal_period = kwargs.get('signal_period', self.signal_period)
-            
             raise IndicatorCalculationError(
                 f"Failed to calculate MACD: {e}",
                 {

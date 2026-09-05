@@ -31,11 +31,11 @@ print(sorted(m for m in dir(BaseIndicator) if not m.startswith('_')))
 | Метод | Отвечает на вопрос |
 |---|---|
 | `calculate(data, **kwargs)` | посчитать; возвращает `IndicatorResult` |
-| `validate_data(data)` | хватает ли кадру колонок и строк |
+| `validate_data(data, **params)` | годится ли кадр: колонки, строки **по параметрам вызова**, числовой dtype, нет бесконечностей. Возвращает `True` или поднимает `DataValidationError` — до 2026-09-05 возвращал `False`, которого никто не читал, и расчёт шёл дальше (G58) |
 | `get_required_columns()` | что нужно на входе |
 | `get_output_columns()` | какие колонки появятся |
 | `get_output_roles()` | **роль → имя колонки**; роли не меняются от параметров, имена меняются |
-| `get_min_records()` | сколько баров нужно минимум |
+| `get_min_records(**params)` | сколько баров нужно минимум — для параметров вызова (`period=100` → сто), не конструктора |
 | `get_indicator_id()` | идентичность: источник, имя, параметры |
 | `get_info()` | описание класса словарём (`name`, `type`, `description`, …) |
 | `get_default_columns()` | колонки по умолчанию |

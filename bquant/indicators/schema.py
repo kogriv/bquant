@@ -41,6 +41,7 @@ right. Roles are closed, because they are what a consumer asks for.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping as _MappingABC
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Mapping, Optional, Tuple
 
@@ -187,6 +188,48 @@ def _validated_token(rendered: str, original: Any) -> str:
     return rendered
 
 
+class FrozenParameters(_MappingABC):
+    """An immutable, hashable, picklable mapping for :attr:`IndicatorId.parameters`.
+
+    A frozen dataclass holding a plain ``dict`` was frozen in name only: the
+    dict could be edited through the attribute, and with it the slug and the
+    hash of an id already sitting in a set or a schema (G58).
+    ``types.MappingProxyType`` would do the freezing but cannot be pickled, and
+    the id travels inside cached and saved results.
+    """
+
+    __slots__ = ("_items",)
+
+    def __init__(self, items: Mapping[str, Any]):
+        self._items = tuple((str(k), v) for k, v in dict(items).items())
+
+    def __getitem__(self, key: str) -> Any:
+        for k, v in self._items:
+            if k == key:
+                return v
+        raise KeyError(key)
+
+    def __iter__(self):
+        return (k for k, _ in self._items)
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def __hash__(self) -> int:
+        return hash(self._items)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, _MappingABC):
+            return dict(self.items()) == dict(other.items())
+        return NotImplemented
+
+    def __repr__(self) -> str:
+        return f"FrozenParameters({dict(self._items)!r})"
+
+    def __reduce__(self):
+        return (FrozenParameters, (dict(self._items),))
+
+
 @dataclass(frozen=True)
 class IndicatorId:
     """Which indicator instance produced a series.
@@ -218,9 +261,9 @@ class IndicatorId:
     def __post_init__(self):
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError(f"IndicatorId.name must be a non-empty string, got {self.name!r}")
-        # Freeze the mapping so the id stays hashable and cannot drift under a
-        # caller who keeps a reference to the dict they passed in.
-        object.__setattr__(self, "parameters", dict(self.parameters))
+        # Freeze the mapping for real: a copy protected against the caller's
+        # reference, and immutable through the attribute as well.
+        object.__setattr__(self, "parameters", FrozenParameters(self.parameters))
         object.__setattr__(self, "parameter_order", tuple(self.parameter_order))
         _validated_token(self.name, self.name)
         # Render every parameter now, so an identity that cannot be rendered
@@ -263,13 +306,22 @@ class IndicatorId:
         return f"{self.slug}__{role}"
 
     def __hash__(self) -> int:
-        # `parameters` is a dict, so the dataclass-generated hash would fail. The
-        # slug already renders the parameters canonically, and equality compares
-        # the same inputs, so hashing on it stays consistent with `__eq__`.
+        # The slug renders the parameters canonically and equality compares the
+        # same inputs, so hashing on it stays consistent with `__eq__`.
         return hash((self.source, self.name, self.slug, self.parameter_order))
 
-    def __str__(self) -> str:
+    @property
+    def key(self) -> str:
+        """``'custom.macd_12_26_9'`` — identity **including the source**.
+
+        The slug alone is not an identity: a custom RSI and a pandas-ta RSI with
+        the same parameters share ``rsi_14`` and are two different series
+        (until G58 the second overwrote the first in :class:`ColumnSchema`).
+        """
         return f"{self.source}.{self.slug}"
+
+    def __str__(self) -> str:
+        return self.key
 
 
 def parse_column(column: str) -> Optional[Tuple[str, str]]:
@@ -312,15 +364,17 @@ class ColumnSchema:
     instead of guessing ``'macd_hist'``.
     """
 
+    #: ``(indicator key, role) -> column``; the key is :attr:`IndicatorId.key`,
+    #: source included, so two sources with the same slug stay two entries.
     entries: Dict[Tuple[str, str], str] = field(default_factory=dict)
     indicators: Dict[str, IndicatorId] = field(default_factory=dict)
 
     def register(self, indicator: IndicatorId, columns: Mapping[str, str]) -> None:
         """Record where each role of ``indicator`` landed in the frame."""
-        self.indicators[indicator.slug] = indicator
+        self.indicators[indicator.key] = indicator
         for role, column in columns.items():
             validate_role(role)
-            self.entries[(indicator.slug, role)] = column
+            self.entries[(indicator.key, role)] = column
 
     def column(self, role: str, indicator: Optional[IndicatorId] = None) -> Optional[str]:
         """Column holding ``role``; ``None`` if this schema does not know it.
@@ -332,7 +386,7 @@ class ColumnSchema:
         """
         validate_role(role)
         if indicator is not None:
-            return self.entries.get((indicator.slug, role))
+            return self.entries.get((indicator.key, role))
 
         matches = [col for (_, r), col in self.entries.items() if r == role]
         if len(matches) == 1:
@@ -346,9 +400,9 @@ class ColumnSchema:
 
     def roles_of(self, column: str) -> Optional[Tuple[IndicatorId, str]]:
         """Which indicator and role a column holds, from the schema itself."""
-        for (slug, role), name in self.entries.items():
+        for (key, role), name in self.entries.items():
             if name == column:
-                return self.indicators[slug], role
+                return self.indicators[key], role
         return None
 
     def roles(self) -> Tuple[str, ...]:
@@ -359,15 +413,15 @@ class ColumnSchema:
     def to_dict(self) -> Dict[str, Any]:
         """Serializable form, for results that get written to disk."""
         return {
-            "entries": {f"{slug}|{role}": col for (slug, role), col in self.entries.items()},
+            "entries": {f"{key}|{role}": col for (key, role), col in self.entries.items()},
             "indicators": {
-                slug: {
+                key: {
                     "source": ind.source,
                     "name": ind.name,
                     "parameters": dict(ind.parameters),
                     "parameter_order": list(ind.parameter_order),
                 }
-                for slug, ind in self.indicators.items()
+                for key, ind in self.indicators.items()
             },
         }
 
@@ -375,19 +429,32 @@ class ColumnSchema:
     def from_dict(cls, data: Optional[Mapping[str, Any]]) -> "ColumnSchema":
         if not data:
             return cls()
-        indicators = {
-            slug: IndicatorId(
+        indicators = {}
+        for key, spec in (data.get("indicators") or {}).items():
+            indicator = IndicatorId(
                 source=spec["source"],
                 name=spec["name"],
                 parameters=spec.get("parameters", {}),
                 parameter_order=tuple(spec.get("parameter_order", ())),
             )
-            for slug, spec in (data.get("indicators") or {}).items()
-        }
+            if key != indicator.key:
+                # Written before G58: keyed by slug, source dropped from the key.
+                raise ValueError(
+                    f"column schema entry {key!r} is keyed without its source "
+                    f"(expected {indicator.key!r}); this artifact was written before "
+                    "2026-09-05 and cannot tell two sources with one slug apart. "
+                    "Recompute the analysis."
+                )
+            indicators[key] = indicator
         entries = {}
         for key, column in (data.get("entries") or {}).items():
-            slug, _, role = key.partition("|")
-            entries[(slug, role)] = column
+            indicator_key, _, role = key.partition("|")
+            if indicator_key not in indicators:
+                raise ValueError(
+                    f"column schema entry {key!r} names an indicator the schema does not "
+                    f"describe; known: {sorted(indicators)}"
+                )
+            entries[(indicator_key, role)] = column
         return cls(entries=entries, indicators=indicators)
 
     def __bool__(self) -> bool:
@@ -472,6 +539,7 @@ def resolve_role_columns(
 
 __all__ = [
     "IndicatorId",
+    "FrozenParameters",
     "resolve_role_columns",
     "UnrenderableParameter",
     "ColumnSchema",
