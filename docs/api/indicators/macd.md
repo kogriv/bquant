@@ -48,4 +48,3 @@ more often. Pass `zone_basis='histogram'` to the preset to reproduce the 83 zone
 ## See also
 
 - [Universal Zone Analysis pipeline](../analysis/pipeline.md) — the builder reference.
-- [MIGRATION_v2](../../migration/MIGRATION_v2.md) — full old→new mapping.

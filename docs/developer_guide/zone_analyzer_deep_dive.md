@@ -29,7 +29,7 @@ from bquant.analysis.zones import analyze_zones
 **Обязательные и опциональные методы:**
 - **Обязательно:** `detect_zones()` — без него `build()` вызовет ошибку.
 - **Опционально:** `with_indicator()`, `with_strategies()`, `with_swing_preset()`, `with_swing_scope()`, `with_cache()`, `with_auto_swing_thresholds()`, `analyze()`.
-- Если `with_strategies()` не вызван, используется `UniversalZoneAnalyzer` с дефолтными стратегиями из конфигурации.
+- Если `with_strategies()` не вызван, считаются свинги (`zigzag`) и форма (`statistical`); дивергенции, волатильность и объём — только по запросу.
 
 #### Шаг 1: Инициализация (`analyze_zones(df)`)
 
@@ -42,15 +42,15 @@ from bquant.analysis.zones import analyze_zones
     -   **Встроенный индикатор**: Например, `.with_indicator('custom', 'macd', ...)` рассчитает MACD.
     -   **Индикатор из библиотеки `pandas-ta`**: Например, `.with_indicator('pandas_ta', 'rsi', length=14)` рассчитает RSI.
     -   **Уже существующий индикатор**: Если в вашем DataFrame уже есть колонка с индикатором, этот шаг можно пропустить.
--   **Результат:** В DataFrame добавляются новые колонки с рассчитанными значениями индикатора (например, `macd_hist`, `RSI_14`).
+-   **Результат:** В DataFrame добавляются колонки индикатора, названные по его идентичности (`macd_12_26_9__line`, `macd_12_26_9__signal`, `macd_12_26_9__hist`; у pandas-ta — свои имена, например `RSI_14`), и колонка `atr` (период — `.with_atr_period()`, по умолчанию 14), если её не принесли. Карта «роль → колонка» едет в `result.column_schema`.
 
 #### Шаг 3: Детекция зон (`.detect_zones(...)`)
 
 -   **Что происходит?** Это ядро процесса. Здесь пайплайн ищет на графике индикатора отрезки, соответствующие заданной **стратегии детекции**.
 -   **Доступные стратегии:**
-    -   `'zero_crossing'`: Находит зоны, где индикатор-осциллятор (например, гистограмма MACD) находится выше или ниже нуля. Требует `indicator_col` в правилах.
-    -   `'threshold'`: Находит зоны, где индикатор (например, RSI) выходит за пределы заданных порогов (например, выше 70 или ниже 30). Требует `indicator_col`, `upper_threshold`, `lower_threshold`.
-    -   `'line_crossing'`: Находит зоны между пересечениями двух линий индикатора (например, основной и сигнальной линий Stochastic). Требует `line1_col`, `line2_col`.
+    -   `'zero_crossing'`: Находит зоны, где индикатор-осциллятор (например, гистограмма MACD) находится выше или ниже нуля. Требует `indicator_role` (`'hist'`, `'value'`, …) — или `indicator_col`, если колонку принесли вы сами.
+    -   `'threshold'`: Находит зоны, где индикатор (например, RSI) выходит за пределы заданных порогов (например, выше 70 или ниже 30). Требует `indicator_role`/`indicator_col`, `upper_threshold`, `lower_threshold`.
+    -   `'line_crossing'`: Находит зоны между пересечениями двух линий индикатора (например, основной и сигнальной линий Stochastic). Требует `line1_role`/`line2_role` или `line1_col`/`line2_col`.
     -   `'preloaded'`: Загружает зоны из внешнего DataFrame. Полезно для анализа заранее определённых зон.
     -   `'combined'`: Объединяет несколько правил детекции в одну стратегию.
 -   **Результат:** Создается предварительный список зон. Каждая зона — это объект с временем начала, временем конца, индексами (`start_idx`, `end_idx`) и типом (`bull`/`bear`).
@@ -85,8 +85,9 @@ from bquant.analysis.zones import analyze_zones
 **Параметры:**
 -   `clustering` (bool, по умолчанию `True`): Включить кластеризацию зон.
 -   `n_clusters` (int, по умолчанию `3`): Количество кластеров для KMeans.
--   `regression` (bool, по умолчанию `False`): Запустить регрессионный анализ (прогноз длительности зоны, доходности).
--   `validation` (bool, по умолчанию `False`): Запустить валидацию моделей.
+-   `regression` (bool, по умолчанию `False`): Объясняющая (in-sample) регрессия длительности и доходности зоны на её признаки — `explain_zone_duration`/`explain_price_return`; не прогноз: признаки известны только по окончании зоны.
+-   `validation` (bool, по умолчанию `False`): Out-of-sample проверка детекции — кадр делится 70/30, частота зон на бар обязана удержаться; итог в `result.validation_results` и `result.metadata['validation']`.
+-   `min_duration` (int, по умолчанию `1`): порог отчётности — короткие зоны остаются в `result.zones`, но не входят в агрегаты.
 
 -   **Что происходит?**
     1.  Пайплайн проходит по каждой зоне и применяет к ней все стратегии, указанные в `.with_strategies()`. Результаты сохраняются в словарь `zone.features`.
@@ -99,14 +100,14 @@ from bquant.analysis.zones import analyze_zones
 
 | Стратегия (`.with_strategies(...)`) | Ключевая метрика в `zone.features` | Описание |
 | :--- | :--- | :--- |
-| `swing='*'` (любая) | `num_peaks`, `num_troughs` | Количество пиков и впадин внутри зоны. |
-| | `peak_time_ratio` | Положение максимума в зоне (0.0 - начало, 1.0 - конец). |
-| | `drawdown_from_peak` | Экскурсия цены от максимума зоны к её концу. |
-| | `metadata['swing_metrics']` | Словарь: `rally_count`, `drop_count`, `avg_rally_pct`, `avg_drop_pct`, `num_swings`, `rally_to_drop_ratio`. |
-| `divergence='classic'` | `has_classic_divergence` | `True`, если найдена классическая дивергенция. |
-| `volatility='combined'`| `volatility_score` | Составная оценка волатильности в зоне (например, от 0 до 10). |
-| `volume='standard'` | `volume_indicator_corr` | Корреляция между объемом и индикатором в зоне. |
-| `shape='statistical'` | `skewness`, `kurtosis` | Асимметрия и эксцесс распределения значений индикатора. |
+| всегда | `num_peaks`, `num_troughs`, `peak_time_ratio`, `trough_time_ratio`, `drawdown_from_peak`, `rally_from_trough`, `price_return`, `atr_normalized_return`, `oscillator_amplitude`, `correlation_price_oscillator` | Верхний уровень `zone.features`; считаются по `close`/`high`/`low` и колонке индикатора из контекста, стратегии для них не нужны. |
+| `swing='*'` | `metadata['swing_metrics']` | 23 поля: `num_swings`, `rally_count`, `drop_count`, `avg_rally_pct`, `avg_drop_pct`, `rally_to_drop_ratio`, длительности и скорости, `strategy_name`, `strategy_params`. |
+| `shape='statistical'` | `metadata['shape_metrics']` | `hist_skewness`, `hist_kurtosis`, `hist_smoothness`. |
+| `divergence='classic'` | `metadata['divergence_metrics']` | `divergence_type` (`none`/`regular`/`hidden`/`mixed`), `divergence_count`, `divergence_strength`, `divergence_direction`. |
+| `volatility='combined'` | `metadata['volatility_metrics']` | `volatility_score`, `volatility_regime`, `atr_trend`, `atr_normalized_range`, полосы Боллинджера (`bollinger_*`). |
+| `volume='standard'` | `metadata['volume_metrics']` | `avg_volume_zone`, `volume_zone_ratio`, `volume_at_entry_change`, `volume_indicator_corr`. |
+
+Ключи сняты прогоном полного пайплайна на сэмпле; `has_classic_divergence`, `skewness` и `kurtosis` верхнего уровня, которые здесь стояли раньше, в результате не существуют.
 
 **Структура `zone.features` и вложенные метрики:**
 
@@ -138,7 +139,8 @@ num_swings = swing_metrics.get('num_swings')
 | `.with_swing_preset(name)` | Применить именованный пресет параметров для свингов. Пресетов два: `'narrow_zone'` (по умолчанию) и `'wide_zone'` (`SWING_PRESETS` в `bquant/core/config.py`). Фиксирует пороги для `find_peaks`, `pivot_points`, `zigzag`. |
 | `.with_swing_scope(scope)` | Режим расчёта свингов. **По умолчанию** `'global'` — свинги вычисляются один раз по всему датасету и «нарезаются» по зонам. `'per_zone'` — свинги считаются отдельно внутри каждой зоны. `global` часто даёт выше покрытие (см. кейс по состоятельности). |
 | `.with_cache(enable=True, ttl=3600)` | Включить/отключить кэширование результата. `ttl` — время жизни кэша в секундах. Отключайте кэш (`enable=False`) при экспериментировании с разными параметрами. |
-| `.with_auto_swing_thresholds(enable=True)` | Включить адаптивные пороги для `find_peaks` и `pivot_points`. Для `zigzag` не влияет. **Внимание:** при текущих настройках авто-пороги могут обнулять покрытие для `find_peaks`/`pivot_points` — требуется тюнинг. |
+| `.with_auto_swing_thresholds(enable=True)` | Вывести порог из самих данных вместо константы пресета. После G38 (2026-09-03) слой трогает **только** `deviation` у `zigzag`; `find_peaks` и `pivot_points` остаются на пороге пресета. До G38 было наоборот — и обнуляло их покрытие. |
+| `.with_atr_period(period)` | Период колонки `atr`, которую пайплайн добавляет сам (по умолчанию 14); входит в ключ кэша. |
 
 Пример исследовательского пайплайна с настройкой свингов:
 
@@ -208,10 +210,10 @@ if result.hypothesis_tests:
     -   `start_idx`, `end_idx`, `duration`: Позиционные индексы и число баров в зоне.
     -   `data`: Срез DataFrame с OHLCV и индикаторами для зоны.
     -   **`features`**: Словарь со всеми численными метриками, извлеченными на Шаге 4 (например, `{'duration': 15, 'price_return': 0.012, 'num_peaks': 3, 'metadata': {...}}`). **Это и есть главные данные для анализа.** См. структуру `zone.features` и `metadata` выше.
-    -   **`indicator_context`**: Словарь, описывающий, как зона была найдена (например, `{'detection_indicator': 'macd_hist', 'detection_strategy': 'zero_crossing'}`). Это ключ к универсальности.
+    -   **`indicator_context`**: Словарь, описывающий, как зона была найдена — на сэмпле `{'detection_strategy': 'zero_crossing', 'detection_indicator': 'macd_12_26_9__hist', 'signal_line': None, 'detection_rules': {'indicator_col': 'macd_12_26_9__hist'}}`. Это ключ к универсальности: по `detection_indicator` считаются метрики осциллятора; без него они `None`, а не угадываются по первой попавшейся колонке (G61).
     -   `swing_context` (при глобальном режиме, по умолчанию): Контекст свингов для метода `zone.get_zone_swings()`.
 
--   **`result.statistics`**: Агрегированная статистика по всем найденным зонам. Например, средняя длительность бычьих зон, медианное изменение цены в медвежьих зонах, распределение зон по часам и т.д.
+-   **`result.statistics`**: Агрегированная статистика по зонам — шесть разделов: `total_statistics`, `duration_distribution`, `return_distribution`, `line_amplitude_distribution`, `oscillator_amplitude_distribution`, `additional_metrics`. Распределения по часам суток здесь нет.
 
 -   **`result.clustering`**: Если была включена кластеризация, здесь хранятся ее результаты (например, какому кластеру принадлежит каждая зона).
 
@@ -223,7 +225,7 @@ if result.hypothesis_tests:
 
 ---
 
-### Шаг 6: Статистическая верификация
+## 4. Статистическая верификация
 
 Поиск и описание зон — это первый шаг анализа. Однако, чтобы убедиться, что найденные закономерности (например, повышенная доходность в бычьих зонах) не являются случайностью, их необходимо проверить с помощью статистических тестов.
 

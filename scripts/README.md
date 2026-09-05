@@ -1,65 +1,41 @@
-# BQuant Scripts
+# scripts/
 
-Скрипты автоматизации для различных задач BQuant проекта.
+Служебные скрипты. Сверено с каталогом 2026-09-05; флаги — из `argparse` самих скриптов.
 
-## 📁 Структура
+| Каталог | Содержимое |
+|---|---|
+| `analysis/` | `run_macd_analysis.py`, `test_hypotheses.py`, `batch_analysis.py` + `README.md` |
+| `data/` | `extract_samples.py`, `generate_samples.py`, `data_loader.py` |
+| `publishing/` | `cleanup.sh`, `cleanup.ps1` — чистка дерева перед публикацией, `README.md` |
+| `data_processing/`, `deployment/` | пусто; заведены под будущее |
+| `cloud_setup.sh` | bootstrap окружения для облачной сессии Claude Code: Python 3.12 + зависимости строго из `uv.lock` |
 
-### `analysis/`
-Скрипты для анализа данных:
-- `run_macd_analysis.py` - Запуск MACD анализа
-- `test_hypotheses.py` - Тестирование статистических гипотез
-- `batch_analysis.py` - Пакетный анализ множества инструментов
+## Анализ
 
-### `data/`
-Скрипты для работы с данными:
-- `extract_samples.py` - Извлечение sample данных из исходных файлов
-
-### `data_processing/`
-Скрипты для обработки данных:
-- Placeholder для будущих скриптов обработки данных
-- Планируется: очистка данных, валидация, конвертация форматов
-
-### `deployment/`
-Скрипты для развертывания:
-- Placeholder для будущих скриптов развертывания
-- Планируется: упаковка, публикация, CI/CD
-
-## 🚀 Использование
-
-### Анализ данных
 ```bash
-# MACD анализ
-python scripts/analysis/run_macd_analysis.py XAUUSD 1h
-
-# Тестирование гипотез
-python scripts/analysis/test_hypotheses.py XAUUSD 1h
-
-# Пакетный анализ
-python scripts/analysis/batch_analysis.py --symbols XAUUSD,EURUSD --timeframe 1h
+python scripts/analysis/run_macd_analysis.py XAUUSD 1h --sample-data --output-format json
+python scripts/analysis/test_hypotheses.py XAUUSD 1h --sample-data --all-tests --alpha 0.05
+python scripts/analysis/batch_analysis.py --all-datasets --include-macd --include-hypotheses
 ```
 
-### Работа с данными
+Позиционные `symbol timeframe`; `--sample-data` берёт встроенный сэмпл вместо файла из
+`data/`; у всех троих есть `--dry-run` и `--verbose`. `batch_analysis.py` принимает
+`--symbols`/`--timeframes` списками, `--parallel --max-workers N`, `--config`.
+
+## Данные
+
 ```bash
-# Извлечение sample данных
 python scripts/data/extract_samples.py --extract-all
 python scripts/data/extract_samples.py --dataset tv_xauusd_1h
+python scripts/data/extract_samples.py --validate-sources
 ```
 
-## 📋 Требования
+Извлекает встроенные сэмплы из исходных CSV (`--source` — каталог с ними). Исходные файлы
+в репозитории **отсутствуют** и не нужны для работы пакета: сэмплы уже встроены в
+`bquant.data.samples`.
 
-- Python 3.8+
-- Активированное виртуальное окружение BQuant
-- Установленные зависимости BQuant (`pip install -e .`)
+## Требования
 
-## 🛠️ Разработка
-
-При создании новых скриптов следуйте принципам:
-- CLI интерфейс с argparse
-- Логирование через BQuant logger
-- Обработка ошибок
-- Документация и примеры использования
-- Тестирование функциональности
-
-## 📖 Документация
-
-Подробная документация для каждого скрипта находится в соответствующих папках.
+- Python **≥ 3.12**, пакет установлен (`pip install -e .`).
+- Скрипт с CLI обязан: разбирать аргументы `argparse`, логировать через
+  `bquant.core.logging_config`, не глотать исключения и иметь `--dry-run`, если что-то пишет.

@@ -1,162 +1,47 @@
-# BQuant Research Directory
+# research/
 
-Папка для исследований, экспериментов и аналитических ноутбуков BQuant.
+Исследовательские скрипты пакета. Сверено с содержимым каталога 2026-09-05.
 
-## 📁 Структура
+## Что здесь есть
 
-### 📓 `notebooks/`
-Jupyter ноутбуки для исследований и анализа:
-- Исследование данных и паттернов
-- Тестирование гипотез и стратегий
-- Прототипирование новых индикаторов
-- Демонстрация возможностей BQuant
+| Каталог | Содержимое |
+|---|---|
+| `notebooks/` | **20 python-скриптов** в стиле ноутбука (`NotebookSimulator`: шаги, пауза, разбор аргументов CLI) и их логи `*_log.txt`. Нумерация по слою пакета: `00_logging*`, `01_data*` (загрузка, обработка, схемы, валидация), `02_ind_*` (индикаторы), `03_analysis_*` и `03_zones_universal` (анализ), `04_zones_*` (визуализация), `06_swing_strategy_comparison` (кейс-стади свингов) |
+| `experiments/` | только `README.md` с описанием будущей структуры; экспериментов нет |
+| `studies/` | только `README.md`; исследований нет |
 
-**Планируемые ноутбуки:**
-- `01_data_exploration.ipynb` - Исследование данных
-- `02_macd_zones_analysis.ipynb` - Анализ MACD зон
-- `03_hypothesis_testing.ipynb` - Статистическое тестирование
-- `04_visualization_examples.ipynb` - Примеры визуализации
-- `05_performance_optimization.ipynb` - Оптимизация производительности
+Jupyter-ноутбуков (`.ipynb`) в репозитории нет — и не планируется: скрипт с
+`NotebookSimulator` исполняется из командной строки, попадает в батарею перед релизом и не
+хранит выводы в файле. Каталогов `methodology/` и `templates/` тоже нет.
 
-### 🔬 `methodology/`
-Методологические материалы и документация:
-- Описание используемых методов анализа
-- Теоретические основы индикаторов
-- Статистические методы и их применение
-- Best practices для количественного анализа
+## Запуск
 
-**Планируемые материалы:**
-- `statistical_methods.md` - Статистические методы
-- `technical_indicators.md` - Технические индикаторы
-- `hypothesis_testing.md` - Методы тестирования гипотез
-- `data_validation.md` - Валидация данных
-- `performance_measurement.md` - Измерение производительности
-
-### 🧪 `experiments/`
-Экспериментальные исследования и прототипы:
-- Новые алгоритмы и подходы
-- Сравнительный анализ методов
-- A/B тестирование стратегий
-- Экспериментальные индикаторы
-
-**Структура экспериментов:**
-```
-experiments/
-├── experiment_001_new_indicator/
-│   ├── README.md           # Описание эксперимента
-│   ├── hypothesis.md       # Гипотеза
-│   ├── methodology.md      # Методология
-│   ├── results.md          # Результаты
-│   └── code/              # Код эксперимента
-├── experiment_002_strategy_comparison/
-└── ...
-```
-
-### 📊 `studies/`
-Комплексные исследования и case studies:
-- Анализ рыночных условий
-- Долгосрочные исследования
-- Межрыночный анализ
-- Исторические исследования
-
-**Структура исследований:**
-```
-studies/
-├── market_analysis_2024/
-│   ├── overview.md         # Обзор исследования
-│   ├── data/              # Данные
-│   ├── analysis/          # Анализ
-│   └── conclusions.md     # Выводы
-├── cross_market_study/
-└── ...
-```
-
-## 🚀 Использование
-
-### Запуск Jupyter Lab
 ```bash
-# Активируйте виртуальное окружение
-venv_bquant_dell\Scripts\activate
-
-# Установите зависимости для ноутбуков (если не установлены)
-pip install -e .[notebooks]
-
-# Запустите Jupyter Lab
-jupyter lab research/notebooks/
+python research/notebooks/03_zones_universal.py --no-trap
 ```
 
-### Импорт BQuant в ноутбуках
+`--no-trap` отключает паузы между шагами (`nb.wait()` ждёт `Enter`); под ним скрипты
+гоняются батареей перед релизом вместе с `examples/*.py`, обязательно с `MPLBACKEND=Agg` —
+иначе `plt.show()` откроет окно и повиснет. Пакет должен быть установлен (`pip install -e .`);
+`sys.path` править не нужно. Справочник по `NotebookSimulator` — `docs/api/core/nb.md`.
+
+Типичный импорт:
+
 ```python
-# Добавление пути к проекту
-import sys
-sys.path.append('..')
-
-# Импорт основных модулей BQuant
-from bquant.data import load_symbol_data, clean_ohlcv_data
-from bquant.analysis.statistical import run_all_hypothesis_tests
 from bquant.analysis.zones import analyze_zones, analyze_macd_zones
+from bquant.analysis.statistical import run_all_hypothesis_tests
+from bquant.data.samples import get_sample_data
 from bquant.visualization import FinancialCharts, set_default_theme
-
-# Установка темы для визуализации
-set_default_theme('bquant_light')
 ```
 
-### Создание нового эксперимента
-```bash
-# Создайте папку для эксперимента
-mkdir research/experiments/experiment_XXX_description
+## Правила
 
-# Скопируйте шаблон
-cp research/templates/experiment_template/* research/experiments/experiment_XXX_description/
+- Данные — только встроенные сэмплы (`bquant.data.samples`) или файлы, которых нет в репозитории и путь к которым не захардкожен.
+- Числа, которые скрипт печатает и которые попадают в доки, — из прогона, не переписанные.
+- Скрипт, который что-то «проверяет», обязан уметь упасть: шаг, печатающий «OK» при нулевом результате, — не проверка (см. `changelogs/` за 2026-09-05, шаг 11.1 в `03_zones_universal.py`).
+- Кейс-стади с выводами живут в `docs/analytics/`, а не здесь: `06_swing_strategy_comparison.py` — источник чисел для `docs/analytics/zones/swing_strategy_comparison_case_study.md`.
 
-# Отредактируйте файлы описания
-```
+## Связанное
 
-## 📋 Guidelines
-
-### Naming Convention
-- **Ноутбуки**: `XX_descriptive_name.ipynb` (где XX - номер)
-- **Эксперименты**: `experiment_XXX_short_description/`
-- **Исследования**: `descriptive_name_YYYY/` (где YYYY - год)
-
-### Documentation Standards
-- Каждый ноутбук должен содержать markdown ячейки с описанием
-- Все функции и классы должны быть документированы
-- Результаты должны быть воспроизводимыми
-- Используйте версионирование для данных
-
-### Code Quality
-- Следуйте стандартам кодирования BQuant
-- Используйте type hints
-- Добавляйте docstrings к функциям
-- Оптимизируйте производительность для больших данных
-
-### Data Management
-- Используйте относительные пути
-- Не коммитьте большие файлы данных
-- Документируйте источники данных
-- Используйте сэмплы для демонстрации
-
-## 🔗 Связанные ресурсы
-
-- [BQuant Documentation](../docs/)
-- [API Reference](../docs/api/)
-- [Examples](../examples/)
-- [Tests](../tests/)
-
-## 📝 TODO
-
-- [ ] Создание базовых ноутбуков (Шаг 6.2 - отложен)
-- [ ] Добавление шаблонов экспериментов
-- [ ] Создание методологической документации
-- [ ] Настройка CI/CD для тестирования ноутбуков
-
-## 📞 Support
-
-Для вопросов и предложений:
-- Issues: [GitHub Issues](https://github.com/kogriv/bquant/issues)
-- Email: kogriv@gmail.com
-
----
-
-**Примечание**: Эта структура создана в рамках миграции проекта BQuant. Детальное наполнение контентом планируется после завершения основной миграции и публикации пакета.
+- [Документация](../docs/) · [Примеры](../examples/) · [Тесты](../tests/)
+- Issues: <https://github.com/kogriv/bquant/issues>

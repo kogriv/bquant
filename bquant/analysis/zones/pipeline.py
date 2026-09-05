@@ -302,9 +302,17 @@ class ZoneAnalysisPipeline:
                 "Swing strategy is not configured; cannot calculate global swings",
             )
 
-        if not hasattr(strategy, "calculate_global"):
+        # Both halves of the global contract, checked up front. A strategy with
+        # `calculate_global` but no `aggregate_for_zone` used to pass this gate
+        # and then fail per zone inside the feature analyzer, where the failure
+        # was caught and turned into `swing_metrics = None` — 0 zones with
+        # swings and 77 warnings, no error (G68).
+        missing = [m for m in ("calculate_global", "aggregate_for_zone") if not hasattr(strategy, m)]
+        if missing:
             raise ValueError(
-                f"Swing strategy {strategy!r} does not support global calculation",
+                f"Swing strategy {type(strategy).__name__} cannot run in global scope: "
+                f"it lacks {missing}. Implement them, or ask for "
+                ".with_swing_scope('per_zone') explicitly."
             )
 
         self.logger.info(

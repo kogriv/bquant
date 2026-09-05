@@ -340,7 +340,12 @@ class DivergenceCalculationStrategy(Protocol):
     Implementations must provide calculate_divergence() and get_metadata() methods.
     """
     
-    def calculate_divergence(self, zone_data: pd.DataFrame) -> DivergenceMetrics:
+    def calculate_divergence(
+        self,
+        zone_data: pd.DataFrame,
+        indicator_col: str,
+        indicator_line_col: Optional[str] = None,
+    ) -> DivergenceMetrics:
         """
         Calculate divergence metrics.
         
@@ -406,13 +411,19 @@ class ShapeCalculationStrategy(Protocol):
     Implementations must provide calculate_shape() and get_metadata() methods.
     """
     
-    def calculate_shape(self, zone_data: pd.DataFrame) -> ShapeMetrics:
+    def calculate(self, zone_data: pd.DataFrame, indicator_col: str) -> ShapeMetrics:
         """
-        Calculate shape metrics.
-        
+        Calculate shape metrics — this is the call the feature analyzer makes.
+
+        Until G68 this Protocol declared ``calculate_shape(zone_data)`` while
+        the analyzer called ``calculate(zone_data, indicator_col=...)``; a
+        strategy written to the Protocol raised inside the analyzer, where the
+        error was swallowed, and every zone got ``shape_metrics = None``.
+
         Args:
             zone_data: DataFrame carrying the series named by ``indicator_col``
-        
+            indicator_col: Column holding the oscillator to describe
+
         Returns:
             ShapeMetrics with validated data
         """
@@ -476,23 +487,32 @@ class VolumeMetrics:
 class VolumeCalculationStrategy(Protocol):
     """
     Protocol for volume analysis algorithms.
-    
+
     Implementations must provide calculate_volume() and get_metadata() methods.
+    Until G68 this block was a copy of the volatility Protocol and declared
+    ``calculate_volatility`` — a method no volume strategy has.
     """
-    
-    def calculate_volume(self, zone_data: pd.DataFrame, baseline_volume: float) -> VolumeMetrics:
+
+    def calculate_volume(
+        self,
+        zone_data: pd.DataFrame,
+        baseline_volume: Optional[float] = None,
+        indicator_col: Optional[str] = None,
+    ) -> VolumeMetrics:
         """
-        Calculate volume metrics.
-        
+        Calculate volume metrics — the call the feature analyzer makes.
+
         Args:
-            zone_data: DataFrame with column: volume
-            baseline_volume: Baseline volume for comparison
-        
+            zone_data: DataFrame with columns: volume, close (plus the indicator)
+            baseline_volume: Reference volume for ``volume_zone_ratio``; ``None``
+                lets the strategy pick its own baseline
+            indicator_col: Column of the oscillator for ``volume_indicator_corr``
+
         Returns:
             VolumeMetrics with validated data
         """
         ...
-    
+
     def get_metadata(self) -> Dict[str, Any]:
         """Strategy metadata for logging and traceability."""
         ...

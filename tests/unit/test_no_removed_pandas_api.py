@@ -52,6 +52,10 @@ def _scanned_files():
 def test_no_file_hands_pandas_an_alias_it_no_longer_accepts():
     hits = []
     for path in _scanned_files():
+        if not path.exists():
+            # Listed in the index but gone from the worktree (deleted, not yet
+            # staged): nothing to scan.
+            continue
         for lineno, line in offences(path.read_text(encoding="utf-8")):
             hits.append(f"{path.relative_to(REPO)}:{lineno}: {line}")
     assert not hits, "\n".join(hits)

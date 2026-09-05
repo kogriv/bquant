@@ -4,7 +4,7 @@
 не её продолжение, а другая работа — см. §1).
 **Заведён:** 2026-08-29.
 **Статус:** 🟡 в работе. **Волна 1 закрыта 2026-08-29, волна 2 — 2026-08-31, волна 3 —
-2026-09-02, волна 4 — 2026-09-04.** Осталась волна 5.
+2026-09-02, волна 4 — 2026-09-04, волна 5 — 2026-09-05.** Проход завершён: 54 страницы.
 
 ---
 
@@ -184,17 +184,17 @@
 
 | Статус | Слов | Страница |
 |---|---|---|
-| ⬜ | 2145 | `docs/developer_guide/README.md` |
-| ⬜ | 1603 | `docs/developer_guide/zone_analyzer_deep_dive.md` |
-| ⬜ | 1084 | `docs/developer_guide/zone_detection_strategies.md` |
-| ⬜ | 543 | `docs/developer_guide/statistical_analysis_workflow.md` |
-| ⬜ | 527 | `docs/developer_guide/analytical_philosophy.md` |
-| ⬜ | 3084 | `docs/api/extension_guide.md` |
-| ⬜ | 458 | `docs/migration/MIGRATION_v2.md` — решить, нужна ли вообще |
-| ⬜ | 370 | `docs/migration/global_swings_migration.md` — то же |
-| ⬜ | 1218 | `AGENTS.md` — инструкции агентам, не продукт |
-| ⬜ | 521 | `research/README.md` |
-| ⬜ | 199 | `scripts/README.md` |
+| ✅ | 2145 → ~1000 | `docs/developer_guide/README.md` — переписана. Обещала тест обратной совместимости, которого нет; `Python 3.10+` при `>=3.12`; чужой URL клона; `pre-commit`, `mypy`, `.github/workflows`, порог покрытия — ничего из этого в репозитории нет; «Code of Conduct → LICENSE»; пример докстринга звал `analyze(data, config)` и `hypothesis_analyzer` — ни того, ни другого нет. Примеры переписаны самодостаточными |
+| ✅ | 1603 → 1650 | `docs/developer_guide/zone_analyzer_deep_dive.md` — точечно. Таблица признаков называла `has_classic_divergence`, `skewness`, `kurtosis`, `volume_indicator_corr` на верхнем уровне `zone.features` — снято прогоном, ключи другие и вложенные; `with_auto_swing_thresholds` описан до G38 (наоборот); `indicator_col` вместо ролей; `macd_hist` вместо `macd_12_26_9__hist`; регрессия «прогноз» → объясняющая (G62) |
+| ✅ | 1084 → 1120 | `docs/developer_guide/zone_detection_strategies.md` — шаблон стратегии передавал `indicator_requirements=` в `register()`, у которого такого параметра нет (`TypeError`; блок с относительными импортами слой проверок не исполняет); фикстура `registry_cleanup` и каталоги `tests/unit/zones/` не существуют; `ruff`/`mypy` не настроены; ссылки «см. исходный код» заменены путями |
+| ✅ | 543 → 600 | `docs/developer_guide/statistical_analysis_workflow.md` — «p < 0.05 = 95 % уверенности, что эффект реален» заменено на то, что p-value означает; `volatility_score` лежит не на верхнем уровне признаков; названо, что семь тестов уже в `result.hypothesis_tests` |
+| ✅ | 527 → 560 | `docs/developer_guide/analytical_philosophy.md` — «исследование будет оформлено туториалом» → оно проведено и записано (кейс-стади свингов), с честным «ответ на ключевой вопрос статистически не получен» |
+| ✅ | 3084 → 1900 | `docs/api/extension_guide.md` — переписана. Под ней **G68**: протоколы стратегий объявляли не те сигнатуры, что зовёт анализатор (у объёма — метод волатильности), стратегия по протоколу молча получала `None`; `min_required_length`, `calculate_swings`, `get_name`, `ANALYSIS_CONFIG['strategies'][...]['class']`, `create_swing_strategy('my_custom')` — ничего из этого нет; `pd.Timestamp.utcnow` deprecated; `validate_data == False` после G58 неверно; «восемь встроенных стратегий» — семь; A/B-пример читал атрибуты у словаря. Все пять блоков теперь исполняются, числа из прогона |
+| ✅ | 458 → 0 | `docs/migration/MIGRATION_v2.md` — **удалена**: миграция с `MACDZoneAnalyzer`, удалённого в 0.0.5, в настоящем времени утверждала «`analyze_complete` внутри делегирует в пайплайн»; две ссылки сняты |
+| ✅ | 370 → 560 | `docs/migration/global_swings_migration.md` — переписана: сняты неизмеренные «≤1.5× времени», «≈264 байта на точку», «на ≲10 зон локальный быстрее»; два примера исполняются (70 из 77 зон со свингами в `global`, 44 в `per_zone`); контракт своей стратегии для `global` (G68) |
+| ✅ | 1218 → 1300 | `AGENTS.md` — пример `@performance_monitor` без скобок — ровно та форма, которую G43 назвал ломающей функцию, и она стояла в инструкции агентам; каталоги тестов, четыре слоя проверок доков, модуль валидации и статус заглушек |
+| ✅ | 521 → 330 | `research/README.md` — переписана: описывала пять планируемых `.ipynb`, каталоги `methodology/` и `templates/`, которых нет; имя личного venv; `sys.path.append('..')`; на деле — 20 скриптов `NotebookSimulator` и два пустых каталога с README |
+| ✅ | 199 → 280 | `scripts/README.md` — флаги CLI сняты с `argparse` скриптов (`--sample-data`, `--all-tests`, `--all-datasets`, `--validate-sources`); `publishing/`, `data_loader.py`, `generate_samples.py`, `cloud_setup.sh` не упоминались; `Python 3.8+` → `≥ 3.12` |
 
 ## 5. Английский — вторым проходом, не этим
 

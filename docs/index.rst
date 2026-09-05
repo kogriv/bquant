@@ -93,7 +93,6 @@ BQuant — инструментарий количественного иссл�
    :maxdepth: 2
    :caption: Migration
    
-   migration/MIGRATION_v2
    migration/global_swings_migration
 
 .. raw:: html

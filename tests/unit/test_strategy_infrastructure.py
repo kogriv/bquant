@@ -109,7 +109,8 @@ class MockSwingStrategy:
 class MockDivergenceStrategy:
     """Mock divergence strategy for testing."""
     
-    def calculate_divergence(self, zone_data: pd.DataFrame) -> DivergenceMetrics:
+    def calculate_divergence(self, zone_data: pd.DataFrame, indicator_col: str = None,
+                             indicator_line_col: str = None) -> DivergenceMetrics:
         return DivergenceMetrics(
             divergence_type='regular',
             divergence_count=2,
@@ -130,7 +131,8 @@ class MockDivergenceStrategy:
 class MockShapeStrategy:
     """Mock shape strategy for testing."""
     
-    def calculate_shape(self, zone_data: pd.DataFrame) -> ShapeMetrics:
+    # The call the analyzer makes (G68): `calculate(zone_data, indicator_col)`.
+    def calculate(self, zone_data: pd.DataFrame, indicator_col: str = None) -> ShapeMetrics:
         return ShapeMetrics(
             hist_skewness=0.5,
             hist_kurtosis=3.2,
@@ -150,7 +152,8 @@ class MockShapeStrategy:
 class MockVolumeStrategy:
     """Mock volume strategy for testing."""
     
-    def calculate_volume(self, zone_data: pd.DataFrame, baseline_volume: float) -> VolumeMetrics:
+    def calculate_volume(self, zone_data: pd.DataFrame, baseline_volume: float = None,
+                         indicator_col: str = None) -> VolumeMetrics:
         return VolumeMetrics(
             volume_zone_ratio=1.5,
             volume_at_entry_change=0.2,
@@ -437,11 +440,11 @@ class TestProtocolContracts:
             'macd_hist': [0.1, 0.3, 0.5, 0.4, 0.2]
         })
         
-        result = strategy.calculate_shape(test_data)
+        result = strategy.calculate(test_data, indicator_col='macd_hist')
         assert isinstance(result, ShapeMetrics)
         result.validate()
         
-        print("[OK] calculate_shape() returns valid ShapeMetrics")
+        print("[OK] calculate() returns valid ShapeMetrics")
     
     def test_volume_strategy_protocol(self):
         """Test VolumeCalculationStrategy protocol."""

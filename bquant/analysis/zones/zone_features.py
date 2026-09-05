@@ -176,6 +176,23 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
         self.shape_strategy = create_shape_strategy(shape_strategy)
         self.volume_strategy = create_volume_strategy(volume_strategy)
         self.volatility_strategy = create_volatility_strategy(volatility_strategy)
+
+        # The interface is checked here, once, by name — not per zone inside a
+        # `try` that turns a missing method into `None` (G68).
+        for family, strategy, required in (
+            ('swing', self.swing_strategy, ('calculate', 'get_metadata')),
+            ('shape', self.shape_strategy, ('calculate', 'get_metadata')),
+            ('divergence', self.divergence_strategy, ('calculate_divergence', 'get_metadata')),
+            ('volume', self.volume_strategy, ('calculate_volume', 'get_metadata')),
+            ('volatility', self.volatility_strategy, ('calculate_volatility', 'get_metadata')),
+        ):
+            missing = [m for m in required if strategy is not None and not callable(getattr(strategy, m, None))]
+            if missing:
+                raise TypeError(
+                    f"{family} strategy {type(strategy).__name__} lacks {missing}; the "
+                    f"feature analyzer calls exactly these. See "
+                    f"bquant.analysis.zones.strategies.base for the Protocol."
+                )
         
         self.logger = get_logger(f"{__name__}.ZoneFeaturesAnalyzer")
         
@@ -463,6 +480,10 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                             swing_metrics.drop_count,
                             swing_metrics.rally_to_drop_ratio,
                         )
+                except (AttributeError, TypeError):
+                    # A strategy that cannot be called is a programming error, not a
+                    # zone without data (G68).
+                    raise
                 except Exception as e:
                     self.logger.warning(f"Failed to calculate swing metrics: {e}")
                     metadata['swing_metrics'] = None
@@ -481,6 +502,10 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     else:
                         metadata['shape_metrics'] = None
                         self.logger.debug("No indicator column for shape analysis (G61: no guessing)")
+                except (AttributeError, TypeError):
+                    # A strategy that cannot be called is a programming error, not a
+                    # zone without data (G68).
+                    raise
                 except Exception as e:
                     self.logger.debug(f"Shape metrics not available: {e}")
                     metadata['shape_metrics'] = None
@@ -503,6 +528,10 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     else:
                         metadata['divergence_metrics'] = None
                         self.logger.debug("No indicator column for divergence analysis (G61: no guessing)")
+                except (AttributeError, TypeError):
+                    # A strategy that cannot be called is a programming error, not a
+                    # zone without data (G68).
+                    raise
                 except Exception as e:
                     self.logger.debug(f"Divergence metrics not available: {e}")
                     metadata['divergence_metrics'] = None
@@ -543,6 +572,10 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     self.logger.debug(
                         f"Volume metrics calculated: avg={volume_metrics.avg_volume_zone}"
                     )
+                except (AttributeError, TypeError):
+                    # A strategy that cannot be called is a programming error, not a
+                    # zone without data (G68).
+                    raise
                 except Exception as e:
                     self.logger.debug(f"Volume metrics not available: {e}")
                     metadata['volume_metrics'] = None

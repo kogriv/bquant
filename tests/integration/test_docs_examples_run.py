@@ -62,12 +62,6 @@ from tests.unit.test_docs_parity import (  # noqa: E402
 #: Образец — ``KNOWN_COLLISIONS`` в ``tests/unit/test_public_name_collisions.py``:
 #: «ожидаемо падает» должно быть **заявлено**, а не получаться само.
 EXPECTED_TO_FAIL = {
-    ("docs/api/extension_guide.md", "my_bquant_extension"):
-        "импортирует гипотетический пакет расширения — он и есть предмет примера",
-    ("docs/api/extension_guide.md", "setup("):
-        "фрагмент setup.py стороннего пакета расширения, а не исполняемый пример",
-    ("docs/api/extension_guide.md", "create_swing_strategy('my_custom')"):
-        "использует стратегию, которую читатель регистрирует у себя по инструкции выше",
     ("docs/developer_guide/zone_detection_strategies.md", "from .base import"):
         "относительный импорт внутри пакета: так выглядит файл стратегии на месте",
 }

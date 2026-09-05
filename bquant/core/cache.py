@@ -341,7 +341,9 @@ class DiskCache:
         """Очистить весь дисковый кэш."""
         count = 0
         for file_path in self.cache_dir.glob("*.pkl"):
-            file_path.unlink()
+            # Another process may have removed it between glob and unlink —
+            # two suites sharing one cache directory did exactly that.
+            file_path.unlink(missing_ok=True)
             count += 1
         
         self.logger.info(f"Cleared disk cache: {count} files removed")
@@ -357,7 +359,7 @@ class DiskCache:
                     entry = pickle.load(f)
                 
                 if entry.is_expired():
-                    file_path.unlink()
+                    file_path.unlink(missing_ok=True)
                     expired_count += 1
                     
             except Exception:

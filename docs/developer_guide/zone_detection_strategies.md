@@ -63,9 +63,10 @@ from ..models import ZoneInfo
 
 
 @ZoneDetectionRegistry.register(
-    name="my_strategy",
-    indicator_requirements=["my_indicator"],  # отображается в list_strategies()
-    description="Detects custom bullish/bearish zones based on My Indicator."
+    "my_strategy",
+    description="Detects custom bullish/bearish zones based on My Indicator.",
+    supported_zones=["bull"],           # объявленный словарь типов; None — определяется данными
+    required_rules=["my_indicator"],    # проверяется реестром до вызова detect_zones
 )
 class MyStrategy(ZoneDetectionStrategy):
     """Детекция зон по кастомным правилам."""
@@ -112,17 +113,17 @@ class MyStrategy(ZoneDetectionStrategy):
 
 ### Обязательные элементы шаблона
 
-- `@ZoneDetectionRegistry.register(...)` — регистрирует стратегию и публикует метаданные.
-- `REQUIRED_RULES` — список обязательных полей `rules`, используемый в `config.validate(...)`.
+- `@ZoneDetectionRegistry.register(name, description=..., supported_zones=..., required_rules=...)` — регистрирует стратегию и публикует метаданные; параметра `indicator_requirements` у него **нет** (до 2026-09-05 шаблон передавал его и падал `TypeError`, а слой проверок этого не видел — блок с относительными импортами не исполняется).
+- `REQUIRED_RULES` — список обязательных полей `rules`, используемый в `config.validate(required_rules, optional_rules=())`; лишние правила тоже отвергаются.
 - Возвращаемые `ZoneInfo` должны заполнять `indicator_context` как минимум полями `detection_strategy` и `detection_indicator` (требования контракта v2.1).
 
 ## 🧪 Тестирование стратегии
 
 | Тип теста | Что проверяем | Пример |
 |-----------|---------------|--------|
-| Unit      | Метод `detect_zones()` возвращает ожидаемые зоны и заполняет `indicator_context`. | `tests/unit/zones/detection/test_my_strategy.py` |
-| Registry  | Стратегия доступна через `ZoneDetectionRegistry.get('my_strategy')`. | Используйте фикстуру `registry_cleanup` (см. `tests/conftest.py`). |
-| Pipeline  | Интеграция с `ZoneAnalysisPipeline` через `ZoneDetectionConfig`. | Добавьте сценарий в `tests/integration/zones/test_pipeline_strategies.py`. |
+| Unit      | Метод `detect_zones()` возвращает ожидаемые зоны и заполняет `indicator_context`. | `tests/unit/test_my_strategy_detection.py` (каталог `tests/unit/` плоский) |
+| Registry  | Стратегия доступна через `ZoneDetectionRegistry.get('my_strategy')`. | Фикстуры для сброса реестра нет — регистрируйте под уникальным именем. |
+| Pipeline  | Интеграция с `analyze_zones(...).detect_zones('my_strategy', ...)`. | `tests/integration/test_zone_analysis_e2e.py` — образец. |
 
 Пример минимального unit-теста:
 
@@ -201,23 +202,21 @@ result = (
   - Обновите developer guide (этот документ) и профильные страницы API/конфигураций.
   - Добавьте примеры конфигурации и использования, включая параметры `rules` и флаги анализатора.
 - **Проверки.**
-  - Выполните `pytest` для затронутых пакетов.
-  - Прогоните статический анализ (например, `ruff`, `mypy` или используемые в проекте инструменты) при изменении Python-кода.
-  - Обновите `CHANGELOG`/`CHANGE_TRACE_LOG`, если изменение публичное.
-  - Убедитесь, что линтеры и форматтеры (например, `ruff --fix`, `black`) не оставляют нарушений.
-
-Зафиксируйте результаты проверок в описании pull request и сослались на соответствующие разделы «Точки расширения» для ревьюеров.
+  - `pytest -q` целиком — сьют быстрый, а сторожа доков видят стратегию, как только она упомянута.
+  - `black` и `flake8` из extras `dev`; `ruff` и `mypy` в проекте не настроены.
+  - Запись в `changelogs/CHANGE_TRACE_LOG_<дата>.md` и в `CHANGELOG.md`, если изменение публичное.
+  - Каждый сторож нового поведения — с мутацией: откат правки обязан его покрасить.
 
 ## 📎 Полезные ссылки
 
 - [Zone Analysis Pipeline](../api/analysis/pipeline.md)
-- Протокол и конфигурация (см. исходный код)
-- Реестр стратегий (см. исходный код)
-- Примеры существующих стратегий (см. исходный код)
+- Протокол и конфигурация — `bquant/analysis/zones/detection/base.py`
+- Реестр — `bquant/analysis/zones/detection/registry.py`
+- Встроенные стратегии — `bquant/analysis/zones/detection/{zero_crossing,threshold,line_crossing,combined,preloaded}.py`
 
 ## 📝 TODO перед завершением задачи
 
 - [ ] Добавить стратегию в список `docs/api/analysis/strategies.md` (если это публичная возможность).
 - [ ] Обновить соответствующие руководства пользователя/примеры.
-- [ ] Отразить изменение в `CHANGELOG.md` и `MIGRATION_v2.md` (при наличии breaking changes).
+- [ ] Отразить изменение в `CHANGELOG.md` (ломающее — с пометкой).
 - [ ] Запустить `pytest` для unit и integration тестов, связанные с новой стратегией.

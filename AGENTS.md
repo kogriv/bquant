@@ -21,7 +21,7 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 
 ### Data Layer (`bquant/data/`)
 - **`loader.py`**: CSV data loading with automatic format detection (OANDA, MetaTrader)
-- **`processor.py`**: Data processing and indicator calculation pipeline
+- **`processor.py`**: Cleaning, resampling, derived values (`calculate_true_range`, `calculate_atr`), `resolve_time_index`
 - **`samples/`**: Embedded sample datasets for testing and examples
 - **`validator.py`**: Data validation and quality checks
 - **`schemas.py`**: Data structure definitions
@@ -35,7 +35,8 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 ### Analysis (`bquant/analysis/`)
 - **`zones/`**: **Universal Zone Analysis Pipeline v2.1** — `analyze_zones()` fluent builder (`pipeline.py`); pluggable zone-detection strategies (`detection/`: zero_crossing, threshold, line_crossing, preloaded, combined); metric strategies (`strategies/`: swing, shape, divergence, volatility, volume); zone models (`models.py`), presets (`presets.py`), feature extraction (`zone_features.py`), sequence analysis (`sequence_analysis.py`)
 - **`statistical/`**: Statistical analysis and hypothesis testing
-- **`technical/`**: Technical analysis modules (mostly stubs for future implementation)
+- **`validation/`**: `ValidationSuite` (out-of-sample, walk-forward, sensitivity, Monte Carlo) over a `MetricSpec`
+- **`technical/`, `chart/`, `candlestick/`, `timeseries/`**: stubs (`is_stub = True`); `analyze()` raises `NotImplementedError`, and the factory catalog lists only executable analyzers
 
 ### Visualization (`bquant/visualization/`)
 - **`charts.py`**: Financial chart creation with Plotly
@@ -120,7 +121,7 @@ Use built-in performance monitoring for analysis functions:
 ```python
 from bquant.core.performance import performance_monitor, performance_context
 
-@performance_monitor
+@performance_monitor()          # a decorator *factory*: the parentheses are required (G43)
 def my_analysis_function(data):
     # your code here
     pass
@@ -154,17 +155,23 @@ All examples and tests should use embedded sample data from `bquant.data.samples
 
 ### Test Structure
 - `tests/unit/`: Fast tests for individual modules
-- `tests/integration/`: Tests for module interactions
+- `tests/integration/`: Tests for module interactions (includes the docs-example runner)
+- `tests/analysis/`, `tests/performance/`, `tests/visualization/`: topic suites
 - `tests/fixtures/`: Shared test data and utilities
+
+Every guard test written for a gap record is **mutation-verified**: revert the fix and the
+test must go red. A test that passes on the defect is not a test (`devref/gaps/`).
 
 ### Performance Tests
 Include performance validation in tests, especially for indicator calculations and data processing.
 
 ### Documentation Parity
-`tests/unit/test_docs_parity.py` auto-scans `docs/**/*.md` and asserts that every local file
-link resolves and every `from bquant... import ...` in a doc example resolves to a real module
-and symbol. Keep doc examples runnable: renaming or moving an API/file will make this suite flag
-the stale doc reference, so update the docs in the same change.
+Four layers keep the docs from drifting: `tests/unit/test_docs_parity.py` (links resolve,
+imported names exist), call-signature checks, `tests/integration/test_docs_examples_run.py`
+(every **self-contained** python block executes), and
+`tests/unit/test_public_surface_is_documented.py` (every re-exported name is mentioned
+somewhere). Renaming or moving an API therefore fails the suite until the docs change in
+the same commit. Numbers in prose come from running the example, never transcribed.
 
 ## Common Patterns to Avoid
 

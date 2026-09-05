@@ -1,85 +1,102 @@
-# Переход на глобальный расчёт свингов
+# Глобальный расчёт свингов — что изменилось и как жить с этим
 
-## Зачем переходить?
+С 0.0.6 свинги считаются **один раз на всём кадре** и нарезаются по зонам (`global`); режим
+`per_zone` — внутри каждой зоны отдельно — остался по явному запросу. Страница для тех, чей
+код писался под `per_zone`.
 
-**Проблема:** локальный (per_zone) расчёт свингов не учитывает пивоты за пределами зоны и искажает метрики покрытия.
-Замер 2026-09-04, `tv_xauusd_1h`, пресет `narrow_zone`, 39 бычьих зон
+## Почему `global` — умолчание
+
+Замер 2026-09-04 на `tv_xauusd_1h`, пресет `narrow_zone`, 39 бычьих зон
 ([полный отчёт](../analytics/zones/swing_strategy_comparison_case_study.md)):
-- `find_peaks`: свинги присутствуют только в 15.4% зон.
-- `pivot_points`: свинги присутствуют только в 7.7% зон.
-- `zigzag`: покрытие достигает лишь 56.4% зон.
 
-**Решение:** глобальный режим вычисляет свинговые точки один раз на всём датасете и затем нарезает их по зонам.
-- Покрытие растёт у всех трёх стратегий: `find_peaks` 35.9%, `pivot_points` 51.3%, `zigzag` 92.3%
-  (+20.5, +43.6 и +35.9 п.п.).
-- **Одна прогонка** стратегии вместо N запусков для каждой зоны. Про время это ничего не
-  обещает: два прогона одного дня дали `zigzag` противоположный порядок режимов, разброс между
-  прогонами больше разницы между режимами.
-- **Стабильнее**: нет артефактов на границах зон и пересчёта адаптивных порогов.
+| Стратегия | `per_zone` | `global` |
+|---|---|---|
+| `find_peaks` | 15.4 % зон со свингами | 35.9 % |
+| `pivot_points` | 7.7 % | 51.3 % |
+| `zigzag` | 56.4 % | 92.3 % |
 
-## Шаги миграции
+Пивот, стоящий за границей зоны, в `per_zone` невидим; `global` видит его и потому
+находит свинги там, где локальный расчёт не находил ничего. Про **время** режимы ничего
+не обещают: два прогона одного дня дали `zigzag` противоположный порядок, разброс между
+прогонами больше разницы между режимами.
 
-### Шаг 1. Режим по умолчанию
+С G54 (2026-09-04) оба режима считаются **одним детектором**: раньше `per_zone` у `zigzag`
+брал перерисовывающий вариант, и сравнение режимов сравнивало алгоритмы. Отказ
+глобального расчёта больше не переключает прогон на `per_zone` молча — это `RuntimeError`.
 
-**По умолчанию** используется `global`. Явно указывать не нужно:
+## Что делать
+
+**Ничего**, если код не звал `with_swing_scope`: умолчание уже `global`.
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
 result = (
-    analyze_zones(data)
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='zigzag')
     .build()
-)  # автоматически global
+)
+
+zone = result.zones[5]
+print(result.metadata['swing_coverage'])
+print(len(zone.get_zone_swings()), zone.features['metadata']['swing_calculation_mode'])
+# {'strategy': 'ZigZagSwingStrategy', 'zones': 77, 'zones_with_swings': 70}
+# 10 global
 ```
 
-Для возврата к локальному расчёту используйте `.with_swing_scope('per_zone')`:
+`zone.get_zone_swings()` отдаёт точки `SwingPoint` внутри зоны **плюс по одной соседней с
+каждой стороны** — чтобы амплитуда и длительность крайних движений были настоящими, а не
+обрезанными границей. С 0.0.12 контекст свингов переживает `result.save()` в JSON и
+Parquet.
+
+Вернуть локальный расчёт — явно:
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
 result = (
-    analyze_zones(data)
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
     .with_strategies(swing='zigzag')
     .with_swing_scope('per_zone')
     .build()
 )
+
+print(result.metadata['swing_coverage']['zones_with_swings'], result.zones[5].get_zone_swings())
+# 44 []
 ```
 
-### Шаг 2. Используйте глобальные свинговые точки (при необходимости)
+В `per_zone` у зон нет `swing_context`, и `get_zone_swings()` пуст — метрики свингов лежат
+в `zone.features['metadata']['swing_metrics']` в обоих режимах.
 
-```python
-for zone in result.zones:
-    swings = zone.get_zone_swings()  # Возвращает List[SwingPoint]
-    print(f"Zone {zone.zone_id}: {len(swings)} swing points")
-```
+## Своя свинг-стратегия
 
-Метод `get_zone_swings()` автоматически захватывает соседние пивоты, чтобы амплитуды и длительности свингов были корректными.
+`global` требует `calculate_global(full_data)` **и** `aggregate_for_zone(zone, context)`;
+стратегия только с `calculate()` работает в `per_zone`. Стратегия с одной половиной
+глобального контракта отвергается при сборке (G68). Шаблон —
+[руководство по расширению](../api/extension_guide.md).
 
-### Шаг 3. Очистите кэш результатов
+## Кэш
 
-```bash
-rm -rf ~/.cache/bquant/zone_analysis_*.pkl
-# или полная очистка:
-rm -rf ~/.cache/bquant/*.pkl
-```
+Кэш зон лежит в `~/.cache/bquant/*.pkl` и версионируется `ZoneAnalysisCache.CACHE_VERSION`:
+запись прежней версии не читается, пересчёт происходит сам; чистить руками нужно только
+ради места. Ключ включает режим свингов, поэтому `global` и `per_zone` не делят записи.
 
-Переход на глобальный режим поднял `CACHE_VERSION` (номер растёт с каждым изменением формы результата; текущий — `ZoneAnalysisCache.CACHE_VERSION`). Записи прежних версий игнорируются автоматически; ручная очистка нужна только чтобы освободить место.
+## Что здесь раньше было и снято
 
-## Ломающие изменения
+Раздел «Производительность» обещал «≤1.5× времени per_zone на 100k баров» и «≈264 байта на
+точку». Первое не измерялось этим репозиторием; второе держит только тест
+`tests/unit/test_swing_context_memory.py` — в границах 40–450 байт на точку, а не числом.
+Совет «на ≲10 зон локальный режим быстрее» тоже не измерялся.
 
-Режим `global` используется **по умолчанию**. Для прежнего поведения (локальный расчёт) явно укажите `.with_swing_scope('per_zone')`.
+## См. также
 
-## Диагностика и советы
-
-- **Предупреждение про инвалидацию кэша?** Это ожидаемо при первом запуске с новой версией схемы.
-- **Глобальный режим кажется медленнее?** На небольшом числе зон (≲10) локальный режим может быть быстрее. На десятках и сотнях зон глобальный режим выигрывает за счёт одного расчёта стратегии.
-- **Некоторые зоны всё ещё без свингов?** Такое возможно для однобарных зон или диапазонов без внутренних пивотов. Проверьте ширину зоны и параметры стратегии.
-
-## Производительность
-
-- Рекомендуемый объём данных: до 1 млн баров.
-- Бенчмарк: глобальный режим укладывается в ≤1.5× времени per_zone на датасете 100k баров и ~100 зон.
-- Память: ≈264 байта на одну точку `SwingPoint`.
-
-## Следующие шаги
-
-- Подробное руководство: `docs/user_guide/zone_analysis.md` (раздел «Global vs Per-Zone Swing Calculation»).
-- API-справка: `docs/api/analysis/zones/global_swings_models.md` (описание `SwingPoint`, `SwingContext` и `ZoneInfo`).
-- Пример использования: `examples/zone_analysis_global_swings.py` (минимальный сценарий глобального режима).
+- [Модели свингов](../api/analysis/zones/global_swings_models.md) — `SwingPoint`,
+  `SwingContext`, `confirmation_index`
+- [Пайплайн глобальных свингов](../api/analysis/zones/global_swings_pipeline.md)
+- `examples/zone_analysis_global_swings.py`
