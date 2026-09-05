@@ -155,7 +155,7 @@ result = analyze_macd_zones(data)
 print(type(data.index).__name__, '→', type(result.data.index).__name__)
 # RangeIndex → DatetimeIndex
 print(len(data.columns), '→', len(result.data.columns))
-# 15 → 17
+# 15 → 18
 ```
 
 ## Дальше

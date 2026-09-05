@@ -13,6 +13,7 @@ from datetime import datetime
 
 from ...core.logging_config import get_logger
 from ...core.exceptions import StatisticalAnalysisError
+from statsmodels.stats.stattools import durbin_watson
 from .. import BaseAnalyzer
 
 logger = get_logger(__name__)
@@ -172,13 +173,18 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
         
         self.logger.info(f"Initialized zone regression analyzer with alpha={alpha}")
     
-    def predict_zone_duration(self,
+    def explain_zone_duration(self,
                              zones_features: List[Dict[str, Any]],
                              predictors: Optional[List[str]] = None) -> RegressionResult:
         """
-        Build regression model to predict zone duration.
-        
+        Fit an **in-sample, explanatory** regression of zone duration on zone features.
+
         Model: duration ~ line_amplitude + oscillator_amplitude + correlation_price_oscillator + ...
+
+        The predictors are measured over the **whole, finished** zone — the same
+        zone whose duration is the target. This explains variance ex post; it
+        is not a forecast, and R² here is not predictive evidence. The method
+        was called ``predict_zone_duration`` until G62.
         
         Args:
             zones_features: List of zone feature dictionaries
@@ -241,6 +247,13 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             # with a bare KeyError.
             X_with_const = add_constant(X, has_constant='add')
             _reject_degenerate_design(X_with_const, available_predictors)
+            if y.nunique(dropna=True) <= 1:
+                # A constant target has no variance to explain; OLS would still
+                # fit and report R² = -inf (G62).
+                raise StatisticalAnalysisError(
+                    f"Target 'duration' is constant across all {len(y)} observations "
+                    f"(value {y.iloc[0]!r}); there is nothing to explain."
+                )
             
             # Fit OLS model
             model = OLS(y, X_with_const).fit()
@@ -281,7 +294,11 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
                 'aic': float(model.aic),
                 'bic': float(model.bic),
                 'vif': vif_data,
-                'durbin_watson': float(model.durbin_watson) if hasattr(model, 'durbin_watson') else None,
+                # Computed explicitly: a fitted OLS has no `durbin_watson`
+                # attribute, and `getattr(..., None)` reported None forever (G62).
+                'durbin_watson': float(durbin_watson(residuals.values)),
+                'kind': 'in_sample_explanatory',
+                'feature_availability': 'ex_post',
                 'condition_number': float(model.condition_number),
                 'target_mean': float(y.mean()),
                 'target_std': float(y.std()),
@@ -324,13 +341,19 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             self.logger.error(f"Zone duration regression failed: {e}")
             raise StatisticalAnalysisError(f"Duration regression failed: {e}")
     
-    def predict_price_return(self,
+    def explain_price_return(self,
                             zones_features: List[Dict[str, Any]],
                             predictors: Optional[List[str]] = None) -> RegressionResult:
         """
-        Build regression model to predict price return.
-        
+        Fit an **in-sample, explanatory** regression of the zone's return on its features.
+
         Model: price_return ~ duration + line_amplitude + correlation_price_oscillator + ...
+
+        Every default predictor is known only when the zone is over — its
+        duration, its drawdown from the peak (which contains the end price), its
+        peak count, its oscillator slope — and the target is the return of that
+        same zone. This explains, it does not predict; the method was called
+        ``predict_price_return`` until G62.
         
         Args:
             zones_features: List of zone feature dictionaries
@@ -393,6 +416,13 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
             # with a bare KeyError.
             X_with_const = add_constant(X, has_constant='add')
             _reject_degenerate_design(X_with_const, available_predictors)
+            if y.nunique(dropna=True) <= 1:
+                # A constant target has no variance to explain; OLS would still
+                # fit and report R² = -inf (G62).
+                raise StatisticalAnalysisError(
+                    f"Target 'price_return' is constant across all {len(y)} observations "
+                    f"(value {y.iloc[0]!r}); there is nothing to explain."
+                )
             
             # Fit OLS model
             model = OLS(y, X_with_const).fit()
@@ -433,7 +463,11 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
                 'aic': float(model.aic),
                 'bic': float(model.bic),
                 'vif': vif_data,
-                'durbin_watson': float(model.durbin_watson) if hasattr(model, 'durbin_watson') else None,
+                # Computed explicitly: a fitted OLS has no `durbin_watson`
+                # attribute, and `getattr(..., None)` reported None forever (G62).
+                'durbin_watson': float(durbin_watson(residuals.values)),
+                'kind': 'in_sample_explanatory',
+                'feature_availability': 'ex_post',
                 'condition_number': float(model.condition_number),
                 'target_mean': float(y.mean()),
                 'target_std': float(y.std()),

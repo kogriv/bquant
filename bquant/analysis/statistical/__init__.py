@@ -28,6 +28,48 @@ logger = get_logger(__name__)
 from bquant import __version__  # noqa: F401
 
 
+def lilliefors_normal(values: np.ndarray, simulations: int = 2000, seed: int = 0) -> Tuple[float, float]:
+    """Lilliefors test for normality: KS statistic against a normal with the
+    sample's own mean and standard deviation, p-value by Monte Carlo.
+
+    The plain KS p-value assumes the reference distribution was specified in
+    advance; with parameters estimated from the sample the statistic is
+    systematically smaller and that p-value is far too lenient. The
+    null distribution of the Lilliefors statistic has no closed form, so the
+    p-value is the share of ``simulations`` normal samples of the same size
+    whose statistic is at least as large — seeded, hence reproducible.
+
+    Returns:
+        ``(statistic, p_value)``.
+    """
+    x = np.asarray(values, dtype=float)
+    x = x[np.isfinite(x)]
+    n = len(x)
+    if n < 4:
+        raise ValueError("Lilliefors needs at least 4 observations")
+
+    ranks = np.arange(1, n + 1) / n
+
+    def ks_distance(samples: np.ndarray) -> np.ndarray:
+        # KS statistic of each row against the normal with that row's own mean
+        # and std. Written out rather than via `scipy.stats.kstest(..., args=)`,
+        # which on scipy 1.18 with pandas 3 raises `ndtr()` argument errors.
+        means = samples.mean(axis=1, keepdims=True)
+        stds = samples.std(axis=1, ddof=1, keepdims=True)
+        stds = np.where(stds == 0, np.nan, stds)
+        z = np.sort((samples - means) / stds, axis=1)
+        cdf = stats.norm.cdf(z)
+        d_plus = np.max(ranks - cdf, axis=1)
+        d_minus = np.max(cdf - (ranks - 1.0 / n), axis=1)
+        return np.where(np.isnan(stds[:, 0]), 1.0, np.maximum(d_plus, d_minus))
+
+    observed = float(ks_distance(x[None, :])[0])
+    rng = np.random.default_rng(seed)
+    null = ks_distance(rng.standard_normal((simulations, n)))
+    p_value = float((np.sum(null >= observed) + 1) / (simulations + 1))
+    return observed, p_value
+
+
 class StatisticalAnalyzer(BaseAnalyzer):
     """
     Базовый класс для статистических анализаторов.
@@ -61,7 +103,7 @@ class StatisticalAnalyzer(BaseAnalyzer):
             return {}
         
         stats_dict = {
-            'count': len(data),
+            'count': int(data.count()),  # non-null, like every other statistic here (G63)
             'mean': data.mean(),
             'std': data.std(),
             'min': data.min(),
@@ -112,32 +154,50 @@ class StatisticalAnalyzer(BaseAnalyzer):
                     'is_normal': shapiro_p > alpha
                 }
             except Exception as e:
+                # Recorded, not just logged: a test that did not run is not a
+                # verdict, and a missing key was indistinguishable from "not
+                # applicable" (G63).
                 self.logger.warning(f"Shapiro-Wilk test failed: {e}")
+                results['shapiro'] = {'error': str(e)}
         
-        # Kolmogorov-Smirnov test
+        # Lilliefors — the KS test for a normal with mean and std *estimated
+        # from the same sample*. Plain `kstest(..., args=(mean, std))` uses the
+        # p-value of a fully specified normal and is far too lenient here: a
+        # uniform sample of 300 passed it (G63). Computed here rather than via
+        # `statsmodels.stats.diagnostic.lilliefors`, which breaks against the
+        # scipy a clean install resolves today (`ndtr()` argument count).
         try:
-            ks_stat, ks_p = stats.kstest(data.dropna(), 'norm', 
-                                        args=(data.mean(), data.std()))
-            results['kolmogorov_smirnov'] = {
-                'statistic': ks_stat,
-                'p_value': ks_p,
-                'is_normal': ks_p > alpha
+            lf_stat, lf_p = lilliefors_normal(data.dropna().to_numpy())
+            results['lilliefors'] = {
+                'statistic': float(lf_stat),
+                'p_value': float(lf_p),
+                'is_normal': bool(lf_p > alpha)
             }
         except Exception as e:
-            self.logger.warning(f"Kolmogorov-Smirnov test failed: {e}")
+            self.logger.warning(f"Lilliefors test failed: {e}")
+            results['lilliefors'] = {'error': str(e)}
         
-        # Anderson-Darling test
+        # Anderson-Darling: the critical value for *this* alpha, not always 5 %
         try:
             ad_result = stats.anderson(data.dropna(), dist='norm')
-            # Сравниваем с критическим значением для alpha=0.05
-            critical_idx = 2  # Индекс для 5% уровня значимости
+            levels = [round(float(l) / 100.0, 4) for l in ad_result.significance_level]
+            if round(float(alpha), 4) not in levels:
+                raise ValueError(
+                    f"Anderson-Darling has critical values only for alpha in {levels}; "
+                    f"got {alpha}. Pick one of them or read the statistic yourself."
+                )
+            critical_idx = levels.index(round(float(alpha), 4))
             results['anderson_darling'] = {
-                'statistic': ad_result.statistic,
-                'critical_value': ad_result.critical_values[critical_idx],
-                'is_normal': ad_result.statistic < ad_result.critical_values[critical_idx]
+                'statistic': float(ad_result.statistic),
+                'critical_value': float(ad_result.critical_values[critical_idx]),
+                'alpha': alpha,
+                'is_normal': bool(ad_result.statistic < ad_result.critical_values[critical_idx])
             }
+        except ValueError:
+            raise
         except Exception as e:
             self.logger.warning(f"Anderson-Darling test failed: {e}")
+            results['anderson_darling'] = {'error': str(e)}
         
         self.logger.debug(f"Performed normality tests on {len(data)} data points")
         return results
@@ -342,25 +402,29 @@ def quick_stats(data: pd.Series) -> Dict[str, float]:
 
 def test_normality(data: pd.Series, alpha: float = 0.05) -> bool:
     """
-    Быстрый тест нормальности.
-    
+    Быстрый тест нормальности: **все** выполнившиеся тесты обязаны принять гипотезу.
+
+    До G63 хватало одного принявшего из трёх — равномерная выборка проходила как
+    нормальная, потому что её принимал KS без поправки Лиллиефорса. Политика
+    объединения названа: консервативная, «нормально, если никто не отверг».
+    Ни один тест не выполнился — не нормально (нечем показать).
+
     Args:
         data: Данные для тестирования
         alpha: Уровень значимости
-    
+
     Returns:
-        True если данные имеют нормальное распределение
+        True если каждый выполнившийся тест принял нормальность
     """
     analyzer = StatisticalAnalyzer({'alpha': alpha})
     results = analyzer.normality_test(data, alpha)
-    
-    # Возвращаем True если хотя бы один тест показал нормальность
-    for test_name, test_result in results.items():
-        if isinstance(test_result, dict) and 'is_normal' in test_result:
-            if test_result['is_normal']:
-                return True
-    
-    return False
+
+    verdicts = [
+        bool(test_result['is_normal'])
+        for test_result in results.values()
+        if isinstance(test_result, dict) and 'is_normal' in test_result
+    ]
+    return bool(verdicts) and all(verdicts)
 
 
 def correlation_matrix(data: pd.DataFrame, method: str = 'pearson') -> pd.DataFrame:
@@ -404,6 +468,7 @@ except ImportError as e:
 
 # Экспорт
 __all__ = [
+    'lilliefors_normal',
     'StatisticalAnalyzer',
     'get_statistical_analyzers',
     'quick_stats',

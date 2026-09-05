@@ -154,9 +154,9 @@ class TestZoneRegressionAnalyzer:
         assert analyzer.alpha == 0.05
         assert analyzer.logger is not None
     
-    def test_predict_zone_duration_basic(self, analyzer, test_zones):
+    def test_explain_zone_duration_basic(self, analyzer, test_zones):
         """Test basic duration prediction."""
-        result = analyzer.predict_zone_duration(test_zones)
+        result = analyzer.explain_zone_duration(test_zones)
         
         assert isinstance(result, RegressionResult)
         assert result.target_variable == 'duration'
@@ -167,29 +167,29 @@ class TestZoneRegressionAnalyzer:
         assert len(result.predictions) == result.n_observations
         assert len(result.residuals) == result.n_observations
     
-    def test_predict_zone_duration_custom_predictors(self, analyzer, test_zones):
+    def test_explain_zone_duration_custom_predictors(self, analyzer, test_zones):
         """Test duration prediction with custom predictors."""
         custom_predictors = ['line_amplitude', 'oscillator_amplitude']
         
-        result = analyzer.predict_zone_duration(test_zones, predictors=custom_predictors)
+        result = analyzer.explain_zone_duration(test_zones, predictors=custom_predictors)
         
         assert isinstance(result, RegressionResult)
         # Check that only available predictors were used
         used_predictors = [k for k in result.coefficients.keys() if k != 'intercept']
         assert all(p in custom_predictors for p in used_predictors)
     
-    def test_predict_zone_duration_coefficients(self, analyzer, test_zones):
+    def test_explain_zone_duration_coefficients(self, analyzer, test_zones):
         """Test that coefficients are populated."""
-        result = analyzer.predict_zone_duration(test_zones)
+        result = analyzer.explain_zone_duration(test_zones)
         
         assert 'intercept' in result.coefficients
         assert 'intercept' in result.p_values
         assert len(result.coefficients) == len(result.p_values)
         assert result.n_predictors == len(result.coefficients) - 1  # Excluding intercept
     
-    def test_predict_zone_duration_metadata(self, analyzer, test_zones):
+    def test_explain_zone_duration_metadata(self, analyzer, test_zones):
         """Test metadata fields."""
-        result = analyzer.predict_zone_duration(test_zones)
+        result = analyzer.explain_zone_duration(test_zones)
         
         assert 'available_predictors' in result.metadata
         assert 'f_statistic' in result.metadata
@@ -199,9 +199,9 @@ class TestZoneRegressionAnalyzer:
         assert 'target_mean' in result.metadata
         assert 'target_std' in result.metadata
     
-    def test_predict_price_return_basic(self, analyzer, test_zones):
+    def test_explain_price_return_basic(self, analyzer, test_zones):
         """Test basic price return prediction."""
-        result = analyzer.predict_price_return(test_zones)
+        result = analyzer.explain_price_return(test_zones)
         
         assert isinstance(result, RegressionResult)
         assert result.target_variable == 'price_return'
@@ -210,11 +210,11 @@ class TestZoneRegressionAnalyzer:
         assert result.n_observations > 0
         assert result.n_predictors > 0
     
-    def test_predict_price_return_custom_predictors(self, analyzer, test_zones):
+    def test_explain_price_return_custom_predictors(self, analyzer, test_zones):
         """Test price return prediction with custom predictors."""
         custom_predictors = ['duration', 'correlation_price_oscillator']
         
-        result = analyzer.predict_price_return(test_zones, predictors=custom_predictors)
+        result = analyzer.explain_price_return(test_zones, predictors=custom_predictors)
         
         assert isinstance(result, RegressionResult)
         used_predictors = [k for k in result.coefficients.keys() if k != 'intercept']
@@ -222,7 +222,7 @@ class TestZoneRegressionAnalyzer:
     
     def test_model_quality_duration(self, analyzer, test_zones):
         """Test that duration model has reasonable fit."""
-        result = analyzer.predict_zone_duration(test_zones)
+        result = analyzer.explain_zone_duration(test_zones)
         
         # With correlated data, should get decent R²
         assert result.r_squared > 0.1, "Model should explain >10% of variance"
@@ -232,7 +232,7 @@ class TestZoneRegressionAnalyzer:
     
     def test_model_quality_price_return(self, analyzer, test_zones):
         """Test that price return model has reasonable fit."""
-        result = analyzer.predict_price_return(test_zones)
+        result = analyzer.explain_price_return(test_zones)
         
         # Price returns are noisier, but should still have some explanatory power
         assert result.r_squared >= 0, "R² should be non-negative"
@@ -244,7 +244,7 @@ class TestZoneRegressionAnalyzer:
         few_zones = create_test_zones_for_regression(3)
         
         with pytest.raises(StatisticalAnalysisError, match="Insufficient data"):
-            analyzer.predict_zone_duration(few_zones)
+            analyzer.explain_zone_duration(few_zones)
     
     def test_missing_target_variable(self, analyzer, test_zones):
         """Test with missing target variable."""
@@ -253,7 +253,7 @@ class TestZoneRegressionAnalyzer:
                             for z in test_zones]
         
         with pytest.raises(StatisticalAnalysisError, match="Missing target variable"):
-            analyzer.predict_zone_duration(zones_no_duration)
+            analyzer.explain_zone_duration(zones_no_duration)
     
     def test_no_available_predictors(self, analyzer):
         """Test with no available predictors."""
@@ -262,11 +262,11 @@ class TestZoneRegressionAnalyzer:
         predictors = ['nonexistent_column', 'another_missing']
         
         with pytest.raises(StatisticalAnalysisError, match="No predictors available"):
-            analyzer.predict_zone_duration(minimal_zones, predictors=predictors)
+            analyzer.explain_zone_duration(minimal_zones, predictors=predictors)
     
     def test_vif_calculation(self, analyzer, test_zones):
         """Test variance inflation factor calculation."""
-        result = analyzer.predict_zone_duration(test_zones)
+        result = analyzer.explain_zone_duration(test_zones)
         
         if result.n_predictors >= 2:
             assert 'vif' in result.metadata
@@ -274,7 +274,7 @@ class TestZoneRegressionAnalyzer:
     
     def test_significant_predictors_filtering(self, analyzer, test_zones):
         """Test filtering of significant predictors."""
-        result = analyzer.predict_zone_duration(test_zones)
+        result = analyzer.explain_zone_duration(test_zones)
         
         significant = result.get_significant_predictors(alpha=0.05)
         
@@ -297,8 +297,8 @@ class TestRegressionIntegration:
     
     def test_both_models_on_same_data(self, analyzer, large_dataset):
         """Test both prediction models on same dataset."""
-        duration_result = analyzer.predict_zone_duration(large_dataset)
-        return_result = analyzer.predict_price_return(large_dataset)
+        duration_result = analyzer.explain_zone_duration(large_dataset)
+        return_result = analyzer.explain_price_return(large_dataset)
         
         assert isinstance(duration_result, RegressionResult)
         assert isinstance(return_result, RegressionResult)
@@ -313,7 +313,7 @@ class TestRegressionIntegration:
     
     def test_model_summary_available(self, analyzer, large_dataset):
         """Test that model summary is generated."""
-        result = analyzer.predict_zone_duration(large_dataset)
+        result = analyzer.explain_zone_duration(large_dataset)
         
         assert result.model_summary is not None
         assert isinstance(result.model_summary, str)
@@ -322,7 +322,7 @@ class TestRegressionIntegration:
     
     def test_residuals_sum_to_zero(self, analyzer, large_dataset):
         """Test that residuals approximately sum to zero."""
-        result = analyzer.predict_zone_duration(large_dataset)
+        result = analyzer.explain_zone_duration(large_dataset)
         
         residual_sum = np.sum(result.residuals)
         
@@ -331,7 +331,7 @@ class TestRegressionIntegration:
     
     def test_predictions_vs_actuals(self, analyzer, large_dataset):
         """Test relationship between predictions and actuals."""
-        result = analyzer.predict_zone_duration(large_dataset)
+        result = analyzer.explain_zone_duration(large_dataset)
         
         df = pd.DataFrame(large_dataset)
         actuals = df['duration'].dropna().values[:result.n_observations]

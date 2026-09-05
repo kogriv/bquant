@@ -43,7 +43,10 @@ class TestZoneFeaturesVolumeIntegration:
             'zone_id': zone.zone_id,
             'type': zone.type,
             'duration': len(zone.data),
-            'data': zone.data
+            'data': zone.data,
+            # The column the metrics are measured on — the pipeline always
+            # names it; until G61 a missing context was silently guessed.
+            'indicator_context': {'detection_indicator': 'macd_hist'},
         }
     
     def test_analyzer_with_volume_strategy(self, sample_zone_info):
@@ -74,7 +77,10 @@ class TestZoneFeaturesVolumeIntegration:
                 'zone_id': zone.zone_id,
                 'type': zone.type,
                 'duration': len(zone.data),
-                'data': zone.data
+                'data': zone.data,
+                # The column the metrics are measured on — the pipeline always
+                # names it; until G61 a missing context was silently guessed.
+                'indicator_context': {'detection_indicator': 'macd_hist'},
             }
             
             features = analyzer.extract_zone_features(zone_info)
@@ -145,7 +151,10 @@ class TestZoneFeaturesVolumeIntegration:
                 'zone_id': zone.zone_id,
                 'type': zone.type,
                 'duration': len(zone.data),
-                'data': zone.data
+                'data': zone.data,
+                # The column the metrics are measured on — the pipeline always
+                # names it; until G61 a missing context was silently guessed.
+                'indicator_context': {'detection_indicator': 'macd_hist'},
             }
             
             features = analyzer.extract_zone_features(zone_info)

@@ -130,7 +130,7 @@ def test_every_predictor_empty_is_refused():
         for i in range(20)
     ]
     with pytest.raises(StatisticalAnalysisError, match="empty for this zone set"):
-        ZoneRegressionAnalyzer().predict_zone_duration(features)
+        ZoneRegressionAnalyzer().explain_zone_duration(features)
 
 
 # --------------------------------------------------------------------------- #
@@ -148,12 +148,12 @@ def _constant_features(n=15):
 
 def test_rank_deficient_design_is_refused_not_fitted():
     with pytest.raises(StatisticalAnalysisError, match="rank deficient"):
-        ZoneRegressionAnalyzer().predict_zone_duration(_constant_features())
+        ZoneRegressionAnalyzer().explain_zone_duration(_constant_features())
 
 
 def test_refusal_names_the_constant_predictors():
     with pytest.raises(StatisticalAnalysisError) as exc:
-        ZoneRegressionAnalyzer().predict_price_return([
+        ZoneRegressionAnalyzer().explain_price_return([
             {**f, "price_return": 0.01} for f in _constant_features()
         ])
     message = str(exc.value)
@@ -163,7 +163,7 @@ def test_refusal_names_the_constant_predictors():
 def test_refusal_is_not_a_bare_keyerror():
     """The old failure surfaced as `regression failed: 'const'`."""
     with pytest.raises(StatisticalAnalysisError) as exc:
-        ZoneRegressionAnalyzer().predict_zone_duration(_constant_features())
+        ZoneRegressionAnalyzer().explain_zone_duration(_constant_features())
     assert "'const'" not in str(exc.value)
 
 

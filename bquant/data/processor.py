@@ -232,6 +232,20 @@ def calculate_true_range(df: pd.DataFrame) -> pd.Series:
     return candidates.max(axis=1, skipna=True)
 
 
+def calculate_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """Average True Range: the rolling mean of :func:`calculate_true_range` over ``period`` bars.
+
+    The one ATR the package computes. The pipeline adds it to the analysed
+    frame as ``atr`` when the caller did not bring one (G60): until then the
+    branch waiting for it was unreachable, and ``atr_normalized_return`` was
+    ``None`` in every zone of the flagship path. The first ``period - 1``
+    values are ``NaN`` — the window is not full.
+    """
+    if not isinstance(period, int) or isinstance(period, bool) or period <= 0:
+        raise ValueError(f"ATR period must be a positive integer, got {period!r}")
+    return calculate_true_range(df).rolling(window=period).mean()
+
+
 def calculate_derived_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate basic derived indicators from OHLCV data.
@@ -756,6 +770,7 @@ def prepare_data_for_analysis(
 __all__ = [
     'resolve_time_index',
     'calculate_true_range',
+    'calculate_atr',
     'TIME_COLUMN_CANDIDATES',
     'clean_ohlcv_data',
     'remove_price_outliers',

@@ -140,7 +140,11 @@ class TestUniversalZoneAnalyzer:
             assert isinstance(outcome, dict) and 'error' in outcome, (
                 f"a rank-deficient design must be refused, not fitted; got {outcome!r}"
             )
-            assert 'rank deficient' in outcome['error'], (
+            # Two causes, both true of this fixture: the return model's design is
+            # rank deficient (duration is constant as a predictor), and the
+            # duration model's target is that same constant (G62). Either way the
+            # refusal names it.
+            assert 'rank deficient' in outcome['error'] or 'is constant across all' in outcome['error'], (
                 f"the refusal must name the cause; got {outcome['error']!r}"
             )
     

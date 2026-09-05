@@ -272,31 +272,33 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     min_line = float(data[line_col].min())
                     line_amplitude = max_line - min_line
             else:
-                # Fallback: try to find ANY oscillator (if context missing)
-                fallback_col = self._find_any_oscillator(data)
-                if fallback_col and fallback_col in data.columns:
-                    osc_values = data[fallback_col]
-                    max_osc = float(osc_values.max())
-                    min_osc = float(osc_values.min())
-                    oscillator_amplitude = max_osc - min_osc
-                    
-                    if len(data) >= 2:
-                        oscillator_slope = float(osc_values.diff().abs().max())
-                    
-                    self.logger.debug(
-                        f"Oscillator metrics (fallback to '{fallback_col}'): "
-                        f"amplitude={oscillator_amplitude:.4f}"
-                    )
+                # No indicator column for this zone (preloaded zones, or a
+                # context without one): the oscillator metrics stay None.
+                # Until G61 a "universal" fallback took the first numeric column
+                # not on a short exclude list — on the bundled sample that was
+                # `accumulation_distribution`, and preloaded zones reported an
+                # oscillator amplitude of 87205 and a price correlation of 0.99
+                # for a series nobody asked about. A number from another series
+                # is worse than no number.
+                self.logger.debug(
+                    f"Zone {zone_id}: no indicator column in context "
+                    f"({primary_indicator!r}); oscillator metrics left unmeasured"
+                )
             
             # Ценовые характеристики
             max_price = float(data['high'].max())
             min_price = float(data['low'].min())
             price_range_pct = (max_price / min_price) - 1
             
-            # ATR нормализация
+            # Движение за зону в единицах ATR на её первом баре. `price_return`
+            # безразмерен, ATR — в единицах цены: делить одно на другое
+            # (как было до G60) давало величину, меньшую настоящей в `start_price`
+            # раз — 0.00013 там, где движение составило 0.45 ATR.
             atr_normalized_return = None
-            if 'atr' in data.columns and data['atr'].iloc[0] > 0:
-                atr_normalized_return = price_return / float(data['atr'].iloc[0])
+            if 'atr' in data.columns:
+                atr_at_start = float(data['atr'].iloc[0])
+                if np.isfinite(atr_at_start) and atr_at_start > 0:
+                    atr_normalized_return = (end_price - start_price) / atr_at_start
             
             # v2.1: Price-indicator correlation (UNIVERSAL - use context)
             correlation_price_oscillator = None
@@ -311,18 +313,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                     except Exception as e:
                         self.logger.debug(f"Failed to calculate price-{primary_indicator} correlation: {e}")
                         correlation_price_oscillator = None
-                else:
-                    # Fallback: use generic oscillator detection (if context missing)
-                    fallback_col = self._find_any_oscillator(data)
-                    if fallback_col:
-                        try:
-                            correlation_price_oscillator = float(data['close'].corr(data[fallback_col]))
-                            self.logger.debug(
-                                f"Price-{fallback_col} correlation (fallback): {correlation_price_oscillator:.3f}"
-                            )
-                        except Exception as e:
-                            self.logger.debug(f"Correlation calculation failed: {e}")
-                            correlation_price_oscillator = None
+                # else: no indicator column — no correlation to measure (G61)
             
             # Анализ пиков и впадин
             num_peaks = None
@@ -365,6 +356,9 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             # Метаданные (универсальные)
             metadata = {
                 'data_points': len(data),
+                # Which column the oscillator metrics were measured on — or None,
+                # in which case they are None too (G61: no guessing).
+                'oscillator_column': primary_indicator if primary_indicator in data.columns else None,
                 'start_timestamp': str(data.index[0]) if hasattr(data.index[0], '__str__') else None,
                 'end_timestamp': str(data.index[-1]) if hasattr(data.index[-1], '__str__') else None,
                 'max_price': max_price,
@@ -485,15 +479,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                             f"skewness={shape_metrics.hist_skewness:.2f}, kurtosis={shape_metrics.hist_kurtosis:.2f}"
                         )
                     else:
-                        # Fallback: try to find ANY oscillator column (universal, no hardcoded names)
-                        fallback_col = self._find_any_oscillator(data)
-                        if fallback_col:
-                            shape_metrics = self.shape_strategy.calculate(data, indicator_col=fallback_col)
-                            metadata['shape_metrics'] = shape_metrics.to_dict()
-                            self.logger.debug(f"Shape analysis used fallback column: {fallback_col}")
-                        else:
-                            metadata['shape_metrics'] = None
-                            self.logger.debug("No suitable column for shape analysis")
+                        metadata['shape_metrics'] = None
+                        self.logger.debug("No indicator column for shape analysis (G61: no guessing)")
                 except Exception as e:
                     self.logger.debug(f"Shape metrics not available: {e}")
                     metadata['shape_metrics'] = None
@@ -514,17 +501,8 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
                             f"type={divergence_metrics.divergence_type}, count={divergence_metrics.divergence_count}"
                         )
                     else:
-                        # Fallback: try to find ANY oscillator column
-                        fallback_col = self._find_any_oscillator(data)
-                        if fallback_col:
-                            divergence_metrics = self.divergence_strategy.calculate_divergence(
-                                data, indicator_col=fallback_col
-                            )
-                            metadata['divergence_metrics'] = divergence_metrics.to_dict()
-                            self.logger.debug(f"Divergence analysis used fallback column: {fallback_col}")
-                        else:
-                            metadata['divergence_metrics'] = None
-                            self.logger.debug("No suitable column for divergence analysis")
+                        metadata['divergence_metrics'] = None
+                        self.logger.debug("No indicator column for divergence analysis (G61: no guessing)")
                 except Exception as e:
                     self.logger.debug(f"Divergence metrics not available: {e}")
                     metadata['divergence_metrics'] = None
@@ -933,50 +911,7 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
             self.logger.error(f"Failed to get zone features summary: {e}")
             return {'error': str(e)}
     
-    def _find_any_oscillator(self, data: pd.DataFrame) -> Optional[str]:
-        """
-        Find first suitable oscillator column (UNIVERSAL - no hardcoded names).
-        
-        Strategy (v2.1):
-        1. Get all numeric columns
-        2. Exclude OHLCV and known auxiliary columns (generic exclusion)
-        3. Return first remaining column
-        
-        This is TRULY UNIVERSAL - doesn't know about specific indicators!
-        No hardcoded patterns like 'RSI_', 'MACD_', 'AO_'
-        
-        Returns:
-            str: First suitable oscillator column, or None if not found
-        """
-        # Generic exclusion list (NOT indicator-specific!)
-        excluded = {
-            # Price data
-            'open', 'high', 'low', 'close', 'volume',
-            # Time data
-            'time', 'timestamp', 'date', 'datetime',
-            # Auxiliary (not oscillators)
-            'atr', 'true_range', 'tr',
-            # Index-like
-            'index', 'id', 'zone_id'
-        }
-        
-        # Get numeric columns
-        numeric_cols = data.select_dtypes(include=[np.number]).columns
-        
-        # Filter out excluded (case-insensitive)
-        candidates = [
-            col for col in numeric_cols 
-            if col.lower() not in excluded
-        ]
-        
-        if candidates:
-            selected = candidates[0]
-            self.logger.debug(
-                f"Generic oscillator detection: selected '{selected}' from {len(candidates)} candidates"
-            )
-            return selected
-        
-        return None
+
 
 
 # Удобные функции для быстрого использования

@@ -172,7 +172,7 @@ print(len(result.zones), result.zones[0].start_time)
 | line_amplitude | float, optional | Амплитуда MACD (для MACD-зон, legacy). |
 | oscillator_amplitude | float, optional | Амплитуда основного осциллятора (универсально для любого индикатора). |
 | price_range_pct | float | Ценовой диапазон в процентах. |
-| atr_normalized_return | float, optional | Доходность, нормализованная на ATR (если есть колонка atr). |
+| atr_normalized_return | float, optional | Движение за зону в единицах ATR на её первом баре: `(end_price − start_price) / atr[0]`. Колонку `atr` пайплайн добавляет сам (`with_atr_period`, по умолчанию 14); `None` в прогреве ATR. До 2026-09-05 формула делила безразмерную доходность на ATR в единицах цены (в `start_price` раз меньше настоящего), а колонки `atr` на флагманском пути не было вовсе — поле было `None` во всех зонах (G60). |
 | correlation_price_oscillator | float, optional | Корреляция цены и основного индикатора. |
 | num_peaks, num_troughs | int, optional | Количество пиков/впадин (find_peaks по high/low). |
 | drawdown_from_peak | float, optional | Экскурсия цены от максимума зоны к её концу (`end/max - 1`, ≤ 0). Считается для **любой** зоны. |
@@ -506,7 +506,7 @@ print(len(result.zones), result.data is not None, len(result.zones[0].data))
 > минимума.
 >
 > **Побочное следствие, о котором стоит знать при сравнении со старыми результатами.**
-> `ZoneRegressionAnalyzer.predict_price_return` включает `drawdown_from_peak` в набор
+> `ZoneRegressionAnalyzer.explain_price_return` включает `drawdown_from_peak` в набор
 > предикторов по умолчанию и отбрасывает строки с пропусками. Пока метрика была только у
 > `bull`-зон, модель молча обучалась **на половине выборки**: 33 зоны из 72 на встроенном
 > сэмпле, с R² = 0.863. Теперь обучается на 66 из 72, и R² = 0.699. Прежнее число было

@@ -253,8 +253,8 @@ class UniversalZoneAnalyzer:
             # последовательностей.
             features_dicts = [f.to_dict() for f in zones_features]
             regression_results = {}
-            for key, method in (('duration', self.regression.predict_zone_duration),
-                                ('return', self.regression.predict_price_return)):
+            for key, method in (('duration', self.regression.explain_zone_duration),
+                                ('return', self.regression.explain_price_return)):
                 try:
                     # Словарь, не объект: результат обязан переживать JSON/Parquet
                     # без потерь (G56). `RegressionResult.to_dict()` кладёт

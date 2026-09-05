@@ -199,7 +199,7 @@ def test_extraction_does_not_dispatch_on_zone_type_name():
 # 4. Downstream consequence: the price-return regression was half-blind
 # --------------------------------------------------------------------------- #
 def test_price_return_regression_sees_both_zone_types(macd_features):
-    """`predict_price_return` used to fit on bull zones only, without saying so.
+    """`explain_price_return` used to fit on bull zones only, without saying so.
 
     Its default predictor list includes `drawdown_from_peak`, and it drops rows
     with NaN. While that metric was populated for bull zones alone, every bear
@@ -220,7 +220,7 @@ def test_price_return_regression_sees_both_zone_types(macd_features):
     types = {f["zone_type"] for f in features}
     assert len(types) > 1, "fixture must contain more than one zone type"
 
-    result = ZoneRegressionAnalyzer().predict_price_return(features)
+    result = ZoneRegressionAnalyzer().explain_price_return(features)
 
     # Every zone carries the directional predictors now, so the only rows the
     # model may drop are those missing an unrelated predictor.

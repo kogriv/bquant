@@ -104,13 +104,17 @@ class TestZoneFeaturesAnalyzerContext:
         assert div_params['indicator_col'] == 'macd_hist'
         assert div_params['indicator_line_col'] == 'macd'
     
-    def test_analyzer_fallback_when_context_missing(self, sample_zone_data):
-        """Test fallback to generic oscillator detection when indicator_context missing."""
+    def test_no_context_means_no_oscillator_metrics_not_a_guess(self, sample_zone_data):
+        """Без колонки индикатора метрики осциллятора — None (G61).
+
+        До 2026-09-05 `_find_any_oscillator` брал первую числовую колонку вне
+        короткого списка исключений и считал по ней амплитуду, корреляцию, форму
+        и дивергенции: preloaded-зоны на сэмпле получали амплитуду 87205 по
+        `accumulation_distribution`. Число из чужого ряда хуже отсутствия числа.
+        """
         analyzer = ZoneFeaturesAnalyzer(
             shape_strategy=StatisticalShapeStrategy()
         )
-        
-        # zone_info WITHOUT indicator_context (old format)
         zone_info = {
             'zone_id': 1,
             'type': 'bull',
@@ -118,71 +122,14 @@ class TestZoneFeaturesAnalyzerContext:
             'data': sample_zone_data
             # NO indicator_context field
         }
-        
+
         features = analyzer.extract_zone_features(zone_info)
-        
-        # Fallback should find first oscillator (macd_hist, likely)
-        assert features is not None
-        assert 'shape_metrics' in features.metadata
-        # Shape metrics should be calculated (using fallback column)
-        if features.metadata['shape_metrics'] is not None:
-            assert 'indicator_col' in features.metadata['shape_metrics']['strategy_params']
-    
-    def test_analyzer_fallback_finds_any_oscillator(self):
-        """Test that _find_any_oscillator works with any indicator."""
-        analyzer = ZoneFeaturesAnalyzer()
-        
-        # DataFrame with FICTIONAL indicator
-        dates = pd.date_range('2024-01-01', periods=20, freq='1h')
-        df = pd.DataFrame({
-            'open': [100] * 20,
-            'high': [102] * 20,
-            'low': [98] * 20,
-            'close': [100] * 20,
-            'volume': [1000] * 20,
-            'FICTIONAL_OSCILLATOR_999': np.random.uniform(-5, 5, 20)
-        }, index=dates)
-        
-        result = analyzer._find_any_oscillator(df)
-        
-        assert result == 'FICTIONAL_OSCILLATOR_999'  # Found it!
-    
-    def test_find_any_oscillator_excludes_ohlcv(self):
-        """Test that _find_any_oscillator excludes OHLCV columns."""
-        analyzer = ZoneFeaturesAnalyzer()
-        
-        # DataFrame with ONLY OHLCV
-        dates = pd.date_range('2024-01-01', periods=10, freq='1h')
-        df = pd.DataFrame({
-            'open': [100] * 10,
-            'high': [102] * 10,
-            'low': [98] * 10,
-            'close': [100] * 10,
-            'volume': [1000] * 10
-        }, index=dates)
-        
-        result = analyzer._find_any_oscillator(df)
-        
-        assert result is None  # No oscillator found
-    
-    def test_find_any_oscillator_selects_first_candidate(self):
-        """Test that _find_any_oscillator selects first candidate."""
-        analyzer = ZoneFeaturesAnalyzer()
-        
-        dates = pd.date_range('2024-01-01', periods=10, freq='1h')
-        df = pd.DataFrame({
-            'close': [100] * 10,
-            'macd_hist': [1.0] * 10,
-            'RSI_14': [50] * 10,
-            'AO_5_34': [0.0] * 10
-        }, index=dates)
-        
-        result = analyzer._find_any_oscillator(df)
-        
-        # Should select first oscillator (macd_hist comes first in columns)
-        assert result in ['macd_hist', 'RSI_14', 'AO_5_34']
-        assert result is not None
-    
+
+        assert features.oscillator_amplitude is None
+        assert features.correlation_price_oscillator is None
+        assert features.metadata['oscillator_column'] is None
+        assert features.metadata.get('shape_metrics') is None
+        assert not hasattr(analyzer, '_find_any_oscillator')
     def test_shape_strategy_called_with_correct_indicator(self, sample_zone_data):
         """Test that shape strategy receives correct indicator_col from context."""
         analyzer = ZoneFeaturesAnalyzer(

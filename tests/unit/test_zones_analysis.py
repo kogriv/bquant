@@ -109,7 +109,10 @@ def create_test_zone_info(zone_type: str = 'bull', duration: int = 20) -> Dict[s
         'zone_id': f'test_{zone_type}_zone',
         'type': zone_type,
         'duration': duration,
-        'data': data
+        'data': data,
+        # The pipeline always names the column; without it the oscillator
+        # metrics are None rather than guessed (G61).
+        'indicator_context': {'detection_indicator': 'macd_hist'},
     }
 
 

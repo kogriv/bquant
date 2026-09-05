@@ -106,7 +106,11 @@ class ZoneAnalysisCache:
     # v25 (G58): `ColumnSchema` ключует записи `source.slug`, а не `slug`, и
     # `IndicatorId.parameters` — `FrozenParameters`. Записи v24 несут схему,
     # неотличающую два источника с одним slug.
-    CACHE_VERSION = 25
+    # v26 (G60/G61): в кадре результата появилась колонка `atr` (период — в ключе),
+    # `atr_normalized_return` считается в единицах ATR и заполнен там, где раньше
+    # был `None`; без колонки индикатора осцилляторные метрики — `None`, а не
+    # числа по первой попавшейся колонке.
+    CACHE_VERSION = 26
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

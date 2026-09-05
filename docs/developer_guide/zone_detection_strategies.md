@@ -184,7 +184,7 @@ result = (
 - **Features Analyzer** (`features_analyzer`): реализуйте метод `extract_all_zones_features` и опционально дополнительные анализы распределения.
 - **Hypothesis Suite** (`hypothesis_suite`): предоставьте `run_all_tests`, возвращающий словарь результатов гипотез.
 - **Sequence Analyzer** (`sequence_analyzer`): реализуйте `analyze_zone_transitions` и, при необходимости, `cluster_zones`.
-- **Regression Analyzer** (`regression_analyzer`): предоставьте методы `predict_zone_duration` и `predict_price_return`.
+- **Regression Analyzer** (`regression_analyzer`): предоставьте методы `explain_zone_duration` и `explain_price_return` (объясняющие, in-sample — см. [статистика](../api/analysis/statistical.md)).
 - **Validation Suite** (`validation_suite`): предоставьте `out_of_sample_test(analyze_func, data, metric, train_ratio=...)`, возвращающий `ModelValidationResult` — это единственный метод, который зовёт пайплайн; `degradation_threshold` у стандартного `ValidationSuite` — способ задать свой порог без замены класса.
 
 При добавлении новых DI-компонентов синхронизируйте описание с документацией и обновите примеры использования в API-документации.

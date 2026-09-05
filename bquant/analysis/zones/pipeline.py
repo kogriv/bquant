@@ -23,7 +23,7 @@ from bquant.core.logging_config import get_logger
 from bquant.core.exceptions import AnalysisError
 from bquant.core.cache import get_cache_manager
 from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
-from bquant.data.processor import resolve_time_index
+from bquant.data.processor import resolve_time_index, calculate_atr
 from .strategies.swing.thresholds import _AdaptiveSwingStrategy
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
@@ -118,6 +118,10 @@ class ZoneAnalysisConfig:
     #: но остаются в ``result.zones``. ``1`` = не отсеивать. Раньше стоял в
     #: детекции со значением ``2`` и рвал мощение молча.
     min_duration: int = 1
+    #: Период ATR, который пайплайн добавляет в кадр колонкой ``atr``, если её
+    #: не принесли. Назван здесь и входит в ключ кэша (G60): до этого ветка,
+    #: ждавшая ATR от ``calculate_derived_indicators``, была недостижима.
+    atr_period: int = 14
 
     def to_cache_key(self) -> str:
         """Serialize configuration into a stable JSON string for caching."""
@@ -141,6 +145,7 @@ class ZoneAnalysisConfig:
             "run_validation": self.run_validation,
             "swing_scope": self.swing_scope,
             "min_duration": self.min_duration,
+            "atr_period": self.atr_period,
             "schema_version": CACHE_SCHEMA_VERSION,
         }
         return json.dumps(payload, sort_keys=True, default=str)
@@ -390,15 +395,11 @@ class ZoneAnalysisPipeline:
         for col in result.data.columns:
             df_with_indicator[col] = result.data[col]
 
-        if 'atr' not in df_with_indicator.columns:
-            try:
-                from bquant.data.processor import calculate_derived_indicators
-
-                derived = calculate_derived_indicators(df_with_indicator)
-                if 'atr' in derived.columns:
-                    df_with_indicator['atr'] = derived['atr']
-            except Exception as exc:
-                self.logger.warning(f"Failed to add ATR: {exc}")
+        # ATR for the zone features that are normalized by it. Until G60 this
+        # asked `calculate_derived_indicators` for a column it never produced,
+        # so the branch was dead and `atr_normalized_return` was None everywhere.
+        if 'atr' not in df_with_indicator.columns and {'high', 'low', 'close'} <= set(df_with_indicator.columns):
+            df_with_indicator['atr'] = calculate_atr(df_with_indicator, self.config.atr_period)
 
         return df_with_indicator
     
@@ -763,6 +764,7 @@ class ZoneAnalysisBuilder:
         self._run_regression = False
         self._run_validation = False
         self._min_duration = 1
+        self._atr_period = 14
         self._enable_cache = True
         self._cache_ttl = 3600
         # v2.1: Analytical strategies configuration
@@ -902,6 +904,17 @@ class ZoneAnalysisBuilder:
         self._auto_swing_thresholds = enable
         return self
 
+    def with_atr_period(self, period: int) -> 'ZoneAnalysisBuilder':
+        """Period of the ``atr`` column the pipeline adds when the frame has none (default 14).
+
+        ``atr_normalized_return`` and the volatility metadata read it; the
+        period is part of the cache key.
+        """
+        if not isinstance(period, int) or isinstance(period, bool) or period <= 0:
+            raise ValueError(f"ATR period must be a positive integer, got {period!r}")
+        self._atr_period = period
+        return self
+
     def with_swing_scope(
         self, scope: Literal["per_zone", "global"]
     ) -> 'ZoneAnalysisBuilder':
@@ -984,6 +997,7 @@ class ZoneAnalysisBuilder:
             run_validation=self._run_validation,
             swing_scope=self._swing_scope,
             min_duration=self._min_duration,
+            atr_period=self._atr_period,
         )
         
         # ✅ v2.1: Create custom analyzer if strategies are specified

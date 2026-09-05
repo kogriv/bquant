@@ -82,7 +82,8 @@ print([c for c in derived.columns if c not in data.columns])
 
 `intrabar_range` — это `high - low`; `true_range` — настоящий True Range,
 `max(high - low, |high - prev close|, |low - prev close|)`, одной функцией
-`calculate_true_range()` для всех, кто пишет колонку с этим именем. До 2026-09-05 здесь под
+`calculate_true_range()` для всех, кто пишет колонку с этим именем; `calculate_atr(df, period=14)` —
+скользящее среднее True Range, тот самый `atr`, который пайплайн анализа зон добавляет в кадр. До 2026-09-05 здесь под
 именем `true_range` лежал `high - low`, а в `add_technical_features()` — True Range: два
 числа под одной подписью, расходящиеся на каждом гэпе (G57).
 

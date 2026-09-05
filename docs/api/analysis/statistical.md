@@ -10,13 +10,14 @@
 
 - `StatisticalAnalyzer(config=None)`
   - `descriptive_statistics(series, name='data') -> Dict`
-  - `normality_test(series, alpha=None) -> Dict`
+  - `normality_test(series, alpha=None) -> Dict` — `shapiro` (до 5000 точек), `lilliefors` (KS с поправкой на оценённые по выборке параметры), `anderson_darling` с критическим значением **для переданного `alpha`** (доступны 0.15, 0.10, 0.05, 0.025, 0.01; иное — `ValueError`). До 2026-09-05 здесь стоял KS без поправки, принимавший равномерную выборку, и Андерсон всегда по 5 % (G63)
   - `correlation_analysis(x, y, methods=None) -> Dict`
   - `t_test(sample1, sample2=None, mu=0, alternative='two-sided') -> Dict`
   - `analyze(df) -> AnalysisResult`
 - Утилиты:
   - `quick_stats(series) -> Dict`
-  - `test_normality(series, alpha=0.05) -> bool`
+  - `lilliefors_normal(values, simulations=2000, seed=0) -> (statistic, p_value)` — KS-расстояние до нормали с параметрами выборки, p-value методом Монте-Карло (2000 выборок того же размера, сид фиксирован); своя реализация, потому что `statsmodels.stats.diagnostic.lilliefors` падает на scipy 1.18
+  - `test_normality(series, alpha=0.05) -> bool` — `True`, если **каждый** выполнившийся тест принял гипотезу; до 2026-09-05 хватало одного из трёх
   - `correlation_matrix(df, method='pearson') -> DataFrame`
 - Тестирование гипотез (из `hypothesis_testing`):
   - `HypothesisTestResult`, `HypothesisTestSuite`
@@ -303,10 +304,17 @@ from bquant.analysis.statistical import ZoneRegressionAnalyzer
 regressor = ZoneRegressionAnalyzer()
 ```
 
-Прогноз длительности зоны по умолчанию:
+**Регрессия объясняющая, не прогнозная.** Предикторы измерены по всей завершённой зоне —
+длительность, просадка от пика (содержит цену конца), число пиков, наклон осциллятора, — а
+цель — доходность или длительность той же зоны. R² здесь описывает связь постфактум и не
+является свидетельством предсказательной силы; в `metadata` это записано
+(`kind: 'in_sample_explanatory'`, `feature_availability: 'ex_post'`), `durbin_watson` считается
+явно. До 2026-09-05 методы назывались `predict_*` (G62).
+
+Объясняющая регрессия длительности зоны по умолчанию:
 
 ```python
-duration_model = regressor.predict_zone_duration(zones_features)
+duration_model = regressor.explain_zone_duration(zones_features)
 print(f"Model R²: {duration_model.r_squared:.3f}")
 print(f"Adjusted R²: {duration_model.adjusted_r_squared:.3f}")
 ```
@@ -314,7 +322,7 @@ print(f"Adjusted R²: {duration_model.adjusted_r_squared:.3f}")
 Кастомные предикторы длительности:
 
 ```python
-custom_model = regressor.predict_zone_duration(
+custom_model = regressor.explain_zone_duration(
     zones_features,
     predictors=[
         'num_swings',
@@ -327,10 +335,10 @@ custom_model = regressor.predict_zone_duration(
 print(custom_model.coefficients)
 ```
 
-Прогноз доходности зоны:
+Объясняющая регрессия доходности зоны:
 
 ```python
-return_model = regressor.predict_price_return(
+return_model = regressor.explain_price_return(
     zones_features,
     predictors=['duration', 'line_amplitude', 'correlation_price_oscillator', 'oscillator_slope', 'num_peaks']
 )
