@@ -148,8 +148,9 @@ print(round(result.degradation_pct, 1), result.success)
 `.timeseries` — сейчас **разметка под будущую работу**, а не рабочие анализаторы:
 `CandlestickAnalyzer`, `ChartAnalyzer`, `TechnicalAnalyzer`, `TimeseriesAnalyzer`.
 
-Они не притворяются: `analyze()` отрабатывает без ошибки и возвращает
-`AnalysisResult`, в котором прямо сказано, что реализации нет.
+Они не притворяются: `analyze()` **отказывает** — `NotImplementedError` с перечнем
+запланированного. До 2026-09-05 заглушка возвращала успешный `AnalysisResult` со словом
+«stub» внутри: честно для того, кто заглянет в `results`, и успех для всех остальных (G59).
 
 ```python
 import pandas as pd
@@ -160,14 +161,19 @@ frame = pd.DataFrame({
     'low': [99.0, 100.0], 'close': [100.5, 101.5],
 })
 
-result = CandlestickAnalyzer().analyze(frame)
-
 print(CandlestickAnalyzer.is_stub)                      # True
-print(result.metadata['implementation_status'])         # stub
-print(result.results['status'])                         # stub_implementation
-print(result.results['message'])
-# Candlestick analysis module is not yet implemented
+print(CandlestickAnalyzer.PLANNED_FEATURES[:2])
+# ('Candlestick pattern recognition', 'Price action analysis')
+
+try:
+    CandlestickAnalyzer().analyze(frame)
+except NotImplementedError as exc:
+    print(str(exc)[:70])
+# CandlestickAnalyzer is a stub: candlestick analysis is not implemented.
 ```
+
+В каталог фабрики (`get_available_analyzers()`) заглушки не входят — они перечислены
+отдельно, `get_planned_analyzers()` ([базовые классы](base.md)).
 
 **Отличать их следует по `is_stub`, а не по названию модуля и не по словам в
 описании.** Признак объявлен свойством класса (`BaseAnalyzer.is_stub`, по
@@ -185,8 +191,7 @@ print(get_technical_analyzers()['technical'])
 # Технический анализ (заглушка)
 ```
 
-Планы каждого модуля перечислены в `result.results['planned_features']` и в
-докстроке модуля.
+Планы каждого модуля — `PLANNED_FEATURES` класса и докстрока модуля.
 
 ## Пример: анализ зон целиком
 

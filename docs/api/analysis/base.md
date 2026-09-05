@@ -21,29 +21,37 @@
 
 ## Функции
 
-- `get_available_analyzers() -> Dict[str, str]`: имена, которые принимает `create_analyzer()`,
-  и что каждое означает. Выводится из `SUPPORTED_ANALYSIS_TYPES` — поэтому каталог и фабрика
-  не могут разойтись.
-- `create_analyzer(analyzer_type: str, **kwargs) -> BaseAnalyzer`: фабрика. **Возвращает
-  `BaseAnalyzer` с проставленным именем и конфигом, а не специализированный класс** — своего
-  `analyze()` у результата нет. Незнакомое имя → `ValueError`.
-- `SUPPORTED_ANALYSIS_TYPES`: словарь поддерживаемых направлений анализа.
+- `get_available_analyzers() -> Dict[str, str]`: имена, которые `create_analyzer()` умеет
+  **собрать и запустить**, и что каждое означает. Выводится из `SUPPORTED_ANALYSIS_TYPES`,
+  и каждое имя отображено на настоящий класс — на это стоит пин.
+- `get_planned_analyzers() -> Dict[str, str]`: направления, под которые есть модуль-заглушка
+  (`is_stub = True`), но нет анализатора: `technical`, `chart`, `candlestick`, `timeseries`.
+  Отдельный перечень, а не пометка в общем: «что запустить» и «что запланировано» — разные
+  вопросы.
+- `create_analyzer(analyzer_type: str, **kwargs) -> BaseAnalyzer`: фабрика. Возвращает
+  настоящий класс с `kwargs` в роли `config`: `StatisticalAnalyzer` для `'statistical'`,
+  `PriceLevelAnalyzer` для `'price_levels'`. Запланированное имя → `NotImplementedError`,
+  незнакомое → `ValueError` (с указанием на `analyze_zones()` — анализ зон не `BaseAnalyzer`).
+- `SUPPORTED_ANALYSIS_TYPES`, `PLANNED_ANALYSIS_TYPES`: словари за двумя функциями выше.
 
 ```python
-from bquant.analysis import get_available_analyzers, create_analyzer
+from bquant.analysis import get_available_analyzers, get_planned_analyzers, create_analyzer
 
-print(sorted(get_available_analyzers()))
-# ['candlestick', 'chart', 'statistical', 'technical', 'timeseries', 'zones']
+print(sorted(get_available_analyzers()), sorted(get_planned_analyzers()))
+# ['price_levels', 'statistical'] ['candlestick', 'chart', 'technical', 'timeseries']
 
 analyzer = create_analyzer('statistical', alpha=0.05)
-print(type(analyzer).__name__, analyzer.name, analyzer.config)
-# BaseAnalyzer statistical {'alpha': 0.05}
+print(type(analyzer).__name__, analyzer.config)
+# StatisticalAnalyzer {'alpha': 0.05}
 ```
 
-**Для реальной работы фабрика — не тот вход.** Зоны считаются через
-[`analyze_zones()`](pipeline.md), статистика — через `StatisticalAnalyzer` и функции
-[statistical.md](statistical.md). Фабрика полезна там, где тип анализа приходит строкой
-из конфига и нужен объект-держатель параметров.
+До 2026-09-05 каталог держал шесть имён, и на каждое фабрика возвращала `BaseAnalyzer` с
+проставленным именем, чей `analyze()` поднимает `NotImplementedError`: каталог сходился с
+фабрикой (G32), а фабрика — ни с чем (G59).
+
+**Анализ зон в каталоге не значится намеренно.** Его вход — [`analyze_zones()`](pipeline.md),
+а `PriceLevelAnalyzer` — уровни поддержки и сопротивления по цене, другая возможность
+пакета ([zones.md](zones.md)).
 
 ### Перечни модулей — другой вопрос
 

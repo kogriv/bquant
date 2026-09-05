@@ -28,13 +28,32 @@ logger = get_logger(__name__)
 from bquant import __version__  # noqa: F401
 
 # Поддерживаемые виды анализа
+#: Что фабрика умеет **собрать и запустить**: имя → описание. Каждое имя
+#: отображается на настоящий класс в ``_EXECUTABLE_ANALYZERS``, и на это стоит
+#: пин. До 2026-09-05 здесь стояло шесть имён, а фабрика на любое из них
+#: возвращала ``BaseAnalyzer``, чей ``analyze()`` поднимает
+#: ``NotImplementedError`` (G59). Анализ зон здесь не значится намеренно: его
+#: вход — :func:`bquant.analysis.zones.analyze_zones`, а не ``BaseAnalyzer``.
 SUPPORTED_ANALYSIS_TYPES = {
-    'statistical': 'Статистический анализ данных и гипотез',
-    'zones': 'Анализ зон и паттернов',
+    'statistical': 'Статистический анализ данных и гипотез (StatisticalAnalyzer)',
+    'price_levels': 'Уровни поддержки и сопротивления по цене (PriceLevelAnalyzer)',
+}
+
+#: Разметка под будущую работу: модули есть, анализаторы помечены ``is_stub``
+#: и на вызов ``analyze()`` отказывают. Фабрика их **не собирает** — иначе
+#: каталог обещал бы то, что не исполняется.
+PLANNED_ANALYSIS_TYPES = {
     'technical': 'Технический анализ индикаторов',
     'chart': 'Графический анализ и паттерны',
     'candlestick': 'Анализ свечных паттернов',
-    'timeseries': 'Временной анализ данных'
+    'timeseries': 'Временной анализ данных',
+}
+
+#: Имя из каталога → (модуль, класс). Ленивая загрузка: подмодули импортируют
+#: этот пакет, и прямой импорт здесь замкнул бы круг.
+_EXECUTABLE_ANALYZERS = {
+    'statistical': ('bquant.analysis.statistical', 'StatisticalAnalyzer'),
+    'price_levels': ('bquant.analysis.zones', 'PriceLevelAnalyzer'),
 }
 
 
@@ -155,10 +174,12 @@ class BaseAnalyzer:
     #: дискриминирует универсальный код; открыто то, что придумывает предметная
     #: область. Статус реализации — не предметная область.
     #:
-    #: Заглушка обязана возвращать ``implementation_status: 'stub'``; обратное
-    #: тоже обязано выполняться, и на это стоит пин
-    #: (``tests/unit/test_a_stub_says_so.py``), поэтому снять маркер, не сняв
-    #: заглушечность, — и наоборот — не выйдет молча.
+    #: Заглушка обязана **отказывать** на ``analyze()`` — ``NotImplementedError``
+    #: с перечнем запланированного; не-заглушка обязана не отказывать так. На
+    #: обе стороны стоит пин (``tests/unit/test_a_stub_says_so.py``), поэтому
+    #: снять маркер, не сняв заглушечность, — и наоборот — не выйдет молча. До
+    #: 2026-09-05 заглушка возвращала успешный ``AnalysisResult`` со словом
+    #: «stub» внутри — успех для каждого, кто внутрь не заглянул (G59).
     is_stub: ClassVar[bool] = False
 
     def __init__(self, name: str, config: Optional[Dict[str, Any]] = None):
@@ -268,16 +289,27 @@ def get_available_analyzers() -> Dict[str, str]:
     return dict(SUPPORTED_ANALYSIS_TYPES)
 
 
+def get_planned_analyzers() -> Dict[str, str]:
+    """Направления, под которые есть модуль-заглушка, но нет анализатора.
+
+    Отдельный перечень, а не пометка в общем: вопрос «что я могу запустить» и
+    вопрос «что запланировано» — разные, и смешение их в одном словаре и было
+    дефектом каталога (G59). Классы этих модулей несут ``is_stub = True`` и
+    отказывают на ``analyze()``.
+    """
+    return dict(PLANNED_ANALYSIS_TYPES)
+
+
 def create_analyzer(analyzer_type: str, **kwargs) -> BaseAnalyzer:
     """
-    Создать анализатор по имени из :func:`get_available_analyzers`.
+    Собрать анализатор по имени из :func:`get_available_analyzers`.
 
-    **Что именно возвращается.** Сейчас это :class:`BaseAnalyzer` с проставленным
-    именем и конфигом, а не специализированный класс: собственный ``analyze()``
-    есть у ``StatisticalAnalyzer`` и у четырёх заглушек, но фабрика их пока не
-    строит. Написано здесь прямо, потому что имя ``create_analyzer('statistical')``
-    обещает больше, чем делает, и молчание об этом уже стоило пакету
-    рассогласования каталога и фабрики (G32).
+    Возвращается **настоящий класс** — ``StatisticalAnalyzer`` для
+    ``'statistical'``, ``PriceLevelAnalyzer`` для ``'price_levels'`` — с
+    ``kwargs`` в роли ``config``. До 2026-09-05 фабрика на любое из шести имён
+    возвращала ``BaseAnalyzer`` с проставленным именем, чей ``analyze()``
+    поднимает ``NotImplementedError``: каталог сходился с фабрикой, а
+    фабрика — ни с чем (G59).
 
     Для анализа зон фабрика — не тот вход: пользуйтесь
     :func:`bquant.analysis.zones.analyze_zones`.
@@ -287,18 +319,33 @@ def create_analyzer(analyzer_type: str, **kwargs) -> BaseAnalyzer:
         **kwargs: Параметры, которые лягут в ``config`` анализатора
 
     Returns:
-        Экземпляр :class:`BaseAnalyzer`
+        Экземпляр класса, отображённого на имя
 
     Raises:
-        ValueError: если имя не из списка поддерживаемых
+        NotImplementedError: имя из :func:`get_planned_analyzers` — модуль
+            есть, анализатора нет.
+        ValueError: имя неизвестно вовсе.
     """
     logger.info(f"Creating {analyzer_type} analyzer")
-    
+
+    if analyzer_type in PLANNED_ANALYSIS_TYPES:
+        raise NotImplementedError(
+            f"'{analyzer_type}' is planned, not implemented: "
+            f"{PLANNED_ANALYSIS_TYPES[analyzer_type]}. Its module exists with "
+            f"is_stub = True and refuses analyze(). Executable analyzers: "
+            f"{sorted(SUPPORTED_ANALYSIS_TYPES)}."
+        )
     if analyzer_type not in SUPPORTED_ANALYSIS_TYPES:
-        raise ValueError(f"Unsupported analyzer type: {analyzer_type}")
-    
-    # Возвращаем базовый анализатор как заглушку
-    return BaseAnalyzer(analyzer_type, kwargs)
+        raise ValueError(
+            f"Unsupported analyzer type: {analyzer_type}. Executable: "
+            f"{sorted(SUPPORTED_ANALYSIS_TYPES)}; planned: {sorted(PLANNED_ANALYSIS_TYPES)}. "
+            "Zone analysis is not a BaseAnalyzer: use bquant.analysis.zones.analyze_zones()."
+        )
+
+    import importlib
+    module_name, class_name = _EXECUTABLE_ANALYZERS[analyzer_type]
+    analyzer_cls = getattr(importlib.import_module(module_name), class_name)
+    return analyzer_cls(config=kwargs)
 
 
 # Ленивый импорт подмодулей для избежания циклических зависимостей
@@ -327,7 +374,9 @@ __all__ = [
     'AnalysisResult',
     'BaseAnalyzer', 
     'get_available_analyzers',
+    'get_planned_analyzers',
     'create_analyzer',
     'SUPPORTED_ANALYSIS_TYPES',
+    'PLANNED_ANALYSIS_TYPES',
     '__version__'
 ]

@@ -43,43 +43,32 @@ class TechnicalAnalyzer(BaseAnalyzer):
             config: Конфигурация анализатора
         """
         super().__init__("TechnicalAnalyzer", config)
-        self.logger.warning("TechnicalAnalyzer is a stub implementation")
     
+    #: Что этот модуль будет делать, когда его напишут. Список программный,
+    #: чтобы его можно было прочитать, не вызывая ``analyze()``.
+    PLANNED_FEATURES = (
+        'Pattern recognition',
+        'Divergence analysis',
+        'Technical signals',
+        'Composite models',
+    )
+
     def analyze(self, data: pd.DataFrame, **kwargs) -> AnalysisResult:
+        """Отказать: анализа нет, и успешного результата у него быть не может.
+
+        До 2026-09-05 заглушка возвращала ``AnalysisResult`` со ``status:
+        'stub_implementation'`` внутри — «честно», если читатель заглянет в
+        ``results``, и успех для всех, кто не заглянет (G59). Вызов, который
+        ничего не считает, не отдаёт результат; он называет, чего нет.
+
+        Raises:
+            NotImplementedError: всегда; сообщение перечисляет
+                :attr:`PLANNED_FEATURES`.
         """
-        Заглушка для технического анализа.
-        
-        Args:
-            data: DataFrame с данными
-            **kwargs: Дополнительные параметры
-        
-        Returns:
-            AnalysisResult с заглушкой результатов
-        """
-        self.logger.info("Performing stub technical analysis")
-        
-        results = {
-            'status': 'stub_implementation',
-            'message': 'Technical analysis module is not yet implemented',
-            'planned_features': [
-                'Pattern recognition',
-                'Divergence analysis', 
-                'Technical signals',
-                'Composite models'
-            ]
-        }
-        
-        metadata = {
-            'analyzer': 'TechnicalAnalyzer',
-            'implementation_status': 'stub',
-            'version': __version__
-        }
-        
-        return AnalysisResult(
-            analysis_type='technical',
-            results=results,
-            data_size=len(data),
-            metadata=metadata
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is a stub: technical analysis is not implemented. "
+            "Planned: " + ", ".join(self.PLANNED_FEATURES) + ". "
+            "Check `is_stub` before calling; see bquant.analysis.get_planned_analyzers()."
         )
 
 

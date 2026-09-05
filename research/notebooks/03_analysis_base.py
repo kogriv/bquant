@@ -37,10 +37,13 @@ nb = NotebookSimulator(
 nb.step("Шаг 1: Инициализация и обзор")
 
 nb.info("Изучаем базовые классы пакета bquant.analysis")
-nb.log(f"Поддерживаемые типы анализа: {list(SUPPORTED_ANALYSIS_TYPES.keys())}")
+nb.log(f"Исполняемые типы анализа: {list(SUPPORTED_ANALYSIS_TYPES.keys())}")
 
 for analysis_type, description in SUPPORTED_ANALYSIS_TYPES.items():
     nb.log(f"  - {analysis_type}: {description}")
+
+from bquant.analysis import get_planned_analyzers
+nb.log(f"Запланированные (модуль-заглушка, анализатора нет): {list(get_planned_analyzers())}")
 
 nb.wait()
 
@@ -315,15 +318,21 @@ with nb.error_handling("Testing analyzer factory"):
     # Тестируем создание анализатора через фабрику
     nb.log("9.2. Создание анализатора через фабрику:")
     
+    # Фабрика собирает настоящий класс (G59): до 2026-09-05 она возвращала
+    # BaseAnalyzer с именем 'statistical', чей analyze() поднимал NotImplementedError.
+    factory_analyzer = create_analyzer('statistical', alpha=0.05)
+    nb.log(f"  - Создан анализатор: {factory_analyzer.name}")
+    nb.log(f"  - Тип: {factory_analyzer.__class__.__name__}")
+    nb.log(f"  - Конфигурация: {factory_analyzer.config}")
+    sample = pd.DataFrame({'x': np.arange(50, dtype=float), 'y': np.arange(50, dtype=float) ** 2})
+    factory_result = factory_analyzer.analyze(sample)
+    nb.log(f"  - analyze() исполнился: {factory_result.analysis_type}, ключи {list(factory_result.results)[:3]}")
+
+    nb.log("9.3. Запланированное имя фабрика не собирает:")
     try:
-        # Пытаемся создать анализатор через фабрику
-        factory_analyzer = create_analyzer('statistical', alpha=0.05)
-        nb.log(f"  - Создан анализатор: {factory_analyzer.name}")
-        nb.log(f"  - Тип: {factory_analyzer.__class__.__name__}")
-        nb.log(f"  - Конфигурация: {factory_analyzer.config}")
-    except Exception as e:
-        nb.log(f"  - Ошибка создания через фабрику: {str(e)}")
-        nb.log("  - Это ожидаемо, так как фабрика пока возвращает базовый анализатор")
+        create_analyzer('candlestick')
+    except NotImplementedError as e:
+        nb.log(f"  - {str(e)[:80]}")
 
 nb.wait()
 

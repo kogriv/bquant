@@ -44,45 +44,34 @@ class TimeseriesAnalyzer(BaseAnalyzer):
             config: Конфигурация анализатора
         """
         super().__init__("TimeseriesAnalyzer", config)
-        self.logger.warning("TimeseriesAnalyzer is a stub implementation")
     
+    #: Что этот модуль будет делать, когда его напишут. Список программный,
+    #: чтобы его можно было прочитать, не вызывая ``analyze()``.
+    PLANNED_FEATURES = (
+        'Trend and seasonality analysis',
+        'Autocorrelation analysis',
+        'Stationarity testing',
+        'Time series forecasting',
+        'ARIMA/GARCH modeling',
+        'Volatility clustering',
+    )
+
     def analyze(self, data: pd.DataFrame, **kwargs) -> AnalysisResult:
+        """Отказать: анализа нет, и успешного результата у него быть не может.
+
+        До 2026-09-05 заглушка возвращала ``AnalysisResult`` со ``status:
+        'stub_implementation'`` внутри — «честно», если читатель заглянет в
+        ``results``, и успех для всех, кто не заглянет (G59). Вызов, который
+        ничего не считает, не отдаёт результат; он называет, чего нет.
+
+        Raises:
+            NotImplementedError: всегда; сообщение перечисляет
+                :attr:`PLANNED_FEATURES`.
         """
-        Заглушка для анализа временных рядов.
-        
-        Args:
-            data: DataFrame с временными данными
-            **kwargs: Дополнительные параметры
-        
-        Returns:
-            AnalysisResult с заглушкой результатов
-        """
-        self.logger.info("Performing stub timeseries analysis")
-        
-        results = {
-            'status': 'stub_implementation',
-            'message': 'Timeseries analysis module is not yet implemented',
-            'planned_features': [
-                'Trend and seasonality analysis',
-                'Autocorrelation analysis',
-                'Stationarity testing',
-                'Time series forecasting',
-                'ARIMA/GARCH modeling',
-                'Volatility clustering'
-            ]
-        }
-        
-        metadata = {
-            'analyzer': 'TimeseriesAnalyzer',
-            'implementation_status': 'stub',
-            'version': __version__
-        }
-        
-        return AnalysisResult(
-            analysis_type='timeseries',
-            results=results,
-            data_size=len(data),
-            metadata=metadata
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is a stub: timeseries analysis is not implemented. "
+            "Planned: " + ", ".join(self.PLANNED_FEATURES) + ". "
+            "Check `is_stub` before calling; see bquant.analysis.get_planned_analyzers()."
         )
 
 

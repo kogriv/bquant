@@ -23,8 +23,10 @@
 каталог содержит имя, и отдельно — что фабрика работает, а связать их было
 нечем. Поэтому:
 
-* класс с ``is_stub = True`` обязан возвращать ``implementation_status: 'stub'``;
-* класс без маркера обязан **не** возвращать этот признак.
+* класс с ``is_stub = True`` обязан **отказывать** на ``analyze()`` —
+  ``NotImplementedError`` с перечнем запланированного (G59: до 2026-09-05 заглушка
+  возвращала успешный ``AnalysisResult`` со словом «stub» внутри);
+* класс без маркера обязан **не** отказывать так.
 
 Так реализованный анализатор, у которого забыли снять маркер, покраснеет — и
 наоборот, снятый маркер при неубранной заглушке тоже.
@@ -69,21 +71,23 @@ def test_the_base_analyzer_is_not_a_stub_by_default():
 
 
 @pytest.mark.parametrize("cls", ANALYZERS, ids=[c.__name__ for c in ANALYZERS])
-def test_the_marker_and_the_result_agree(cls):
+def test_the_marker_and_the_behaviour_agree(cls):
     """Маркер и поведение обязаны сходиться — в обе стороны."""
-    result = cls().analyze(FRAME)
-    says_stub = result.metadata.get("implementation_status") == "stub"
+    refused = None
+    try:
+        cls().analyze(FRAME)
+    except NotImplementedError as exc:
+        refused = exc
 
     if cls.is_stub:
-        assert says_stub, (
-            f"{cls.__name__}.is_stub = True, но результат не помечен "
-            "`implementation_status: 'stub'`. Либо анализатор реализовали и "
-            "забыли снять маркер, либо заглушка перестала объявлять себя в "
-            "результате — оба случая делают признак недостоверным"
+        assert refused is not None and "is a stub" in str(refused), (
+            f"{cls.__name__}.is_stub = True, но analyze() не отказал как заглушка. "
+            "Либо анализатор реализовали и забыли снять маркер, либо заглушка "
+            "перестала объявлять себя — оба случая делают признак недостоверным"
         )
     else:
-        assert not says_stub, (
-            f"{cls.__name__} маркера не несёт, но результат помечен как заглушка. "
+        assert refused is None, (
+            f"{cls.__name__} маркера не несёт, но analyze() отказал как заглушка. "
             "Маркер снят, а заглушечность осталась"
         )
 

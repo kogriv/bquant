@@ -113,6 +113,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `get_min_records(**params)`, `OptimizedIndicators.ema/macd` с `NaN` в голове,
   `ColumnSchema.entries` с ключом `('custom.macd_12_26_9', 'hist')`, артефакты со схемой
   до 2026-09-05 не читаются; `CACHE_VERSION` 24 → 25.
+* **G59 — публичный API анализаторов обещал то, что не исполнялось.** `create_analyzer()`
+  принимал шесть имён каталога и на каждое возвращал `BaseAnalyzer`, чей `analyze()`
+  поднимает `NotImplementedError`; `'statistical'` не строил `StatisticalAnalyzer`.
+  Четыре заглушки (`technical`, `chart`, `candlestick`, `timeseries`) возвращали из
+  `analyze()` **успешный** `AnalysisResult` со словом «stub» внутри — честно для того, кто
+  заглянет в `results`, и успех для всех остальных. Теперь каталог — только исполняемое:
+  `statistical` → `StatisticalAnalyzer`, `price_levels` → `PriceLevelAnalyzer` (новое имя;
+  анализ зон в каталоге не значится — его вход `analyze_zones()`); запланированное —
+  отдельный `get_planned_analyzers()`; `create_analyzer()` на запланированное имя поднимает
+  `NotImplementedError`, на неизвестное — `ValueError`; заглушки отказывают с перечнем
+  `PLANNED_FEATURES`. Ломает: `create_analyzer('zones'|'technical'|…)`, `analyze()` у
+  заглушек, состав `SUPPORTED_ANALYSIS_TYPES`.
 * `examples/03_data_processing.py` писал CSV в `examples/` относительно текущего каталога —
   в дерево исходников; артефакты идут в `outputs/`, как у остальных примеров.
 

@@ -135,9 +135,11 @@ class TestAnalysisStructure:
         """Тест поддерживаемых типов анализа."""
         assert isinstance(SUPPORTED_ANALYSIS_TYPES, dict)
         
-        expected_types = ['statistical', 'zones', 'technical', 'chart', 'candlestick', 'timeseries']
+        # Only what the factory can build and run (G59); the four stub modules
+        # live in PLANNED_ANALYSIS_TYPES, and zone analysis is not a BaseAnalyzer.
+        expected_types = ['statistical', 'price_levels']
+        assert sorted(SUPPORTED_ANALYSIS_TYPES) == sorted(expected_types)
         for analysis_type in expected_types:
-            assert analysis_type in SUPPORTED_ANALYSIS_TYPES
             assert isinstance(SUPPORTED_ANALYSIS_TYPES[analysis_type], str)
     
     def test_get_available_analyzers(self):
@@ -171,10 +173,13 @@ class TestAnalysisStructure:
             except Exception as exc:
                 rejected.append(f"{name}: {type(exc).__name__}: {exc}")
                 continue
-            assert analyzer.name == name, (
-                f"фабрика приняла {name!r}, но собрала анализатор с именем "
-                f"{analyzer.name!r} — имя перестало быть тем, что просили"
+            # A real class with its own analyze(), not BaseAnalyzer wearing the
+            # requested name (G59).
+            assert type(analyzer) is not BaseAnalyzer, (
+                f"фабрика приняла {name!r}, но собрала голый BaseAnalyzer"
             )
+            assert type(analyzer).analyze is not BaseAnalyzer.analyze
+            assert analyzer.is_stub is False
 
         assert not rejected, (
             "каталог объявляет имена, которых фабрика не принимает:\n  "
@@ -189,7 +194,7 @@ class TestAnalysisStructure:
         analyzer = create_analyzer('statistical', param1='value1')
         
         assert isinstance(analyzer, BaseAnalyzer)
-        assert analyzer.name == 'statistical'
+        assert type(analyzer).__name__ == 'StatisticalAnalyzer'
         assert 'param1' in analyzer.config
         
         # Тест создания неподдерживаемого анализатора
@@ -334,12 +339,10 @@ class TestStubModules:
             'volume': [1000, 1100, 1200, 1300, 1400]
         })
         
-        result = analyzer.analyze(data)
-        
-        assert isinstance(result, AnalysisResult)
-        assert result.analysis_type == 'technical'
-        assert 'status' in result.results
-        assert result.results['status'] == 'stub_implementation'
+        # A stub refuses instead of returning a successful result (G59).
+        with pytest.raises(NotImplementedError, match="is a stub"):
+            analyzer.analyze(data)
+        assert analyzer.is_stub is True
     
     def test_chart_analyzer_stub(self):
         """Тест заглушки анализатора графиков."""
@@ -354,11 +357,10 @@ class TestStubModules:
             'close': [101, 102, 103]
         })
         
-        result = analyzer.analyze(data)
-        
-        assert isinstance(result, AnalysisResult)
-        assert result.analysis_type == 'chart'
-        assert result.results['status'] == 'stub_implementation'
+        # A stub refuses instead of returning a successful result (G59).
+        with pytest.raises(NotImplementedError, match="is a stub"):
+            analyzer.analyze(data)
+        assert analyzer.is_stub is True
     
     def test_candlestick_analyzer_stub(self):
         """Тест заглушки анализатора свечей."""
@@ -373,11 +375,10 @@ class TestStubModules:
             'close': [101, 102]
         })
         
-        result = analyzer.analyze(data)
-        
-        assert isinstance(result, AnalysisResult)
-        assert result.analysis_type == 'candlestick'
-        assert result.results['status'] == 'stub_implementation'
+        # A stub refuses instead of returning a successful result (G59).
+        with pytest.raises(NotImplementedError, match="is a stub"):
+            analyzer.analyze(data)
+        assert analyzer.is_stub is True
     
     def test_timeseries_analyzer_stub(self):
         """Тест заглушки анализатора временных рядов."""
@@ -390,11 +391,10 @@ class TestStubModules:
             'value': [100, 101, 102, 103, 104]
         }, index=dates)
         
-        result = analyzer.analyze(data)
-        
-        assert isinstance(result, AnalysisResult)
-        assert result.analysis_type == 'timeseries'
-        assert result.results['status'] == 'stub_implementation'
+        # A stub refuses instead of returning a successful result (G59).
+        with pytest.raises(NotImplementedError, match="is a stub"):
+            analyzer.analyze(data)
+        assert analyzer.is_stub is True
 
 
 def create_test_ohlcv_data(rows: int = 100) -> pd.DataFrame:
