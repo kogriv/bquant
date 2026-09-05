@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from ..core.config import DATA_VALIDATION, pandas_offset_alias
 from ..core.exceptions import DataValidationError, create_data_validation_error
+from .schemas import ohlc_violations
 from ..core.logging_config import get_logger
 
 # Получаем логгер для модуля
@@ -134,6 +135,13 @@ def validate_data_completeness(
         results['is_complete'] = False
         results['insufficient_rows'] = True
         results['recommendations'].append(f"Increase data size to at least {min_rows} rows")
+
+    # No rows: there is no ratio to compute. Until G57 the loop below divided
+    # by len(df) == 0 and reported NaN ratios that compared as "not too many".
+    if df.empty:
+        results['is_complete'] = False
+        results['recommendations'].append("DataFrame has no rows; nothing to measure")
+        return results
     
     # Check missing data ratios
     max_missing_ratio = DATA_VALIDATION.get('max_missing_ratio', 0.1)
@@ -413,12 +421,11 @@ def _validate_ohlc_relationships(df: pd.DataFrame, results: Dict):
     
     if len(existing_ohlc) < 3:
         return
-    
-    # High >= Low
-    if 'high' in existing_ohlc and 'low' in existing_ohlc:
-        violations = (df['high'] < df['low']).sum()
+
+    # The same three relations the schema and the single-record check use.
+    for name, violations in ohlc_violations(df).items():
         if violations > 0:
-            results['issues'].append(f"{violations} cases where high < low")
+            results['issues'].append(f"{violations} rows where {name.replace('_', ' ')}")
 
 
 def _validate_time_series(df: pd.DataFrame, results: Dict):

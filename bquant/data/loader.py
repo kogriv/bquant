@@ -21,6 +21,7 @@ from ..core.exceptions import (
     create_data_validation_error
 )
 from ..core.logging_config import get_logger
+from .schemas import ohlc_violations
 
 # Получаем логгер для модуля
 logger = get_logger(__name__)
@@ -90,6 +91,26 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
         '%Y.%m.%d %H:%M:%S', 
         '%Y-%m-%d'
     ]
+
+    # Sniff the raw shape first, before any `index_col`. The header-less
+    # MetaTrader check used to run *after* a read with `index_col=0`, which
+    # leaves a six-column file with five columns — below the check's minimum —
+    # so the first data row became the header and the prices became column
+    # names (G57).
+    try:
+        sample_df = pd.read_csv(file_path, header=None, nrows=5, encoding=encoding)
+    except (ValueError, TypeError, UnicodeDecodeError):
+        sample_df = None
+    if sample_df is not None and _is_mt_format_without_headers(sample_df):
+        logger_with_context.info("Detected MetaTrader format without headers")
+        num_cols = len(sample_df.columns)
+        column_names = ['time', 'open', 'high', 'low', 'close', 'volume']
+        if num_cols > 6:
+            column_names.extend([f'col_{i}' for i in range(6, num_cols)])
+        df = pd.read_csv(file_path, header=None, names=column_names, encoding=encoding)
+        df['time'] = pd.to_datetime(df['time'])
+        df.set_index('time', inplace=True)
+        return df
     
     # Попытка 1: Стандартный формат с заголовками
     for i, date_format in enumerate(date_formats):
@@ -101,44 +122,11 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
                 if 'time' in df.columns:
                     df.set_index('time', inplace=True)
             
-            # Проверяем, что это не MetaTrader формат без заголовков
-            if not _is_mt_format_without_headers(df):
-                return df
+            return df
         except (ValueError, TypeError, UnicodeDecodeError):
             continue
     
-    # Попытка 2: MetaTrader формат без заголовков
-    try:
-        # Читаем первые несколько строк для определения структуры
-        sample_df = pd.read_csv(file_path, header=None, nrows=5, encoding=encoding)
-        
-        if _is_mt_format_without_headers(sample_df):
-            logger_with_context.info("Detected MetaTrader format without headers")
-            
-            # Определяем количество колонок и маппинг
-            num_cols = len(sample_df.columns)
-            if num_cols >= 6:
-                # Стандартный MT формат: time, open, high, low, close, volume
-                column_names = ['time', 'open', 'high', 'low', 'close', 'volume']
-                if num_cols > 6:
-                    # Дополнительные колонки (spread, etc.)
-                    column_names.extend([f'col_{i}' for i in range(6, num_cols)])
-                
-                # Читаем весь файл с правильными именами колонок
-                df = pd.read_csv(file_path, header=None, names=column_names, encoding=encoding)
-                
-                # Устанавливаем время как индекс
-                df.set_index('time', inplace=True)
-                
-                # Парсим время
-                if df.index.dtype == 'object':
-                    df.index = pd.to_datetime(df.index)
-                
-                return df
-    except Exception:
-        pass
-    
-    # Попытка 3: Автоопределение без парсинга дат
+    # Попытка 2: Автоопределение без парсинга дат
     try:
         df = pd.read_csv(file_path, index_col=0, parse_dates=True, encoding=encoding)
         if df.index.dtype == 'object':
@@ -170,21 +158,24 @@ def _is_mt_format_without_headers(df: pd.DataFrame) -> bool:
     """
     if df.empty or len(df.columns) < 6:
         return False
-    
-    # Проверяем первые несколько колонок на числовые значения
-    # MT формат: время (строка), open, high, low, close, volume (числа)
+
+    # Raw rows, no header: the first column must *parse as time* on every row
+    # (a header row such as "time" does not, which is what tells the two
+    # layouts apart), and columns 1-5 must be numbers. The previous check
+    # asked `isinstance(str(val), str)` of the first column — true of anything.
     try:
-        # Первая колонка должна быть строкой (время)
-        first_col = df.iloc[:, 0]
-        if not all(isinstance(str(val), str) for val in first_col.dropna()):
+        first_col = df.iloc[:, 0].dropna()
+        if first_col.empty:
             return False
-        
-        # Колонки 1-5 должны быть числовыми (open, high, low, close, volume)
+        parsed = pd.to_datetime(first_col.astype(str), errors='coerce', format='mixed')
+        if not parsed.notna().all():
+            return False
+
         numeric_cols = df.iloc[:, 1:6]
         for col in numeric_cols.columns:
             if not pd.to_numeric(numeric_cols[col], errors='coerce').notna().all():
                 return False
-        
+
         return True
     except Exception:
         return False
@@ -542,11 +533,10 @@ def _validate_ohlcv_structure(df: pd.DataFrame, symbol: Optional[str] = None, ti
                 column=col
             )
     
-    # Check for logical consistency (high >= low, etc.)
-    if 'high' in df.columns and 'low' in df.columns:
-        invalid_hl = df['high'] < df['low']
-        if invalid_hl.any():
-            logger.warning(f"Found {invalid_hl.sum()} rows where high < low")
+    # OHLC relations — the same three the schema and the validator check
+    for name, violations in ohlc_violations(df).items():
+        if violations:
+            logger.warning(f"Found {violations} rows where {name.replace('_', ' ')}")
     
     # Check for logical price ranges
     price_columns = ['open', 'high', 'low', 'close']

@@ -61,6 +61,17 @@ def resolve_time_index(df: pd.DataFrame) -> pd.DataFrame:
                 f"leaving the positional index in place"
             )
             continue
+        # Частично распарсившаяся колонка — это ось времени с дырами, а не «не
+        # время». До G57 она принималась как есть: `NaT` в индексе ломает
+        # сортировку, границы зон и хэш кэша, и ничего из этого не падало.
+        if parsed.isna().any():
+            bad = df.loc[parsed.isna(), column]
+            examples = ', '.join(repr(v) for v in bad.head(3).tolist())
+            raise ValueError(
+                f"Column '{column}' is the time axis, but {int(parsed.isna().sum())} of "
+                f"{len(df)} values did not parse as time (e.g. {examples}). A time index "
+                f"with NaT in it is not a time index: fix or drop those rows first."
+            )
         # Копия, а не правка на месте: подготовка не должна менять кадр вызывающего.
         prepared = df.drop(columns=[column]).set_index(parsed)
         prepared.index.name = column
@@ -159,29 +170,36 @@ def remove_price_outliers(
         
         logger.info(f"Removing outliers from columns: {existing_columns}")
         
-        cleaned_df = df.copy()
-        initial_rows = len(cleaned_df)
-        
+        initial_rows = len(df)
+
+        # One mask over the original frame, starting all-True. Two things went
+        # wrong with the previous per-column loop (G57): a zero-variance column
+        # gave z = 0/0 = NaN, `NaN <= threshold` is False, and a constant price
+        # series lost every row as an outlier; and each column was judged on the
+        # distribution the previous column had already trimmed.
+        keep = pd.Series(True, index=df.index)
+
         if method == 'z_score':
             for col in existing_columns:
-                z_scores = np.abs((cleaned_df[col] - cleaned_df[col].mean()) / cleaned_df[col].std())
-                outlier_mask = z_scores <= threshold
-                cleaned_df = cleaned_df[outlier_mask]
-        
+                std = df[col].std()
+                if not std or np.isnan(std):
+                    continue  # no spread, no outliers
+                z_scores = np.abs((df[col] - df[col].mean()) / std)
+                keep &= ~(z_scores > threshold)  # NaN is not an outlier
+
         elif method == 'iqr':
             for col in existing_columns:
-                Q1 = cleaned_df[col].quantile(0.25)
-                Q3 = cleaned_df[col].quantile(0.75)
+                Q1 = df[col].quantile(0.25)
+                Q3 = df[col].quantile(0.75)
                 IQR = Q3 - Q1
                 lower_bound = Q1 - threshold * IQR
                 upper_bound = Q3 + threshold * IQR
-                
-                outlier_mask = (cleaned_df[col] >= lower_bound) & (cleaned_df[col] <= upper_bound)
-                cleaned_df = cleaned_df[outlier_mask]
-        
+                keep &= ~((df[col] < lower_bound) | (df[col] > upper_bound))
+
         else:
             raise ValueError(f"Unknown outlier detection method: {method}")
-        
+
+        cleaned_df = df[keep].copy()
         removed_rows = initial_rows - len(cleaned_df)
         if removed_rows > 0:
             logger.info(f"Removed {removed_rows} outlier rows ({removed_rows/initial_rows:.2%})")
@@ -195,6 +213,25 @@ def remove_price_outliers(
         )
 
 
+def calculate_true_range(df: pd.DataFrame) -> pd.Series:
+    """True Range: the largest of ``high - low``, ``|high - prev close|``, ``|low - prev close|``.
+
+    The one definition, used by every producer of a ``true_range`` column. Until
+    G57 ``calculate_derived_indicators`` wrote ``high - low`` under that name
+    while ``add_technical_features`` wrote the real thing — two numbers, one
+    label, and they differ on every gap.
+
+    The first bar has no previous close, so its value is ``high - low``.
+    """
+    prev_close = df['close'].shift(1)
+    candidates = pd.concat([
+        df['high'] - df['low'],
+        (df['high'] - prev_close).abs(),
+        (df['low'] - prev_close).abs(),
+    ], axis=1)
+    return candidates.max(axis=1, skipna=True)
+
+
 def calculate_derived_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate basic derived indicators from OHLCV data.
@@ -203,7 +240,9 @@ def calculate_derived_indicators(df: pd.DataFrame) -> pd.DataFrame:
         df: DataFrame with OHLCV data
     
     Returns:
-        DataFrame with additional calculated columns
+        DataFrame with additional calculated columns: ``intrabar_range``
+        (``high - low``) and ``true_range`` (:func:`calculate_true_range`) are
+        two different quantities and carry two different names.
     """
     try:
         logger.info("Calculating derived indicators")
@@ -218,9 +257,11 @@ def calculate_derived_indicators(df: pd.DataFrame) -> pd.DataFrame:
             result_df['ohlc_avg'] = (df['open'] + df['high'] + df['low'] + df['close']) / 4
             result_df['typical_price'] = (df['high'] + df['low'] + df['close']) / 3
         
-        # Price ranges
+        # Price ranges — intrabar and true range are not the same number
         if all(col in df.columns for col in ['high', 'low']):
-            result_df['true_range'] = df['high'] - df['low']
+            result_df['intrabar_range'] = df['high'] - df['low']
+        if all(col in df.columns for col in ['high', 'low', 'close']):
+            result_df['true_range'] = calculate_true_range(df)
         
         # Price changes
         if 'close' in df.columns:
@@ -409,10 +450,13 @@ def detect_market_sessions(
             mask = (hours >= start_hour) & (hours < end_hour)
             result_df.loc[mask, 'session'] = session_name
         
-        # Mark overlaps
+        # Mark overlaps: a boolean column, False everywhere first. Assigning True
+        # to the overlap rows alone left NaN in the rest, and `DataFrame.get()`
+        # did not fill them because the column already existed (G57).
         overlap_mask = (hours >= 13) & (hours < 16)
+        result_df['london_ny_overlap'] = False
         result_df.loc[overlap_mask, 'london_ny_overlap'] = True
-        result_df['london_ny_overlap'] = result_df.get('london_ny_overlap', False)
+        result_df['london_ny_overlap'] = result_df['london_ny_overlap'].astype(bool)
         
         logger.info("Market session detection completed")
         return result_df
@@ -508,14 +552,8 @@ def add_technical_features(df: pd.DataFrame) -> pd.DataFrame:
             df_features['upper_shadow'] = df_features['high'] - df_features[['open', 'close']].max(axis=1)
             df_features['lower_shadow'] = df_features[['open', 'close']].min(axis=1) - df_features['low']
             
-            # True range (volatility measure)
-            df_features['true_range'] = np.maximum(
-                df_features['high'] - df_features['low'],
-                np.maximum(
-                    np.abs(df_features['high'] - df_features['close'].shift(1)),
-                    np.abs(df_features['low'] - df_features['close'].shift(1))
-                )
-            )
+            # True range (volatility measure) — the canonical definition
+            df_features['true_range'] = calculate_true_range(df_features)
             
             # Price changes
             df_features['price_change'] = df_features['close'].pct_change()
@@ -717,6 +755,7 @@ def prepare_data_for_analysis(
 # Экспорт функций
 __all__ = [
     'resolve_time_index',
+    'calculate_true_range',
     'TIME_COLUMN_CANDIDATES',
     'clean_ohlcv_data',
     'remove_price_outliers',

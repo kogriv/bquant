@@ -39,13 +39,25 @@ class PreloadedZonesDetection:
         
     Правила (config.rules):
         - zones_data: str | Path | pd.DataFrame (обязательно)
-        - time_tolerance: str (опционально, default='1min') - допуск времени для мержа
+        - time_tolerance: str (опционально, default='1min') — насколько далеко от
+          объявленной границы может стоять ближайший бар. Граница **снапится** к
+          ближайшему бару в пределах допуска; допуск не расширяет зону (до G57
+          расширял с обеих сторон: `'2h'` на часовых барах давал +4 бара).
         
     Формат внешних зон (CSV/DataFrame):
         - zone_id: int - уникальный ID
         - type: str - тип зоны
-        - start_time: datetime - начало зоны
+        - start_time: datetime - начало зоны (строки разбираются `pd.to_datetime`)
         - end_time: datetime - конец зоны
+
+    Контракт:
+        - зоны сортируются по `start_time`; пересечение двух зон или `end < start`
+          — `ValueError` (политика — отказ; режим событийных зон не реализован);
+        - `zone_id` уникальны;
+        - ось времени данных уникальна и монотонна;
+        - объявленные границы сохраняются в `indicator_context['declared_start_time']`
+          /`['declared_end_time']`, `start_time`/`end_time` зоны — бары, которые
+          в неё попали.
     
     Example:
         # From CSV
@@ -98,6 +110,8 @@ class PreloadedZonesDetection:
         # the merge below compares timestamps against positions inside pandas.
         data = resolve_time_index(data)
         self._require_comparable_clock(zones_df, data)
+        self._require_unique_monotonic_axis(data)
+        zones_df = self._require_ordered_disjoint(zones_df)
 
         # Объединить с OHLCV
         zones = []
@@ -119,23 +133,92 @@ class PreloadedZonesDetection:
         return zones
     
     def _load_zones(self, zones_data: Union[str, Path, pd.DataFrame]) -> pd.DataFrame:
-        """Загрузить зоны из файла или DataFrame."""
+        """Загрузить зоны из файла или DataFrame; границы — всегда timestamps.
+
+        Строки в `start_time`/`end_time` разбираются здесь же (как обещает пример
+        в докстринге класса — до G57 кадр со строками отклонялся). Значение, которое
+        не разобралось, — отказ по имени, а не `NaT` в границе зоны.
+        """
         if isinstance(zones_data, pd.DataFrame):
-            return zones_data.copy()
-        
-        # Загрузка из файла
-        path = Path(zones_data)
-        if not path.exists():
-            raise FileNotFoundError(f"Zones file not found: {path}")
-        
-        if path.suffix == '.csv':
-            df = pd.read_csv(path, parse_dates=['start_time', 'end_time'])
-        elif path.suffix in ['.xlsx', '.xls']:
-            df = pd.read_excel(path, parse_dates=['start_time', 'end_time'])
+            df = zones_data.copy()
         else:
-            raise ValueError(f"Unsupported file format: {path.suffix}")
-        
+            path = Path(zones_data)
+            if not path.exists():
+                raise FileNotFoundError(f"Zones file not found: {path}")
+
+            if path.suffix == '.csv':
+                df = pd.read_csv(path)
+            elif path.suffix in ['.xlsx', '.xls']:
+                df = pd.read_excel(path)
+            else:
+                raise ValueError(f"Unsupported file format: {path.suffix}")
+
+        for column in ('start_time', 'end_time'):
+            if column not in df.columns:
+                continue
+            if pd.api.types.is_datetime64_any_dtype(df[column]):
+                continue
+            if pd.api.types.is_numeric_dtype(df[column]):
+                # Numbers are positions, not time: `pd.to_datetime(10)` would
+                # read them as nanoseconds since 1970 and hide the mistake.
+                # `_require_comparable_clock` names it instead.
+                continue
+            parsed = pd.to_datetime(df[column], errors='coerce')
+            if parsed.isna().any():
+                bad = df.loc[parsed.isna(), column].head(3).tolist()
+                raise ValueError(
+                    f"zones_data['{column}'] has {int(parsed.isna().sum())} values that do "
+                    f"not parse as time (e.g. {bad}). Zone boundaries must be timestamps."
+                )
+            df[column] = parsed
         return df
+
+    @staticmethod
+    def _require_unique_monotonic_axis(ohlcv: pd.DataFrame) -> None:
+        """Границы ищутся по ближайшему бару; на неуникальной оси «ближайший» неоднозначен."""
+        if not isinstance(ohlcv.index, pd.DatetimeIndex):
+            return
+        if not ohlcv.index.is_monotonic_increasing:
+            raise ValueError(
+                "The data's time axis is not sorted; preloaded zones are matched to "
+                "bars by time, which needs a monotonic index. Sort the data first."
+            )
+        if not ohlcv.index.is_unique:
+            duplicates = ohlcv.index[ohlcv.index.duplicated()][:3].tolist()
+            raise ValueError(
+                f"The data's time axis has duplicate timestamps (e.g. {duplicates}); "
+                "a zone boundary cannot be matched to one bar on it. Deduplicate first."
+            )
+
+    @staticmethod
+    def _require_ordered_disjoint(zones_df: pd.DataFrame) -> pd.DataFrame:
+        """Зоны в порядке начала, без пересечений, с уникальными id.
+
+        Политика при пересечении — отказ. Слияние или «событийный» режим (зоны как
+        события, не как мощение) не реализованы: анализ последовательностей читает
+        соседние зоны как переход, и пересекающиеся зоны сделали бы его выдумкой.
+        """
+        if not zones_df['zone_id'].is_unique:
+            dupes = zones_df.loc[zones_df['zone_id'].duplicated(), 'zone_id'].tolist()[:3]
+            raise ValueError(f"zone_id must be unique; duplicated: {dupes}")
+
+        reversed_ = zones_df['end_time'] < zones_df['start_time']
+        if reversed_.any():
+            ids = zones_df.loc[reversed_, 'zone_id'].tolist()[:3]
+            raise ValueError(f"end_time is before start_time for zone_id {ids}")
+
+        ordered = zones_df.sort_values(['start_time', 'end_time'], kind='stable').reset_index(drop=True)
+        previous_end = ordered['end_time'].shift(1)
+        overlapping = ordered['start_time'] <= previous_end
+        if overlapping.any():
+            i = int(overlapping.idxmax())
+            raise ValueError(
+                f"Zones overlap: zone_id {ordered.loc[i, 'zone_id']} starts at "
+                f"{ordered.loc[i, 'start_time']}, before zone_id "
+                f"{ordered.loc[i - 1, 'zone_id']} ends at {ordered.loc[i - 1, 'end_time']}. "
+                "Preloaded zones must tile without overlap; merge or trim them first."
+            )
+        return ordered
     
     @staticmethod
     def _require_comparable_clock(zones_df: pd.DataFrame, ohlcv: pd.DataFrame) -> None:
@@ -178,28 +261,38 @@ class PreloadedZonesDetection:
                                 zone_row: pd.Series, 
                                 ohlcv: pd.DataFrame,
                                 time_tolerance: str) -> ZoneInfo:
-        """Объединить зону с OHLCV данными по времени."""
+        """Объединить зону с OHLCV данными по времени.
+
+        Каждая объявленная граница снапится к ближайшему бару в пределах
+        `time_tolerance`; зона — бары между ними включительно. Граница, у
+        которой ближайшего бара в пределах допуска нет, — зона пропускается с
+        предупреждением. Допуск не расширяет зону: до G57 окно бралось как
+        `[start - tol, end + tol]`, и `'2h'` на часовых барах добавлял по два
+        бара с каждой стороны.
+        """
         start_time = pd.Timestamp(zone_row['start_time'])
         end_time = pd.Timestamp(zone_row['end_time'])
-        
-        # Найти индексы с допуском времени
-        mask = (ohlcv.index >= start_time - pd.Timedelta(time_tolerance)) & \
-               (ohlcv.index <= end_time + pd.Timedelta(time_tolerance))
-        
-        zone_data = ohlcv[mask].copy()
-        
-        if zone_data.empty:
+        tolerance = pd.Timedelta(time_tolerance)
+
+        positions = ohlcv.index.get_indexer(
+            [start_time, end_time], method='nearest', tolerance=tolerance
+        )
+        start_pos, end_pos = int(positions[0]), int(positions[1])
+
+        if start_pos < 0 or end_pos < 0 or end_pos < start_pos:
             self.logger.warning(
-                f"No OHLCV data found for zone {zone_row['zone_id']} "
-                f"({start_time} - {end_time})"
+                f"No OHLCV bar within {time_tolerance} of the boundaries of zone "
+                f"{zone_row['zone_id']} ({start_time} - {end_time}); zone skipped"
             )
             return None
+
+        zone_data = ohlcv.iloc[start_pos:end_pos + 1].copy()
         
         return ZoneInfo(
             zone_id=int(zone_row['zone_id']),
             type=str(zone_row['type']),
-            start_idx=ohlcv.index.get_loc(zone_data.index[0]),
-            end_idx=ohlcv.index.get_loc(zone_data.index[-1]),
+            start_idx=start_pos,
+            end_idx=end_pos,
             start_time=zone_data.index[0],
             end_time=zone_data.index[-1],
             duration=len(zone_data),
@@ -209,7 +302,9 @@ class PreloadedZonesDetection:
                 'detection_indicator': zone_row.get('indicator', 'external'),
                 'signal_line': None,
                 'source': 'external',
-                'detection_rules': {'preloaded': True}
+                'detection_rules': {'preloaded': True, 'time_tolerance': time_tolerance},
+                'declared_start_time': start_time.isoformat(),
+                'declared_end_time': end_time.isoformat(),
             }
         )
 

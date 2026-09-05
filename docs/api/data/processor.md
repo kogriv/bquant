@@ -9,11 +9,11 @@
 |---|---|
 | `resolve_time_index(df)` | переносит время из колонки в `DatetimeIndex` |
 | `clean_ohlcv_data(df, fill_method='forward', remove_outliers=True, outlier_threshold=3.0)` | заполняет пропуски, снимает выбросы |
-| `remove_price_outliers(df, columns=None, threshold=3.0, method='z_score')` | только выбросы; `method` — `'z_score'` или `'iqr'` |
-| `calculate_derived_indicators(df)` | десять величин из самих цен |
+| `remove_price_outliers(df, columns=None, threshold=3.0, method='z_score')` | только выбросы; `method` — `'z_score'` или `'iqr'`; маска строится по исходному кадру, колонка без разброса выбросов не даёт, `NaN` — не выброс |
+| `calculate_derived_indicators(df)` | одиннадцать величин из самих цен |
 | `resample_ohlcv(df, target_timeframe, method='standard')` | меняет таймфрейм |
 | `normalize_prices(df, base_column='close', method='first_value')` | нормирует цены |
-| `detect_market_sessions(df, timezone='UTC')` | размечает торговые сессии |
+| `detect_market_sessions(df, timezone='UTC')` | размечает торговые сессии; `london_ny_overlap` — булева колонка без пропусков |
 | `add_technical_features(df)` | семнадцать технических признаков |
 | `create_lagged_features(df, columns, lags)` | лаги указанных колонок |
 | `prepare_data_for_analysis(df, target_column='close', …)` | всё вместе, одним вызовом |
@@ -77,8 +77,14 @@ data = get_sample_data('tv_xauusd_1h')
 derived = calculate_derived_indicators(data)
 
 print([c for c in derived.columns if c not in data.columns])
-# ['hl_avg', 'ohlc_avg', 'typical_price', 'true_range', 'price_change', 'price_change_pct', 'gap', 'gap_pct', 'volume_sma_20', 'volume_ratio']
+# ['hl_avg', 'ohlc_avg', 'typical_price', 'intrabar_range', 'true_range', 'price_change', 'price_change_pct', 'gap', 'gap_pct', 'volume_sma_20', 'volume_ratio']
 ```
+
+`intrabar_range` — это `high - low`; `true_range` — настоящий True Range,
+`max(high - low, |high - prev close|, |low - prev close|)`, одной функцией
+`calculate_true_range()` для всех, кто пишет колонку с этим именем. До 2026-09-05 здесь под
+именем `true_range` лежал `high - low`, а в `add_technical_features()` — True Range: два
+числа под одной подписью, расходящиеся на каждом гэпе (G57).
 
 Ничего внешнего здесь не считается — только арифметика по OHLCV. Индикаторы живут в
 [`bquant.indicators`](../indicators/README.md).

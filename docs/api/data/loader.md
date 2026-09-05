@@ -47,6 +47,42 @@ print(df.columns[:5].tolist())
 кадре из sample-данных откажут, пока время не переставлено (`resolve_time_index()`).
 Разбор двух контрактов — `devref/gaps/detection/g30_…`.
 
+## Файл MetaTrader без заголовка
+
+Выгрузка терминала — шесть колонок без имён: время, `open`, `high`, `low`, `close`,
+`volume` (седьмая и дальше получают имена `col_6`, …). Формат распознаётся по сырому
+семплу **до** чтения: первая колонка разбирается как время в каждой строке (строка
+заголовка `time` — нет), колонки 1–5 числовые.
+
+```python
+import tempfile
+from pathlib import Path
+
+import pandas as pd
+
+from bquant.data.loader import load_ohlcv_data
+from bquant.data.samples import get_sample_data
+
+rows = get_sample_data('tv_xauusd_1h').head(20)
+path = Path(tempfile.mkdtemp()) / 'XAUUSDH1.csv'
+with open(path, 'w') as handle:
+    for _, row in rows.iterrows():
+        stamp = pd.Timestamp(row['time']).strftime('%Y.%m.%d %H:%M:%S')
+        handle.write(f"{stamp},{row['open']},{row['high']},{row['low']},{row['close']},{int(row['volume'])}\n")
+
+df = load_ohlcv_data(path, validate_data=False)
+
+print(len(df), df.columns.tolist())
+print(df.index[0], type(df.index).__name__)
+# 20 ['open', 'high', 'low', 'close', 'volume']
+# 2025-06-11 20:00:00 DatetimeIndex
+```
+
+До 2026-09-05 такой файл читался **после** попытки с `index_col=0`, которая отнимала
+колонку, — проверка «шесть колонок» не проходила, первая строка данных становилась
+заголовком, а цены — именами колонок (`['3336.94', '3344.77', …]`); 19 строк вместо 20,
+и ничего не падало (G57).
+
 ## Что известно о загруженном кадре
 
 ```python

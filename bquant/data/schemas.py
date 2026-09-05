@@ -14,6 +14,35 @@ import pandas as pd
 from ..core.logging_config import get_logger
 
 
+def ohlc_violations(df: pd.DataFrame) -> Dict[str, int]:
+    """How many rows break each OHLC invariant — the one definition for every layer.
+
+    ``high >= low``, ``high >= max(open, close)``, ``low <= min(open, close)``.
+    Until G57 :meth:`OHLCVRecord.validate` checked all three for a single
+    record, the validator checked only ``high < low`` for a frame, the loader
+    warned about the same one, and the schema checked none — one contract,
+    four strictnesses. Columns that are absent are not checked; NaN rows are
+    not counted (a missing value is a different finding).
+
+    Returns:
+        ``{'high_below_low': n, 'high_below_open_or_close': n,
+        'low_above_open_or_close': n}`` — only the keys whose columns exist.
+    """
+    counts: Dict[str, int] = {}
+    has = set(df.columns)
+    if {'high', 'low'} <= has:
+        counts['high_below_low'] = int((df['high'] < df['low']).sum())
+    if {'high', 'open', 'close'} <= has:
+        counts['high_below_open_or_close'] = int(
+            (df['high'] < df[['open', 'close']].max(axis=1)).sum()
+        )
+    if {'low', 'open', 'close'} <= has:
+        counts['low_above_open_or_close'] = int(
+            (df['low'] > df[['open', 'close']].min(axis=1)).sum()
+        )
+    return counts
+
+
 @dataclass
 class OHLCVRecord:
     """
@@ -118,6 +147,13 @@ class DataSchema:
         self.optional_fields = []
         self.field_types = {}
         self.validation_rules = {}
+        #: Rules over the whole frame — relations *between* columns, which a
+        #: per-value rule cannot see. Each maps a name to ``df -> int`` (rows in
+        #: violation). See :func:`ohlc_violations`.
+        self.frame_rules: Dict[str, Any] = {}
+        #: A frame with fewer rows than this is refused. Zero rows with the
+        #: right columns used to pass every schema (G57).
+        self.min_rows = 1
         self.logger = get_logger(f"{__name__}.{schema_type}")
 
     def validate_dataframe(self, df: pd.DataFrame) -> DataValidationResult:
@@ -139,6 +175,12 @@ class DataSchema:
         """
         issues: List[str] = []
         warnings: List[str] = []
+
+        if len(df) < self.min_rows:
+            issues.append(
+                f"DataFrame has {len(df)} rows; the schema needs at least {self.min_rows}. "
+                "Columns alone are not data."
+            )
 
         present = set(df.columns)
         missing = [field for field in self.required_fields if field not in present]
@@ -164,7 +206,12 @@ class DataSchema:
                 continue
             values = df[field].dropna()
             if values.empty:
-                warnings.append(f"Rules for '{field}' not applied: no values to check")
+                if len(df) and field in self.required_fields:
+                    # A required column with nothing in it is missing in every
+                    # way that matters; "rules not applied" is not a verdict.
+                    issues.append(f"Required field '{field}' has no values (all NaN)")
+                else:
+                    warnings.append(f"Rules for '{field}' not applied: no values to check")
                 continue
             for rule in rules:
                 try:
@@ -176,6 +223,19 @@ class DataSchema:
                     rule_violations[field] = rule_violations.get(field, 0) + failed
         if rule_violations:
             issues.append(f"Values violating field rules: {rule_violations}")
+
+        frame_violations: Dict[str, int] = {}
+        if len(df):
+            for name, rule in self.frame_rules.items():
+                try:
+                    failed = int(rule(df))
+                except Exception as exc:
+                    warnings.append(f"Frame rule '{name}' could not be applied: {exc}")
+                    continue
+                if failed:
+                    frame_violations[name] = failed
+        if frame_violations:
+            issues.append(f"Rows violating frame rules: {frame_violations}")
 
         recommendations = []
         if missing:
@@ -198,6 +258,7 @@ class DataSchema:
                 'missing_required': missing,
                 'absent_optional': absent_optional,
                 'rule_violations': rule_violations,
+                'frame_violations': frame_violations,
             },
             recommendations=recommendations
         )
@@ -217,6 +278,10 @@ class DataSchema:
         if field_name not in self.validation_rules:
             self.validation_rules[field_name] = []
         self.validation_rules[field_name].append(rule)
+
+    def add_frame_rule(self, name: str, rule: callable):
+        """Add a rule over the whole frame: ``df -> number of rows in violation``."""
+        self.frame_rules[name] = rule
 
 
 class OHLCVSchema(DataSchema):
@@ -243,6 +308,12 @@ class OHLCVSchema(DataSchema):
         self.add_validation_rule('low', lambda x: x > 0)
         self.add_validation_rule('close', lambda x: x > 0)
         self.add_validation_rule('volume', lambda x: x >= 0 if x is not None else True)
+
+        # The relations between the four prices — the same three the single-record
+        # check and the validator use. Only the columns present are looked at, so
+        # a frame with just `high`/`low` gets the one relation that applies.
+        for name in ('high_below_low', 'high_below_open_or_close', 'low_above_open_or_close'):
+            self.add_frame_rule(name, lambda df, key=name: ohlc_violations(df).get(key, 0))
 
 
 class IndicatorSchema(DataSchema):
@@ -359,6 +430,7 @@ def validate_with_schema(df: pd.DataFrame, schema_name: str) -> DataValidationRe
 
 # Экспорт для использования
 __all__ = [
+    'ohlc_violations',
     'OHLCVRecord',
     'DataSourceConfig',
     'DataValidationResult',

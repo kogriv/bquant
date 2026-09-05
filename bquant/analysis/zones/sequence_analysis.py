@@ -388,8 +388,20 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
 
         segments = [[0]]
         for i in range(1, n):
-            if starts[i] <= ends[i - 1] + 1:
+            if starts[i] == ends[i - 1] + 1:
                 segments[-1].append(i)
+            elif starts[i] <= ends[i - 1]:
+                # Overlap or reverse order. `<=` used to accept both as
+                # adjacency (G57): a zone starting inside — or before — its
+                # predecessor is not its neighbour, and a sequence built on
+                # it is not a sequence. Tiling detectors never produce this;
+                # preloaded zones and hand-built features can.
+                raise ValueError(
+                    f"Zones are not in tiling order: zone at position {i} starts at bar "
+                    f"{starts[i]} while the previous one ends at bar {ends[i - 1]}. "
+                    "Adjacent zones must satisfy start == previous end + 1; sort the "
+                    "zones and remove overlaps before sequence analysis."
+                )
             else:
                 segments.append([i])
         return segments
