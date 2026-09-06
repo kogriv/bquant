@@ -108,7 +108,7 @@ Available: ['statistical']`.
 ### `.with_swing_preset(name)`
 
 Пороги для свинг-стратегий. Пресетов **два**: `'narrow_zone'` (по умолчанию) и
-`'wide_zone'` (`SWING_PRESETS` в `bquant/core/config.py`); имена говорят, под какую
+`'wide_zone'` (`SWING_PRESETS` в `bquant.analysis.zones.strategies.swing`); имена говорят, под какую
 ширину зоны набор откалиброван.
 
 `wide_zone` требует движения в 2% цены — больше размаха типичной зоны на часовом золоте,

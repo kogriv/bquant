@@ -356,79 +356,58 @@ fig_cmp = plot_zones_comparison(result.data, result.zones[:3], max_zones=3)
 ```
 Эти функции являются обертками над методами `ZoneVisualizer`.
 
-### Визуализация ZigZag индикатора: `plot_zigzag_verification`
+### Свинг-точки на свечах: `plot_zigzag_verification`
 
-Функция для построения графика ZigZag индикатора с swing-точками для визуальной проверки параметров стратегии. Полезно для отладки и верификации настроек swing-стратегии.
+Рисует точки готового `SwingContext` поверх свечей — чтобы глазами проверить пороги
+свинг-стратегии. Функция **ничего не считает**: до G64 (2026-09-06) она сама запускала
+ZigZag из pandas-ta по `legs`/`deviation`, и нарисованные точки могли расходиться с теми,
+по которым посчитаны метрики зон. Теперь единственный источник точек — контекст,
+посчитанный слоем анализа.
 
 ```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
 from bquant.visualization import plot_zigzag_verification
 
-# Простой вариант - только параметры
-fig = plot_zigzag_verification(
-    price_data=result.data,
-    legs=10,
-    deviation=0.05
-)
-
-# С swing_context для точных типов точек
-fig = plot_zigzag_verification(
-    price_data=result.data,
-    legs=10,
-    deviation=0.05,
-    swing_context=result.zones[0].swing_context
-)
-```
-
-**Параметры:**
-- `price_data` (pd.DataFrame, **required**): DataFrame с OHLCV данными (должен содержать 'close', 'high', 'low').
-- `legs` (int, **required**): Количество баров для подтверждения разворота (параметр ZigZag).
-- `deviation` (float, **required**): Минимальное процентное отклонение (например, 0.05 = 5%).
-- `swing_context` (SwingContext, optional): Опциональный SwingContext для точного определения типов точек (peaks/troughs).
-- `title` (str, optional): Заголовок графика (по умолчанию генерируется автоматически).
-- `height` (int, default=800): Высота графика в пикселях.
-- `show_rangeslider` (bool, default=False): Показывать ползунок диапазона (range slider) под графиком для навигации по большим датасетам.
-- `**kwargs`: Дополнительные параметры для Plotly figure (например, `width`).
-
-**Возвращает:**
-- `go.Figure` или `None` если Plotly недоступен.
-
-**Что показывает график:**
-- Свечной график (Candlestick) с ценой
-- Маркеры swing-точек поверх графика:
-  - 🔴 Красные треугольники вниз (peaks)
-  - 🟢 Зеленые треугольники вверх (troughs)
-- Опционально: ползунок диапазона (rangeslider) для навигации по большим датасетам
-
-**Пример использования в скрипте:**
-
-```python
-# После анализа зон
 result = (
-    analyze_zones(df)
-    .with_strategies(swing="zigzag")
-    .with_auto_swing_thresholds(True)
-    .analyze()
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .with_strategies(swing='zigzag')
+    .with_cache(enable=False)
     .build()
 )
+context = result.zones[0].swing_context          # глобальный контекст, общий для всех зон
 
-# Получаем параметры из первой зоны
-if result.zones:
-    first_zone = result.zones[0]
-    swing_context = first_zone.swing_context
-    strategy_params = swing_context.strategy_params
-    
-    # Строим график для визуальной проверки
-    fig_zigzag = plot_zigzag_verification(
-        price_data=result.data,
-        legs=strategy_params.get('legs', 10),
-        deviation=strategy_params.get('deviation', 0.05),
-        swing_context=swing_context,
-        show_rangeslider=True  # Включаем ползунок для навигации по большому датасету
-    )
+fig, points = plot_zigzag_verification(result.data, context, return_data=True)
+print(context.strategy_name, context.strategy_params, len(context.swing_points))
+print(len(points['peaks']), len(points['troughs']), fig.layout.title.text)
 
-    if fig_zigzag:
-        save_figure(fig_zigzag, "zigzag_verification")
+fig_slice = plot_zigzag_verification(result.data.iloc[:200], context)
+print(sum(len(trace.x) for trace in fig_slice.data[1:]))
+# zigzag {'legs': 3, 'deviation': 0.008} 402
+# 205 197 zigzag swing verification (legs=3, deviation=0.008)
+# 81
 ```
+
+Срез кадра показывает только точки, чьи метки времени в него попали, — считать ничего
+заново не нужно, потому и «граничных эффектов» у среза нет.
+
+**Параметры:**
+- `price_data` (pd.DataFrame, **required**): кадр для отображения — OHLC, или хотя бы `close`.
+- `swing_context` (SwingContext, **required**): контекст свингов из `result.zones[i].swing_context`
+  (режим `global`) или `strategy.calculate_global(data)`. Без него — `ValueError`.
+- `title` (str, optional): заголовок; по умолчанию имя стратегии и её параметры из контекста.
+- `height` (int, default=800), `show_rangeslider` (bool, default=False),
+  `time_axis_mode` (`'dense'` | `'timeseries'`), `xaxis_num_ticks` (int, default=16).
+- `return_data` (bool): вернуть `(fig, {'swing_values': Series, 'peaks': [(ts, price)], 'troughs': [(ts, price)]})`.
+- `**kwargs`: параметры `fig.update_layout` (например, `width`).
+
+**Возвращает:** `go.Figure` (или пару при `return_data`); `None`, если Plotly недоступен.
+
+**Что показывает график:** свечи и маркеры точек — 🔴 треугольники вниз (peaks),
+🟢 треугольники вверх (troughs); опционально ползунок диапазона.
+
 
 ---
 

@@ -21,12 +21,10 @@ import pytest
 
 from bquant.data.samples import get_sample_data
 from bquant.data.schemas import (
-    MACD_SCHEMA,
     OHLCV_SCHEMA,
-    RSI_SCHEMA,
-    IndicatorSchema,
     validate_with_schema,
 )
+from bquant.indicators import MACD_SCHEMA, RSI_SCHEMA, IndicatorSchema
 
 
 @pytest.fixture(scope="module")
@@ -37,7 +35,7 @@ def sample() -> pd.DataFrame:
 def test_a_missing_required_column_is_refused(sample):
     """Главный случай: сэмпл не несёт колонок MACD, и схема обязана это сказать."""
 
-    result = validate_with_schema(sample, "macd")
+    result = validate_with_schema(sample, MACD_SCHEMA)
 
     assert result.is_valid is False
     assert "macd_12_26_9__line" in " ".join(result.issues)

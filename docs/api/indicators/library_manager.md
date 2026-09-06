@@ -15,6 +15,7 @@
 
 | Метод | Описание |
 |-------|----------|
+| `ensure_loaded() -> Dict[str, int]` | Загружает все библиотеки **один раз за процесс**; фабрика зовёт его сама при первом обращении за библиотечным индикатором. Повторный вызов — пустой словарь. |
 | `load_all_libraries() -> Dict[str, int]` | Загружает все поддерживаемые библиотеки и возвращает количество зарегистрированных индикаторов для каждой. |
 | `load_library(name: str) -> int` | Загружает конкретную библиотеку (`pandas_ta`, `talib`). |
 | `get_available_libraries() -> List[str]` | Возвращает список поддерживаемых библиотек. |
@@ -119,7 +120,10 @@ print(info['indicators'][:5])
 
 ## Интеграция с IndicatorFactory
 
-При вызове `load_all_libraries()` менеджер:
+Библиотеки грузятся **лениво** (G64): импорт `bquant.indicators` их не трогает, а первый
+вызов `IndicatorFactory.create('pandas_ta', …)`, `list_indicators()` или `get_indicator_info()`
+запускает `ensure_loaded()`. Тот, кому нужны счётчики, зовёт `load_all_libraries()` явно.
+При загрузке менеджер:
 
 1. Импортирует соответствующие загрузчики (`PandasTALoader`, `TALibLoader`).
 2. Запускает `register_indicators()` на каждом загрузчике. В случае pandas-ta создаются классы-наследники
@@ -127,7 +131,9 @@ print(info['indicators'][:5])
 3. Регистрирует новые классы в `IndicatorFactory` под ключами вида `pandas_ta_<имя>`.
 
 После этого индикаторы доступны как через `LibraryManager.create_indicator()`, так и напрямую через
-`IndicatorFactory.create('pandas_ta', '<имя>', **params)`.
+`IndicatorFactory.create('pandas_ta', '<имя>', **params)`. Переменные окружения
+`BQUANT_SKIP_PANDAS_TA=1` / `BQUANT_SKIP_TALIB=1` выключают библиотеку на весь процесс — и
+именно на весь: флаг читается при первой загрузке, снять его после неё нельзя.
 
 ## Обработка ошибок и логирование
 

@@ -12,7 +12,7 @@ from bquant.analysis.zones.pipeline import (
 )
 from bquant.analysis.zones.detection import ZoneDetectionConfig
 from bquant.analysis.zones.strategies.swing.thresholds import auto_swing_thresholds
-from bquant.core.config import SWING_PRESETS
+from bquant.analysis.zones.strategies.swing import SWING_PRESETS
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones.strategies.swing import FindPeaksSwingStrategy
 
@@ -103,8 +103,8 @@ def test_pipeline_auto_thresholds_matches_kpi() -> None:
 # that actually went wrong: which knob each relative value is allowed to reach.
 
 def _adaptive(name, params):
-    from bquant.analysis.zones.strategies.swing.thresholds import _AdaptiveSwingStrategy
-    return _AdaptiveSwingStrategy(name, params, base_deviation=0.01)
+    from bquant.analysis.zones.strategies.swing.thresholds import AdaptiveSwingStrategy
+    return AdaptiveSwingStrategy(name, params, base_deviation=0.01)
 
 
 def test_adaptive_never_sets_find_peaks_prominence() -> None:

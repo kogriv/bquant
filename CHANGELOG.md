@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [Unreleased]
+
+### Fixed
+
+* **G64 — слои смотрели в обе стороны.** По графу codemap на `977f915`: `core.config` держал
+  пять фабрик стратегий и пресеты свингов и лениво импортировал реестр анализа — одно ребро
+  `core → analysis` против сорока обратных; `data.schemas.IndicatorSchema` создавала
+  индикатор через фабрику; `plot_zigzag_verification` сама считала ZigZag через
+  `LibraryManager`, и точки на графике были другим расчётом, чем метрики зон; `pipeline`
+  импортировал приватный `_AdaptiveSwingStrategy`; встроенные индикаторы регистрировались в
+  четырёх местах, а `import bquant.analysis.zones` тянул `pandas_ta` (2.55 с на тёплом кэше
+  numba, 30 с на холодном); `MemoryCache` без замка давал под восемью потоками 7–8 исключений
+  за прогон и рассогласованный LRU. Теперь: фабрики и пресеты — в
+  `bquant.analysis.zones.strategies` (`.swing` для `SWING_PRESETS`, `DEFAULT_SWING_PRESET`,
+  `SwingPreset`, `AdaptiveSwingStrategy`); `IndicatorSchema`/`MACD_SCHEMA`/`RSI_SCHEMA` — в
+  `bquant.indicators`, `validate_with_schema(df, name_or_schema)` принимает экземпляр;
+  `plot_zigzag_verification(price_data, swing_context, *, …)` рисует готовый контекст и
+  ничего не считает; один бутстрап реестра, внешние библиотеки грузятся
+  `LibraryManager.ensure_loaded()` при первом обращении к фабрике (импорт пайплайна —
+  1.37 с, без `pandas_ta`); кэш в памяти и глобальный менеджер под замками, контракт
+  потоков/процессов записан (`docs/user_guide/caching.md` §9). Сторожа:
+  `test_layers_point_one_way.py` (ast-скан импортов, включая тела функций) и контракт
+  `[architecture]` в `codemap.toml`. Ломает: пути импорта перечисленных имён;
+  `get_schema('macd')` → `None`; сигнатура `plot_zigzag_verification`;
+  `list_indicators()` при первом вызове грузит библиотеки; `BQUANT_SKIP_*` читается при
+  первой загрузке, не при импорте. Остаток AQ-039 (god-модули, две модели зон) открыт —
+  решение владельца.
+
+### Changed
+
+* Тринадцать тестовых файлов перестали писать `BQUANT_SKIP_PANDAS_TA=1` в окружение всего
+  процесса: с загрузкой по запросу флаг стал действовать, и пять тестов краснели в батче,
+  оставаясь зелёными поодиночке.
+* `docs/api/analysis/strategies.md`: таблица протоколов называла `calculate_shape` — метод
+  протокола формы после G68 — `calculate`.
+
 ## [0.0.13] - 2026-09-06
 
 P1-остаток аудита качества (G60–G63), G68 из-под руководства по расширению и волна 5

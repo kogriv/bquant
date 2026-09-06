@@ -33,14 +33,12 @@
 ```python
 from bquant.indicators import IndicatorFactory, LibraryManager
 
-# PRELOADED и CUSTOM индикаторы регистрируются автоматически при импорте пакета
+# PRELOADED и CUSTOM индикаторы регистрируются при импорте пакета
 macd_preloaded = IndicatorFactory.create('preloaded', 'macd_preloaded')
 custom_sma = IndicatorFactory.create('custom', 'sma', period=20)
 
-# Загружаем внешние библиотеки (pandas-ta, TA-Lib)
-LibraryManager.load_all_libraries()
-
-# Создаём индикаторы из pandas-ta без ручной регистрации
+# Внешние библиотеки (pandas-ta, TA-Lib) подгружаются при первом обращении —
+# явный вызов LibraryManager.load_all_libraries() не нужен
 macd = IndicatorFactory.create('pandas_ta', 'macd', fast=12, slow=26, signal=9)
 rsi = IndicatorFactory.create('pandas_ta', 'rsi', length=14)
 ```
@@ -64,13 +62,15 @@ print(info['source'], info['class'], repr(info['description']))
 
 ## Встроенные индикаторы (`bquant.indicators`)
 
-При импорте `bquant.indicators` вызывается вспомогательная функция `_register_all_indicators()`, которая:
+При импорте `bquant.indicators` один бутстрап (`_bootstrap_registry()`) регистрирует
+PRELOADED индикатор (`MACDPreloadedIndicator`) и пять CUSTOM (SMA, EMA, RSI, MACD,
+Bollinger Bands) — классы этого пакета, дёшево и без побочных эффектов. **Внешние
+библиотеки при импорте не загружаются**: `IndicatorFactory` зовёт
+`LibraryManager.ensure_loaded()` при первом запросе библиотечного индикатора, полного списка
+или сведений об индикаторе. До G64 (2026-09-06) импорт тянул `import pandas_ta` (≈1 с на тёплом
+кэше numba, десятки секунд на холодном) и регистрировал встроенные индикаторы трижды.
 
-1. Регистрирует PRELOADED индикаторы (например, `MACDPreloadedIndicator`).
-2. Добавляет CUSTOM реализации (SMA, EMA, RSI, MACD, Bollinger Bands).
-3. Делегирует загрузку внешних библиотек `LibraryManager.load_all_libraries()`.
-
-Благодаря этому любой индикатор можно создать одной строкой через `IndicatorFactory.create()` или «простой способ»
+Любой индикатор создаётся одной строкой через `IndicatorFactory.create()` или «простой способ»
 через `LibraryManager.create_indicator()`.
 
 ## Загрузчики внешних библиотек

@@ -30,7 +30,6 @@ import os
 import pandas as pd
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 from bquant.analysis.zones import analyze_zones  # noqa: E402
 from bquant.data.samples import get_sample_data  # noqa: E402

@@ -10,7 +10,7 @@ from bquant.analysis.zones.pipeline import (
     ZoneAnalysisPipeline,
 )
 from bquant.analysis.zones.detection import ZoneDetectionConfig
-from bquant.core.config import SWING_PRESETS
+from bquant.analysis.zones.strategies.swing import SWING_PRESETS
 from bquant.data.samples import get_sample_data
 
 
@@ -87,7 +87,7 @@ def test_the_default_preset_is_named_for_what_it_is():
     меняется.
     """
 
-    from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
+    from bquant.analysis.zones.strategies.swing import DEFAULT_SWING_PRESET, SWING_PRESETS
 
     assert DEFAULT_SWING_PRESET == "narrow_zone"
     assert set(SWING_PRESETS) == {"narrow_zone", "wide_zone"}

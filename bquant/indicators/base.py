@@ -734,6 +734,18 @@ class LibraryIndicator(BaseIndicator):
         return self.library_func
 
 
+def _ensure_libraries_loaded() -> None:
+    """Подгрузить внешние библиотеки перед ответом, который от них зависит (G64).
+
+    Импорт пакета библиотеки не трогает; первый вопрос фабрике о библиотечном
+    индикаторе или о полном списке — момент, когда они нужны. Импорт локальный:
+    ``library.manager`` сам импортирует этот модуль.
+    """
+    from .library.manager import LibraryManager
+
+    LibraryManager.ensure_loaded()
+
+
 class IndicatorFactory:
     """
     Фабрика для создания индикаторов.
@@ -888,7 +900,8 @@ class IndicatorFactory:
             Экземпляр LIBRARY индикатора
         """
         indicator_lower = indicator.lower()
-        
+        _ensure_libraries_loaded()
+
         # Ищем в зарегистрированных индикаторах с учетом источника
         registry_key = f"{source}_{indicator_lower}"
         if registry_key in cls._registry:
@@ -905,8 +918,7 @@ class IndicatorFactory:
         # missing TA-Lib read "cannot import name 'TALibRSI'".)
         raise KeyError(
             f"LIBRARY indicator '{indicator}' from '{source}' is not registered: "
-            f"the library is not installed or its loader has not run "
-            f"(LibraryManager.load_all_libraries())"
+            f"the library is not installed or has no indicator by that name"
         )
     
     @classmethod
@@ -954,6 +966,7 @@ class IndicatorFactory:
         Returns:
             Словарь {название: источник}
         """
+        _ensure_libraries_loaded()
         indicators = {}
         
         # Добавляем PRELOADED индикаторы
@@ -986,7 +999,8 @@ class IndicatorFactory:
             Информация об индикаторе или None
         """
         name_lower = name.lower()
-        
+        _ensure_libraries_loaded()
+
         if name_lower in cls._registry:
             indicator_class = cls._registry[name_lower]
             
@@ -1037,6 +1051,7 @@ class IndicatorFactory:
         Returns:
             Список названий индикаторов
         """
+        _ensure_libraries_loaded()
         source_lower = source.lower()
         indicators = []
         

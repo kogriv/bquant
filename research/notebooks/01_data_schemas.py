@@ -29,14 +29,14 @@ from bquant.data.schemas import (
     DataValidationResult,
     DataSchema,
     OHLCVSchema,
-    IndicatorSchema,
     OHLCV_SCHEMA,
-    MACD_SCHEMA,
-    RSI_SCHEMA,
     get_schema,
     validate_with_schema,
     AVAILABLE_SCHEMAS
 )
+# Схемы выходов индикаторов живут в слое индикаторов (G64): они спрашивают колонки
+# у самого индикатора, и слой данных ради этого больше не грузит слой индикаторов.
+from bquant.indicators import IndicatorSchema, MACD_SCHEMA, RSI_SCHEMA
 
 # Устанавливаем более широкий вывод для pandas
 pd.set_option('display.max_columns', None)
@@ -434,8 +434,9 @@ with nb.error_handling("Testing validate_with_schema function"):
     
     # Создаем данные с MACD колонками
     if all(col in df_sample.columns for col in ['macd', 'signal']):
-        macd_validation = validate_with_schema(df_sample, 'macd')
-        nb.log(f"Результат валидации данных с 'macd':")
+        # По имени слой данных знает только 'ohlcv'; схему индикатора передаём экземпляром
+        macd_validation = validate_with_schema(df_sample, MACD_SCHEMA)
+        nb.log(f"Результат валидации данных с MACD_SCHEMA:")
         nb.log(f"  - Валидны: {macd_validation.is_valid}")
         nb.log(f"  - Проблемы: {len(macd_validation.issues)}")
         nb.log(f"  - Статистика: {macd_validation.stats}")
@@ -527,8 +528,8 @@ with nb.error_handling("Analyzing validation results"):
     validation_results = {
         'OHLCV корректные': validate_with_schema(df_sample, 'ohlcv'),
         'OHLCV проблемные': validate_with_schema(df_problematic, 'ohlcv'),
-        'MACD тест': validate_with_schema(df_sample, 'macd') if 'macd' in df_sample.columns else None,
-        'RSI тест': validate_with_schema(df_sample, 'rsi') if 'rsi' in df_sample.columns else None,
+        'MACD тест': validate_with_schema(df_sample, MACD_SCHEMA) if 'macd' in df_sample.columns else None,
+        'RSI тест': validate_with_schema(df_sample, RSI_SCHEMA) if 'rsi' in df_sample.columns else None,
         'Комплексная схема': financial_validation if 'financial_validation' in locals() else None
     }
     

@@ -9,12 +9,15 @@
 |---|---|
 | `DataSchema` | база: обязательные и опциональные поля, типы, правила, `validate_dataframe()` |
 | `OHLCVSchema` | схема свечей: цены обязательны и положительны, объём опционален |
-| `IndicatorSchema` | схема выходов индикатора; поля берутся у самого индикатора |
 | `OHLCVRecord` | одна свеча как dataclass с `validate()` |
 | `DataSourceConfig` | описание источника: шаблон имени файла, таймфреймы, провайдеры |
 | `DataValidationResult` | результат: `is_valid`, `issues`, `warnings`, `stats`, `recommendations` |
-| `OHLCV_SCHEMA`, `MACD_SCHEMA`, `RSI_SCHEMA` | готовые экземпляры |
-| `get_schema(name)`, `validate_with_schema(df, name)` | доступ по имени |
+| `OHLCV_SCHEMA` | готовый экземпляр |
+| `get_schema(name)`, `validate_with_schema(df, name_or_schema)` | доступ по имени (`'ohlcv'`) или по экземпляру любой `DataSchema` |
+
+Схемы выходов индикаторов — `IndicatorSchema`, `MACD_SCHEMA`, `RSI_SCHEMA` — живут в
+`bquant.indicators`: они спрашивают колонки у самого индикатора, и до G64 (2026-09-06) слой
+данных ради этого загружал слой индикаторов.
 
 ## Проверка кадра
 
@@ -36,8 +39,9 @@ print(result.stats['checked_fields'], result.stats['absent_optional'])
 ```python
 from bquant.data.samples import get_sample_data
 from bquant.data.schemas import validate_with_schema
+from bquant.indicators import MACD_SCHEMA
 
-result = validate_with_schema(get_sample_data('tv_xauusd_1h'), 'macd')
+result = validate_with_schema(get_sample_data('tv_xauusd_1h'), MACD_SCHEMA)
 
 print(result.is_valid)
 print(result.stats['missing_required'])
@@ -95,7 +99,7 @@ print(result.stats['absent_optional'])
 ## Схемы индикаторов
 
 ```python
-from bquant.data.schemas import MACD_SCHEMA, RSI_SCHEMA
+from bquant.indicators import MACD_SCHEMA, RSI_SCHEMA
 
 print(MACD_SCHEMA.required_fields)
 print(RSI_SCHEMA.required_fields, len(RSI_SCHEMA.validation_rules))
@@ -112,7 +116,7 @@ print(RSI_SCHEMA.required_fields, len(RSI_SCHEMA.validation_rules))
 Индикатор, для которого схема неизвестна, остаётся без ограничений — это не ошибка:
 
 ```python
-from bquant.data.schemas import IndicatorSchema
+from bquant.indicators import IndicatorSchema
 
 schema = IndicatorSchema('stochastic')
 
@@ -151,7 +155,7 @@ result = validate_with_schema(pd.DataFrame({'x': [1]}), 'нет_такой_сх�
 print(result.is_valid, result.issues)
 print(result.recommendations)
 # False ["Schema 'нет_такой_схемы' not found"]
-# ["Available schemas: ['ohlcv', 'macd', 'rsi']"]
+# ["Available schemas: ['ohlcv']", "Indicator schemas live in bquant.indicators: pass IndicatorSchema('<name>') or MACD_SCHEMA/RSI_SCHEMA as the schema"]
 ```
 
 ## Схема против валидатора

@@ -177,7 +177,8 @@ print(IndicatorFactory.list_indicators()['range'])
 
 ## Внешние библиотеки
 
-Регистрировать функции `pandas-ta` вручную не нужно — загрузка делает это сама:
+Регистрировать функции `pandas-ta` вручную не нужно: фабрика подгружает библиотеки при первом
+обращении. `load_all_libraries()` нужен только ради счётчиков:
 
 ```python
 from bquant.indicators import IndicatorFactory, LibraryManager

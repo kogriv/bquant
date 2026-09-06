@@ -22,9 +22,9 @@ from bquant.indicators.base import IndicatorResult
 from bquant.core.logging_config import get_logger
 from bquant.core.exceptions import AnalysisError
 from bquant.core.cache import get_cache_manager
-from bquant.core.config import DEFAULT_SWING_PRESET, SWING_PRESETS
+from .strategies.swing.presets import DEFAULT_SWING_PRESET, SWING_PRESETS
 from bquant.data.processor import resolve_time_index, calculate_atr
-from .strategies.swing.thresholds import _AdaptiveSwingStrategy
+from .strategies.swing.thresholds import AdaptiveSwingStrategy
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
@@ -197,7 +197,7 @@ class ZoneAnalysisPipeline:
         self._swing_preset: str = DEFAULT_SWING_PRESET
         self.strategy_auto_thresholds = strategy_auto_thresholds
         self._auto_threshold_base_deviation = auto_threshold_base_deviation
-        self._adaptive_swing_wrappers: Dict[str, _AdaptiveSwingStrategy] = {}
+        self._adaptive_swing_wrappers: Dict[str, AdaptiveSwingStrategy] = {}
         self._swing_preset_params: Dict[str, Dict[str, Any]] = {}
         # Накапливается при расчёте индикаторов; переживает слияние в кадр и
         # уезжает в результат, чтобы потребитель спрашивал роль, а не строку.
@@ -660,9 +660,9 @@ class ZoneAnalysisPipeline:
             self._adaptive_swing_wrappers = {}
             return
 
-        wrappers: Dict[str, _AdaptiveSwingStrategy] = {}
+        wrappers: Dict[str, AdaptiveSwingStrategy] = {}
         for strategy_name, params in self._swing_preset_params.items():
-            wrappers[strategy_name] = _AdaptiveSwingStrategy(
+            wrappers[strategy_name] = AdaptiveSwingStrategy(
                 strategy_name,
                 params,
                 base_deviation=self._auto_threshold_base_deviation,

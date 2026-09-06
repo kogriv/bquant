@@ -21,7 +21,7 @@ from bquant.analysis.zones.strategies.base import (
     VolumeCalculationStrategy
 )
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
-from bquant.core.config import (
+from bquant.analysis.zones.strategies import (
     create_swing_strategy,
     create_divergence_strategy,
     create_shape_strategy,

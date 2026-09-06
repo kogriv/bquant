@@ -7,8 +7,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 from bquant.analysis.zones.models import SwingContext, SwingPoint, ZoneInfo
 from bquant.analysis.zones.strategies.swing import (

@@ -61,7 +61,7 @@ for zone in result.zones:
 
 ## Пресеты параметров
 
-`bquant.core.config.SWING_PRESETS` содержит согласованные наборы параметров сразу для
+`bquant.analysis.zones.strategies.swing.SWING_PRESETS` содержит согласованные наборы параметров сразу для
 всех трёх стратегий. Применить пресет ко всему пайплайну — `.with_swing_preset(name)`.
 Доступные пресеты: **`narrow_zone`** (по умолчанию) и **`wide_zone`**.
 
@@ -134,7 +134,9 @@ strategy = FindPeaksSwingStrategy(distance=3, prominence=0.5)
 Адаптивный режим пересчитывает по диапазону данных **один** порог — `deviation` у
 ZigZag. `find_peaks` и `pivot_points` он не трогает: они остаются на пороге пресета.
 
-Fluent-билдер предоставляет `.with_auto_swing_thresholds(True)`; низкоуровневый флаг
+Fluent-билдер предоставляет `.with_auto_swing_thresholds(True)` — под ним пайплайн оборачивает
+базовую стратегию в `AdaptiveSwingStrategy` (`bquant.analysis.zones.strategies.swing`; до G64
+имя было приватным); низкоуровневый флаг
 конструктора `ZoneAnalysisPipeline` — `strategy_auto_thresholds`.
 
 > ⚠️ Проминенцию `find_peaks` этот режим **намеренно не трогает**. Она задаётся в единицах

@@ -191,7 +191,7 @@ class TestIndicatorSchemaDerivesFromTheIndicator:
         ("bollinger_bands", "bbands"),
     ])
     def test_required_fields_match_the_indicator(self, schema_name, factory_name):
-        from bquant.data.schemas import IndicatorSchema
+        from bquant.indicators import IndicatorSchema
 
         declared = list(IndicatorSchema(schema_name).required_fields)
         produced = IndicatorFactory.create("custom", factory_name).get_output_columns()
@@ -205,7 +205,7 @@ class TestIndicatorSchemaDerivesFromTheIndicator:
         The embedded sample carries a TradingView column called `rsi`, which is
         the only reason the mistake looked correct.
         """
-        from bquant.data.schemas import RSI_SCHEMA
+        from bquant.indicators import RSI_SCHEMA
 
         assert "rsi" not in RSI_SCHEMA.required_fields
 

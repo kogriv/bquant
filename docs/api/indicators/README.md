@@ -82,7 +82,7 @@ from bquant.indicators import LibraryManager
 
 data = get_sample_data('tv_xauusd_1h')
 
-LibraryManager.load_all_libraries()
+# pandas-ta подгружается при первом обращении
 rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
 
 print(rsi.calculate(data).data.columns.tolist())

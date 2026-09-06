@@ -95,11 +95,12 @@ print(prepared.shape, prepared.index[0])
 ```python
 from bquant.data.samples import get_sample_data
 from bquant.data.schemas import validate_with_schema
+from bquant.indicators import MACD_SCHEMA
 
 data = get_sample_data('tv_xauusd_1h')
 
 print(validate_with_schema(data, 'ohlcv').is_valid)
-print(validate_with_schema(data, 'macd').issues)
+print(validate_with_schema(data, MACD_SCHEMA).issues)
 # True
 # ["Missing required fields: ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']"]
 ```

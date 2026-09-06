@@ -30,6 +30,7 @@ def pandas_ta_test_env(monkeypatch):
     monkeypatch.setattr(IndicatorFactory, "_registry", {})
     monkeypatch.setattr(IndicatorFactory, "_library_functions", {})
     monkeypatch.setattr(LibraryManager, "_loaders", {"pandas_ta": None})
+    monkeypatch.setattr(LibraryManager, "_loaded", False)
 
     def configure(functions):
         def stub(cls):

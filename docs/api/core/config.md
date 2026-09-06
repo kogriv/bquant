@@ -128,46 +128,15 @@ print(path.name, path.suffix)
 
 ---
 
-## Фабрики стратегий (новое в фазе 3)
+## Фабрики стратегий и пресеты — не здесь
 
-> **Стабильность API:** 🟢 В ОСНОВНОМ СТАБИЛЕН
->
-> **Примечание:** Сигнатуры функций стабильны. Внутренняя реализация может
-> изменяться в процессе унификации (например, обработка имён столбцов).
+Пять фабрик `create_*_strategy` и пресеты свинг-порогов до G64 (2026-09-06) лежали в этом
+модуле и лениво импортировали реестр стратегий — слой-основание зависел от слоя анализа.
+Теперь они живут рядом со стратегиями: [`bquant.analysis.zones.strategies`](../analysis/strategies.md)
+(фабрики) и `bquant.analysis.zones.strategies.swing` (`SWING_PRESETS`, `DEFAULT_SWING_PRESET`).
+Здесь остались только **умолчания** для фабрик — `ANALYSIS_CONFIG`.
 
-Фабричные функции создают экземпляры стратегий на основе конфигурации.
-
-Каждая принимает имя, словарь `{'type': ..., 'params': {...}}` или готовый экземпляр и
-возвращает **экземпляр**, а не класс.
-
-```python
-from bquant.core.config import (
-    create_divergence_strategy, create_shape_strategy, create_swing_strategy,
-    create_volatility_strategy, create_volume_strategy,
-)
-
-print(create_swing_strategy())
-print(create_swing_strategy('find_peaks'))
-print(create_swing_strategy({'type': 'zigzag', 'params': {'legs': 15, 'deviation': 0.03}}))
-# ZigZagSwingStrategy(legs=10, deviation=0.05)
-# FindPeaksSwingStrategy(prominence=None, distance=5, min_amplitude_pct=0.02, prominence_warmup=200)
-# ZigZagSwingStrategy(legs=15, deviation=0.03)
-
-print(create_shape_strategy('statistical'))
-print(create_divergence_strategy('classic'))
-print(create_volatility_strategy({'type': 'combined', 'params': {'bb_length': 20}}))
-print(create_volume_strategy('standard'))
-# StatisticalShapeStrategy(calculate_smoothness=True, bias_correction=True)
-# ClassicDivergenceStrategy(min_peak_distance=5, min_divergence_strength=0.01)
-# CombinedVolatilityStrategy(bb_length=20, bb_std=2.0, touch_threshold=0.01)
-# StandardVolumeStrategy(baseline_window=50, correlation_min_periods=3)
-```
-
-Значения без аргументов — **конструкторские**, а не те, с которыми стратегия
-поедет в анализ: для свингов их перекрывает пресет, и именно пресет определяет, найдётся
-ли хоть что-нибудь. См. [свинг-стратегии](../../user_guide/swing_strategies.md).
-
-### ANALYSIS_CONFIG
+## ANALYSIS_CONFIG
 
 Конфигурация стратегий анализа:
 

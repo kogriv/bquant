@@ -39,8 +39,6 @@ import os
 import pandas as pd
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 from bquant.analysis import BaseAnalyzer  # noqa: E402
 from bquant.analysis.candlestick import CandlestickAnalyzer  # noqa: E402

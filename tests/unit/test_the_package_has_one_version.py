@@ -27,8 +27,6 @@ import pkgutil
 
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 import bquant  # noqa: E402
 

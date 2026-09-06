@@ -8,8 +8,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 from bquant.analysis.zones.models import ZoneInfo, SwingContext, SwingPoint
 from bquant.analysis.zones.strategies.swing import (
@@ -18,7 +16,7 @@ from bquant.analysis.zones.strategies.swing import (
     ZigZagSwingStrategy,
 )
 from bquant.analysis.zones.strategies.swing.thresholds import (
-    _AdaptiveSwingStrategy,
+    AdaptiveSwingStrategy,
     auto_swing_thresholds,
 )
 
@@ -220,7 +218,7 @@ def test_adaptive_thresholds_global_mode(monkeypatch):
     pivot_timestamps = [data.index[i] for i in range(0, len(data), 10)]
     use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
 
-    adaptive = _AdaptiveSwingStrategy("zigzag", {"legs": 2, "deviation": 0.02}, base_deviation=0.01)
+    adaptive = AdaptiveSwingStrategy("zigzag", {"legs": 2, "deviation": 0.02}, base_deviation=0.01)
     context = adaptive.calculate_global(data)
 
     expected_thresholds = auto_swing_thresholds(data, base_deviation=0.01)

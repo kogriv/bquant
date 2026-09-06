@@ -6,6 +6,7 @@
 """
 
 import hashlib
+import threading
 import pickle
 import time
 from typing import Any, Dict, Optional, Callable, Union, Tuple
@@ -92,6 +93,10 @@ class MemoryCache:
         self.default_ttl = default_ttl
         self._cache: Dict[str, CacheEntry] = {}
         self._access_order: List[str] = []
+        # Один замок на запись и порядок доступа. Без него восемь потоков на кэше
+        # из 40 записей давали 7–8 исключений за прогон (``list.remove`` по ключу,
+        # который уже удалил сосед) и список порядка длиннее словаря (G64).
+        self._lock = threading.RLock()
         self.logger = get_logger(f"{__name__}.MemoryCache")
         
         # Статистика
@@ -131,6 +136,10 @@ class MemoryCache:
     
     def get(self, key: str) -> Optional[Any]:
         """Получить значение из кэша."""
+        with self._lock:
+            return self._get_unlocked(key)
+
+    def _get_unlocked(self, key: str) -> Optional[Any]:
         if key not in self._cache:
             self._misses += 1
             return None
@@ -160,6 +169,10 @@ class MemoryCache:
     
     def put(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Сохранить значение в кэше."""
+        with self._lock:
+            self._put_unlocked(key, value, ttl)
+
+    def _put_unlocked(self, key: str, value: Any, ttl: Optional[int]) -> None:
         # Определяем время истечения
         expiry = None
         if ttl is not None or self.default_ttl > 0:
@@ -201,6 +214,10 @@ class MemoryCache:
     
     def invalidate(self, key: str) -> bool:
         """Удалить запись из кэша."""
+        with self._lock:
+            return self._invalidate_unlocked(key)
+
+    def _invalidate_unlocked(self, key: str) -> bool:
         if key in self._cache:
             del self._cache[key]
             if key in self._access_order:
@@ -211,20 +228,18 @@ class MemoryCache:
     
     def clear(self) -> None:
         """Очистить весь кэш."""
-        count = len(self._cache)
-        self._cache.clear()
-        self._access_order.clear()
+        with self._lock:
+            count = len(self._cache)
+            self._cache.clear()
+            self._access_order.clear()
         self.logger.info(f"Cleared cache: {count} entries removed")
     
     def cleanup_expired(self) -> int:
         """Удалить истекшие записи."""
-        expired_keys = []
-        for key, entry in self._cache.items():
-            if entry.is_expired():
-                expired_keys.append(key)
-        
-        for key in expired_keys:
-            self.invalidate(key)
+        with self._lock:
+            expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
+            for key in expired_keys:
+                self._invalidate_unlocked(key)
         
         if expired_keys:
             self.logger.info(f"Cleaned up {len(expired_keys)} expired entries")
@@ -233,6 +248,10 @@ class MemoryCache:
     
     def stats(self) -> Dict[str, Any]:
         """Получить статистику кэша."""
+        with self._lock:
+            return self._stats_unlocked()
+
+    def _stats_unlocked(self) -> Dict[str, Any]:
         total_requests = self._hits + self._misses
         hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0
         
@@ -454,21 +473,27 @@ class CacheManager:
         return stats
 
 
-# Глобальный менеджер кэша
+# Глобальный менеджер кэша — один на процесс. Контракт (G64): память под замком,
+# то есть потокобезопасна; диск — файлы в общем каталоге, между процессами
+# не координируется (два процесса могут писать один ключ; чтение атомарно на
+# уровне файла, `clear()` терпит удалённый соседом файл).
 _global_cache_manager: Optional[CacheManager] = None
+_global_cache_lock = threading.Lock()
 
 
 def get_cache_manager() -> CacheManager:
-    """Получить глобальный менеджер кэша."""
+    """Получить глобальный менеджер кэша (создаётся один раз, под замком)."""
     global _global_cache_manager
-    
+
     if _global_cache_manager is None:
-        cache_config = get_cache_config()
-        _global_cache_manager = CacheManager(
-            memory_size=cache_config.get('memory_size', 100),
-            disk_cache=cache_config.get('enable_disk_cache', True)
-        )
-    
+        with _global_cache_lock:
+            if _global_cache_manager is None:
+                cache_config = get_cache_config()
+                _global_cache_manager = CacheManager(
+                    memory_size=cache_config.get('memory_size', 100),
+                    disk_cache=cache_config.get('enable_disk_cache', True)
+                )
+
     return _global_cache_manager
 
 

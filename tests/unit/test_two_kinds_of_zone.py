@@ -28,7 +28,6 @@ import os
 import pandas as pd
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 
 def test_the_two_models_measure_different_things():

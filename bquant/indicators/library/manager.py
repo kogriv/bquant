@@ -9,6 +9,7 @@ import os
 from typing import Dict, Any, Optional, List, Callable
 from contextlib import contextmanager
 import sys
+import threading
 import warnings
 
 from ..base import IndicatorFactory, LibraryIndicator
@@ -27,6 +28,24 @@ class LibraryManager:
         'pandas_ta': None,  # Будет импортирован динамически
         'talib': None,      # Будет импортирован динамически
     }
+    #: Загружались ли уже все библиотеки в этом процессе (см. ``ensure_loaded``).
+    _loaded: bool = False
+    _load_lock = threading.RLock()
+
+    @classmethod
+    def ensure_loaded(cls) -> Dict[str, int]:
+        """Загрузить все библиотеки один раз за процесс; повторный вызов — no-op.
+
+        Зовётся фабрикой при первом обращении за библиотечным индикатором или за
+        списком индикаторов (G64): импорт пакета внешние библиотеки не трогает.
+        Возвращает то же, что :meth:`load_all_libraries`, при первом вызове, и
+        пустой словарь при последующих.
+        """
+        with cls._load_lock:
+            if cls._loaded:
+                return {}
+            results = cls.load_all_libraries()
+            return results
     
     @classmethod
     def _get_loader(cls, library_name: str):
@@ -92,7 +111,10 @@ class LibraryManager:
         
         total = sum(results.values())
         logger.debug(f"Total loaded indicators: {total}")
-        
+        logger.info("External indicators registered: %s",
+                    ', '.join(f"{k}={v}" for k, v in results.items()) or 'none')
+        cls._loaded = True
+
         return results
     
     @classmethod

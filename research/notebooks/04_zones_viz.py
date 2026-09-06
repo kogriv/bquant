@@ -212,18 +212,14 @@ with nb.error_handling("Creating ZigZag verification figure for the same date ra
         nb.log(f"Parameters: legs={legs}, deviation={deviation:.6f} ({deviation*100:.4f}%)")
 
         zigzag_data = None  # Инициализируем для использования в Step 5
-        # Используем полный датасет для расчета ZigZag (как в визуализаторе),
-        # но отображаем только срез price_slice
+        # Функция ничего не считает: рисует точки swing_context, попавшие в срез (G64).
         fig_zigzag, zigzag_data = plot_zigzag_verification(
             price_data=price_slice,  # Данные для отображения на графике
-            legs=int(legs),
-            deviation=float(deviation),
             swing_context=swing_context,
             title=None,  # авто-заголовок
             height=800,
             show_rangeslider=True,
-            return_data=True,  # Получаем данные для сравнения
-            full_data_for_calculation=result.data,  # Полный датасет для расчета ZigZag (как в визуализаторе)
+            return_data=True,  # Получаем точки для сравнения
         )
 
         if fig_zigzag:
@@ -303,9 +299,9 @@ with nb.error_handling("Extracting and comparing ZigZag points from both sources
                         "swing_type": swing_type,
                     })
 
-        nb.log(f"Extracted {len(verification_points)} points from plot_zigzag_verification (pandas_ta)")
-        nb.log(f"  Verification now calculates ZigZag on FULL dataset (via full_data_for_calculation parameter)")
-        nb.log(f"  Both methods use the same context - results should match!")
+        nb.log(f"Extracted {len(verification_points)} points from plot_zigzag_verification")
+        nb.log(f"  Since G64 the plot draws the same swing_context the package computed on the FULL dataset;")
+        nb.log(f"  a mismatch here would be a defect of the plot, not a boundary effect")
 
         # 3. Сравнение точек: Full Join по timestamp
         # Создаём словари для быстрого поиска по timestamp
@@ -429,19 +425,13 @@ with nb.error_handling("Extracting and comparing ZigZag points from both sources
         if len(comparison_results["in_both"]) == len(package_points) and \
            len(comparison_results["only_in_package"]) == 0 and \
            len(comparison_results["only_in_verification"]) == 0:
-            nb.success("\n✅ Perfect match! Both methods now use the same data context (FULL dataset)")
-            nb.log("  plot_zigzag_verification now calculates ZigZag on full dataset")
-            nb.log("  (via full_data_for_calculation parameter), matching the visualizer behavior")
+            nb.success("\n✅ Perfect match: the plot shows exactly the swing_context of the package")
         else:
-            nb.log("\n--- Note on ZigZag context dependency ---")
-            nb.log("  ZigZag indicator is CONTEXT-DEPENDENT:")
-            nb.log("  - It needs bars BEFORE a potential swing to confirm a reversal")
-            nb.log("  - It needs bars AFTER to validate the swing")
-            nb.log("  - When calculated on a slice, boundary effects occur:")
-            nb.log("    * Points near range start may be missed (no prior context)")
-            nb.log("    * Points near range end may be missed (no future context)")
-            nb.log("    * New points may appear at boundaries (artificial reversals)")
-            nb.log("  Solution: Use full_data_for_calculation parameter for consistent results")
+            raise AssertionError(
+                "plot_zigzag_verification draws swing_context and must show exactly its points "
+                f"inside the range: {len(comparison_results['only_in_package'])} only in package, "
+                f"{len(comparison_results['only_in_verification'])} only in plot"
+            )
 
 nb.wait()
 

@@ -3234,338 +3234,214 @@ def analyze_zones_visually(zones_data, **kwargs):
 
 def plot_zigzag_verification(
     price_data: pd.DataFrame,
-    legs: int,
-    deviation: float,
-    swing_context: Optional[SwingContext] = None,
+    swing_context: SwingContext,
+    *,
     title: Optional[str] = None,
     height: int = 800,
     show_rangeslider: bool = False,
-        time_axis_mode: str = "dense",
-        return_data: bool = False,
-        full_data_for_calculation: Optional[pd.DataFrame] = None,
-        xaxis_num_ticks: int = 16,
-        **kwargs
+    time_axis_mode: str = "dense",
+    return_data: bool = False,
+    xaxis_num_ticks: int = 16,
+    **kwargs
 ) -> Optional[Any]:
     """
-    Построить график ZigZag индикатора с swing-точками для визуальной проверки параметров стратегии.
+    Нарисовать свинг-точки готового ``SwingContext`` поверх свечей — для визуальной
+    проверки порогов свинг-стратегии.
 
-    Создаёт однопанельный график с ценой и маркерами swing-точек:
-    - Свечной график (Candlestick) или линия цены (если нет OHLC данных)
-    - Маркеры swing points: красные треугольники (peaks), зелёные треугольники (troughs)
+    Функция **ничего не считает**: точки берутся из контекста, который посчитал
+    слой анализа (``result.zones[i].swing_context`` в режиме ``global`` или
+    ``strategy.calculate_global(data)`` напрямую). До G64 (2026-09-06) она сама
+    запускала ZigZag из pandas-ta по ``legs``/``deviation`` — визуализация делала
+    расчёт и зависела от загрузчика библиотек, а нарисованные точки могли не
+    совпадать с теми, по которым посчитаны метрики зон.
 
     Args:
-        price_data: DataFrame с OHLCV данными для отображения на графике
-            (может быть срезом данных для конкретного диапазона)
-        legs: Количество баров для подтверждения разворота (параметр ZigZag)
-        deviation: Минимальное процентное отклонение (параметр ZigZag, например 0.05 = 5%)
-        swing_context: Опциональный SwingContext для точного определения типов точек
-        title: Заголовок графика (по умолчанию генерируется автоматически)
-        height: Высота графика в пикселях
-        show_rangeslider: Показывать ползунок диапазона (range slider) под графиком для навигации
-        time_axis_mode: Режим оси времени ('dense' или 'timeseries')
-        return_data: Если True, возвращает кортеж (fig, data_dict) где data_dict содержит:
-            - 'swing_values': Series с timestamp -> price для всех swing точек
-            - 'peaks': List[Tuple[timestamp, price]] - список пиков
-            - 'troughs': List[Tuple[timestamp, price]] - список впадин
-            - 'zigzag_data': DataFrame с полными данными индикатора (ZIGZAGs, ZIGZAGv)
-        full_data_for_calculation: Опциональный полный DataFrame для расчета ZigZag.
-            Если передан, ZigZag рассчитывается на полном датасете (как в визуализаторе),
-            а затем точки фильтруются по диапазону price_data. Это обеспечивает согласованность
-            с визуализатором пакета, который использует полный контекст данных.
-            Если None, ZigZag рассчитывается на price_data (может дать другие результаты
-            из-за граничных эффектов на срезе).
-        xaxis_num_ticks: Количество меток на оси X в режиме 'dense' (по умолчанию 16).
-            Автоматически корректируется на основе временного диапазона для оптимальной читаемости.
-            Используется умное форматирование меток (двухэтажные метки с датой/временем,
-            автоматический выбор формата в зависимости от диапазона данных).
-        **kwargs: Дополнительные параметры для Plotly figure (например, width)
-    
+        price_data: DataFrame с OHLC (или хотя бы ``close``) для отображения.
+            Показываются только точки контекста, чьи метки времени есть в
+            ``price_data.index`` — так можно рисовать срез полного кадра.
+        swing_context: Контекст свингов, посчитанный стратегией на полном кадре.
+        title: Заголовок; по умолчанию — имя стратегии и её параметры из контекста.
+        height: Высота графика в пикселях.
+        show_rangeslider: Показывать ползунок диапазона под графиком.
+        time_axis_mode: ``'dense'`` — позиционная ось с метками времени;
+            ``'timeseries'`` — реальные timestamps.
+        return_data: Вернуть ``(fig, data)``, где ``data`` — ``{'swing_values':
+            Series, 'peaks': [(ts, price)], 'troughs': [(ts, price)]}``.
+        xaxis_num_ticks: Число меток оси времени в режиме ``'dense'``.
+        **kwargs: Дополнительные параметры ``fig.update_layout``.
+
     Returns:
-        Если return_data=False: Plotly Figure объект или None если Plotly недоступен
-        Если return_data=True: Кортеж (fig, data_dict) или (None, None) при ошибке
-    
+        ``go.Figure`` (или ``(fig, data)`` при ``return_data``); ``None``, если
+        Plotly недоступен.
+
+    Raises:
+        ValueError: ``swing_context`` не передан или не содержит точек.
+
     Example:
+        >>> from bquant.analysis.zones import analyze_zones
         >>> from bquant.visualization import plot_zigzag_verification
-        >>> from bquant.analysis.zones.models import SwingContext
-        >>> 
-        >>> # Простой вариант - только параметры
-        >>> fig = plot_zigzag_verification(df, legs=10, deviation=0.05)
-        >>> 
-        >>> # С swing_context для точных типов точек
-        >>> fig = plot_zigzag_verification(
-        ...     df, 
-        ...     legs=10, 
-        ...     deviation=0.05,
-        ...     swing_context=zone.swing_context
-        ... )
-        >>> 
-        >>> # С возвратом данных для сравнения
-        >>> fig, zigzag_data = plot_zigzag_verification(
-        ...     df,
-        ...     legs=10,
-        ...     deviation=0.05,
-        ...     return_data=True
-        ... )
-        >>> # zigzag_data содержит: 'swing_values', 'peaks', 'troughs', 'zigzag_data'
+        >>> result = (analyze_zones(df).with_indicator('custom', 'macd')
+        ...           .detect_zones('zero_crossing', indicator_role='hist')
+        ...           .with_strategies(swing='zigzag').build())
+        >>> fig = plot_zigzag_verification(result.data, result.zones[0].swing_context)
     """
     if not PLOTLY_AVAILABLE:
         logger.warning("Plotly not available - cannot create ZigZag verification plot")
         return None
-    
-    try:
-        from bquant.indicators import LibraryManager
-        from bquant.core.exceptions import IndicatorCalculationError
-    except ImportError as e:
-        logger.warning(f"Failed to import LibraryManager: {e}")
-        return None
-    
-    try:
-        # Проверяем доступность библиотеки перед созданием индикатора
-        if not LibraryManager.check_library_availability('pandas_ta'):
-            logger.warning("pandas-ta library is not available - cannot create ZigZag plot")
-            if return_data:
-                return None, None
-            return None
-        
-        # Определяем данные для расчета ZigZag
-        # Если передан full_data_for_calculation, используем его (как в визуализаторе)
-        # Иначе используем price_data (может быть срезом)
-        data_for_zigzag = full_data_for_calculation if full_data_for_calculation is not None else price_data
-        
-        if full_data_for_calculation is not None:
-            logger.debug(
-                f"Calculating ZigZag on full dataset ({len(full_data_for_calculation)} bars), "
-                f"will filter points for display range ({len(price_data)} bars)"
-            )
-        
-        # Рассчитываем ZigZag индикатор на выбранном датасете
-        zigzag = LibraryManager.create_indicator(
-            'pandas_ta',
-            'zigzag',
-            legs=legs,
-            deviation=deviation
+
+    if swing_context is None or not getattr(swing_context, 'swing_points', None):
+        raise ValueError(
+            "plot_zigzag_verification draws a computed SwingContext and computes nothing "
+            "itself: pass result.zones[i].swing_context (global swing scope) or "
+            "strategy.calculate_global(data)"
         )
-        zigzag_result = zigzag.calculate(data_for_zigzag)
-        
-        if zigzag_result.data.shape[1] < 2:
-            logger.warning("ZigZag returned insufficient data for visualization")
-            return None
-        
-        swing_values = zigzag_result.data.iloc[:, 1].dropna()  # ZIGZAGv колонка
-        swing_signals = zigzag_result.data.iloc[:, 0]  # ZIGZAGs колонка
-        
-        if len(swing_values) == 0:
-            logger.warning("No swing points detected by ZigZag")
-            if return_data:
-                return None, None
-            return None
 
-        # Если ZigZag рассчитывался на полном датасете, фильтруем точки по диапазону price_data
-        if full_data_for_calculation is not None:
-            # Фильтруем swing_values по индексу price_data
-            price_data_index_set = set(price_data.index)
-            swing_values = swing_values[swing_values.index.isin(price_data_index_set)]
-            logger.debug(
-                f"Filtered ZigZag points: {len(swing_values)} points within price_data range "
-                f"(from {len(zigzag_result.data.iloc[:, 1].dropna())} total points)"
-            )
+    strategy_name = getattr(swing_context, 'strategy_name', 'swing')
+    strategy_params = dict(getattr(swing_context, 'strategy_params', {}) or {})
 
-        # Режим оси времени:
-        # - 'dense': позиционные индексы (0..N-1) с кастомными метками времени
-        # - 'timeseries': реальные timestamps (поведение Plotly по умолчанию)
-        use_dense_axis = (time_axis_mode == "dense")
+    # Точки контекста в диапазоне отображаемого кадра
+    shown_index = set(price_data.index)
+    points = [
+        (sp.timestamp, sp.price, sp.swing_type)
+        for sp in swing_context.swing_points
+        if sp.timestamp in shown_index
+    ]
+    if not points:
+        raise ValueError(
+            f"none of the {len(swing_context.swing_points)} swing points of "
+            f"{strategy_name} fall inside price_data.index ({len(price_data)} bars)"
+        )
 
-        if use_dense_axis:
-            # Позиционные индексы для всех баров price_data (для отображения)
-            x_positions = list(range(len(price_data)))
-            ts_index = list(price_data.index)
-            timestamp_to_pos = {ts: pos for pos, ts in enumerate(ts_index)}
-        else:
-            x_positions = list(price_data.index)
-            timestamp_to_pos = None
-        
-        # Создаём словарь для быстрого поиска типов из swing_context
-        swing_type_map = {}
-        if swing_context and hasattr(swing_context, 'swing_points'):
-            for sp in swing_context.swing_points:
-                if hasattr(sp, 'timestamp') and hasattr(sp, 'swing_type'):
-                    # Преобразуем timestamp в индекс для сравнения
-                    if hasattr(sp.timestamp, 'to_pydatetime'):
-                        ts_key = sp.timestamp
-                    else:
-                        ts_key = sp.timestamp
-                    swing_type_map[ts_key] = sp.swing_type
-        
-        # Определяем peaks и troughs
-        peaks = []
-        troughs = []
-        
-        for idx, price in swing_values.items():
-            # Пытаемся определить тип из swing_context
-            swing_type = swing_type_map.get(idx, None)
-            
-            # Если не нашли в swing_context, определяем по сравнению с предыдущей точкой
-            if swing_type is None:
-                prev_idx_pos = swing_values.index.get_loc(idx)
-                if prev_idx_pos > 0:
-                    prev_price = swing_values.iloc[prev_idx_pos - 1]
-                    swing_type = 'peak' if price > prev_price else 'trough'
-                else:
-                    # Первая точка - определяем по следующей
-                    if len(swing_values) > 1:
-                        next_price = swing_values.iloc[1]
-                        swing_type = 'trough' if next_price > price else 'peak'
-                    else:
-                        swing_type = 'trough'
-            
-            if swing_type == 'peak':
-                peaks.append((idx, price))
-            else:
-                troughs.append((idx, price))
-        
-        # Подготавливаем данные для возврата (если запрошено)
-        zigzag_data_dict = None
-        if return_data:
-            zigzag_data_dict = {
-                'swing_values': swing_values,  # Series с timestamp -> price
-                'peaks': peaks,  # List[Tuple[timestamp, price]]
-                'troughs': troughs,  # List[Tuple[timestamp, price]]
-                'zigzag_data': zigzag_result.data,  # Полный DataFrame с ZIGZAGs, ZIGZAGv
-            }
-        
-        # Создаём фигуру с одной панелью
-        fig = go.Figure()
-        
-        # Проверяем наличие необходимых колонок для свечей
-        required_cols = ['open', 'high', 'low', 'close']
-        if not all(col in price_data.columns for col in required_cols):
-            logger.warning("OHLC data not available, falling back to line chart")
-            # Fallback: используем линию если нет OHLC
-            fig.add_trace(
-                go.Scatter(
-                    x=x_positions,
-                    y=price_data['close'],
-                    mode='lines',
-                    name='Close Price',
-                    line=dict(color='#1f77b4', width=1),
-                )
-            )
-        else:
-            # График: Свечи (Candlestick)
-            fig.add_trace(
-                go.Candlestick(
-                    x=x_positions,
-                    open=price_data['open'],
-                    high=price_data['high'],
-                    low=price_data['low'],
-                    close=price_data['close'],
-                    name='Price',
-                    increasing_line_color='#26a69a',
-                    decreasing_line_color='#ef5350',
-                )
-            )
-        
-        # Добавляем peaks
-        if peaks:
-            peak_times, peak_prices = zip(*peaks)
-            if use_dense_axis and timestamp_to_pos is not None:
-                peak_x = [timestamp_to_pos.get(ts) for ts in peak_times if ts in timestamp_to_pos]
-            else:
-                peak_x = list(peak_times)
+    swing_values = pd.Series(
+        [price for _, price, _ in points],
+        index=pd.Index([ts for ts, _, _ in points]),
+        name='swing_price',
+    )
+    peaks = [(ts, price) for ts, price, kind in points if kind == 'peak']
+    troughs = [(ts, price) for ts, price, kind in points if kind != 'peak']
 
-            fig.add_trace(
-                go.Scatter(
-                    x=peak_x,
-                    y=list(peak_prices),
-                    mode='markers',
-                    name='Peaks',
-                    marker=dict(symbol='triangle-down', size=10, color='red'),
-                )
-            )
-        
-        # Добавляем troughs
-        if troughs:
-            trough_times, trough_prices = zip(*troughs)
-            if use_dense_axis and timestamp_to_pos is not None:
-                trough_x = [timestamp_to_pos.get(ts) for ts in trough_times if ts in timestamp_to_pos]
-            else:
-                trough_x = list(trough_times)
+    # Режим оси времени:
+    # - 'dense': позиционные индексы (0..N-1) с кастомными метками времени
+    # - 'timeseries': реальные timestamps (поведение Plotly по умолчанию)
+    use_dense_axis = (time_axis_mode == "dense")
 
-            fig.add_trace(
-                go.Scatter(
-                    x=trough_x,
-                    y=list(trough_prices),
-                    mode='markers',
-                    name='Troughs',
-                    marker=dict(symbol='triangle-up', size=10, color='green'),
-                )
-            )
-        
-        # Генерируем заголовок если не указан
-        if title is None:
-            title = f"ZigZag Swing Strategy Verification (legs={legs}, deviation={deviation*100:.4f}%)"
-        
-        # Обновляем layout
-        xaxis_title = "Bar Index" if use_dense_axis else "Time"
-        layout_kwargs = {
-            'height': height,
-            'title_text': title,
-            'showlegend': True,
-            'hovermode': 'x unified',
-            'xaxis': dict(title=xaxis_title),
-            'yaxis': dict(title='Price'),
+    if use_dense_axis:
+        x_positions = list(range(len(price_data)))
+        timestamp_to_pos = {ts: pos for pos, ts in enumerate(price_data.index)}
+    else:
+        x_positions = list(price_data.index)
+        timestamp_to_pos = None
+
+    data_dict = None
+    if return_data:
+        data_dict = {
+            'swing_values': swing_values,  # Series: timestamp -> price
+            'peaks': peaks,                # List[Tuple[timestamp, price]]
+            'troughs': troughs,            # List[Tuple[timestamp, price]]
         }
-        layout_kwargs.update(kwargs)
-        fig.update_layout(**layout_kwargs)
 
-        # Настройка оси X и rangeslider
-        if use_dense_axis:
-            # Режим dense: позиционные индексы + умное форматирование меток (как в визуализаторе)
-            tickvals: List[int] = []
-            ticktext: List[str] = []
+    fig = go.Figure()
 
-            if len(price_data.index) > 0:
-                positions = list(range(len(price_data)))
-                timestamps = list(price_data.index)
-                
-                # Преобразуем timestamps в pd.Timestamp для работы с датами
-                x_dates = [pd.Timestamp(ts) if not isinstance(ts, pd.Timestamp) else ts for ts in timestamps]
-                
-                # Используем общую утилиту для генерации меток
-                num_ticks_requested = kwargs.get('xaxis_num_ticks', xaxis_num_ticks)
-                tickvals, ticktext = generate_dense_axis_labels(x_dates, positions, num_ticks_requested)
-
-            fig.update_xaxes(
-                tickmode='array' if tickvals else 'auto',
-                tickvals=tickvals or None,
-                ticktext=ticktext or None,
-                tickangle=0,
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                type='linear',
-                rangeslider_visible=show_rangeslider,
+    required_cols = ['open', 'high', 'low', 'close']
+    if not all(col in price_data.columns for col in required_cols):
+        logger.warning("OHLC data not available, falling back to line chart")
+        fig.add_trace(
+            go.Scatter(
+                x=x_positions,
+                y=price_data['close'],
+                mode='lines',
+                name='Close Price',
+                line=dict(color='#1f77b4', width=1),
             )
-        else:
-            # Режим timeseries: Plotly сам управляет метками и типом оси
-            fig.update_xaxes(rangeslider_visible=show_rangeslider)
+        )
+    else:
+        fig.add_trace(
+            go.Candlestick(
+                x=x_positions,
+                open=price_data['open'],
+                high=price_data['high'],
+                low=price_data['low'],
+                close=price_data['close'],
+                name='Price',
+                increasing_line_color='#26a69a',
+                decreasing_line_color='#ef5350',
+            )
+        )
 
-        logger.debug(f"ZigZag verification plot created: {len(swing_values)} swing points")
-        
-        if return_data:
-            return fig, zigzag_data_dict
-        return fig
-        
-    except (ValueError, IndicatorCalculationError) as e:
-        logger.warning(f"Cannot create ZigZag indicator: {e}")
-        if return_data:
-            return None, None
-        return None
-    except Exception as e:
-        logger.error(f"Error creating ZigZag verification plot: {e}", exc_info=True)
-        if return_data:
-            return None, None
-        return None
+    def _x(times):
+        if use_dense_axis:
+            return [timestamp_to_pos[ts] for ts in times]
+        return list(times)
+
+    if peaks:
+        peak_times, peak_prices = zip(*peaks)
+        fig.add_trace(
+            go.Scatter(
+                x=_x(peak_times),
+                y=list(peak_prices),
+                mode='markers',
+                name='Peaks',
+                marker=dict(symbol='triangle-down', size=10, color='red'),
+            )
+        )
+
+    if troughs:
+        trough_times, trough_prices = zip(*troughs)
+        fig.add_trace(
+            go.Scatter(
+                x=_x(trough_times),
+                y=list(trough_prices),
+                mode='markers',
+                name='Troughs',
+                marker=dict(symbol='triangle-up', size=10, color='green'),
+            )
+        )
+
+    if title is None:
+        params = ', '.join(f"{k}={v}" for k, v in strategy_params.items())
+        title = f"{strategy_name} swing verification ({params})" if params else f"{strategy_name} swing verification"
+
+    xaxis_title = "Bar Index" if use_dense_axis else "Time"
+    layout_kwargs = {
+        'height': height,
+        'title_text': title,
+        'showlegend': True,
+        'hovermode': 'x unified',
+        'xaxis': dict(title=xaxis_title),
+        'yaxis': dict(title='Price'),
+    }
+    layout_kwargs.update(kwargs)
+    fig.update_layout(**layout_kwargs)
+
+    if use_dense_axis:
+        tickvals: List[int] = []
+        ticktext: List[str] = []
+
+        if len(price_data.index) > 0:
+            positions = list(range(len(price_data)))
+            x_dates = [pd.Timestamp(ts) if not isinstance(ts, pd.Timestamp) else ts for ts in price_data.index]
+            num_ticks_requested = kwargs.get('xaxis_num_ticks', xaxis_num_ticks)
+            tickvals, ticktext = generate_dense_axis_labels(x_dates, positions, num_ticks_requested)
+
+        fig.update_xaxes(
+            tickmode='array' if tickvals else 'auto',
+            tickvals=tickvals or None,
+            ticktext=ticktext or None,
+            tickangle=0,
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            type='linear',
+            rangeslider_visible=show_rangeslider,
+        )
+    else:
+        fig.update_xaxes(rangeslider_visible=show_rangeslider)
+
+    logger.debug(f"Swing verification plot created: {len(points)} swing points")
+
+    if return_data:
+        return fig, data_dict
+    return fig
 
 
 # Экспорт

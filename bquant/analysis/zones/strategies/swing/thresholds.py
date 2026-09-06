@@ -89,7 +89,7 @@ def auto_swing_thresholds(
     return SwingThresholds(zigzag_deviation=deviation)
 
 
-class _AdaptiveSwingStrategy:
+class AdaptiveSwingStrategy:
     """Wrapper that adapts swing thresholds for base strategies."""
 
     def __init__(

@@ -16,6 +16,13 @@ from .base import (
 )
 
 from .registry import StrategyRegistry
+from .factory import (
+    create_swing_strategy,
+    create_divergence_strategy,
+    create_shape_strategy,
+    create_volume_strategy,
+    create_volatility_strategy,
+)
 
 # Import concrete strategies to trigger registration via decorators
 from .swing import (
@@ -45,6 +52,12 @@ __all__ = [
     'VolumeCalculationStrategy',
     # Registry
     'StrategyRegistry',
+    # Factories from configuration (moved out of bquant.core.config, G64)
+    'create_swing_strategy',
+    'create_divergence_strategy',
+    'create_shape_strategy',
+    'create_volume_strategy',
+    'create_volatility_strategy',
     # Concrete strategies
     'ZigZagSwingStrategy',
     'FindPeaksSwingStrategy',

@@ -110,16 +110,17 @@ with nb.error_handling("Building and running pipeline"):
             nb.log(f"\n--- ZigZag Indicator Visualization ---")
             nb.log(f"Parameters: legs={legs}, deviation={deviation:.6f} ({deviation*100:.4f}%)")
             
-            # Используем функцию из пакета для построения графика
-            # Пример с полным набором параметров (reference example):
+            # Используем функцию из пакета для построения графика.
+            # Она НИЧЕГО не считает: точки берутся из swing_context, посчитанного
+            # слоем анализа (G64). Пример с полным набором параметров (reference example):
             fig_zigzag = plot_zigzag_verification(
-                price_data=result.data,              # DataFrame с OHLCV данными (required)
-                legs=legs,                            # Параметр ZigZag из анализа: кол-во баров для подтверждения разворота (required)
-                deviation=deviation,                  # Параметр ZigZag из анализа: минимальное отклонение в долях (required)
-                swing_context=swing_context,         # Контекст свинг-анализа для точного определения типов точек (optional)
-                title=None,                          # Заголовок графика (None = автогенерация) (optional)
+                price_data=result.data,              # DataFrame с OHLCV для отображения (required)
+                swing_context=swing_context,         # Контекст свингов, посчитанный стратегией (required)
+                title=None,                          # Заголовок (None = имя стратегии и её параметры)
                 height=800,                          # Высота графика в пикселях (default=800)
-                show_rangeslider=True,              # Показывать ползунок навигации под графиком (default=False)
+                show_rangeslider=True,               # Ползунок навигации под графиком (default=False)
+                time_axis_mode="dense",              # 'dense' | 'timeseries'
+                # return_data=True вернёт (fig, {'swing_values', 'peaks', 'troughs'})
                 # **kwargs - дополнительные параметры Plotly (например, width=1200)
             )
             

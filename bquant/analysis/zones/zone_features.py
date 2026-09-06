@@ -15,7 +15,13 @@ from dataclasses import dataclass
 
 from ...core.logging_config import get_logger
 from ...core.exceptions import AnalysisError
-from ...core.config import create_swing_strategy, create_divergence_strategy, create_shape_strategy, create_volume_strategy, create_volatility_strategy
+from .strategies.factory import (
+    create_swing_strategy,
+    create_divergence_strategy,
+    create_shape_strategy,
+    create_volume_strategy,
+    create_volatility_strategy,
+)
 from .. import AnalysisResult, BaseAnalyzer
 from .models import ZoneInfo
 

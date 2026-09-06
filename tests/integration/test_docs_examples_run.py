@@ -45,7 +45,6 @@ from pathlib import Path
 
 import pytest
 
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 os.environ.setdefault("MPLBACKEND", "Agg")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))

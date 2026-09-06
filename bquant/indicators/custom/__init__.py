@@ -29,25 +29,6 @@ __all__ = [
     "register_builtin_indicators",
 ]
 
-# Auto-register built-in indicators
-try:
-    from ..base import IndicatorFactory
-    
-    # Регистрируем BUILTIN индикаторы
-    IndicatorFactory.register_indicator("sma", SimpleMovingAverage)
-    IndicatorFactory.register_indicator("ema", ExponentialMovingAverage)
-    IndicatorFactory.register_indicator("rsi", RelativeStrengthIndex)
-    IndicatorFactory.register_indicator("macd", MACD)
-    IndicatorFactory.register_indicator("bbands", BollingerBands)
-    
-    # Тихая регистрация: используем DEBUG через логгер фабрики на этапе register
-    # (здесь избегаем print, чтобы не шуметь в консоли)
-    
-except Exception as e:
-    print(f"[WARNING] Failed to auto-register BUILTIN indicators: {e}")
-    pass  # Ignore errors during auto-registration
-
-
 def register_builtin_indicators():
     """
     Регистрация всех встроенных индикаторов в фабрике.
@@ -56,7 +37,10 @@ def register_builtin_indicators():
         int: Количество зарегистрированных индикаторов
     """
     from ..base import IndicatorFactory
-    
+
+    # Идемпотентно: повторная регистрация того же класса под тем же именем ничего
+    # не меняет. До G64 этот же список регистрировался ещё дважды — при импорте
+    # этого пакета и в ``bquant.indicators._register_all_indicators``.
     registered_count = 0
     
     try:

@@ -43,6 +43,14 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 - **`zones.py`**: Zone-specific visualization tools
 - **`themes.py`**: Chart themes and styling
 
+### Layers point one way
+`cli → visualization → analysis → indicators → data → core`; a module imports only what is
+below it, function-local imports included. Guards: `tests/unit/test_layers_point_one_way.py`
+(ast scan) and the `[architecture]` contract in `codemap.toml` (`codemap check`). Strategy
+factories and swing presets live in `analysis/zones/strategies/`, `IndicatorSchema` in
+`indicators/output_schema.py`; external indicator libraries load lazily on the first
+factory request, never at import (G64).
+
 ## Key Design Patterns
 
 ### Universal Zone Analysis Pipeline (flagship API)

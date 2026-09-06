@@ -19,13 +19,4 @@ __all__ = [
     "MACDPreloadedIndicator",
 ]
 
-# Автоматическая регистрация в IndicatorFactory
-try:
-    from ..base import IndicatorFactory
-    from .macd import MACDPreloadedIndicator
-    
-    # Регистрируем PRELOADED индикаторы
-    IndicatorFactory.register_indicator("macd_preloaded", MACDPreloadedIndicator)
-    
-except Exception:
-    pass  # Игнорируем ошибки при авторегистрации
+# Регистрация в IndicatorFactory — в одном месте, `bquant.indicators._bootstrap_registry()` (G64).

@@ -42,7 +42,6 @@ from .schemas import (
     DataValidationResult,
     DataSchema,
     OHLCVSchema,
-    IndicatorSchema,
     get_schema,
     validate_with_schema
 )
@@ -83,7 +82,6 @@ __all__ = [
     "DataValidationResult",
     "DataSchema",
     "OHLCVSchema",
-    "IndicatorSchema",
     "get_schema",
     "validate_with_schema"
 ]

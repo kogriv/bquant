@@ -59,52 +59,23 @@ from .preloaded import (
 
 logger = get_logger(__name__)
 
-# Auto-register all indicators
-def _register_all_indicators():
-    """Регистрирует все доступные индикаторы в IndicatorFactory."""
-    try:
-        # Регистрируем PRELOADED индикаторы
-        IndicatorFactory.register_indicator('macd_preloaded', MACDPreloadedIndicator)
-
-        # Регистрируем CUSTOM индикаторы
-        IndicatorFactory.register_indicator('sma', SimpleMovingAverage)
-        IndicatorFactory.register_indicator('ema', ExponentialMovingAverage)
-        IndicatorFactory.register_indicator('rsi', RelativeStrengthIndex)
-        IndicatorFactory.register_indicator('macd', MACD)
-        IndicatorFactory.register_indicator('bbands', BollingerBands)
-
-        # Загружаем индикаторы внешних библиотек через LibraryManager
-        library_results = LibraryManager.load_all_libraries()
-        # Один сводный INFO по внешним библиотекам
-        try:
-            summary = ', '.join(f"{k}={v}" for k, v in library_results.items())
-        except Exception:
-            summary = str(library_results)
-        logger.info("External indicators registered: %s", summary)
-
-    except Exception as e:
-        logger.warning("Failed to register some indicators: %s", e)
+# Один бутстрап реестра (G64). Регистрируются классы этого пакета — дёшево и без
+# побочных эффектов. Внешние библиотеки (pandas-ta, TA-Lib) при импорте НЕ загружаются:
+# их подхватит ``LibraryManager.ensure_loaded()`` при первом обращении к фабрике за
+# библиотечным индикатором или за списком. До G64 импорт ``bquant.indicators`` тянул
+# ``import pandas_ta`` (≈1 с на тёплом кэше numba, десятки секунд на холодном) и
+# регистрировал встроенные индикаторы трижды.
+from .custom import register_builtin_indicators
+from .output_schema import IndicatorSchema, MACD_SCHEMA, RSI_SCHEMA
 
 
-def _check_library_availability():
-    """Записывает информацию о доступности внешних библиотек."""
-    for lib_name in LibraryManager.get_available_libraries():
-        info = LibraryManager.get_library_info(lib_name)
-        if info.get('available'):
-            count = info.get('indicators_count', 0)
-            logger.debug(
-                "Library %s available with %s indicators", lib_name, count
-            )
-        else:
-            logger.warning(
-                "Library %s unavailable: %s",
-                lib_name,
-                info.get('error', 'unknown reason'),
-            )
+def _bootstrap_registry() -> None:
+    """Регистрирует PRELOADED и CUSTOM индикаторы. Идемпотентно."""
+    IndicatorFactory.register_indicator('macd_preloaded', MACDPreloadedIndicator)
+    register_builtin_indicators()
 
-# Выполняем авторегистрацию при импорте модуля
-_register_all_indicators()
-_check_library_availability()
+
+_bootstrap_registry()
 
 __all__ = [
     # Base classes
@@ -134,4 +105,10 @@ __all__ = [
     "load_pandas_ta",
     "load_talib",
     "load_all_indicators",
+    "register_builtin_indicators",
+
+    # Output schema of an indicator (moved from bquant.data.schemas, G64)
+    "IndicatorSchema",
+    "MACD_SCHEMA",
+    "RSI_SCHEMA",
 ]

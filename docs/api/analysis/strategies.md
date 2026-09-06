@@ -63,10 +63,13 @@ print(strategy)
 ```
 
 Тот же результат через фабрику из конфигурации — она принимает имя, словарь или готовый
-экземпляр:
+экземпляр. Фабрик пять, по одной на семейство: `create_swing_strategy`,
+`create_shape_strategy`, `create_divergence_strategy`, `create_volume_strategy`,
+`create_volatility_strategy`; все в `bquant.analysis.zones.strategies`, умолчания берут из
+`ANALYSIS_CONFIG['zone_features']`:
 
 ```python
-from bquant.core.config import create_swing_strategy
+from bquant.analysis.zones.strategies import create_swing_strategy
 
 print(create_swing_strategy('find_peaks'))
 # FindPeaksSwingStrategy(prominence=None, distance=5, min_amplitude_pct=0.02, prominence_warmup=200)
@@ -77,7 +80,19 @@ print(create_swing_strategy({'type': 'zigzag', 'params': {'legs': 4, 'deviation'
 
 Для свингов есть третий путь и обычно он лучше двух первых —
 [пресеты](../../user_guide/swing_strategies.md): согласованные наборы порогов сразу для
-трёх стратегий, `narrow_zone` (по умолчанию) и `wide_zone`.
+трёх стратегий, `narrow_zone` (по умолчанию) и `wide_zone`. Пресеты (`SwingPreset`,
+`SWING_PRESETS`, `DEFAULT_SWING_PRESET`) и обёртка адаптивных порогов `AdaptiveSwingStrategy`
+экспортируются из `bquant.analysis.zones.strategies.swing`; до G64 пресеты и фабрики лежали
+в `bquant.core.config`.
+
+```python
+from bquant.analysis.zones.strategies.swing import DEFAULT_SWING_PRESET, SWING_PRESETS
+
+print(DEFAULT_SWING_PRESET, sorted(SWING_PRESETS))
+print(SWING_PRESETS['narrow_zone'].zigzag)
+# narrow_zone ['narrow_zone', 'wide_zone']
+# {'legs': 3, 'deviation': 0.008}
+```
 
 ## Протоколы
 
@@ -87,10 +102,10 @@ print(create_swing_strategy({'type': 'zigzag', 'params': {'legs': 4, 'deviation'
 | Семейство | Метод | Возвращает |
 |---|---|---|
 | swing | `calculate(zone_data, ...)`, `calculate_global(...)`, `aggregate_for_zone(...)`, `config_hash()` | `SwingMetrics` |
-| shape | `calculate_shape(zone_data, indicator_col)` | `ShapeMetrics` |
+| shape | `calculate(zone_data, indicator_col)` | `ShapeMetrics` |
 | divergence | `calculate_divergence(zone_data, indicator_col, ...)` | `DivergenceMetrics` |
 | volatility | `calculate_volatility(zone_data)` | `VolatilityMetrics` |
-| volume | `calculate_volume(zone_data, indicator_col, ...)` | `VolumeMetrics` |
+| volume | `calculate_volume(zone_data, baseline_volume=None, indicator_col=None)` | `VolumeMetrics` |
 
 У всех есть `get_metadata()` — имя, описание, параметры и то, что стратегия считает.
 Пошаговая инструкция по написанию своей — [Extension Guide](../extension_guide.md).

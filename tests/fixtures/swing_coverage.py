@@ -13,8 +13,6 @@ from typing import Dict
 
 import pandas as pd
 
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
 
 from bquant.analysis.zones.pipeline import analyze_zones
 from tests.fixtures import create_sample_ohlcv_data

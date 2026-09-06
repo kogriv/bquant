@@ -1,0 +1,29 @@
+# Architecture contract for `codemap check` (see docs/developer_guide/README.md, «Слои»).
+# The same rules are enforced without codemap by tests/unit/test_layers_point_one_way.py.
+[architecture]
+# Ordered top → bottom. A layer may import only layers below it.
+layers = ["cli", "visualization", "analysis", "indicators", "data", "core"]
+
+# Hard bans regardless of layering (the two edges G64 removed).
+forbidden = [
+  { from = "core", to = "analysis" },
+  { from = "core", to = "indicators" },
+  { from = "core", to = "data" },
+  { from = "core", to = "visualization" },
+  { from = "data", to = "indicators" },
+  { from = "data", to = "analysis" },
+  { from = "indicators", to = "analysis" },
+  { from = "indicators", to = "visualization" },
+]
+
+# The eager import graph must be acyclic. Off until codemap#18 is fixed: an import under
+# `if TYPE_CHECKING:` (cache.py → pipeline) is counted as eager and the rule stays red
+# on a correct tree. Flip to true once the tool reads TYPE_CHECKING as non-eager.
+no_cycles = false
+
+# Lazy cycles (closed by a function-local import) are reported by `report architecture`;
+# they are not gated: indicators.base ↔ custom.* register through the factory on purpose.
+no_lazy_cycles = false
+
+# Every core module's layer must be one of `layers` — a new top-level package must be declared.
+exhaustive = true

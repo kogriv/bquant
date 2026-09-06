@@ -31,11 +31,6 @@ from pathlib import Path
 
 import pytest
 
-# Keep external indicator libraries out of the import path — parity only needs
-# the pure-python bquant surface, and loading pandas_ta/TA-Lib is slow/fragile.
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
-os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DOCS = PROJECT_ROOT / "docs"
 
