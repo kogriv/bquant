@@ -245,7 +245,11 @@ class ZoneAnalysisPipeline:
         # Step 1: prepare dataframe (indicator calculation, enrichment, etc.)
         df_prepared = self._prepare_data(df)
 
-        # Step 2: run global swing calculation (optional)
+        # Step 2: detect zones. Detection depends on the indicator only, and the
+        # global swing pass may need the zones' scale (G48) — so zones come first.
+        zones = self._detect_zones(df_prepared)
+
+        # Step 3: run global swing calculation (optional)
         global_swing_context: Optional[SwingContext] = None
         if self.config.swing_scope == "global":
             # No fallback. Until G54 any exception here was logged and the run
@@ -255,7 +259,7 @@ class ZoneAnalysisPipeline:
             # interchangeable (different visibility, and for ZigZag until G54 a
             # different detector), so a failed global pass is a failed run.
             try:
-                global_swing_context = self._calculate_global_swings(df_prepared)
+                global_swing_context = self._calculate_global_swings(df_prepared, zones)
             except Exception as exc:
                 raise RuntimeError(
                     f"Global swing calculation failed: {exc}. The analysis was "
@@ -263,9 +267,6 @@ class ZoneAnalysisPipeline:
                     "comparable. Fix the cause, or ask for "
                     ".with_swing_scope('per_zone') explicitly."
                 ) from exc
-
-        # Step 3: detect zones
-        zones = self._detect_zones(df_prepared)
 
         # Step 4: inject swing context if available
         if global_swing_context is not None and zones:
@@ -293,8 +294,20 @@ class ZoneAnalysisPipeline:
             return None
         return getattr(features, "swing_strategy", None)
 
-    def _calculate_global_swings(self, data: pd.DataFrame) -> SwingContext:
-        """Рассчитать глобальные свинги на подготовленном наборе данных."""
+    def _calculate_global_swings(
+        self, data: pd.DataFrame, zones: Optional[List[ZoneInfo]] = None
+    ) -> SwingContext:
+        """Рассчитать глобальные свинги на подготовленном наборе данных.
+
+        Адаптивной стратегии перед расчётом отдаётся масштаб зон — относительные
+        размахи уже найденных зон (G48): порог амплитуды у ``find_peaks`` и
+        ``pivot_points`` — свойство зоны, а не кадра.
+        """
+        strategy = self._get_active_swing_strategy()
+        if strategy is not None and hasattr(strategy, "set_zone_scale") and zones:
+            from .strategies.swing.thresholds import relative_range
+
+            strategy.set_zone_scale([relative_range(zone.data) for zone in zones])
 
         strategy = self._get_active_swing_strategy()
         if strategy is None:

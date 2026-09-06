@@ -6,13 +6,13 @@
 
 ## Почему `global` — умолчание
 
-Замер 2026-09-04 на `tv_xauusd_1h`, пресет `narrow_zone`, 39 бычьих зон
+Замер 2026-09-06 на `tv_xauusd_1h`, пресет `narrow_zone` с адаптивными порогами, 39 бычьих зон
 ([полный отчёт](../analytics/zones/swing_strategy_comparison_case_study.md)):
 
 | Стратегия | `per_zone` | `global` |
 |---|---|---|
-| `find_peaks` | 15.4 % зон со свингами | 35.9 % |
-| `pivot_points` | 7.7 % | 51.3 % |
+| `find_peaks` | 43.6 % зон со свингами | 87.2 % |
+| `pivot_points` | 28.2 % | 84.6 % |
 | `zigzag` | 56.4 % | 92.3 % |
 
 Пивот, стоящий за границей зоны, в `per_zone` невидим; `global` видит его и потому

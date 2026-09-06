@@ -110,7 +110,10 @@ class ZoneAnalysisCache:
     # `atr_normalized_return` считается в единицах ATR и заполнен там, где раньше
     # был `None`; без колонки индикатора осцилляторные метрики — `None`, а не
     # числа по первой попавшейся колонке.
-    CACHE_VERSION = 26
+    # v27 (G48): в адаптивном режиме `find_peaks` и `pivot_points` получают порог
+    # амплитуды от масштаба зон с полом от данных вместо пресетного; результаты под
+    # `with_auto_swing_thresholds(True)` меняются.
+    CACHE_VERSION = 27
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

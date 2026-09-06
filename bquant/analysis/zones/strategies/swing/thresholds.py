@@ -1,7 +1,9 @@
 """Utilities for calculating adaptive swing thresholds."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
+
+import numpy as np
 
 import pandas as pd
 
@@ -40,14 +42,25 @@ class SwingThresholds:
     the third was unaffected. Keeping the fields would mean computing and reporting
     thresholds nobody applies, so they are gone rather than merely unused.
 
-    Deriving the floor from the *zone* scale instead — dropping the 0.01 floor — is a
-    separate, measured direction: it takes those two to 84.4 %. It is not shipped here
-    because higher coverage is not by itself evidence that the extra swings are real.
-    See ``devref/gaps/swing/g38_adaptive_thresholds_restore_the_threshold_g35_removed_2026-08.md``.
+    Deriving the floor from the *zone* scale instead — dropping the 0.01 constant — took
+    those two to 84.4 %, and G48 (2026-09-06) proved it by criterion rather than by
+    coverage: the set of global swing points is **identical** under the preset floor and
+    the zone-scale floor (366 = 366 on ``tv_xauusd_1h``), so the layer admits no new
+    pivot — it only stops discarding movements between pivots that ZigZag confirms at
+    99–100 % (±2 bars); the metrics computed from them do not degenerate; the ceiling of
+    65/77 is zone length (10 of 12 uncovered zones are shorter than the strategy's
+    minimum bars); and on ``mt_xauusd_m15`` the constant preset floor gave 3 of 91 zones,
+    the zone scale 69–74. The constant floor is replaced by a floor **from the data**:
+    the median relative range of one bar. That is ``min_amplitude_pct`` below.
+    See ``devref/gaps/swing/g48_zone_scale_thresholds_measured_but_unproven_2026-09.md``.
     """
 
     #: relative price move required by ZigZag
     zigzag_deviation: float
+    #: relative amplitude floor for ``find_peaks`` / ``pivot_points`` — the zone scale
+    #: (G48, 2026-09-06): ``max(bar_floor, median zone range × k)``. ``None`` means the
+    #: strategy keeps the floor it was constructed with (ZigZag: always ``None``).
+    min_amplitude_pct: Optional[float] = None
 
 
 def _safe_mid_price(close_series: pd.Series) -> Optional[float]:
@@ -65,10 +78,52 @@ def _safe_mid_price(close_series: pd.Series) -> Optional[float]:
     return float(median)
 
 
+#: Множители плеча G48 — те же 0.3 / 0.25, что стояли в этом слое до G38.
+ZONE_SCALE_K: Dict[str, float] = {"find_peaks": 0.3, "pivot_points": 0.25}
+
+
+def relative_range(frame: pd.DataFrame) -> Optional[float]:
+    """Размах кадра долей цены: ``(high.max − low.min) / медиана close``; ``None`` без цены."""
+    if frame.empty:
+        return None
+    mid_price = _safe_mid_price(frame["close"])
+    if not mid_price:
+        return None
+    return float(frame["high"].max() - frame["low"].min()) / mid_price
+
+
+def bar_floor(frame: pd.DataFrame) -> float:
+    """Пол от данных: медианный относительный размах одного бара.
+
+    Движение меньше типичного бара лежит внутри бара и порогом амплитуды быть не
+    может. Это замена константе ``base_deviation = 0.01``, которая на зонах обычного
+    размера стояла выше и пресета, и самого движения зоны (G38).
+    """
+    if frame.empty:
+        return 0.0
+    bars = (frame["high"] - frame["low"]) / frame["close"]
+    value = float(bars.median())
+    return value if np.isfinite(value) and value > 0 else 0.0
+
+
+def zone_scale_amplitude(zone_ranges: Sequence[float], k: float, floor: float) -> float:
+    """Порог амплитуды от масштаба зон: ``max(floor, медиана размахов × k)`` (G48)."""
+    ranges = np.asarray([r for r in zone_ranges if r is not None and np.isfinite(r)], dtype=float)
+    if len(ranges) == 0:
+        raise ValueError("zone_scale_amplitude: no zone ranges to take the scale from")
+    return max(float(floor), float(np.median(ranges)) * k)
+
+
 def auto_swing_thresholds(
-    zone_df: pd.DataFrame, *, base_deviation: float = 0.01
+    zone_df: pd.DataFrame,
+    *,
+    base_deviation: float = 0.01,
+    amplitude_k: Optional[float] = None,
+    zone_ranges: Optional[Sequence[float]] = None,
 ) -> SwingThresholds:
-    """Scale swing thresholds based on the price range of a zone."""
+    """Пороги свингов из данных: ``deviation`` ZigZag от размаха кадра и, если задан
+    ``amplitude_k``, амплитудный пол от масштаба зон (``zone_ranges``; без них — от
+    размаха самого ``zone_df``, это режим ``per_zone``)."""
 
     if zone_df.empty:
         return SwingThresholds(zigzag_deviation=base_deviation)
@@ -76,17 +131,15 @@ def auto_swing_thresholds(
     if not {"high", "low", "close"}.issubset(zone_df.columns):
         raise KeyError("Zone dataframe must contain 'high', 'low', and 'close' columns")
 
-    price_range = float(zone_df["high"].max() - zone_df["low"].min())
-    mid_price = _safe_mid_price(zone_df["close"])
+    frame_range = relative_range(zone_df)
+    deviation = max(base_deviation, (frame_range if frame_range is not None else base_deviation) * 0.5)
 
-    if not mid_price:
-        relative_range = base_deviation
-    else:
-        relative_range = price_range / mid_price
+    min_amplitude_pct = None
+    if amplitude_k is not None:
+        ranges = list(zone_ranges) if zone_ranges is not None else [frame_range]
+        min_amplitude_pct = zone_scale_amplitude(ranges, amplitude_k, bar_floor(zone_df))
 
-    deviation = max(base_deviation, relative_range * 0.5)
-
-    return SwingThresholds(zigzag_deviation=deviation)
+    return SwingThresholds(zigzag_deviation=deviation, min_amplitude_pct=min_amplitude_pct)
 
 
 class AdaptiveSwingStrategy:
@@ -107,11 +160,37 @@ class AdaptiveSwingStrategy:
         )
         self._global_threshold_cache: Optional[SwingThresholds] = None
         self._last_thresholds: Optional[Dict[str, float]] = None
+        self._zone_ranges: Optional[Sequence[float]] = None
+
+    @property
+    def amplitude_k(self) -> Optional[float]:
+        """Множитель плеча G48 для этой стратегии; ``None`` — слой её амплитуду не трогает."""
+        return ZONE_SCALE_K.get(self.base_strategy_name)
+
+    def set_zone_scale(self, zone_ranges: Sequence[float]) -> None:
+        """Сообщить слою масштаб зон (относительные размахи) перед ``calculate_global``.
+
+        В ``global`` свинги считаются на всём кадре до того, как известна хоть одна
+        зона, а порог амплитуды — свойство зоны, не кадра. Поэтому пайплайн с G48
+        детектирует зоны первыми и отдаёт их размахи сюда.
+        """
+        self._zone_ranges = list(zone_ranges)
 
     def calculate_global(self, full_data: pd.DataFrame) -> SwingContext:
         """Calculate global swings with adaptive thresholds applied once."""
 
-        thresholds = self._calculate_adaptive_thresholds(full_data)
+        if self.amplitude_k is not None and self._zone_ranges is None:
+            raise ValueError(
+                f"Adaptive {self.base_strategy_name}: the amplitude floor is the zone "
+                "scale, and no zone scale was given — call set_zone_scale(zone_ranges) "
+                "first (the pipeline does, after detecting zones), or run per_zone"
+            )
+        thresholds = auto_swing_thresholds(
+            full_data,
+            base_deviation=self._base_deviation,
+            amplitude_k=self.amplitude_k,
+            zone_ranges=self._zone_ranges,
+        )
         self._global_threshold_cache = thresholds
         self._last_thresholds = self._thresholds_to_dict(thresholds)
         self._apply_thresholds_to_strategy(self.base_strategy, thresholds)
@@ -150,7 +229,10 @@ class AdaptiveSwingStrategy:
         }
 
     def _calculate_adaptive_thresholds(self, data: pd.DataFrame) -> SwingThresholds:
-        return auto_swing_thresholds(data, base_deviation=self._base_deviation)
+        """Пороги для одной зоны (``per_zone``): масштаб — размах самой зоны."""
+        return auto_swing_thresholds(
+            data, base_deviation=self._base_deviation, amplitude_k=self.amplitude_k
+        )
 
     def _apply_thresholds_to_strategy(
         self,
@@ -159,7 +241,11 @@ class AdaptiveSwingStrategy:
     ) -> None:
         if self.base_strategy_name == 'zigzag':
             strategy.deviation = thresholds.zigzag_deviation
-        # find_peaks and pivot_points are deliberately left alone.
+        elif thresholds.min_amplitude_pct is not None and self.amplitude_k is not None:
+            # G48: the floor is the zone scale, floored by the data's own bar range —
+            # never the 0.01 constant that G38 measured as switching both strategies off.
+            strategy.min_amplitude_pct = thresholds.min_amplitude_pct
+        # `prominence` of find_peaks is deliberately left alone.
         #
         # `prominence` was removed first (G16): it is absolute, an amount of price, and
         # a fraction assigned to it read as under two cents and switched the filter off.
@@ -177,7 +263,9 @@ class AdaptiveSwingStrategy:
 
     @staticmethod
     def _thresholds_to_dict(thresholds: SwingThresholds) -> Dict[str, float]:
-        # Only what is applied is reported. The two amplitude floors were removed in
-        # G38 together with the fields behind them: a metadata key naming a threshold
-        # that reaches no strategy is a claim the run cannot support.
-        return {'zigzag_deviation': thresholds.zigzag_deviation}
+        # Only what is applied is reported: a metadata key naming a threshold that
+        # reaches no strategy is a claim the run cannot support (G38).
+        out = {'zigzag_deviation': thresholds.zigzag_deviation}
+        if thresholds.min_amplitude_pct is not None:
+            out['min_amplitude_pct'] = thresholds.min_amplitude_pct
+        return out

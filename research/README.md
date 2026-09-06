@@ -6,7 +6,7 @@
 
 | Каталог | Содержимое |
 |---|---|
-| `notebooks/` | **20 python-скриптов** в стиле ноутбука (`NotebookSimulator`: шаги, пауза, разбор аргументов CLI) и их логи `*_log.txt`. Нумерация по слою пакета: `00_logging*`, `01_data*` (загрузка, обработка, схемы, валидация), `02_ind_*` (индикаторы), `03_analysis_*` и `03_zones_universal` (анализ), `04_zones_*` (визуализация), `06_swing_strategy_comparison` (кейс-стади свингов) |
+| `notebooks/` | **21 python-скрипт** в стиле ноутбука (`NotebookSimulator`: шаги, пауза, разбор аргументов CLI) и их логи `*_log.txt`. Нумерация по слою пакета: `00_logging*`, `01_data*` (загрузка, обработка, схемы, валидация), `02_ind_*` (индикаторы), `03_analysis_*` и `03_zones_universal` (анализ), `04_zones_*` (визуализация), `06_swing_strategy_comparison` и `06_swing_scale_threshold_study` (кейс-стади свингов; второй — проверка G48 по критерию, отчёт в `docs/analytics/zones/`) |
 | `experiments/` | только `README.md` с описанием будущей структуры; экспериментов нет |
 | `studies/` | только `README.md`; исследований нет |
 

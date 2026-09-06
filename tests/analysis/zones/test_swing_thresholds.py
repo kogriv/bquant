@@ -113,36 +113,37 @@ def test_adaptive_never_sets_find_peaks_prominence() -> None:
     Assigning one to the other handed scipy a threshold of ~0.019 — under two cents on
     an instrument trading near 3350 — and the prominence filter stopped filtering.
     find_peaks derives its own range-adaptive, warm-up-frozen prominence, so the
-    adaptive layer must leave it alone.
+    adaptive layer must leave it alone. What the layer does set since G48 is
+    `min_amplitude_pct` — to the ZONE scale, a fraction, and never the 0.01 constant
+    that G38 measured as zeroing the strategy.
     """
+    from bquant.analysis.zones.strategies.swing.thresholds import bar_floor
+
     df = get_sample_data("tv_xauusd_1h")
     wrapper = _adaptive("find_peaks", {"distance": 3})
+    wrapper.set_zone_scale([0.0075, 0.0080, 0.0070])
     wrapper.calculate_global(df)
-
     assert wrapper.base_strategy.prominence is None, (
         "adaptive layer must not overwrite find_peaks' prominence — it is absolute "
         "while SwingThresholds are relative"
     )
-    # And since G38 it does not touch `min_amplitude_pct` either: the strategy keeps
-    # whatever the preset gave it. Units were never the problem here — the value was.
-    untouched = FindPeaksSwingStrategy(distance=3)
-    assert wrapper.base_strategy.min_amplitude_pct == pytest.approx(
-        untouched.min_amplitude_pct), (
-        "adaptive layer must leave find_peaks' amplitude floor at its preset value"
-    )
+    expected = max(bar_floor(df), 0.0075 * 0.3)
+    assert wrapper.base_strategy.min_amplitude_pct == pytest.approx(expected)
+    assert wrapper.base_strategy.min_amplitude_pct < 0.006, "the zone scale is below the preset floor here"
 
 
 def test_adaptive_relative_values_stay_relative() -> None:
     """Every value the layer writes is a fraction, so all must be far below price scale."""
     df = get_sample_data("tv_xauusd_1h")
     price_scale = float(df["close"].median())
-
     for name, params, attrs in (
         ("zigzag", {"legs": 3, "deviation": 0.008}, ("deviation",)),
         ("find_peaks", {"distance": 3}, ("min_amplitude_pct",)),
         ("pivot_points", {"left_bars": 3, "right_bars": 3}, ("min_amplitude_pct",)),
     ):
         wrapper = _adaptive(name, params)
+        if wrapper.amplitude_k is not None:
+            wrapper.set_zone_scale([0.0075])
         wrapper.calculate_global(df)
         for attr in attrs:
             value = getattr(wrapper.base_strategy, attr)
@@ -162,8 +163,12 @@ def test_adaptive_mode_does_not_zero_a_strategy(strategy) -> None:
     the only test on this layer asserted that thresholds *scale*, which the zeroing
     value did perfectly.
 
-    The guard is coverage, not thresholds: with the layer adapting only ZigZag, these
-    two must land exactly where they land with the layer switched off.
+    The guard is coverage, not thresholds. Until G48 the layer adapted only ZigZag and
+    these two had to land exactly where they land with it off. Since G48 the layer
+    gives them the zone scale — measured on this sample as 65 and 63 zones of 77
+    against 28 and 38 with the layer off — so the guard pins that number: below the
+    switched-off coverage is the G38 defect back, and off the measured number is a
+    change nobody measured.
     """
     from bquant.analysis.zones import analyze_zones
 
@@ -194,9 +199,12 @@ def test_adaptive_mode_does_not_zero_a_strategy(strategy) -> None:
     with_auto = coverage(auto=True)
 
     assert without_auto > 0, "fixture is not exercising the strategy at all"
-    assert with_auto == without_auto, (
-        f"{strategy}: adaptive mode changed coverage from {without_auto} zones to "
-        f"{with_auto} — this layer must adapt ZigZag's deviation and nothing else"
+    assert with_auto >= without_auto, (
+        f"{strategy}: adaptive mode cost coverage — {without_auto} zones off, {with_auto} on (G38)"
+    )
+    measured = {"find_peaks": 65, "pivot_points": 63}[strategy]  # G48 study, tv_xauusd_1h
+    assert with_auto == measured, (
+        f"{strategy}: adaptive coverage is {with_auto} zones, the G48 measurement is {measured}"
     )
 
 
@@ -204,17 +212,19 @@ def test_adaptive_find_peaks_still_filters() -> None:
     """The regression that started G16: adaptive mode must not inflate the swing set.
 
     With the relative value landing in `prominence` the filter was effectively off and
-    adaptive mode returned MORE swings than the plain strategy, which is the opposite of
-    what turning on adaptive thresholds is meant to do.
+    adaptive mode returned MORE swings than the plain strategy. Since G48 the layer's
+    only write to find_peaks is `min_amplitude_pct`, which does not select pivots at
+    all in `global` — so the two point sets must be identical, not merely ordered.
     """
     df = get_sample_data("tv_xauusd_1h")
     plain = FindPeaksSwingStrategy(distance=3)
     adaptive = _adaptive("find_peaks", {"distance": 3})
+    adaptive.set_zone_scale([0.0075])
 
-    n_plain = len(plain.calculate_global(df).swing_points)
-    n_adaptive = len(adaptive.calculate_global(df).swing_points)
+    plain_points = [p.index for p in plain.calculate_global(df).swing_points]
+    adaptive_points = [p.index for p in adaptive.calculate_global(df).swing_points]
 
-    assert n_adaptive <= n_plain, (
-        f"adaptive mode detected MORE swings ({n_adaptive}) than plain ({n_plain}) — "
+    assert adaptive_points == plain_points, (
+        f"adaptive mode changed the pivot set ({len(adaptive_points)} vs {len(plain_points)}) — "
         "the prominence filter is not doing its job"
     )
