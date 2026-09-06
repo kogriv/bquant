@@ -37,7 +37,8 @@ def _make_zone(
     features: dict | None = None,
 ) -> ZoneInfo:
     index = price_data.index
-    zone_window = price_data.loc[index[start_idx:end_idx], list(indicator_columns)]
+    # index[start_idx:end_idx] терял последний бар зоны — на один меньше duration (G66)
+    zone_window = price_data.loc[index[start_idx:end_idx + 1], list(indicator_columns)]
     return ZoneInfo(
         zone_id=zone_id,
         type="bull",

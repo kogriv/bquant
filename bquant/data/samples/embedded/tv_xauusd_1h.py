@@ -12,7 +12,7 @@ Use scripts/data/extract_samples.py to regenerate.
 
 from typing import Dict, List, Any
 
-DATASET_INFO = {'name': 'TradingView XAUUSD 1H', 'description': 'Часовые данные XAUUSD с техническими индикаторами', 'source': 'TradingView via OANDA', 'symbol': 'XAUUSD', 'timeframe': '1H', 'rows': 1000, 'columns': ['time', 'open', 'high', 'low', 'close', 'Volume', 'Accumulation/Distribution', 'MACD', 'Signal', 'RSI', 'RSI-based MA', 'Regular Bullish', 'Regular Bullish Label', 'Regular Bearish', 'Regular Bearish Label'], 'period_start': '2025-06-11T20:00:00+07:00', 'period_end': '2025-08-12T13:00:00+07:00', 'license': 'Open data, free for research and educational use', 'disclaimer': 'For demonstration purposes only. Not for production trading.', 'updated': '2025-08-25 18:38:50', 'extracted_from': 'OANDA_XAUUSD, 60.csv'}
+DATASET_INFO = {'name': 'TradingView XAUUSD 1H', 'description': 'Часовые данные XAUUSD с техническими индикаторами', 'source': 'TradingView via OANDA', 'symbol': 'XAUUSD', 'timeframe': '1H', 'rows': 1000, 'columns': ['time', 'open', 'high', 'low', 'close', 'volume', 'accumulation_distribution', 'macd', 'signal', 'rsi', 'rsi_based_ma', 'regular_bullish', 'regular_bullish_label', 'regular_bearish', 'regular_bearish_label'], 'period_start': '2025-06-11T20:00:00+07:00', 'period_end': '2025-08-12T13:00:00+07:00', 'license': 'Open data, free for research and educational use', 'disclaimer': 'For demonstration purposes only. Not for production trading.', 'updated': '2025-08-25 18:38:50', 'extracted_from': 'OANDA_XAUUSD, 60.csv'}
 
 DATA = [
     {

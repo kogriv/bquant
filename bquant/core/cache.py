@@ -76,6 +76,40 @@ class CacheEntry:
         self.hits += 1
 
 
+
+def _feed_canonical(digest, value: Any) -> None:
+    """Дописать в хэш детерминированное представление значения (независимое от процесса)."""
+    if isinstance(value, pd.DataFrame):
+        digest.update(b"DataFrame|")
+        digest.update(repr(list(map(str, value.columns))).encode())
+        digest.update(repr([str(d) for d in value.dtypes]).encode())
+        digest.update(pd.util.hash_pandas_object(value, index=True).to_numpy().tobytes())
+    elif isinstance(value, pd.Series):
+        digest.update(b"Series|")
+        digest.update(f"{value.name!r}|{value.dtype}|".encode())
+        digest.update(pd.util.hash_pandas_object(value, index=True).to_numpy().tobytes())
+    elif isinstance(value, np.ndarray):
+        digest.update(f"ndarray|{value.dtype}|{value.shape}|".encode())
+        digest.update(np.ascontiguousarray(value).tobytes())
+    elif isinstance(value, (list, tuple)):
+        digest.update(f"{type(value).__name__}[".encode())
+        for item in value:
+            _feed_canonical(digest, item)
+            digest.update(b",")
+        digest.update(b"]")
+    elif isinstance(value, dict):
+        digest.update(b"dict{")
+        for key in sorted(value, key=repr):
+            digest.update(f"{key!r}:".encode())
+            _feed_canonical(digest, value[key])
+            digest.update(b",")
+        digest.update(b"}")
+    else:
+        # Примитивы — по repr. Чужой объект — тоже по repr, и если он несёт адрес
+        # (``<... at 0x…>``), ключ снова нестабилен; это записано в docs/user_guide/caching.md.
+        digest.update(f"{type(value).__name__}:{value!r}|".encode())
+
+
 class MemoryCache:
     """
     Кэш в памяти с поддержкой TTL и LRU эвикции.
@@ -105,35 +139,27 @@ class MemoryCache:
         self._evictions = 0
     
     def _generate_key(self, func_name: str, args: tuple, kwargs: dict) -> str:
-        """Генерирует ключ кэша на основе функции и аргументов."""
-        # Создаем строку для хэширования
-        # Версия пакета входит в ключ: значение в кэше произведено кодом этой версии,
-        # и после обновления оно к ней уже не относится. Без этой части исправленная
-        # функция ещё час отдавала бы прежние — неверные — числа с диска (G44); ровно
-        # тот же силуэт, что G36, где ключ не видел, чем результат посчитан.
+        """Ключ кэша: версия пакета, имя функции и **каноническая** запись аргументов.
+
+        Версия пакета входит в ключ: значение в кэше произведено кодом этой версии,
+        и после обновления оно к ней уже не относится (G44). Аргументы записываются
+        детерминированно и хэшируются SHA-256: до G66 (2026-09-06) здесь стояли
+        ``hash(str(arg))`` и ``hash(bytes)`` — Python солит их на процесс, и один и тот
+        же вызов со строкой, массивом или ``Series`` получал в каждом процессе новый
+        ключ. Дисковый кэш для таких аргументов не переживал перезапуск, хотя обещал.
+        """
         from bquant import __version__
 
-        key_parts = [f"v{__version__}", func_name]
-
-        # Добавляем args
+        digest = hashlib.sha256()
+        digest.update(f"v{__version__}|{func_name}|".encode())
         for arg in args:
-            if isinstance(arg, pd.DataFrame):
-                # Для DataFrame используем хэш данных
-                key_parts.append(pd.util.hash_pandas_object(arg).sum())
-            elif isinstance(arg, (pd.Series, np.ndarray)):
-                key_parts.append(str(hash(arg.tobytes() if hasattr(arg, 'tobytes') else str(arg))))
-            else:
-                key_parts.append(str(hash(str(arg))))
-        
-        # Добавляем kwargs
-        sorted_kwargs = sorted(kwargs.items())
-        for k, v in sorted_kwargs:
-            key_parts.append(f"{k}={hash(str(v))}")
-        
-        # Создаем хэш
-        key_string = "|".join(str(part) for part in key_parts)
-        return hashlib.md5(key_string.encode()).hexdigest()
-    
+            digest.update(b"a:")
+            _feed_canonical(digest, arg)
+        for name, value in sorted(kwargs.items()):
+            digest.update(f"k:{name}=".encode())
+            _feed_canonical(digest, value)
+        return digest.hexdigest()
+
     def get(self, key: str) -> Optional[Any]:
         """Получить значение из кэша."""
         with self._lock:
@@ -167,15 +193,21 @@ class MemoryCache:
         self.logger.debug(f"Cache hit: {key}")
         return entry.data
     
-    def put(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Сохранить значение в кэше."""
-        with self._lock:
-            self._put_unlocked(key, value, ttl)
+    def put(self, key: str, value: Any, ttl: Optional[int] = None, *,
+            expires_at: Optional[datetime] = None) -> None:
+        """Сохранить значение в кэше.
 
-    def _put_unlocked(self, key: str, value: Any, ttl: Optional[int]) -> None:
+        ``expires_at`` — абсолютный срок, который переносится как есть: запись, поднятая
+        с диска, доживает **свой** срок, а не получает новый ``default_ttl`` (G66).
+        """
+        with self._lock:
+            self._put_unlocked(key, value, ttl, expires_at)
+
+    def _put_unlocked(self, key: str, value: Any, ttl: Optional[int],
+                      expires_at: Optional[datetime] = None) -> None:
         # Определяем время истечения
-        expiry = None
-        if ttl is not None or self.default_ttl > 0:
+        expiry = expires_at
+        if expiry is None and (ttl is not None or self.default_ttl > 0):
             ttl_seconds = ttl if ttl is not None else self.default_ttl
             expiry = datetime.now() + timedelta(seconds=ttl_seconds)
         
@@ -296,21 +328,22 @@ class DiskCache:
     
     def get(self, key: str) -> Optional[Any]:
         """Получить значение из дискового кэша."""
+        entry = self.get_entry(key)
+        return entry.data if entry is not None else None
+
+    def get_entry(self, key: str) -> Optional[CacheEntry]:
+        """Получить запись целиком — со сроком истечения, чтобы перенести его в память."""
         file_path = self._get_file_path(key)
-        
         if not file_path.exists():
             return None
-        
         try:
             with open(file_path, 'rb') as f:
                 entry = pickle.load(f)
-            
             if entry.is_expired():
-                file_path.unlink()
+                file_path.unlink(missing_ok=True)
                 return None
-            
             entry.touch()
-            return entry.data
+            return entry
             
         except Exception as e:
             self.logger.warning(f"Failed to load from disk cache {key}: {e}")
@@ -416,13 +449,12 @@ class CacheManager:
         if result is not None:
             return result
         
-        # Потом диск
+        # Потом диск — в память запись переезжает со своим сроком, не с новым (G66)
         if self.disk_cache:
-            result = self.disk_cache.get(key)
-            if result is not None:
-                # Сохраняем в память для быстрого доступа
-                self.memory_cache.put(key, result)
-                return result
+            entry = self.disk_cache.get_entry(key)
+            if entry is not None:
+                self.memory_cache.put(key, entry.data, expires_at=entry.expiry)
+                return entry.data
         
         return None
     

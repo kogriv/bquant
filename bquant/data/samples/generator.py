@@ -272,11 +272,16 @@ class SampleDataGenerator:
         period_end = None
         
         if time_column and len(df) > 0:
-            try:
-                period_start = str(df[time_column].iloc[0])
-                period_end = str(df[time_column].iloc[-1])
-            except Exception as e:
-                self.logger.warning(f"Could not determine time period: {e}")
+            period_start = str(df[time_column].iloc[0])
+            period_end = str(df[time_column].iloc[-1])
+        if period_start is None or period_end is None:
+            # До G66 период тихо оставался None и попадал в DATASET_INFO как факт;
+            # датасет без известного периода нельзя ни выбрать, ни проверить.
+            raise ValueError(
+                f"{dataset_name}: cannot determine the period — no time column among "
+                f"{df.columns.tolist()} or the frame is empty; refusing to embed metadata "
+                f"that says nothing about what the data covers"
+            )
         
         metadata = {
             'name': config['name'],

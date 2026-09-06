@@ -46,4 +46,17 @@
 [not_included] [Technical] Гейт G65: чистый клон, оба плеча — pandas 3.0.5 **3352 passed, 33 skipped, 0 failed**; pandas 2.3.3 **3352 passed, 33 skipped, 0 failed** (+17 к 3335: 15 сторожей, 2 добора); `codemap check` — контракт держится. Батарея 34 из 35: `research/notebooks/02_ind_factory.py` звал `is_trending_up(column='macd')` у custom-MACD, чьи выходы — `macd_12_26_9__*`; до G65 это давало `False` с ошибкой в логе, теперь `ValueError`. Ноутбук адресует колонку по роли; перегнан локально — код 0
 [included] [Changed] research/notebooks/02_ind_factory.py — колонка по `get_output_roles()['line']`, библиотечный MACD — первая колонка
 
+[G66 — контракты без проверки: AQ-044, 045, 047, 053 закрыты; AQ-046 — честные extras, разделение базы за владельцем]
+
+[not_included] [Technical] Замер: `cache_key('abc', 1, x=2.5)` в двух процессах — два ключа (то же `ndarray`, `Series`; кадры стабильны); `ZoneInfo(start_idx=9, end_idx=0, duration=40, data=<3>)` принят; `SwingContext(indices=[5, 2])`: `slice(0, 3) → [5, 2]`, `slice(4, 9) → [2]`; extra `viz` не существует, `full` дублирует базу; `mt_xauusd_m15` — колонки первой строки CSV, `period_start=None`; `tv_xauusd_1h` — `'Volume'`, `'Accumulation/Distribution'` при ключах `volume`, `accumulation_distribution` в `DATA`
+[included] [Fixed] bquant/core/cache.py — `_feed_canonical()` + SHA-256 в `_generate_key`; `DiskCache.get_entry()`; `MemoryCache.put(..., expires_at=)`; `CacheManager.get` переносит срок
+[included] [Fixed] bquant/analysis/zones/models.py — инварианты `ZoneInfo.__post_init__` (порядок индексов, `duration`, порядок времени, `len(data) ∈ {0, duration}`), `SwingContext` — сортировка `indices` и совпадение с `swing_points[i].index`; сообщение `visualize()` без несуществующего extra
+[included] [Fixed] pyproject.toml — `notebooks` = `jupyter`, `full` без базовых дублей; README.md — `.[dev]`
+[included] [Fixed] bquant/data/samples/datasets.py — реестр без измеримых полей, `MEASURED_FIELDS`, `_measured()` из `DATASET_INFO` модуля (период в ISO, размер модуля); bquant/data/samples/embedded/{tv_xauusd_1h,mt_xauusd_m15}.py — `DATASET_INFO` пересобран из собственных `DATA`; bquant/data/samples/generator.py — `ValueError` при неопределённом периоде
+[not_included] [Technical] Инварианты отвергли при первом прогоне: три фикстуры tests/visualization/test_zones_visualization.py резали `zone.data` на ±2 бара шире зоны, tests/visualization/test_zone_metrics_display.py — на бар короче (`index[start:end]`), а bquant/visualization/zones.py собирал временную `ZoneInfo` из словаря с `duration` из словаря. Фикстуры режут ровно зону; визуализатор выводит длительность из границ и не прикладывает кадр
+[included] [Added] tests/unit/test_contracts_are_checked.py — 14 проверок (см. `devref/gaps/architecture/g66_contracts_are_checked.md` §5)
+[included] [Changed] tests/unit/test_sample_data.py — реестр без измеримых полей; docs/user_guide/caching.md (ключ `@cached`, перенос срока), docs/api/data/samples.md (один источник; числа `size_kb` из прогона: 525.8 / 193.6), docs/api/analysis/zones.md (инварианты зоны)
+[included] [Changed] devref/gaps/architecture/g66_contracts_are_checked.md (новый), devref/gaps/gap_inventory_2026-07.md — G66 закрыт, остаток AQ-046 за владельцем; CHANGELOG.md
+[not_included] [Technical] Гейт G66: чистый клон, оба плеча — pandas 3.0.5 **, 0 failed**; pandas 2.3.3 **, 0 failed**; батарея 35 из 35; `codemap check` — контракт держится
+
 ==================== COMMIT DIVIDER ====================

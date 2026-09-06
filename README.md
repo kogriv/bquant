@@ -113,7 +113,7 @@ Every flag and the JSON schema: [CLI guide](https://bquant.readthedocs.io/en/lat
 git clone https://github.com/kogriv/bquant.git
 cd bquant
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e .[full]
+pip install -e ".[dev]"   # extras: dev, docs, notebooks — extra `full` не существует
 pytest
 ```
 

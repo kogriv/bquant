@@ -12,7 +12,7 @@ Use scripts/data/extract_samples.py to regenerate.
 
 from typing import Dict, List, Any
 
-DATASET_INFO = {'name': 'MetaTrader XAUUSD 15M', 'description': '15-минутные данные XAUUSD с базовыми метриками', 'source': 'MetaTrader', 'symbol': 'XAUUSD', 'timeframe': '15M', 'rows': 1000, 'columns': ['2021.05.27 02:00', '1896.26000', '1896.66000', '1895.71000', '1896.64000', '288', '0'], 'period_start': None, 'period_end': None, 'license': 'Open data, free for research and educational use', 'disclaimer': 'For demonstration purposes only. Not for production trading.', 'updated': '2025-08-25 18:38:51', 'extracted_from': 'XAUUSDM15.csv'}
+DATASET_INFO = {'name': 'MetaTrader XAUUSD 15M', 'description': '15-минутные данные XAUUSD с базовыми метриками', 'source': 'MetaTrader', 'symbol': 'XAUUSD', 'timeframe': '15M', 'rows': 1000, 'columns': ['time', 'open', 'high', 'low', 'close', 'volume', 'spread'], 'period_start': '2025.08.07 19:15', 'period_end': '2025.08.22 16:00', 'license': 'Open data, free for research and educational use', 'disclaimer': 'For demonstration purposes only. Not for production trading.', 'updated': '2025-08-25 18:38:51', 'extracted_from': 'XAUUSDM15.csv'}
 
 DATA = [
     {

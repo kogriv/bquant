@@ -214,8 +214,11 @@ class TestSampleDataRegistry:
         assert 'name' in tv_info
         assert 'symbol' in tv_info
         assert 'timeframe' in tv_info
-        assert 'rows' in tv_info
-        assert 'columns' in tv_info
+        # Измеримое (rows, columns, period) реестр не хранит — с G66 оно читается из
+        # embedded-модуля через get_dataset_info(); реестр знает только модуль
+        assert 'file_module' in tv_info
+        assert 'rows' not in tv_info and 'columns' not in tv_info
+        assert get_dataset_info('tv_xauusd_1h')['rows'] == 1000
     
     def test_list_dataset_names(self):
         """Тест получения списка названий датасетов."""

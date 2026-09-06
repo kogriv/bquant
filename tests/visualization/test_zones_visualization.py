@@ -70,7 +70,8 @@ def _extract_indicator_names(fig, backend: str) -> Iterable[str]:
 def test_plot_zone_detail_uses_indicator_metadata(price_data: pd.DataFrame, backend: str) -> None:
     index = price_data.index
     start_idx, end_idx = 10, 22
-    zone_window = price_data.loc[index[start_idx - 2] : index[end_idx + 2], ["ema_fast", "momentum"]]
+    # Зона несёт ровно свои бары (G66): контекст вокруг неё — дело графика, не модели
+    zone_window = price_data.loc[index[start_idx] : index[end_idx], ["ema_fast", "momentum"]]
 
     zone = ZoneInfo(
         zone_id=1,
@@ -96,7 +97,7 @@ def test_plot_zone_detail_uses_indicator_metadata(price_data: pd.DataFrame, back
 def test_plot_zone_detail_auto_detects_from_zone_data(price_data: pd.DataFrame, backend: str) -> None:
     index = price_data.index
     start_idx, end_idx = 25, 36
-    zone_window = price_data.loc[index[start_idx - 1] : index[end_idx + 1], ["ema_slow", "trend_strength"]]
+    zone_window = price_data.loc[index[start_idx] : index[end_idx], ["ema_slow", "trend_strength"]]
 
     zone = ZoneInfo(
         zone_id=7,
@@ -185,7 +186,7 @@ def _make_zone_info(
     indicator_context: dict | None = None,
 ) -> ZoneInfo:
     index = price_data.index
-    zone_window = price_data.loc[index[max(0, start_idx - 2)] : index[min(len(index) - 1, end_idx + 2)], list(columns)]
+    zone_window = price_data.loc[index[start_idx] : index[end_idx], list(columns)]
     return ZoneInfo(
         zone_id=zone_id,
         type=zone_type,

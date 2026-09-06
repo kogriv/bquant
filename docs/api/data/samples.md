@@ -13,8 +13,8 @@ from bquant.data.samples import list_datasets
 for entry in list_datasets():
     print(f"{entry['name']:<15} {entry['rows']} строк, {entry['columns_count']} колонок, "
           f"{entry['size_kb']} КБ — {entry['source']}")
-# tv_xauusd_1h    1000 строк, 15 колонок, 542.4 КБ — TradingView via OANDA
-# mt_xauusd_m15   1000 строк, 7 колонок, 202.5 КБ — MetaTrader
+# tv_xauusd_1h    1000 строк, 15 колонок, 525.8 КБ — TradingView via OANDA
+# mt_xauusd_m15   1000 строк, 7 колонок, 193.6 КБ — MetaTrader
 ```
 
 | | `tv_xauusd_1h` | `mt_xauusd_m15` |
@@ -62,6 +62,12 @@ print(info['columns'])
 # 2025-08-07T19:15:00 → 2025-08-22T16:00:00
 # ['time', 'open', 'high', 'low', 'close', 'volume', 'spread']
 ```
+
+Строки, колонки, период и размер `get_dataset_info()` читает из `DATASET_INFO` самого
+embedded-модуля — того, что несёт данные; реестр `datasets.py` знает только имя,
+описание, источник и лицензию. До G66 (2026-09-06) реестр и модуль хранили одни и те же
+числа порознь и расходились: у `mt_xauusd_m15` модуль нёс колонки из первой строки CSV
+без заголовка и `period_start=None`.
 
 **Осторожно с ключом `name`.** В `get_dataset_info()` это человеческое название
 (`'MetaTrader XAUUSD 15M'`), а в элементах `list_datasets()` — идентификатор

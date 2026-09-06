@@ -58,21 +58,17 @@ docs = [
     "myst-parser>=2.0.0",
     "sphinx-autodoc-typehints>=1.25.0",
 ]
+# `ipywidgets`, `plotly` и `kaleido` — базовые зависимости; здесь только то, чего в базе нет.
 notebooks = [
-    "jupyter==1.1.1",
-    "ipywidgets==8.1.7",
-    "plotly==6.3.0",
-    "kaleido==1.0.0",
+    "jupyter>=1.1.1",
 ]
+# Всё необязательное разом. Базовые зависимости здесь не повторяются (G66).
 full = [
     "pytest>=6.0",
     "pytest-cov>=2.0",
     "black>=21.0",
     "flake8>=3.8",
-    "jupyter==1.1.1",
-    "ipywidgets==8.1.7",
-    "plotly==6.3.0",
-    "kaleido==1.0.0",
+    "jupyter>=1.1.1",
 ]
 research = [
     "pycatch22>=0.4.5",

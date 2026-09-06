@@ -203,6 +203,19 @@ class SwingContext:
             raise ValueError(
                 "SwingContext.indices must have the same length as swing_points"
             )
+        # ``slice()`` bisects ``indices``: an unsorted array answers with points from
+        # outside the zone (G66 measured ``slice(0, 3) -> [5, 2]`` on ``[5, 2]``).
+        if len(self.indices) > 1 and bool(np.any(np.diff(self.indices) < 0)):
+            raise ValueError("SwingContext.indices must be sorted ascending")
+        mismatched = [
+            (i, int(idx), point.index) for i, (idx, point) in enumerate(zip(self.indices, self.swing_points))
+            if int(idx) != int(point.index)
+        ]
+        if mismatched:
+            i, idx, point_index = mismatched[0]
+            raise ValueError(
+                f"SwingContext.indices[{i}] = {idx} but swing_points[{i}].index = {point_index}"
+            )
 
     def slice(self, start_idx: int, end_idx: int) -> List[SwingPoint]:
         """Return swing points for the given zone range with neighbor padding.
@@ -501,9 +514,43 @@ class ZoneInfo:
     swing_context: Optional[SwingContext] = None
     
     def __post_init__(self):
-        """Ensure ``indicator_context`` is always a dictionary."""
+        """Normalize ``indicator_context`` and refuse a zone that contradicts itself.
+
+        Invariants (G66, 2026-09-06): ``start_idx <= end_idx``; ``duration ==
+        end_idx - start_idx + 1``; ``start_time <= end_time``; ``data`` carries either
+        exactly ``duration`` rows or nothing at all (a result loaded without its frame
+        keeps zones empty until :meth:`ZoneAnalysisResult._reattach`). Until G66 a zone
+        with ``end_idx < start_idx``, ``duration=40`` and three rows of data was accepted
+        silently; every consumer then trusted one of the three contradicting numbers.
+        """
         if self.indicator_context is None:
             self.indicator_context = {}
+        if self.start_idx > self.end_idx:
+            raise ValueError(
+                f"zone {self.zone_id}: start_idx {self.start_idx} > end_idx {self.end_idx}"
+            )
+        expected = self.end_idx - self.start_idx + 1
+        if self.duration != expected:
+            raise ValueError(
+                f"zone {self.zone_id}: duration {self.duration} != end_idx - start_idx + 1 = {expected}"
+            )
+        if self.start_time is not None and self.end_time is not None:
+            try:
+                out_of_order = self.start_time > self.end_time
+            except TypeError as exc:  # naive against aware, or unrelated types
+                raise ValueError(
+                    f"zone {self.zone_id}: start_time {self.start_time!r} and end_time "
+                    f"{self.end_time!r} cannot be compared"
+                ) from exc
+            if out_of_order:
+                raise ValueError(
+                    f"zone {self.zone_id}: start_time {self.start_time} > end_time {self.end_time}"
+                )
+        if self.data is not None and len(self.data) not in (0, self.duration):
+            raise ValueError(
+                f"zone {self.zone_id}: data carries {len(self.data)} rows, duration is "
+                f"{self.duration}; a zone's frame is exactly its bars, or empty"
+            )
 
     def get_zone_swings(self) -> List[SwingPoint]:
         """Return swing points for the zone using the attached swing context.
@@ -965,10 +1012,13 @@ class ZoneAnalysisResult:
                 zones_module = import_module('bquant.visualization.zones')
                 ZoneVisualizer = getattr(zones_module, 'ZoneVisualizer')
             except (ImportError, AttributeError) as exc:
+                # plotly и matplotlib входят в базовые зависимости bquant; сюда попадают
+                # только руками собранные окружения. До G66 сообщение звало extra
+                # `viz`, которого в pyproject.toml никогда не было.
                 raise ImportError(
-                    "ZoneVisualizer is not available. Install optional "
-                    "visualization dependencies (e.g. 'bquant[viz]') "
-                    "to enable chart rendering."
+                    "ZoneVisualizer is not available: the visualization stack (plotly, "
+                    "matplotlib) failed to import. They are base dependencies of bquant — "
+                    "reinstall it, or `pip install plotly matplotlib` in this environment."
                 ) from exc
 
         if self.data is None or self.data.empty:

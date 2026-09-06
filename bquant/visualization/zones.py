@@ -1422,15 +1422,18 @@ class ZoneVisualizer(ZoneChartBuilder):
             original_zone = zone.get('original_zone')
             if isinstance(original_zone, ZoneInfo):
                 return swing_context.get_swings_for_zone(original_zone)
+            # Временная зона только для выборки свингов: длительность выводится из
+            # границ, кадр не нужен — так она не может противоречить себе (G66)
+            start_idx, end_idx = int(zone.get('start_idx', 0)), int(zone.get('end_idx', 0))
             temp_zone = ZoneInfo(
                 zone_id=zone.get('zone_id', -1),
                 type=zone.get('type', 'unknown'),
-                start_idx=zone.get('start_idx', 0),
-                end_idx=zone.get('end_idx', 0),
+                start_idx=start_idx,
+                end_idx=end_idx,
                 start_time=zone.get('start_time'),
                 end_time=zone.get('end_time'),
-                duration=zone.get('duration', 0),
-                data=zone.get('data', pd.DataFrame()),
+                duration=end_idx - start_idx + 1,
+                data=pd.DataFrame(),
                 features=zone.get('features'),
                 indicator_context=zone.get('indicator_context'),
                 swing_context=swing_context,

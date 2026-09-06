@@ -11,6 +11,13 @@ from ...core.logging_config import get_logger
 logger = get_logger(__name__)
 
 # Реестр доступных датасетов
+#: Что о датасете знает человек: имя, описание, происхождение, лицензия и модуль с данными.
+#: Всё **измеримое** — строки, колонки, период, размер — здесь не хранится: с G66
+#: (2026-09-06) оно читается из ``DATASET_INFO`` самого embedded-модуля, который его и
+#: несёт. До этого реестр и модуль были двумя источниками одного факта, и они
+#: расходились: у ``mt_xauusd_m15`` модуль хранил колонки из первой строки CSV без
+#: заголовка и ``period_start=None``, у ``tv_xauusd_1h`` — сырые имена колонок CSV при
+#: нормализованных ключах в ``DATA``.
 AVAILABLE_DATASETS = {
     'tv_xauusd_1h': {
         'name': 'TradingView XAUUSD 1H',
@@ -18,20 +25,9 @@ AVAILABLE_DATASETS = {
         'source': 'TradingView via OANDA',
         'symbol': 'XAUUSD',
         'timeframe': '1H',
-        'rows': 1000,
-        'columns': [
-            'time', 'open', 'high', 'low', 'close', 'volume',
-            'accumulation_distribution', 'macd', 'signal', 'rsi',
-            'rsi_based_ma', 'regular_bullish', 'regular_bullish_label',
-            'regular_bearish', 'regular_bearish_label'
-        ],
-        'period_start': '2025-06-11T20:00:00+07:00',
-        'period_end': '2025-08-12T13:00:00+07:00',
         'license': 'Open data, free for research and educational use',
         'disclaimer': 'For demonstration purposes only. Not for production trading.',
         'file_module': 'embedded.tv_xauusd_1h',
-        'size_bytes': 555425,
-        'updated': '2025-08-25 18:38:50',
         'original_filename': 'OANDA_XAUUSD, 60.csv'
     },
     'mt_xauusd_m15': {
@@ -40,24 +36,37 @@ AVAILABLE_DATASETS = {
         'source': 'MetaTrader',
         'symbol': 'XAUUSD',
         'timeframe': '15M',
-        'rows': 1000,
-        'columns': [
-            'time', 'open', 'high', 'low', 'close', 'volume', 'spread'
-        ],
-        # Период получен из самих данных (2026-09-01, G40): в реестре три месяца
-        # стояло '2025-05-20T02:00:00' … '2025-05-30T07:30:00' при данных за август.
-        # Значения обязаны совпадать с первой и последней записью DATA — это
-        # проверяет validate_data_integrity().
-        'period_start': '2025-08-07T19:15:00',
-        'period_end': '2025-08-22T16:00:00',
         'license': 'Open data, free for research and educational use',
         'disclaimer': 'For demonstration purposes only. Not for production trading.',
         'file_module': 'embedded.mt_xauusd_m15',
-        'size_bytes': 207315,
-        'updated': '2025-08-25 18:38:51',
         'original_filename': 'XAUUSDM15.csv'
     }
 }
+
+#: Поля, которые приходят из embedded-модуля, а не из реестра.
+MEASURED_FIELDS = ('rows', 'columns', 'period_start', 'period_end', 'updated', 'extracted_from')
+
+
+def _embedded_module(dataset_name: str):
+    import importlib
+
+    return importlib.import_module(f"bquant.data.samples.{AVAILABLE_DATASETS[dataset_name]['file_module']}")
+
+
+def _measured(dataset_name: str) -> Dict[str, Any]:
+    """Измеримые поля датасета — из его же модуля; период в ISO, размер — модуля на диске."""
+    import os
+
+    import pandas as pd
+
+    module = _embedded_module(dataset_name)
+    info = module.DATASET_INFO
+    measured = {field: info.get(field) for field in MEASURED_FIELDS}
+    for edge in ('period_start', 'period_end'):
+        if measured[edge] is not None:
+            measured[edge] = pd.Timestamp(measured[edge]).isoformat()
+    measured['size_bytes'] = os.path.getsize(module.__file__)
+    return measured
 
 
 def get_dataset_registry() -> Dict[str, Dict[str, Any]]:
@@ -86,8 +95,10 @@ def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     if dataset_name not in AVAILABLE_DATASETS:
         available = list(AVAILABLE_DATASETS.keys())
         raise KeyError(f"Dataset '{dataset_name}' not found. Available datasets: {available}")
-    
-    return AVAILABLE_DATASETS[dataset_name].copy()
+
+    info = AVAILABLE_DATASETS[dataset_name].copy()
+    info.update(_measured(dataset_name))
+    return info
 
 
 def list_dataset_names() -> List[str]:
@@ -109,7 +120,8 @@ def get_datasets_summary() -> List[Dict[str, Any]]:
     """
     summary = []
     
-    for dataset_name, info in AVAILABLE_DATASETS.items():
+    for dataset_name in AVAILABLE_DATASETS:
+        info = get_dataset_info(dataset_name)
         summary.append({
             'name': dataset_name,
             'title': info['name'],
@@ -220,7 +232,8 @@ def print_datasets_info():
     print("BQuant Sample Datasets")
     print("=" * 50)
     
-    for dataset_name, info in AVAILABLE_DATASETS.items():
+    for dataset_name in AVAILABLE_DATASETS:
+        info = get_dataset_info(dataset_name)
         print(f"\n📊 {info['name']} ({dataset_name})")
         print(f"   Source: {info['source']}")
         print(f"   Symbol: {info['symbol']} | Timeframe: {info['timeframe']}")
@@ -230,7 +243,7 @@ def print_datasets_info():
         print(f"   Updated: {info['updated']}")
     
     print(f"\nTotal datasets: {len(AVAILABLE_DATASETS)}")
-    total_size_kb = sum(info['size_bytes'] for info in AVAILABLE_DATASETS.values()) / 1024
+    total_size_kb = sum(get_dataset_info(name)['size_bytes'] for name in AVAILABLE_DATASETS) / 1024
     print(f"Total size: {round(total_size_kb, 1)} KB")
 
 
