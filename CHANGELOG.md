@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [Unreleased]
+## [0.0.14] - 2026-09-06
+
+Этапы 3, 4 и 6 аудита качества — P2/P3 целиком (G64–G67, 22 находки) — и решения
+владельца по трём предложениям аудита, которые отклонены с причиной. Форма находок та же,
+что в двух предыдущих релизах: то, что было обещано словами, не проверялось ничем —
+слой, импортирующий наверх; четыре копии одного метода, разошедшиеся в ответе; ключ
+кэша, разный в каждом процессе; зона, принимающая три противоречащих числа; сканер
+поверхности, не видевший половину экспортов. Каждая находка воспроизведена замером до
+правки, каждый сторож проверен мутацией (36 мутаций, все красные); гейт — чистый клон,
+оба плеча (pandas 3.0.5 и 2.3.3): 3444 passed, 33 skipped, 0 failed; батарея 35 скриптов с
+кодом 0; контракт `[architecture]` в `codemap.toml` — держится.
+
+**Ломающие изменения одним списком:** фабрики `create_*_strategy`, `SWING_PRESETS`,
+`DEFAULT_SWING_PRESET`, `SwingPreset` — из `bquant.core.config` в
+`bquant.analysis.zones.strategies` (`.swing` для пресетов и `AdaptiveSwingStrategy`);
+`IndicatorSchema`, `MACD_SCHEMA`, `RSI_SCHEMA` — из `bquant.data.schemas` в
+`bquant.indicators`, `validate_with_schema(df, name_or_schema)`, `get_schema('macd')` →
+`None`; `plot_zigzag_verification(price_data, swing_context, *, …)` ничего не считает;
+внешние библиотеки индикаторов грузятся при первом обращении к фабрике, не при импорте
+(`list_indicators()` грузит их сам; `BQUANT_SKIP_*` читается при первой загрузке);
+`get_crossovers` у `PreloadedIndicator` — счётчики и индексы, без `lookback`; ошибки
+хелперов индикаторов — исключения, не `{}`/`False`; `available_methods` — имена без
+скобок; ключи `create_indicator_suite` и `IndicatorCalculator` — идентичность
+(`custom.sma_10`); `calculate_multiple` поднимает ошибку; другой класс под занятым именем
+стратегии — `ValueError`; ключи `@cached`/`cache_key()` изменились (старые дисковые записи
+не находятся); `ZoneInfo`/`SwingContext` с противоречивыми полями — `ValueError`;
+`get_dataset_registry()` без измеримых полей (они в `get_dataset_info()`), `size_bytes` —
+размер embedded-модуля; удалены `bquant.core.exceptions.NotImplementedError`,
+`ensure_logging_initialized`, `calculate_with_cache`, `_StubIndicator`;
+`get_zone_features_summary` — `by_type` и `ValueError` на пустом; `set_default_theme` —
+`ValueError` вместо `True`/`False`; `setup_project_logging` настраивает логирование
+пакета целиком; `scripts/analysis/test_hypotheses.py` → `run_hypothesis_tests.py`;
+`docs/migration/MIGRATION_v2.md` удалена ещё в 0.0.13.
 
 ### Fixed
 
@@ -91,6 +123,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   оставаясь зелёными поодиночке.
 * `docs/api/analysis/strategies.md`: таблица протоколов называла `calculate_shape` — метод
   протокола формы после G68 — `calculate`.
+
+### Известные ограничения
+
+* **G48** (исследование, открыто): порог свинг-стратегий от масштаба зоны измерен (покрытие
+  `find_peaks` и `pivot_points` до 84 % против 36–49 %) и не отгружен: покрытие не
+  качество; критерий приёмки из четырёх пунктов — `devref/gaps/swing/g48_…`.
+* Правило `no_cycles` в `codemap.toml` выключено: codemap 0.0.12 считает импорт под
+  `if TYPE_CHECKING:` eager-ребром (codemap#18); слои, запреты рёбер и `exhaustive` проверяются.
+* Решения владельца, записанные в реестре: `analysis.zones` не делится на «осцилляторы» и
+  «уровни цены» — зона остаётся открытой абстракцией; базовые зависимости в extras не
+  выносятся; история git с именами личных окружений не переписывается.
+* Custom-MACD и `OptimizedIndicators.macd` после прогрева расходятся до 3.5 пункта
+  (`adjust=True` против рекурсии) — записанное решение, не дефект прогрева.
+* Пять функций `bquant.data.validator` отдают словари разной формы (AQ-016, вторая часть).
+* Пайплайн умеет только out-of-sample проверку по частоте зон с разбиением 70/30.
+* Регрессия объясняющая, не предсказательная (`feature_availability: 'ex_post'`).
 
 ## [0.0.13] - 2026-09-06
 

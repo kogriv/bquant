@@ -193,7 +193,7 @@ css = [
 
 [[package]]
 name = "bquant"
-version = "0.0.13"
+version = "0.0.14"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
@@ -230,18 +230,12 @@ docs = [
 full = [
     { name = "black" },
     { name = "flake8" },
-    { name = "ipywidgets" },
     { name = "jupyter" },
-    { name = "kaleido" },
-    { name = "plotly" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
 notebooks = [
-    { name = "ipywidgets" },
     { name = "jupyter" },
-    { name = "kaleido" },
-    { name = "plotly" },
 ]
 research = [
     { name = "pycatch22" },
@@ -257,13 +251,9 @@ requires-dist = [
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=3.8" },
     { name = "flake8", marker = "extra == 'full'", specifier = ">=3.8" },
     { name = "ipywidgets", specifier = ">=8.1.7" },
-    { name = "ipywidgets", marker = "extra == 'full'", specifier = "==8.1.7" },
-    { name = "ipywidgets", marker = "extra == 'notebooks'", specifier = "==8.1.7" },
-    { name = "jupyter", marker = "extra == 'full'", specifier = "==1.1.1" },
-    { name = "jupyter", marker = "extra == 'notebooks'", specifier = "==1.1.1" },
+    { name = "jupyter", marker = "extra == 'full'", specifier = ">=1.1.1" },
+    { name = "jupyter", marker = "extra == 'notebooks'", specifier = ">=1.1.1" },
     { name = "kaleido", specifier = ">=1.0.0" },
-    { name = "kaleido", marker = "extra == 'full'", specifier = "==1.0.0" },
-    { name = "kaleido", marker = "extra == 'notebooks'", specifier = "==1.0.0" },
     { name = "matplotlib", specifier = ">=3.10.5" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=2.0.0" },
     { name = "nbformat", specifier = ">=4.2.0" },
@@ -271,8 +261,6 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.0" },
     { name = "pandas-ta", specifier = ">=0.4.67b0" },
     { name = "plotly", specifier = ">=6.3.0" },
-    { name = "plotly", marker = "extra == 'full'", specifier = "==6.3.0" },
-    { name = "plotly", marker = "extra == 'notebooks'", specifier = "==6.3.0" },
     { name = "psutil", specifier = ">=5.9.0" },
     { name = "pyarrow", specifier = ">=17.0.0" },
     { name = "pycatch22", marker = "extra == 'research'", specifier = ">=0.4.5" },
