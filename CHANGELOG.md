@@ -69,6 +69,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   дисковые записи не находятся); `ZoneInfo`/`SwingContext` с противоречивыми полями —
   `ValueError`; `get_dataset_registry()` без `rows`/`columns`/`period_*`/`size_bytes`
   (они в `get_dataset_info()`); `size_bytes` — размер embedded-модуля.
+* **G67 — гигиена.** Удалены `_StubIndicator`, `bquant.core.exceptions.NotImplementedError`
+  (перекрывал встроенное имя, никем не поднимался), `ensure_logging_initialized()`,
+  `calculate_with_cache()` (тело `calculate()`); `setup_project_logging()` — обёртка над
+  `setup_logging()`, как обещала документация, и импорт `bquant.core.utils` больше не вешает
+  обработчики. Сканер публичной поверхности читал только литерал `__all__ = [...]` и не
+  видел `__all__.extend(...)` — 12 имён шли мимо него, 9 не были упомянуты в доках ни разу;
+  теперь читается исполненный `__all__`, имена задокументированы. `set_default_theme('nope')`
+  возвращал `True` — теперь `ValueError`. `get_zone_features_summary()` считает сводку по
+  каждому типу зон, а не только `bull`/`bear`. Артефакты `zodoctest` под `MACDZoneAnalyzer`
+  переименованы в архив, три документа о сьюте 2025-10 удалены из `tests/`. Имена личных
+  окружений сняты из `pyproject.toml`, скриптов публикации и `devref/` (в истории git они
+  остаются). Ломает: удалённые имена; форма `get_zone_features_summary`; `set_default_theme`.
 * `examples/01_basic_indicators.py` падал с `NameError` и выходил с кодом 0 — верхний
   `except` печатал трейсбек и молчал; теперь каждый отказ поднимается, верхний — `sys.exit(1)`.
 

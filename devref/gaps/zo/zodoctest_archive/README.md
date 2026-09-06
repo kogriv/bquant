@@ -1,3 +1,14 @@
+# АРХИВ — не исполняется
+
+Скрипты ниже написаны в июле 2026 под `MACDZoneAnalyzer` и API, удалённый в 0.0.5. Они не
+входят в сьют, не запускаются и не чинятся; лежат как история методики валидации доков.
+Живая проверка доков — `tests/unit/test_docs_parity.py`, `test_docs_call_signatures.py`,
+`tests/integration/test_docs_examples_run.py`, `test_public_surface_is_documented.py`.
+Каталог переименован из `zodoctest` в G67 (2026-09-06), чтобы `test_*.py` здесь не читались
+как рабочая инфраструктура.
+
+---
+
 # Тесты валидации документации
 
 Эта папка содержит тестовые скрипты для валидации документации BQuant согласно плану в `zoval.md`.
@@ -22,7 +33,7 @@
 
 ```bash
 # Активировать виртуальное окружение
-venv_bquant_dell_win\Scripts\activate
+<venv>\Scripts\activate
 
 # Запустить конкретный тест
 python test_index_rst_validation.py

@@ -22,8 +22,7 @@ BQuantError
 ├── MLError
 │   ├── FeatureExtractionError
 │   └── ModelTrainingError
-├── FileOperationError
-└── NotImplementedError
+└── FileOperationError
 ```
 
 ```python
@@ -35,12 +34,10 @@ print(issubclass(DataValidationError, Exception))
 # True
 ```
 
-**`NotImplementedError` здесь перекрывает встроенное имя.** Это класс пакета, не
-`builtins.NotImplementedError`, и ни одна строка пакета его не поднимает. Импортировать
-его в модуль, где ловят обычный `NotImplementedError`, — верный способ получить
-`except`, который не сработает. Имя оставлено ради обратной совместимости; при импорте
-из этого модуля стоит переименовывать: `from bquant.core.exceptions import
-NotImplementedError as BQuantNotImplementedError`.
+Класса `NotImplementedError` в этом модуле больше нет (G67, 2026-09-06): он перекрывал
+встроенное имя, ни одна строка пакета его не поднимала, а импорт в модуль, где ловят
+обычный `NotImplementedError`, давал `except`, который не срабатывает. Заглушки анализаторов
+поднимают встроенный.
 
 ## Что несёт исключение
 

@@ -115,7 +115,7 @@ exclude = '''
     | buck-out
     | build
     | dist
-    | venv_bquant_dell
+    | venv_[a-z_]*
   )/
 )
 '''
@@ -124,7 +124,7 @@ exclude = '''
 source = ["bquant"]
 omit = [
     "*/tests/*",
-    "*/venv_bquant_dell/*",
+    "*/venv_*/*",
     "setup.py",
 ]
 

@@ -277,7 +277,7 @@ class TestScriptsIntegration:
         # Проверяем что файлы скриптов существуют
         expected_scripts = [
             "run_macd_analysis.py",
-            "test_hypotheses.py", 
+            "run_hypothesis_tests.py", 
             "batch_analysis.py"
         ]
         
@@ -301,7 +301,7 @@ class TestScriptsIntegration:
         # Тестируем каждый скрипт в dry-run режиме
         script_tests = [
             ("run_macd_analysis.py", ["XAUUSD", "1h", "--dry-run"]),
-            ("test_hypotheses.py", ["XAUUSD", "1h", "--dry-run"]),
+            ("run_hypothesis_tests.py", ["XAUUSD", "1h", "--dry-run"]),
             ("batch_analysis.py", ["--sample-data", "--dry-run"])
         ]
         

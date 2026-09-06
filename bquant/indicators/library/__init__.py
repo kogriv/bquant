@@ -24,10 +24,3 @@ __all__ = [
     "load_all_indicators",
 
 ]
-
-# Auto-load external libraries
-try:
-    # Will be implemented after migration
-    pass
-except Exception:
-    pass  # Ignore errors during auto-loading

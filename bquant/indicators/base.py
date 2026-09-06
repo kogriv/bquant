@@ -479,21 +479,6 @@ class CustomIndicator(BaseIndicator):
         """
         pass
     
-    def calculate_with_cache(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
-        """
-        Вычисление индикатора с поддержкой кэширования.
-        
-        Args:
-            data: DataFrame с данными
-            **kwargs: Дополнительные параметры
-        
-        Returns:
-            IndicatorResult с результатами
-        """
-        # Для CustomIndicator просто вызываем calculate, кэширование не реализовано
-        return self.calculate(data, **kwargs)
-
-
 class LibraryIndicator(BaseIndicator):
     """
     Базовый класс для индикаторов из внешних библиотек.
@@ -905,41 +890,6 @@ class IndicatorFactory:
                 indicators.append(name)
         
         return indicators
-
-
-class _StubIndicator(BaseIndicator):
-    """
-    Заглушка для неизвестных индикаторов.
-    """
-    
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, IndicatorConfig(
-            name=name,
-            parameters=kwargs,
-            source=IndicatorSource.CUSTOM,
-            columns=[f"{name}_value"],
-            description=f"Stub indicator: {name}"
-        ))
-        self.parameters = kwargs
-    
-    def calculate(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
-        """
-        Возвращает заглушку результата.
-        """
-        self.logger.warning(f"Using stub for indicator {self.name}")
-        
-        # Создаем DataFrame с NaN значениями
-        result_data = pd.DataFrame(
-            index=data.index,
-            data={f"{self.name}_value": np.nan}
-        )
-        
-        return IndicatorResult(
-            name=self.name,
-            data=result_data,
-            config=self.config,
-            metadata={'stub': True, 'parameters': self.parameters}
-        )
 
 
 # Экспорт основных классов

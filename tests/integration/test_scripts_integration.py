@@ -120,10 +120,10 @@ class TestScriptsExecution:
     @pytest.mark.integration
     def test_test_hypotheses_script(self):
         """
-        Тест интеграции скрипта test_hypotheses.py.
+        Тест интеграции скрипта run_hypothesis_tests.py.
         """
-        script_path = project_root / "scripts" / "analysis" / "test_hypotheses.py"
-        assert script_path.exists(), "test_hypotheses.py should exist"
+        script_path = project_root / "scripts" / "analysis" / "run_hypothesis_tests.py"
+        assert script_path.exists(), "run_hypothesis_tests.py should exist"
         
         # 1. Тест dry-run режима
         result = subprocess.run(
@@ -173,7 +173,7 @@ class TestScriptsExecution:
         
         specific_tests_success = result.returncode == 0
         
-        print(f"✅ test_hypotheses.py integration test completed!")
+        print(f"✅ run_hypothesis_tests.py integration test completed!")
         print(f"   • Dry-run: ✅")
         print(f"   • Sample data testing: {'✅' if hypothesis_success else '⚠️ (expected issues)'}")
         print(f"   • Specific tests: {'✅' if specific_tests_success else '⚠️ (expected issues)'}")
@@ -267,7 +267,7 @@ class TestScriptsIntegrationWithComponents:
         # Тестируем каждый скрипт с каждым доступным dataset
         scripts_to_test = [
             ("run_macd_analysis.py", ["--sample-data", "--dry-run"]),
-            ("test_hypotheses.py", ["--sample-data", "--dry-run"]),
+            ("run_hypothesis_tests.py", ["--sample-data", "--dry-run"]),
         ]
         
         for script_name, base_args in scripts_to_test:
@@ -318,7 +318,7 @@ class TestScriptsIntegrationWithComponents:
         # Тестируем производительность каждого скрипта
         performance_tests = [
             ("run_macd_analysis.py", ["tv_xauusd_1h", "1h", "--sample-data"], 60),
-            ("test_hypotheses.py", ["tv_xauusd_1h", "1h", "--sample-data"], 90),
+            ("run_hypothesis_tests.py", ["tv_xauusd_1h", "1h", "--sample-data"], 90),
             ("batch_analysis.py", ["--sample-data", "--dry-run"], 45)
         ]
         

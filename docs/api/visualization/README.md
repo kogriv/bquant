@@ -243,6 +243,44 @@ print(type(figure).__name__)
 `list_theme_info()` печатает перечень для человека, `reset_theme()` возвращает
 умолчание.
 
+### Короткие входы для зон
+
+Три функции-обёртки над `ZoneVisualizer` — для одного вызова без объекта:
+
+```python
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+from bquant.visualization import (
+    analyze_zones_visually, plot_macd_zones_chart, plot_zones_on_chart,
+)
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .with_cache(enable=False)
+    .analyze(clustering=False)
+    .build()
+)
+
+on_price = plot_zones_on_chart(result.data, result.zones)      # зоны на свечах
+on_macd = plot_macd_zones_chart(result.data, result.zones)     # зоны на панели MACD
+summary = analyze_zones_visually(result.zones)                  # сводные графики по зонам
+
+print(type(on_price).__name__, type(on_macd).__name__, type(summary).__name__)
+# Figure Figure Figure
+```
+
+`ZoneVisualizer` наследует `ZoneChartBuilder` — базовый класс, который выбирает бэкенд
+(`plotly`/`matplotlib`, с переключением на доступный) и держит палитру полярностей зон;
+своих графиков у него нет.
+
+`plot_zones_on_chart` = `ZoneVisualizer().plot_zones_on_price_chart(...)`,
+`plot_macd_zones_chart` = `.plot_macd_zones(...)`, `analyze_zones_visually` =
+`.plot_zones_analysis(...)`; параметры те же. До G67 (2026-09-06) эти три имени
+экспортировались, но ни одна страница их не называла — сканер публичной поверхности не
+видел `__all__.extend(...)`.
+
 ## Статистические графики
 
 ```python
@@ -257,6 +295,18 @@ distribution = plots.plot_distribution(data['close'], plot_type='histogram')
 
 print(type(correlation).__name__, type(distribution).__name__)
 # Figure Figure
+```
+
+`DistributionPlotter` — наследник `StatisticalPlots` с одним дополнительным методом,
+`plot_multiple_distributions(data, columns)`: несколько распределений на одной фигуре.
+
+```python
+from bquant.data.samples import get_sample_data
+from bquant.visualization import DistributionPlotter
+
+fig = DistributionPlotter().plot_multiple_distributions(get_sample_data('tv_xauusd_1h'), ['open', 'close'])
+print(type(fig).__name__)
+# Figure
 ```
 
 Есть и `create_*`-версии тех же графиков (`create_histogram`, `create_scatter_plot`,

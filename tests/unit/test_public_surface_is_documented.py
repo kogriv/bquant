@@ -44,6 +44,7 @@
 from __future__ import annotations
 
 import ast
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -97,12 +98,32 @@ def _dunder_all(init: Path) -> set[str]:
     return set()
 
 
+def _runtime_all(package: str) -> set[str] | None:
+    """``__all__`` импортированного пакета — то, что он предъявляет на самом деле."""
+    try:
+        module = importlib.import_module(package)
+    except Exception:  # pragma: no cover — пакет с тяжёлой зависимостью
+        return None
+    names = getattr(module, "__all__", None)
+    return set(names) if names is not None else None
+
+
 def _reexported() -> dict[str, set[str]]:
-    """{имя: {пакеты, которые его реэкспортируют}}."""
+    """{имя: {пакеты, которые его реэкспортируют}}.
+
+    Читается **исполненный** ``__all__``, а не литерал в файле: до G67 (2026-09-06)
+    сканер разбирал только ``__all__ = [...]`` через ``ast``, и двенадцать имён,
+    попавших в ``__all__`` через ``.extend([...])`` (``bquant.visualization``,
+    ``bquant.analysis.zones``), шли мимо проверки — шесть из них не были упомянуты в
+    доках ни разу. Литерал остаётся запасным путём для пакета, который не импортируется.
+    """
     out: dict[str, set[str]] = {}
     for init in sorted((PROJECT_ROOT / "bquant").glob("**/__init__.py")):
         package = init.parent.relative_to(PROJECT_ROOT).as_posix().replace("/", ".")
-        for name in _dunder_all(init):
+        names = _runtime_all(package)
+        if names is None:
+            names = _dunder_all(init)
+        for name in names:
             if not name.startswith("_"):
                 out.setdefault(name, set()).add(package)
     return out

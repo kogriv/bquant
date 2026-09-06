@@ -62,10 +62,10 @@ rm -rf .idea/ 2>/dev/null && print_status "✓ .idea/ удалена"
 
 # 8. Проверка виртуальных окружений
 print_warning "Проверяем виртуальные окружения..."
-if [ -d "venv_bquant_dell" ]; then
-    print_status "✓ venv_bquant_dell найдено (НЕ удаляем - это ваше активное окружение)"
+if ls -d venv_* >/dev/null 2>&1; then
+    print_status "✓ venv_* найдено (НЕ удаляем - это ваше активное окружение)"
 else
-    print_warning "venv_bquant_dell не найдено"
+    print_warning "venv_* не найдено"
 fi
 
 # 9. Удаление временных файлов проекта

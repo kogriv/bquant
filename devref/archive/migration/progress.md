@@ -20,8 +20,8 @@
 - **Новый проект BQuant:** `path\to\bquant_project` (репозиторий)
 
 ### Виртуальные окружения:
-- **Текущий проект:** `venv_quant_dell`  (в папке quant)
-- **Новый проект:** `venv_bquant_*` (в папке bquant_project) напрмер - `venv_bquant_dell` или `venv_bquant_of` или `venv_bquant_ch`
+- **Текущий проект:** `<venv>`  (в папке quant)
+- **Новый проект:** `venv_bquant_*` (в папке bquant_project) напрмер - `<venv>` или `venv_bquant_of` или `venv_bquant_ch`
 
 
 ---
@@ -48,10 +48,10 @@
 3. **Активировать нужное ВО:**
    ```bash
    # Для работы с текущим проектом Quanto:
-   venv_quant_dell\Scripts\activate
+   <venv>\Scripts\activate
    
    # Для работы с новым проектом BQuant:
-   venv_bquant_dell\Scripts\activate
+   <venv>\Scripts\activate
    ```
 
 4. **Проверить активацию:**
@@ -63,20 +63,20 @@
    ```
 
 **Контекст для каждого шага:**
-- **Шаги 1.0-1.3:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 2.1-2.3:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 3.1-3.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 4.1-4.3:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 5.1:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 6.1-6.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 7.1-7.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 8.1-8.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 9.1-9.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 10.1-10.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 11.1-11.3:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 12.1-12.2:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 13.1-13.4:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
-- **Шаги 14.1-14.3:** Работа в папке `bquant_project` с ВО `venv_bquant_dell`
+- **Шаги 1.0-1.3:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 2.1-2.3:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 3.1-3.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 4.1-4.3:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 5.1:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 6.1-6.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 7.1-7.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 8.1-8.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 9.1-9.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 10.1-10.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 11.1-11.3:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 12.1-12.2:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 13.1-13.4:** Работа в папке `bquant_project` с ВО `<venv>`
+- **Шаги 14.1-14.3:** Работа в папке `bquant_project` с ВО `<venv>`
 
 ---
 
@@ -84,12 +84,12 @@
 
 ### Шаг 1.0: Настройка виртуального окружения
 
-**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `venv_bquant_dell`
+**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `<venv>`
 
 **Цель:** Создать и настроить изолированное виртуальное окружение для проекта BQuant
 
 **Результат:** 
-- ✅ Создано виртуальное окружение `venv_bquant_dell`
+- ✅ Создано виртуальное окружение `<venv>`
 - ✅ Настроены все зависимости (pandas, numpy, matplotlib, seaborn, pandas-ta, statsmodels, scipy, scikit-learn, jupyter, plotly, pytest)
 - ✅ Создан `requirements.txt` с фиксированными версиями
 
@@ -102,21 +102,21 @@ Get-Location  # Windows
 # ✅ ВЫПОЛНЕНО: Работаем в правильной папке
 
 # Тест 1: Проверка создания виртуального окружения
-python -m venv venv_bquant_dell
-# Ожидается: успешное создание папки venv_bquant_dell
+python -m venv <venv>
+# Ожидается: успешное создание папки <venv>
 # ✅ ВЫПОЛНЕНО: Виртуальное окружение создано
 
 # Тест 2: Активация окружения
 # Windows:
-venv_bquant_dell\Scripts\activate
+<venv>\Scripts\activate
 # Linux/Mac:
-source venv_bquant_dell/bin/activate
-# ✅ ВЫПОЛНЕНО: Окружение активировано (префикс (venv_bquant_dell) виден)
+source <venv>/bin/activate
+# ✅ ВЫПОЛНЕНО: Окружение активировано (префикс (<venv>) виден)
 
 # Проверка активации:
 which python  # Linux/Mac
 where python  # Windows
-# Ожидается: путь указывает на venv_bquant_dell
+# Ожидается: путь указывает на <venv>
 # ✅ ВЫПОЛНЕНО: Python из виртуального окружения
 
 # Тест 3: Проверка версии Python
@@ -131,20 +131,20 @@ pip --version
 ```
 
 **Важные требования:**
-- **Строгое соблюдение:** Все работы с проектом BQuant должны выполняться ТОЛЬКО в активированном окружении `venv_bquant_dell` ✅ СОБЛЮДАЕТСЯ
+- **Строгое соблюдение:** Все работы с проектом BQuant должны выполняться ТОЛЬКО в активированном окружении `<venv>` ✅ СОБЛЮДАЕТСЯ
 - **Изоляция:** Проект не должен зависеть от глобальных пакетов Python ✅ СОБЛЮДАЕТСЯ
 - **Версионирование:** Все зависимости фиксируются в `requirements.txt` ✅ СОБЛЮДАЕТСЯ
 
 **📊 Сводка выполнения шага:**
 ✅ **ШАГ 1.0 ЗАВЕРШЕН УСПЕШНО**
-- Виртуальное окружение `venv_bquant_dell` создано и настроено
+- Виртуальное окружение `<venv>` создано и настроено
 - Все 80+ зависимостей установлены успешно
 - Все тесты пройдены
 - Готов к переходу к Шагу 1.1
 
 ### Шаг 1.1: Инициализация проекта BQuant
 
-**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `venv_bquant_dell`
+**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `<venv>`
 
 **Цель:** Создать базовую структуру проекта с современной конфигурацией
 
@@ -175,7 +175,7 @@ pip --version
 
 ### Шаг 1.2: Перенос конфигурации
 
-**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `venv_bquant_dell`
+**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `<venv>`
 
 **Цель:** Перенести и адаптировать конфигурационную систему
 
@@ -191,7 +191,7 @@ pip --version
 # ПРЕДВАРИТЕЛЬНО: Убедиться, что виртуальное окружение активировано
 echo $VIRTUAL_ENV  # Linux/Mac
 echo %VIRTUAL_ENV%  # Windows
-# Ожидается: путь к venv_bquant_dell
+# Ожидается: путь к <venv>
 ```
 
 ```python
@@ -216,7 +216,7 @@ def test_indicator_params():
 
 ### Шаг 1.3: Создание базовых модулей
 
-**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `venv_bquant_dell`
+**Контекст:** Работа в папке `path\to\pro\bquant_project` с ВО `<venv>`
 
 **Цель:** Создать базовые модули core
 
@@ -3161,8 +3161,8 @@ ls -la docs/api/
 **Тесты:**
 ```bash
 # ПРЕДВАРИТЕЛЬНО: Активировать виртуальное окружение
-venv_bquant_dell\Scripts\activate  # Windows
-# source venv_bquant_dell/bin/activate  # Linux/Mac
+<venv>\Scripts\activate  # Windows
+# source <venv>/bin/activate  # Linux/Mac
 
 # Полная проверка
 pytest tests/ -v --tb=short
@@ -3295,8 +3295,8 @@ def test_macd_calculation_performance():
 **Тесты:**
 ```bash
 # ПРЕДВАРИТЕЛЬНО: Активировать виртуальное окружение
-venv_bquant_dell\Scripts\activate  # Windows
-# source venv_bquant_dell/bin/activate  # Linux/Mac
+<venv>\Scripts\activate  # Windows
+# source <venv>/bin/activate  # Linux/Mac
 
 # Проверка наличия файлов ✅ ВЫПОЛНЕНО
 Get-ChildItem LICENSE, MANIFEST.in, CHANGELOG.md, .gitignore, pyproject.toml
@@ -3338,8 +3338,8 @@ python -m pip show bquant
 
 ```bash
 # ПРЕДВАРИТЕЛЬНО: Активировать виртуальное окружение
-venv_bquant_dell\Scripts\activate  # Windows
-# source venv_bquant_dell/bin/activate  # Linux/Mac
+<venv>\Scripts\activate  # Windows
+# source <venv>/bin/activate  # Linux/Mac
 ```
 
 **Детальные результаты:**
@@ -3353,7 +3353,7 @@ venv_bquant_dell\Scripts\activate  # Windows
 
 **⚙️ Среда для сборки:**
 - **Python**: 3.13.5 (MSC v.1943 64 bit)
-- **Виртуальное окружение**: venv_bquant_dell активировано
+- **Виртуальное окружение**: <venv> активировано
 - **Рабочая директория**: path\to\pro\bquant_project
 - **Все зависимости**: Установлены и готовы к использованию
 
@@ -3373,7 +3373,7 @@ twine --version
 
 # Проверка среды ✅ ВЫПОЛНЕНО
 echo $env:VIRTUAL_ENV
-# Результат: path\to\pro\bquant_project\venv_bquant_dell
+# Результат: path\to\pro\bquant_project\<venv>
 ```
 
 📊 **Сводка выполнения шага:**
@@ -3422,7 +3422,7 @@ echo $env:VIRTUAL_ENV
 
 **📊 Результат очистки:**
 - **Размер проекта**: 585.47 MB (после очистки)
-- **Виртуальное окружение**: venv_bquant_dell сохранено
+- **Виртуальное окружение**: <venv> сохранено
 - **Статус**: Все временные файлы удалены успешно
 
 **🔧 Скрипты очистки:**
@@ -3498,7 +3498,7 @@ Get-ChildItem -Name | Where-Object { $_ -match "(build|dist|htmlcov|\.pytest_cac
 **Тесты:**
 ```bash
 # ПРЕДВАРИТЕЛЬНО: Активировать виртуальное окружение ✅ ВЫПОЛНЕНО
-venv_bquant_dell\Scripts\activate  # Windows
+<venv>\Scripts\activate  # Windows
 # Результат: Виртуальное окружение активировано
 
 # Сборка пакета ✅ ВЫПОЛНЕНО
@@ -3713,8 +3713,8 @@ head -5 ~/.pypirc
 **Тесты:**
 ```bash
 # ПРЕДВАРИТЕЛЬНО: Активировать виртуальное окружение
-venv_bquant_dell\Scripts\activate  # Windows
-# source venv_bquant_dell/bin/activate  # Linux/Mac
+<venv>\Scripts\activate  # Windows
+# source <venv>/bin/activate  # Linux/Mac
 
 # Загрузка на Test PyPI
 twine upload --repository testpypi dist/*
@@ -3795,8 +3795,8 @@ curl -I https://pypi.org/
 **Тесты:**
 ```bash
 # ПРЕДВАРИТЕЛЬНО: Активировать виртуальное окружение
-venv_bquant_dell\Scripts\activate  # Windows
-# source venv_bquant_dell/bin/activate  # Linux/Mac
+<venv>\Scripts\activate  # Windows
+# source <venv>/bin/activate  # Linux/Mac
 
 # Загрузка на PyPI
 twine upload dist/*
@@ -3854,7 +3854,7 @@ bquant-analyze --help
 - **Расширяемость** - легко добавлять новые индикаторы
 - **Документированность** - полная документация API
 - **Совместимость** - работает с существующими данными
-- **Изоляция окружения** - строгая работа в `venv_bquant_dell`
+- **Изоляция окружения** - строгая работа в `<venv>`
 
 ---
 
@@ -3865,7 +3865,7 @@ bquant-analyze --help
 3. **Документация готова** - полная документация API
 4. **Примеры работают** - все ноутбуки и скрипты работают
 5. **Производительность приемлема** - все метрики в норме
-6. **Виртуальное окружение настроено** - `venv_bquant_dell` создано и работает корректно
+6. **Виртуальное окружение настроено** - `<venv>` создано и работает корректно
 7. **Пакет опубликован** - BQuant доступен на PyPI для установки
 
 **Готовность к релизу = Все критерии выполнены ✅**
@@ -3879,15 +3879,15 @@ bquant-analyze --help
 1. **Активация виртуального окружения:**
    ```bash
    # Windows:
-   venv_bquant_dell\Scripts\activate
+   <venv>\Scripts\activate
    
    # Linux/Mac:
-   source venv_bquant_dell/bin/activate
+   source <venv>/bin/activate
    ```
 
 2. **Проверка активации:**
    ```bash
-   # Должно показывать путь к venv_bquant_dell
+   # Должно показывать путь к <venv>
    echo $VIRTUAL_ENV  # Linux/Mac
    echo %VIRTUAL_ENV%  # Windows
    ```

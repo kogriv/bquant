@@ -31,7 +31,7 @@ from bquant.data.samples import list_dataset_names
 
 # Импортируем другие скрипты анализа
 from run_macd_analysis import MACDAnalysisScript
-from test_hypotheses import HypothesisTestingScript
+from run_hypothesis_tests import HypothesisTestingScript
 
 logger = get_logger(__name__)
 

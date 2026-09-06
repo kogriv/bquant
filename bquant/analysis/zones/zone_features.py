@@ -901,56 +901,45 @@ class ZoneFeaturesAnalyzer(BaseAnalyzer):
     
     def get_zone_features_summary(self, zones_features: List[Union[ZoneFeatures, Dict[str, Any]]]) -> Dict[str, Any]:
         """
-        Получение краткой сводки по характеристикам зон.
-        
-        Args:
-            zones_features: Список объектов ZoneFeatures или словарей
-        
-        Returns:
-            Словарь с краткой сводкой
-        """
-        try:
-            if not zones_features:
-                return {'error': 'No zones features provided'}
-            
-            # Конвертируем в DataFrame
-            features_dicts = []
-            for zone in zones_features:
-                if isinstance(zone, ZoneFeatures):
-                    features_dicts.append(zone.to_dict())
-                elif isinstance(zone, dict):
-                    features_dicts.append(zone)
-            
-            df_features = pd.DataFrame(features_dicts)
-            
-            bull_zones = df_features[df_features['zone_type'] == 'bull']
-            bear_zones = df_features[df_features['zone_type'] == 'bear']
-            
-            summary = {
-                'total_zones': len(df_features),
-                'bull_zones': len(bull_zones),
-                'bear_zones': len(bear_zones),
-                'avg_duration': float(df_features['duration'].mean()) if 'duration' in df_features.columns else None,
-                'avg_return': float(df_features['price_return'].mean()) if 'price_return' in df_features.columns else None,
-                'positive_returns': len(df_features[df_features['price_return'] > 0]) if 'price_return' in df_features.columns else None,
-                'negative_returns': len(df_features[df_features['price_return'] < 0]) if 'price_return' in df_features.columns else None
-            }
-            
-            if len(bull_zones) > 0:
-                summary['bull_avg_duration'] = float(bull_zones['duration'].mean()) if 'duration' in bull_zones.columns else None
-                summary['bull_avg_return'] = float(bull_zones['price_return'].mean()) if 'price_return' in bull_zones.columns else None
-            
-            if len(bear_zones) > 0:
-                summary['bear_avg_duration'] = float(bear_zones['duration'].mean()) if 'duration' in bear_zones.columns else None
-                summary['bear_avg_return'] = float(bear_zones['price_return'].mean()) if 'price_return' in bear_zones.columns else None
-            
-            return summary
-            
-        except Exception as e:
-            self.logger.error(f"Failed to get zone features summary: {e}")
-            return {'error': str(e)}
-    
+        Краткая сводка по признакам зон — по **каждому** типу зон, который встретился.
 
+        До G67 (2026-09-06) сводка знала только ``bull`` и ``bear`` (хардкод, вопреки
+        открытому словарю типов — G28) и на пустой вход отвечала ``{'error': …}``.
+
+        Returns:
+            ``total_zones``, ``avg_duration``, ``avg_return``, ``positive_returns``,
+            ``negative_returns`` и ``by_type`` — ``{тип: {'zones', 'avg_duration',
+            'avg_return'}}``. Значения, для которых нет колонки, — ``None``.
+
+        Raises:
+            ValueError: список пуст.
+        """
+        if not zones_features:
+            raise ValueError("get_zone_features_summary: no zone features to summarize")
+        rows = [z.to_dict() if isinstance(z, ZoneFeatures) else z for z in zones_features]
+        frame = pd.DataFrame(rows)
+        if 'zone_type' not in frame.columns:
+            raise ValueError("get_zone_features_summary: features carry no 'zone_type'")
+
+        def _mean(subset: pd.DataFrame, column: str) -> Optional[float]:
+            return float(subset[column].mean()) if column in subset.columns else None
+
+        has_return = 'price_return' in frame.columns
+        summary: Dict[str, Any] = {
+            'total_zones': int(len(frame)),
+            'avg_duration': _mean(frame, 'duration'),
+            'avg_return': _mean(frame, 'price_return'),
+            'positive_returns': int((frame['price_return'] > 0).sum()) if has_return else None,
+            'negative_returns': int((frame['price_return'] < 0).sum()) if has_return else None,
+            'by_type': {},
+        }
+        for zone_type, subset in frame.groupby('zone_type', sort=True):
+            summary['by_type'][str(zone_type)] = {
+                'zones': int(len(subset)),
+                'avg_duration': _mean(subset, 'duration'),
+                'avg_return': _mean(subset, 'price_return'),
+            }
+        return summary
 
 
 # Удобные функции для быстрого использования

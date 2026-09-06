@@ -381,16 +381,6 @@ class LoggingContext:
 
 
 # Инициализируем логгирование при импорте модуля
-_root_logger = None
-
-def ensure_logging_initialized():
-    """Убедиться что логгирование инициализировано"""
-    global _root_logger
-    if _root_logger is None:
-        _root_logger = setup_logging()
-    return _root_logger
-
-
 # Экспортируемые функции для быстрого доступа
 def debug(message: str, **context):
     """Быстрое debug сообщение"""

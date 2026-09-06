@@ -1277,7 +1277,7 @@ research/notebooks/ (20 файлов)      🟢  Все проверены и р
 # 1. Активировать виртуальное окружение
 source venv_bquant_of_win/Scripts/activate  # Windows
 # или
-source venv_bquant_dell_lin/bin/activate    # Linux
+source <venv>/bin/activate    # Linux
 
 # 2. Установить зависимости
 pip install -e .

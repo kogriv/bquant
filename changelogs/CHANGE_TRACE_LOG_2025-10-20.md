@@ -2788,7 +2788,7 @@ ImportError: Unable to find a usable engine; tried using: 'pyarrow', 'fastparque
 **Решение:**
 - Добавлен `pyarrow>=17.0.0` в `pyproject.toml` dependencies
 - Добавлен `pyarrow>=17.0.0` в `requirements.txt`
-- Пользователь установил: `pip install pyarrow>=17.0.0` в `venv_bquant_dell_win`
+- Пользователь установил: `pip install pyarrow>=17.0.0` в `<venv>`
 
 **2. ValueError: combined strategy ✅ РЕШЕНО**
 
@@ -2905,7 +2905,7 @@ WARNING - Test duration_stationarity failed: Insufficient data for ADF test
 - Modified: changelogs/CHANGE_TRACE_LOG_2025-10-20.md (this file)
 
 **Установленные зависимости:**
-- pyarrow>=17.0.0 (installed in venv_bquant_dell_win by user)
+- pyarrow>=17.0.0 (installed in <venv> by user)
 
 **Conclusion:**
 ✅ **Stage 2.3 полностью завершен и протестирован!**

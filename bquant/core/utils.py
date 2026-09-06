@@ -16,61 +16,31 @@ from .config import PROJECT_ROOT, LOGGING
 
 
 def setup_project_logging(
-    name: str = 'bquant', 
+    name: str = 'bquant',
     level: str = None,
     log_to_file: bool = None,
     log_file: Union[str, Path] = None
 ) -> logging.Logger:
     """
-    Настроить логгирование для проекта BQuant
-    
+    Настроить логгирование проекта и вернуть логгер ``name``.
+
+    Тонкая обёртка над :func:`bquant.core.logging_config.setup_logging` — той самой,
+    которую документация обещала с 2026-08: до G67 (2026-09-06) здесь жила вторая,
+    параллельная настройка со своими обработчиками, и модуль ставил её на импорте.
+
     Args:
         name: Имя логгера
         level: Уровень логгирования ('DEBUG', 'INFO', 'WARNING', 'ERROR')
         log_to_file: Логгировать в файл
         log_file: Путь к файлу логов
-    
-    Returns:
-        Настроенный logger
-    """
-    # Получаем настройки из конфигурации
-    level = level or LOGGING['level']
-    log_to_file = log_to_file if log_to_file is not None else LOGGING['file_logging']
-    log_file = log_file or LOGGING['log_file']
-    
-    # Создаем логгер
-    logger = logging.getLogger(name)
-    
-    # Если уже настроен, возвращаем
-    if logger.handlers:
-        return logger
-    
-    # Устанавливаем уровень
-    logger.setLevel(getattr(logging, level.upper()))
-    
-    # Создаем форматтер
-    formatter = logging.Formatter(LOGGING['format'])
-    
-    # Добавляем консольный обработчик
-    console_handler = logging.StreamHandler(sys.stderr)  # диагностика — не в поток данных
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-    
-    # Добавляем файловый обработчик если нужно
-    if log_to_file:
-        # Каталог создаётся обработчиком при первой записи, а не здесь: эта функция
-        # вызывается на импорте модуля (см. её вызов в конце файла), и создание
-        # каталога тут превращало отсутствие права записи в отказ импорта — G24.
-        from .logging_config import LazyDirRotatingFileHandler
 
-        file_handler = LazyDirRotatingFileHandler(
-            str(log_file), maxBytes=10 * 1024 * 1024, backupCount=5,
-            encoding='utf-8', delay=True,
-        )
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-    
-    return logger
+    Returns:
+        Логгер ``name`` под настройкой пакета
+    """
+    from .logging_config import setup_logging
+
+    setup_logging(level=level, log_to_file=log_to_file, log_file=log_file)
+    return logging.getLogger(name)
 
 
 def calculate_returns(
@@ -365,4 +335,6 @@ def deprecated(message: str):
 
 
 # Глобальный логгер для модуля
-logger = setup_project_logging('bquant.core.utils')
+from .logging_config import get_logger
+
+logger = get_logger('bquant.core.utils')

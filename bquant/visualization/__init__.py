@@ -297,13 +297,13 @@ def set_default_theme(theme_name: str) -> bool:
         logger.warning(f"Themes module not available, cannot set theme: {theme_name}")
         return False
     
-    try:
-        apply_theme(theme_name)
-        logger.info(f"Default theme set to: {theme_name}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to set theme {theme_name}: {e}")
-        return False
+    # Неизвестная тема — отказ по имени, а не True поверх ошибки в логе: до G67
+    # (2026-09-06) результат apply_theme() не читался, и set_default_theme('nope')
+    # возвращал True.
+    get_theme(theme_name)  # raises ValueError naming the available themes
+    apply_theme(theme_name)
+    logger.info(f"Default theme set to: {theme_name}")
+    return True
 
 
 # Информационные функции

@@ -20,13 +20,13 @@ python run_macd_analysis.py --symbol EURUSD --timeframe 15m --output results.jso
 - Анализ характеристик зон
 - Генерация отчета в JSON/HTML формате
 
-### `test_hypotheses.py`
+### `run_hypothesis_tests.py`
 Запускает статистическое тестирование гипотез для MACD зон.
 
 **Использование:**
 ```bash
-python test_hypotheses.py XAUUSD 1h
-python test_hypotheses.py --symbol EURUSD --timeframe 1h --tests duration,slope
+python run_hypothesis_tests.py XAUUSD 1h
+python run_hypothesis_tests.py --symbol EURUSD --timeframe 1h --tests duration,slope
 ```
 
 **Функциональность:**
@@ -70,7 +70,7 @@ python batch_analysis.py --config batch_config.yaml
 python run_macd_analysis.py tv_xauusd_1h --sample-data
 
 # Тестирование гипотез
-python test_hypotheses.py tv_xauusd_1h --sample-data
+python run_hypothesis_tests.py tv_xauusd_1h --sample-data
 ```
 
 ### Полный анализ с внешними данными
@@ -99,7 +99,7 @@ python run_macd_analysis.py XAUUSD 1h --output-format html --include-charts
 python run_macd_analysis.py tv_xauusd_1h --sample-data --dry-run
 
 # Тест всех статистических функций
-python test_hypotheses.py tv_xauusd_1h --sample-data --verbose
+python run_hypothesis_tests.py tv_xauusd_1h --sample-data --verbose
 ```
 
 ## 📖 Выходные форматы

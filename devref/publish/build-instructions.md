@@ -37,7 +37,7 @@ Get-ChildItem -Path . -Recurse -File -Name "*.pyc" | Remove-Item -Force
 ## 📦 Шаг 2: Установка инструментов сборки
 
 ```bash
-# В виртуальном окружении venv_kgrv_dell
+# В виртуальном окружении <venv>
 pip install build twine
 ```
 
@@ -130,7 +130,7 @@ kgrv info
 ```bash
 # Вернитесь в основное окружение
 deactivate
-venv_kgrv_dell\Scripts\activate
+<venv>\Scripts\activate
 
 # Загрузка на PyPI
 twine upload dist/*

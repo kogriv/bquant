@@ -4,7 +4,7 @@
 
 | Каталог | Содержимое |
 |---|---|
-| `analysis/` | `run_macd_analysis.py`, `test_hypotheses.py`, `batch_analysis.py` + `README.md` |
+| `analysis/` | `run_macd_analysis.py`, `run_hypothesis_tests.py` (до G67 — `test_hypotheses.py`: имя читалось как тест pytest), `batch_analysis.py` + `README.md` |
 | `data/` | `extract_samples.py`, `generate_samples.py`, `data_loader.py` |
 | `publishing/` | `cleanup.sh`, `cleanup.ps1` — чистка дерева перед публикацией, `README.md` |
 | `data_processing/`, `deployment/` | пусто; заведены под будущее |
@@ -14,7 +14,7 @@
 
 ```bash
 python scripts/analysis/run_macd_analysis.py XAUUSD 1h --sample-data --output-format json
-python scripts/analysis/test_hypotheses.py XAUUSD 1h --sample-data --all-tests --alpha 0.05
+python scripts/analysis/run_hypothesis_tests.py XAUUSD 1h --sample-data --all-tests --alpha 0.05
 python scripts/analysis/batch_analysis.py --all-datasets --include-macd --include-hypotheses
 ```
 

@@ -175,15 +175,6 @@ class FileOperationError(BQuantError):
     pass
 
 
-class NotImplementedError(BQuantError):
-    """
-    Ошибка незавершенной функциональности
-    
-    Возникает при обращении к функциональности, которая еще не реализована.
-    """
-    pass
-
-
 # Вспомогательные функции для создания исключений
 
 def create_data_validation_error(

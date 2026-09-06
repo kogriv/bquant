@@ -6,10 +6,10 @@ BQuant Statistical Hypothesis Testing Script
 Поддерживает различные типы тестов и форматы вывода результатов.
 
 Usage:
-    python test_hypotheses.py XAUUSD 1h
-    python test_hypotheses.py tv_xauusd_1h --sample-data
-    python test_hypotheses.py EURUSD 15m --tests duration,slope --output results.json
-    python test_hypotheses.py XAUUSD 1h --all-tests --verbose
+    python run_hypothesis_tests.py XAUUSD 1h
+    python run_hypothesis_tests.py tv_xauusd_1h --sample-data
+    python run_hypothesis_tests.py EURUSD 15m --tests duration,slope --output results.json
+    python run_hypothesis_tests.py XAUUSD 1h --all-tests --verbose
 """
 
 import sys
@@ -631,10 +631,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python test_hypotheses.py XAUUSD 1h
-  python test_hypotheses.py tv_xauusd_1h --sample-data
-  python test_hypotheses.py EURUSD 15m --tests duration,slope --output results.json
-  python test_hypotheses.py XAUUSD 1h --all-tests --verbose
+  python run_hypothesis_tests.py XAUUSD 1h
+  python run_hypothesis_tests.py tv_xauusd_1h --sample-data
+  python run_hypothesis_tests.py EURUSD 15m --tests duration,slope --output results.json
+  python run_hypothesis_tests.py XAUUSD 1h --all-tests --verbose
 
 Available Tests:
   duration    - Zone Duration Analysis

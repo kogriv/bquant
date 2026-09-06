@@ -206,6 +206,39 @@ print(markov['observed_transitions'])
 сплошном отрезке; при отсутствии объявленных полярностей возвращает `not_applicable` с
 причиной вместо константного ряда.
 
+### Функции-обёртки и модели переходов
+
+`create_zone_sequence_analysis(zones_features, min_sequence_length=3)` и
+`cluster_zone_shapes(zones_features, n_clusters=3)` — те же `analyze_zone_transitions()` и
+`cluster_zones()` анализатора последовательностей, но сразу словарём `results`:
+
+```python
+from bquant.analysis.zones import (
+    analyze_zones, cluster_zone_shapes, create_zone_sequence_analysis,
+)
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .with_cache(enable=False)
+    .analyze(clustering=False)
+    .build()
+)
+features = [zone.features for zone in result.zones]
+
+print(sorted(create_zone_sequence_analysis(features)))
+print(sorted(cluster_zone_shapes(features, n_clusters=3)))
+# ['markov_analysis', 'patterns', 'randomness_tests', 'sequence_summary', 'transition_details', 'transition_probabilities', 'zone_types']
+# ['cluster_labels', 'clustering_summary', 'clusters_analysis', 'feature_importance']
+```
+
+`TransitionAnalysis` (`transition_type`, `count`, `probability`, средние длительность и
+доходность до и после) и `ClusterAnalysis` (`cluster_id`, `size`, `centroid`,
+`characteristics`, `dominant_type`, `avg_duration`, `avg_return`) — dataclass-модели, в
+которых анализатор отдаёт переходы и кластеры.
+
 ## Вторая ветка: уровни цены
 
 В пакете **две разные вещи называются зоной**, и это не старая и новая версии одной, а

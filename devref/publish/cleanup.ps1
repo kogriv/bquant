@@ -114,10 +114,10 @@ try {
 
 # 7. Проверка виртуальных окружений
 Write-Warning "Проверяем виртуальные окружения..."
-if (Test-Path "venv_kgrv_dell") {
-    Write-Status "✓ venv_kgrv_dell найдено (НЕ удаляем - это ваше активное окружение)"
+if (Test-Path "venv_*") {
+    Write-Status "✓ venv_* найдено (НЕ удаляем - это ваше активное окружение)"
 } else {
-    Write-Warning "venv_kgrv_dell не найдено"
+    Write-Warning "venv_* не найдено"
 }
 
 # 8. Финальная проверка
