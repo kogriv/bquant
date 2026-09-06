@@ -35,6 +35,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   первой загрузке, не при импорте. Остаток AQ-039 (god-модули, две модели зон) открыт —
   решение владельца.
 
+* **G65 — один механизм был написан несколько раз, и копии разошлись.** Четыре разреза
+  индикатора (`get_statistics`, `is_trending_up/down`, `get_crossovers`) жили тремя копиями:
+  `get_crossovers` отдавал две формы ответа под одним именем, у custom-MACD его не было, хотя
+  `get_info()` его рекламировал (`AttributeError`), а ошибка расчёта превращалась в
+  `{}`/`False`. `calculate_moving_averages` считал EMA через фабрику только для первого
+  периода, остальные — `ewm()` на месте: расхождение с `ExponentialMovingAverage` на 38–174
+  барах сэмпла; `IndicatorCalculator` хранил результат по голому имени, и `sma(50)` затирал
+  `sma(10)`. Пресеты собирали `RSI_{period}`/`AO_{fast}_{slow}` строками. `StrategyRegistry`
+  повторял register/get/list пять раз без политики конфликтов. Теперь: хелперы определены
+  один раз на `BaseIndicator`, `available_methods()` — интроспекция; калькуляторы считают
+  только объектами индикаторов, ключи — идентичность (`custom.sma_10`, `macd_12_26_9`);
+  пресеты спрашивают колонку у индикатора; реестр — один `register(family, name)` над одной
+  корзиной на семейство, другой класс под занятым именем — `ValueError`. Ломает: форма
+  `get_crossovers` у `PreloadedIndicator` (счётчики и индексы, без `lookback`), ошибки
+  хелперов — исключения, ключи `create_indicator_suite`/`IndicatorCalculator`,
+  `calculate_multiple` поднимает ошибку, `available_methods` — имена без скобок.
+* `examples/01_basic_indicators.py` падал с `NameError` и выходил с кодом 0 — верхний
+  `except` печатал трейсбек и молчал; теперь каждый отказ поднимается, верхний — `sys.exit(1)`.
+
 ### Changed
 
 * Тринадцать тестовых файлов перестали писать `BQUANT_SKIP_PANDAS_TA=1` в окружение всего

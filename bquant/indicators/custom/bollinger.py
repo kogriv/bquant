@@ -160,13 +160,7 @@ class BollingerBands(CustomIndicator):
                 'column_types': 'numeric',
                 'required_columns': ['close']
             },
-            'available_methods': [
-                'calculate()',
-                'validate_data()',
-                'get_statistics()',
-                'is_trending_up()',
-                'is_trending_down()'
-            ],
+            'available_methods': cls.available_methods(),
             'interpretation': {
                 'upper_band': 'Upper volatility boundary',
                 'middle_band': 'Simple moving average (trend)',

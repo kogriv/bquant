@@ -24,8 +24,9 @@
 from bquant.indicators.base import BaseIndicator
 
 print(sorted(m for m in dir(BaseIndicator) if not m.startswith('_')))
-# ['calculate', 'get_default_columns', 'get_indicator_id', 'get_info', 'get_min_records',
-#  'get_output_columns', 'get_output_roles', 'get_required_columns', 'validate_data']
+# ['available_methods', 'calculate', 'get_crossovers', 'get_default_columns', 'get_indicator_id',
+#  'get_info', 'get_min_records', 'get_output_columns', 'get_output_roles', 'get_required_columns',
+#  'get_statistics', 'is_trending_down', 'is_trending_up', 'validate_data']
 ```
 
 | Метод | Отвечает на вопрос |
@@ -37,7 +38,10 @@ print(sorted(m for m in dir(BaseIndicator) if not m.startswith('_')))
 | `get_output_roles()` | **роль → имя колонки**; роли не меняются от параметров, имена меняются |
 | `get_min_records(**params)` | сколько баров нужно минимум — для параметров вызова (`period=100` → сто), не конструктора |
 | `get_indicator_id()` | идентичность: источник, имя, параметры |
-| `get_info()` | описание класса словарём (`name`, `type`, `description`, …) |
+| `get_info()` | описание класса словарём (`name`, `type`, `description`, …); `available_methods` в нём — интроспекция `available_methods()`, не литерал (G65) |
+| `get_statistics(data)` | описательная статистика каждой выходной колонки |
+| `is_trending_up(data, column=None, threshold=0.0)` / `is_trending_down(…)` | два последних значения колонки против друг друга **и** порога — см. [preloaded](preloaded.md) про ловушку порога |
+| `get_crossovers(data, column1=None, column2=None)` | пересечения двух первых выходных колонок: счётчики и индексы; меньше двух колонок — `ValueError` |
 | `get_default_columns()` | колонки по умолчанию |
 
 ## Свой индикатор

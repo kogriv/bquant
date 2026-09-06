@@ -36,6 +36,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 import builtins
 import io
 import os
@@ -268,9 +269,7 @@ def _expected_reason(rel: str, code: str):
 _REGISTRY_STATE = (
     ("bquant.analysis.zones.detection.registry", "ZoneDetectionRegistry",
      ("_strategies", "_metadata")),
-    ("bquant.analysis.zones.strategies.registry", "StrategyRegistry",
-     ("_swing_strategies", "_divergence_strategies", "_shape_strategies",
-      "_volume_strategies", "_volatility_strategies")),
+    ("bquant.analysis.zones.strategies.registry", "StrategyRegistry", ("_registry",)),
 )
 
 
@@ -290,13 +289,21 @@ def isolated_registries():
     for module_name, class_name, attributes in _REGISTRY_STATE:
         registry = getattr(importlib.import_module(module_name), class_name)
         for attribute in attributes:
-            saved.append((registry, attribute, dict(getattr(registry, attribute))))
+            saved.append((registry, attribute, copy.deepcopy(getattr(registry, attribute))))
     try:
         yield
     finally:
         for registry, attribute, snapshot in saved:
-            getattr(registry, attribute).clear()
-            getattr(registry, attribute).update(snapshot)
+            live = getattr(registry, attribute)
+            # Вложенные корзины (StrategyRegistry._registry — семейство → имена)
+            # возвращаются на месте: ссылки на них держат замыкания декораторов.
+            for key, value in snapshot.items():
+                if isinstance(value, dict) and isinstance(live.get(key), dict):
+                    live[key].clear(); live[key].update(value)
+                else:
+                    live[key] = value
+            for key in [k for k in live if k not in snapshot]:
+                del live[key]
 
 
 @pytest.mark.integration

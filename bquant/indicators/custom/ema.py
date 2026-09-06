@@ -130,11 +130,5 @@ class ExponentialMovingAverage(CustomIndicator):
                 'column_types': 'numeric',
                 'required_columns': ['close']
             },
-            'available_methods': [
-                'calculate()',
-                'validate_data()',
-                'get_statistics()',
-                'is_trending_up()',
-                'is_trending_down()'
-            ]
+            'available_methods': cls.available_methods()
         }

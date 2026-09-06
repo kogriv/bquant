@@ -10,7 +10,6 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 from datetime import datetime
 
 from .base import IndicatorFactory, IndicatorResult, BaseIndicator, IndicatorConfig, IndicatorSource
-from .custom import register_builtin_indicators
 from .library import LibraryManager
 from ..core.exceptions import IndicatorCalculationError
 from ..core.logging_config import get_logger
@@ -21,144 +20,110 @@ logger = get_logger(__name__)
 class IndicatorCalculator:
     """
     High-level calculator for technical indicators.
-    
-    Provides convenient methods for calculating multiple indicators and managing results.
+
+    Results are stored by the indicator's **identity** (``IndicatorId.key``, e.g.
+    ``custom.sma_10``), not by bare name: until G65 (2026-09-06) ``calculate('sma',
+    period=50)`` silently replaced the result of ``calculate('sma', period=10)``.
     """
-    
+
     def __init__(self, data: pd.DataFrame, auto_load_libraries: bool = True):
         """
         Initialize calculator with price data.
-        
+
         Args:
             data: DataFrame with OHLCV price data
-            auto_load_libraries: Whether to automatically load external libraries
+            auto_load_libraries: load external indicator libraries now (they are
+                loaded lazily on first use anyway — G64)
         """
         self.data = data.copy()
-        self.results = {}
+        self.results: Dict[str, IndicatorResult] = {}
+        self._names: Dict[str, str] = {}
         self.logger = get_logger(f"{__name__}.IndicatorCalculator")
-        
-        # Автоматическая загрузка библиотек
+
         if auto_load_libraries:
-            self._load_all_indicators()
-    
-    def _load_all_indicators(self):
-        """Load all available indicators."""
-        try:
-            # Загружаем встроенные индикаторы
-            builtin_count = register_builtin_indicators()
-            self.logger.info(f"Loaded {builtin_count} builtin indicators")
-            
-            # Загружаем внешние библиотеки
-            library_results = LibraryManager.load_all_libraries()
-            total_library = sum(library_results.values())
-            self.logger.info(f"Loaded {total_library} external indicators")
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to load some indicators: {e}")
-    
+            LibraryManager.ensure_loaded()
+
     def calculate(self, indicator_name: str, **kwargs) -> IndicatorResult:
         """
-        Calculate single indicator.
-        
+        Calculate a CUSTOM indicator and keep the result under its identity key.
+
         Args:
             indicator_name: Name of the indicator
             **kwargs: Indicator parameters
-        
+
         Returns:
             IndicatorResult with calculation results
         """
         try:
-            self.logger.info(f"Calculating indicator: {indicator_name}")
-            
-            # Создаем индикатор через фабрику
             indicator = IndicatorFactory.create('custom', indicator_name, **kwargs)
-            
-            # Вычисляем результат
-            result = indicator.calculate_with_cache(self.data, **kwargs)
-            
-            # Сохраняем результат
-            self.results[indicator_name] = result
-            
-            self.logger.info(f"Successfully calculated {indicator_name}")
-            return result
-            
+            result = indicator.calculate(self.data)
         except Exception as e:
             self.logger.error(f"Failed to calculate {indicator_name}: {e}")
             raise IndicatorCalculationError(
                 f"Calculation failed for {indicator_name}: {e}",
                 {'indicator': indicator_name, 'parameters': kwargs}
             )
-    
+        key = indicator.get_indicator_id().key
+        self.results[key] = result
+        self._names[key] = indicator_name.lower()
+        self.logger.debug(f"Calculated {key}")
+        return result
+
     def calculate_multiple(self, indicators: Dict[str, Dict[str, Any]]) -> Dict[str, IndicatorResult]:
         """
-        Calculate multiple indicators.
-        
-        Args:
-            indicators: Dictionary {indicator_name: parameters}
-        
-        Returns:
-            Dictionary of results {indicator_name: IndicatorResult}
+        Calculate several indicators: ``{name: params}`` → ``{name: IndicatorResult}``.
+        A failure is raised, not skipped: a missing entry in the answer used to be
+        indistinguishable from an indicator that was never asked for.
         """
-        results = {}
-        
-        for name, params in indicators.items():
-            try:
-                result = self.calculate(name, **params)
-                results[name] = result
-            except Exception as e:
-                self.logger.error(f"Failed to calculate {name}: {e}")
-                # Продолжаем вычисления остальных индикаторов
-                continue
-        
-        return results
-    
+        return {name: self.calculate(name, **params) for name, params in indicators.items()}
+
+    def _resolve_key(self, name_or_key: str) -> Optional[str]:
+        if name_or_key in self.results:
+            return name_or_key
+        matches = [key for key, name in self._names.items() if name == name_or_key.lower()]
+        if len(matches) > 1:
+            raise KeyError(
+                f"'{name_or_key}' names {len(matches)} results: {matches}; ask by identity key"
+            )
+        return matches[0] if matches else None
+
     def get_result(self, indicator_name: str) -> Optional[IndicatorResult]:
         """
-        Get cached result for indicator.
-        
-        Args:
-            indicator_name: Name of the indicator
-        
-        Returns:
-            IndicatorResult or None if not calculated
+        Get a stored result by identity key (``custom.sma_10``) or by name when the
+        name maps to exactly one stored result.
+
+        Raises:
+            KeyError: the bare name is ambiguous (several parameterizations stored).
         """
-        return self.results.get(indicator_name)
-    
+        key = self._resolve_key(indicator_name)
+        return self.results.get(key) if key else None
+
     def get_all_results(self) -> Dict[str, IndicatorResult]:
-        """Get all cached results."""
+        """All stored results by identity key."""
         return self.results.copy()
-    
+
     def combine_results(self, indicator_names: Optional[List[str]] = None) -> pd.DataFrame:
         """
-        Combine multiple indicator results into single DataFrame.
-        
+        Combine stored indicator results with the price data into one DataFrame.
+
         Args:
-            indicator_names: List of indicators to include (None for all)
-        
-        Returns:
-            Combined DataFrame with all indicator data
+            indicator_names: keys or names to include (None for all)
         """
-        if indicator_names is None:
-            indicator_names = list(self.results.keys())
-        
+        keys = list(self.results) if indicator_names is None else [
+            k for k in (self._resolve_key(n) for n in indicator_names) if k
+        ]
         combined_data = self.data.copy()
-        
-        for name in indicator_names:
-            if name in self.results:
-                result = self.results[name]
-                # Добавляем колонки с префиксом если необходимо
-                for col in result.data.columns:
-                    if col not in combined_data.columns:
-                        combined_data[col] = result.data[col]
-                    else:
-                        combined_data[f"{name}_{col}"] = result.data[col]
-        
+        for key in keys:
+            result = self.results[key]
+            for col in result.data.columns:
+                target = col if col not in combined_data.columns else f"{key}_{col}"
+                combined_data[target] = result.data[col]
         return combined_data
-    
+
     def clear_cache(self):
-        """Clear all cached results."""
+        """Forget stored results."""
         self.results.clear()
-        self.logger.info("Cleared all cached results")
+        self._names.clear()
 
 
 def calculate_indicator(data: pd.DataFrame, indicator_name: str, **kwargs) -> IndicatorResult:
@@ -227,133 +192,58 @@ def calculate_bollinger_bands(data: pd.DataFrame, period: int = 20, std_dev: flo
 
 def calculate_moving_averages(data: pd.DataFrame, periods: List[int] = None) -> pd.DataFrame:
     """
-    Calculate multiple moving averages.
-    
-    Args:
-        data: DataFrame with price data
-        periods: List of periods for moving averages
-    
+    SMA and EMA for every period — each through its indicator object.
+
+    Until G65 (2026-09-06) only the first period went through the factory; the rest
+    were ``rolling().mean()`` / ``ewm(span).mean()`` written here again, which skipped
+    the EMA warm-up contract and differed from ``ExponentialMovingAverage`` on 38–174
+    bars of the sample depending on the period.
+
     Returns:
-        DataFrame with moving averages
+        DataFrame with columns ``sma_<p>`` and ``ema_<p>`` for every period.
     """
     if periods is None:
         periods = [10, 20, 50, 200]
-    
-    calculator = IndicatorCalculator(data, auto_load_libraries=False)
-    
-    # Вычисляем SMA для каждого периода
-    sma_indicators = {'sma': {'period': periods[0]}}  # Используем первый период для базового SMA
-    
-    # Вычисляем EMA для каждого периода  
-    ema_indicators = {'ema': {'period': periods[0]}}  # Используем первый период для базового EMA
-    
-    # Объединяем все индикаторы
-    all_indicators = {**sma_indicators, **ema_indicators}
-    
-    results = calculator.calculate_multiple(all_indicators)
-    
-    # Объединяем результаты
+
     combined_data = pd.DataFrame(index=data.index)
-    for name, result in results.items():
-        for col in result.data.columns:
-            combined_data[col] = result.data[col]
-    
-    # Добавляем дополнительные периоды как колонки
     for period in periods:
-        # Для SMA
-        if 'sma' in results:
-            combined_data[f'sma_{period}'] = data['close'].rolling(window=period).mean()
-        
-        # Для EMA
-        if 'ema' in results:
-            combined_data[f'ema_{period}'] = data['close'].ewm(span=period).mean()
-    
+        for name in ('sma', 'ema'):
+            result = IndicatorFactory.create('custom', name, period=period).calculate(data)
+            for col in result.data.columns:
+                combined_data[col] = result.data[col]
     return combined_data
+
+
+#: The standard suite: (indicator, parameters). Keys of the answer are identity slugs.
+STANDARD_SUITE = (
+    ('sma', {'period': 20}),
+    ('sma', {'period': 50}),
+    ('ema', {'period': 12}),
+    ('ema', {'period': 26}),
+    ('rsi', {'period': 14}),
+    ('macd', {'fast_period': 12, 'slow_period': 26, 'signal_period': 9}),
+    ('bbands', {'period': 20, 'std_dev': 2.0}),
+)
 
 
 def create_indicator_suite(data: pd.DataFrame) -> Dict[str, IndicatorResult]:
     """
-    Calculate standard suite of technical indicators.
-    
-    Args:
-        data: DataFrame with price data
-    
-    Returns:
-        Dictionary with all calculated indicators
+    Calculate the standard suite (:data:`STANDARD_SUITE`) — every entry through its
+    indicator object, keyed by identity slug (``sma_20``, ``macd_12_26_9``, …).
     """
-    calculator = IndicatorCalculator(data)
-    
-    # Определяем базовые индикаторы (которые можно создать)
-    base_indicators = {
-        'sma': {'period': 20},  # Базовый SMA
-        'ema': {'period': 12},  # Базовый EMA
-        'rsi': {'period': 14},  # RSI
-        'macd': {'fast_period': 12, 'slow_period': 26, 'signal_period': 9},  # MACD
-        'bbands': {'period': 20, 'std_dev': 2.0},  # Bollinger Bands
-    }
-    
-    # Вычисляем базовые индикаторы
-    results = calculator.calculate_multiple(base_indicators)
-    
-    # Добавляем дополнительные периоды как отдельные результаты
-    additional_results = {}
-    
-    # SMA с разными периодами
-    if 'sma' in results:
-        sma_base = results['sma']
-        for period in [20, 50]:
-            sma_data = data['close'].rolling(window=period).mean()
-            sma_result = IndicatorResult(
-                name=f'sma_{period}',
-                data=pd.DataFrame({f'sma_{period}': sma_data}),
-                config=IndicatorConfig(
-                    name=f'sma_{period}',
-                    parameters={'period': period},
-                    source=IndicatorSource.CUSTOM,
-                    columns=[f'sma_{period}'],
-                    description=f'SMA ({period})'
-                ),
-                metadata={'period': period, 'calculation_method': 'rolling_mean'}
-            )
-            additional_results[f'sma_{period}'] = sma_result
-    
-    # EMA с разными периодами
-    if 'ema' in results:
-        ema_base = results['ema']
-        for period in [26]:
-            ema_data = data['close'].ewm(span=period).mean()
-            ema_result = IndicatorResult(
-                name=f'ema_{period}',
-                data=pd.DataFrame({f'ema_{period}': ema_data}),
-                config=IndicatorConfig(
-                    name=f'ema_{period}',
-                    parameters={'period': period},
-                    source=IndicatorSource.CUSTOM,
-                    columns=[f'ema_{period}'],
-                    description=f'EMA ({period})'
-                ),
-                metadata={'period': period, 'calculation_method': 'ewm_mean'}
-            )
-            additional_results[f'ema_{period}'] = ema_result
-    
-    # Объединяем все результаты
-    all_results = {**results, **additional_results}
-    
-    logger.info(f"Calculated {len(all_results)} indicators in standard suite")
-    return all_results
+    results: Dict[str, IndicatorResult] = {}
+    for name, params in STANDARD_SUITE:
+        indicator = IndicatorFactory.create('custom', name, **params)
+        results[indicator.get_indicator_id().slug] = indicator.calculate(data)
+    logger.info(f"Calculated {len(results)} indicators in standard suite")
+    return results
 
 
 def get_available_indicators() -> Dict[str, str]:
     """
-    Get list of all available indicators.
-    
-    Returns:
-        Dictionary {indicator_name: source}
+    Registered indicators ``{name: source}``. Built-ins are registered when
+    ``bquant.indicators`` is imported; external libraries load on this first ask (G64).
     """
-    # Загружаем все индикаторы
-    register_builtin_indicators()
-    LibraryManager.load_all_libraries()
-    
     return IndicatorFactory.list_indicators()
 
 
@@ -451,6 +341,7 @@ __all__ = [
     'calculate_bollinger_bands',
     'calculate_moving_averages',
     'create_indicator_suite',
+    'STANDARD_SUITE',
     'get_available_indicators',
     'validate_indicator_data'
 ]

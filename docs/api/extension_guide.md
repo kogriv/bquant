@@ -258,7 +258,10 @@ print(features.metadata['swing_metrics']['num_swings'], features.metadata['swing
 
 Тот же путь: класс с методами из таблицы, декоратор
 `@StrategyRegistry.register_shape_strategy(name)` / `register_divergence_strategy` /
-`register_volatility_strategy` / `register_volume_strategy`, dataclass метрик с
+`register_volatility_strategy` / `register_volume_strategy` — все пять это одно
+`StrategyRegistry.register(family, name)` над одним словарём корзин (`FAMILIES`), с одной
+политикой конфликтов: тот же класс под тем же именем — ничего не происходит, другой класс
+под занятым именем — `ValueError` (до G65 замена была молчаливой). Dataclass метрик с
 `validate()`. `indicator_col` приходит из контекста зоны — сохраняйте его в
 `strategy_params`, это трассируемость.
 

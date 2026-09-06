@@ -210,14 +210,7 @@ class MACD(CustomIndicator):
                 'column_types': 'numeric',
                 'required_columns': ['close']
             },
-            'available_methods': [
-                'calculate()',
-                'validate_data()',
-                'get_statistics()',
-                'is_trending_up()',
-                'is_trending_down()',
-                'get_crossovers()'
-            ],
+            'available_methods': cls.available_methods(),
             'interpretation': {
                 'macd_line': 'Difference between fast and slow EMA',
                 'signal_line': 'EMA of MACD line',

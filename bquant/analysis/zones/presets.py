@@ -33,6 +33,38 @@ from .pipeline import analyze_zones
 from .models import ZoneAnalysisResult
 
 
+def _declared_column(source: str, indicator: str, **params) -> str:
+    """Имя выходной колонки — у самого индикатора, а не из шаблона (G65).
+
+    До 2026-09-06 пресеты собирали ``RSI_{period}`` и ``AO_{fast}_{slow}`` строками:
+    второе место, которое знало соглашение pandas-ta об именах, рядом со схемой колонок.
+    """
+    from bquant.indicators import IndicatorFactory
+
+    columns = IndicatorFactory.create(source, indicator, **params).get_output_columns()
+    if len(columns) != 1:
+        raise ValueError(
+            f"{source}.{indicator} declares {len(columns)} output columns {columns}; "
+            f"the preset needs exactly one to detect zones on"
+        )
+    return columns[0]
+
+
+def _finish(builder, *, clustering: bool, n_clusters: int, regression: bool,
+            validation: bool, min_duration: int, enable_cache: bool, cache_ttl: int) -> ZoneAnalysisResult:
+    """Общий хвост четырёх пресетов: анализ, кэш, сборка."""
+    return (
+        builder
+        .analyze(clustering=clustering,
+                 n_clusters=n_clusters,
+                 regression=regression,
+                 validation=validation,
+                 min_duration=min_duration)
+        .with_cache(enable=enable_cache, ttl=cache_ttl)
+        .build()
+    )
+
+
 def analyze_macd_zones(df: pd.DataFrame,
                        fast: int = 12,
                        slow: int = 26,
@@ -120,15 +152,11 @@ def analyze_macd_zones(df: pd.DataFrame,
                      indicator_role=indicator_role,
                      zone_types=zone_types,
                      smooth_window=smooth_window)
-        .analyze(clustering=clustering,
-                n_clusters=n_clusters,
-                regression=regression,
-                validation=validation,
-                min_duration=min_duration)
-        .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
-    
-    return builder.build()
+
+    return _finish(builder, clustering=clustering, n_clusters=n_clusters, regression=regression,
+                   validation=validation, min_duration=min_duration,
+                   enable_cache=enable_cache, cache_ttl=cache_ttl)
 
 
 def analyze_rsi_zones(df: pd.DataFrame,
@@ -187,19 +215,15 @@ def analyze_rsi_zones(df: pd.DataFrame,
         analyze_zones(df)
         .with_indicator('pandas_ta', 'rsi', length=period)
         .detect_zones('threshold',
-                     indicator_col='RSI_14' if period == 14 else f'RSI_{period}',
+                     indicator_col=_declared_column('pandas_ta', 'rsi', length=period),
                      upper_threshold=upper_threshold,
                      lower_threshold=lower_threshold,
                      zone_types=zone_types)
-        .analyze(clustering=clustering,
-                n_clusters=n_clusters,
-                regression=regression,
-                validation=validation,
-                min_duration=min_duration)
-        .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
-    
-    return builder.build()
+
+    return _finish(builder, clustering=clustering, n_clusters=n_clusters, regression=regression,
+                   validation=validation, min_duration=min_duration,
+                   enable_cache=enable_cache, cache_ttl=cache_ttl)
 
 
 def analyze_ao_zones(df: pd.DataFrame,
@@ -249,9 +273,8 @@ def analyze_ao_zones(df: pd.DataFrame,
         # Кастомные периоды
         result = analyze_ao_zones(df, fast=7, slow=21, min_duration=3)
     """
-    # Note: pandas_ta AO naming convention is AO_{fast}_{slow}
-    ao_col = f'AO_{fast}_{slow}'
-    
+    ao_col = _declared_column('pandas_ta', 'ao', fast=fast, slow=slow)
+
     builder = (
         analyze_zones(df)
         .with_indicator('pandas_ta', 'ao', fast=fast, slow=slow)
@@ -259,15 +282,11 @@ def analyze_ao_zones(df: pd.DataFrame,
                      indicator_col=ao_col,
                      zone_types=zone_types,
                      smooth_window=smooth_window)
-        .analyze(clustering=clustering,
-                n_clusters=n_clusters,
-                regression=regression,
-                validation=validation,
-                min_duration=min_duration)
-        .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
-    
-    return builder.build()
+
+    return _finish(builder, clustering=clustering, n_clusters=n_clusters, regression=regression,
+                   validation=validation, min_duration=min_duration,
+                   enable_cache=enable_cache, cache_ttl=cache_ttl)
 
 
 def analyze_preloaded_zones(df: pd.DataFrame,
@@ -320,15 +339,11 @@ def analyze_preloaded_zones(df: pd.DataFrame,
     builder = (
         analyze_zones(df)
         .detect_zones('preloaded', zones_data=zones_data)
-        .analyze(clustering=clustering,
-                n_clusters=n_clusters,
-                regression=regression,
-                validation=validation,
-                min_duration=min_duration)
-        .with_cache(enable=enable_cache, ttl=cache_ttl)
     )
-    
-    return builder.build()
+
+    return _finish(builder, clustering=clustering, n_clusters=n_clusters, regression=regression,
+                   validation=validation, min_duration=min_duration,
+                   enable_cache=enable_cache, cache_ttl=cache_ttl)
 
 
 # Export all preset functions

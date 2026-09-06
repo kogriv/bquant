@@ -244,7 +244,8 @@ class TestIndicatorPerformance:
         assert len(results) > 0
         
         # Проверяем основные индикаторы
-        expected_indicators = ['sma_20', 'sma_50', 'ema', 'ema_26', 'rsi', 'macd', 'bbands']
+        # Ключи — слаги идентичности (G65): имя с параметрами, не голое имя
+        expected_indicators = ['sma_20', 'sma_50', 'ema_12', 'ema_26', 'rsi_14', 'macd_12_26_9', 'bbands_20_2']
         for indicator in expected_indicators:
             assert indicator in results, f"Missing indicator: {indicator}"
         

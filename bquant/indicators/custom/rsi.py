@@ -139,13 +139,7 @@ class RelativeStrengthIndex(CustomIndicator):
                 'column_types': 'numeric',
                 'required_columns': ['close']
             },
-            'available_methods': [
-                'calculate()',
-                'validate_data()',
-                'get_statistics()',
-                'is_trending_up()',
-                'is_trending_down()'
-            ],
+            'available_methods': cls.available_methods(),
             'interpretation': {
                 'overbought': 'RSI > 70 indicates overbought conditions',
                 'oversold': 'RSI < 30 indicates oversold conditions',

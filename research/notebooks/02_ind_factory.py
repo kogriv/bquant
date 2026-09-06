@@ -199,14 +199,18 @@ if hasattr(macd_preloaded, 'is_trending_up'):
 
 if hasattr(macd_custom, 'is_trending_up'):
     nb.info("CUSTOM trend analysis:")
-    trending_up = macd_custom.is_trending_up(df_sample_tv, column='macd')
-    trending_down = macd_custom.is_trending_down(df_sample_tv, column='macd')
+    # Колонка — по роли: имя несёт параметры (macd_12_26_9__line), и литерал 'macd'
+    # с G65 отвергается, а не превращается в False с ошибкой в логе
+    macd_line = macd_custom.get_output_roles()['line']
+    trending_up = macd_custom.is_trending_up(df_sample_tv, column=macd_line)
+    trending_down = macd_custom.is_trending_down(df_sample_tv, column=macd_line)
     nb.log(f"Trending up: {trending_up}, Trending down: {trending_down}")
 
 if library_available and hasattr(macd_library, 'is_trending_up'):
     nb.info("LIBRARY trend analysis:")
-    trending_up = macd_library.is_trending_up(df_sample_tv, column='macd')
-    trending_down = macd_library.is_trending_down(df_sample_tv, column='macd')
+    # Библиотечный индикатор ролей не объявляет — первая выходная колонка (column=None)
+    trending_up = macd_library.is_trending_up(df_sample_tv)
+    trending_down = macd_library.is_trending_down(df_sample_tv)
     nb.log(f"Trending up: {trending_up}, Trending down: {trending_down}")
 
 nb.wait()

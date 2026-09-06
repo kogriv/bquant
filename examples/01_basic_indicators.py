@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 # Добавляем путь к BQuant для импорта
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from bquant.indicators import LibraryManager
+from bquant.indicators import IndicatorFactory, LibraryManager
 # Функции-обёртки живут в подмодуле `calculators` и намеренно не поднимаются в
 # `__all__` пакета: наверху — классы и фабрика. Пример импортировал их из
 # `bquant.indicators` и не запускался вовсе.
@@ -130,14 +130,14 @@ def demonstrate_basic_indicators():
         ma_data = calculate_moving_averages(data, periods=[10, 20, 50])
         print(f"   ✅ Рассчитаны SMA: {[col for col in ma_data.columns if col.startswith('sma')]}")
         
-        # Выводим последние значения
-        latest_values = ma_data[['close', 'sma_10', 'sma_20', 'sma_50']].iloc[-1]
+        # Выводим последние значения (цена — из исходного кадра: калькулятор отдаёт только средние)
+        latest_values = ma_data[['sma_10', 'sma_20', 'sma_50']].join(data[['close']]).iloc[-1]
         print(f"   Последние значения:")
         for col, val in latest_values.items():
             print(f"     {col}: ${val:.2f}")
             
     except Exception as e:
-        print(f"   ❌ Ошибка расчета SMA: {e}")
+        raise RuntimeError(f"Ошибка расчета SMA: {e}") from e
     
     # 5. Рассчитываем RSI
     print(f"\n📈 Расчет RSI:")
@@ -145,8 +145,8 @@ def demonstrate_basic_indicators():
         rsi_params = get_indicator_params('rsi')
         print(f"   Параметры RSI: {rsi_params}")
         
-        rsi_data = calculate_rsi(data, period=rsi_params.get('period', 14))
-        current_rsi = rsi_data['rsi'].iloc[-1]
+        rsi_data = calculate_rsi(data, period=rsi_params.get('period', 14))   # Series
+        current_rsi = rsi_data.iloc[-1]
         print(f"   ✅ Текущий RSI: {current_rsi:.2f}")
         
         # Интерпретация RSI
@@ -159,7 +159,7 @@ def demonstrate_basic_indicators():
         print(f"   📊 Интерпретация: {interpretation}")
         
     except Exception as e:
-        print(f"   ❌ Ошибка расчета RSI: {e}")
+        raise RuntimeError(f"Ошибка расчета RSI: {e}") from e
     
     # 6. Рассчитываем MACD
     print(f"\n📉 Расчет MACD:")
@@ -174,45 +174,52 @@ def demonstrate_basic_indicators():
             signal=macd_params['signal']
         )
         
+        # Колонки адресуются по РОЛИ: имена несут параметры (macd_12_26_9__line),
+        # и литерал 'macd_signal' молча расходился с ними (G8, G65)
+        macd_cols = IndicatorFactory.create(
+            'custom', 'macd', fast_period=macd_params['fast'],
+            slow_period=macd_params['slow'], signal_period=macd_params['signal'],
+        ).get_output_roles()
         latest_macd = macd_data.iloc[-1]
-        print(f"   ✅ MACD: {latest_macd['macd']:.4f}")
-        print(f"   ✅ Signal: {latest_macd['macd_signal']:.4f}")
-        print(f"   ✅ Histogram: {latest_macd['macd_hist']:.4f}")
+        print(f"   ✅ MACD: {latest_macd[macd_cols['line']]:.4f}")
+        print(f"   ✅ Signal: {latest_macd[macd_cols['signal']]:.4f}")
+        print(f"   ✅ Histogram: {latest_macd[macd_cols['hist']]:.4f}")
         
         # Сигналы MACD
-        if latest_macd['macd'] > latest_macd['macd_signal']:
-            macd_signal = "Бычий сигнал" if latest_macd['macd_hist'] > 0 else "Слабый бычий"
+        if latest_macd[macd_cols['line']] > latest_macd[macd_cols['signal']]:
+            macd_signal = "Бычий сигнал" if latest_macd[macd_cols['hist']] > 0 else "Слабый бычий"
         else:
-            macd_signal = "Медвежий сигнал" if latest_macd['macd_hist'] < 0 else "Слабый медвежий"
+            macd_signal = "Медвежий сигнал" if latest_macd[macd_cols['hist']] < 0 else "Слабый медвежий"
         print(f"   📊 Сигнал: {macd_signal}")
         
     except Exception as e:
-        print(f"   ❌ Ошибка расчета MACD: {e}")
+        raise RuntimeError(f"Ошибка расчета MACD: {e}") from e
     
     # 7. Рассчитываем Bollinger Bands
     print(f"\n📊 Расчет Bollinger Bands:")
     try:
         bb_data = calculate_bollinger_bands(data, period=20, std_dev=2)
+        bb_cols = IndicatorFactory.create('custom', 'bbands', period=20, std_dev=2).get_output_roles()
         latest_bb = bb_data.iloc[-1]
         
-        print(f"   ✅ Upper Band: ${latest_bb['bb_upper']:.2f}")
-        print(f"   ✅ Middle Band (SMA): ${latest_bb['bb_middle']:.2f}")
-        print(f"   ✅ Lower Band: ${latest_bb['bb_lower']:.2f}")
-        print(f"   ✅ Bandwidth: {latest_bb['bb_width']:.4f}")
-        print(f"   ✅ %B: {latest_bb['bb_percent']:.2f}")
+        print(f"   ✅ Upper Band: ${latest_bb[bb_cols['upper']]:.2f}")
+        print(f"   ✅ Middle Band (SMA): ${latest_bb[bb_cols['middle']]:.2f}")
+        print(f"   ✅ Lower Band: ${latest_bb[bb_cols['lower']]:.2f}")
+        print(f"   ✅ Bandwidth: {latest_bb[bb_cols['width']]:.4f}")
+        print(f"   ✅ %B: {latest_bb[bb_cols['percent']]:.2f}")
         
         # Интерпретация позиции цены
         price = data['close'].iloc[-1]
-        if price > latest_bb['bb_upper']:
+        if price > latest_bb[bb_cols['upper']]:
             bb_interpretation = "Цена выше верхней полосы (возможна коррекция)"
-        elif price < latest_bb['bb_lower']:
+        elif price < latest_bb[bb_cols['lower']]:
             bb_interpretation = "Цена ниже нижней полосы (возможен отскок)"
         else:
             bb_interpretation = "Цена в пределах полос (нормальное движение)"
         print(f"   📊 Интерпретация: {bb_interpretation}")
         
     except Exception as e:
-        print(f"   ❌ Ошибка расчета Bollinger Bands: {e}")
+        raise RuntimeError(f"Ошибка расчета Bollinger Bands: {e}") from e
     
     # 8. Комбинированный анализ
     print(f"\n🎯 Комбинированный технический анализ:")
@@ -224,12 +231,12 @@ def demonstrate_basic_indicators():
         ma_result = calculate_moving_averages(data, periods=[20])
         combined_data['sma_20'] = ma_result['sma_20']
         
-        rsi_result = calculate_rsi(data)
-        combined_data['rsi'] = rsi_result['rsi']
+        combined_data['rsi'] = calculate_rsi(data)
         
         macd_result = calculate_macd(data)
-        for col in ['macd', 'macd_signal', 'macd_hist']:
-            combined_data[col] = macd_result[col]
+        macd_cols = IndicatorFactory.create('custom', 'macd').get_output_roles()
+        for role in ('line', 'signal', 'hist'):
+            combined_data[f'macd_{role}'] = macd_result[macd_cols[role]]
         
         # Анализ последних значений
         latest = combined_data.iloc[-1]
@@ -250,7 +257,7 @@ def demonstrate_basic_indicators():
             signals.append("RSI: Нейтральная зона")
         
         # Анализ MACD
-        if latest['macd'] > latest['macd_signal']:
+        if latest['macd_line'] > latest['macd_signal']:
             signals.append("MACD: Бычий импульс")
         else:
             signals.append("MACD: Медвежий импульс")
@@ -273,7 +280,7 @@ def demonstrate_basic_indicators():
         print(f"   🎯 Общий сигнал: {overall_sentiment}")
         
     except Exception as e:
-        print(f"   ❌ Ошибка комбинированного анализа: {e}")
+        raise RuntimeError(f"Ошибка комбинированного анализа: {e}") from e
     
     # 9. Сводная информация
     print(f"\n📋 Сводка расчетов:")
@@ -290,13 +297,15 @@ def demonstrate_basic_indicators():
 def save_results_to_csv(data: pd.DataFrame, filename: str = "indicator_results.csv"):
     """Сохранение результатов в CSV файл."""
     try:
-        filepath = os.path.join("examples", filename)
+        # Рядом со скриптом, а не в "examples/" относительно cwd: запуск из другого
+        # каталога падал на несуществующем пути и печатал "❌" с кодом 0
+        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
         data.to_csv(filepath)
         print(f"\n💾 Результаты сохранены в файл: {filepath}")
         print(f"   📊 Колонки: {', '.join(data.columns.tolist())}")
         print(f"   📈 Строк данных: {len(data)}")
     except Exception as e:
-        print(f"   ❌ Ошибка сохранения: {e}")
+        raise RuntimeError(f"Ошибка сохранения: {e}") from e
 
 
 if __name__ == "__main__":
@@ -315,3 +324,6 @@ if __name__ == "__main__":
         print(f"\n❌ Ошибка выполнения: {e}")
         import traceback
         traceback.print_exc()
+        # Пример, который упал, обязан сказать это кодом возврата: до G65 он печатал
+        # трейсбек и выходил с 0, и батарея перед релизом считала его зелёным.
+        sys.exit(1)

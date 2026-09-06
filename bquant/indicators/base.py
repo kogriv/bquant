@@ -244,6 +244,120 @@ class BaseIndicator(ABC):
         raise NotImplementedError("Subclasses must implement get_info")
 
 
+    # ------------------------------------------------------------------
+    # Разрезы по результату — один раз для всех семейств (G65).
+    # До 2026-09-06 те же четыре метода жили в PreloadedIndicator, CustomIndicator и
+    # MACDPreloadedIndicator тремя копиями: `get_crossovers` отдавал две разные формы
+    # ответа под одним именем, у CustomIndicator его не было вовсе — при том, что
+    # `MACD.get_info()` его рекламировал, — а любая ошибка расчёта превращалась в
+    # `{}`/`False`/словарь с ключом 'error'. Теперь ошибка расчёта — исключение.
+    # ------------------------------------------------------------------
+    @classmethod
+    def available_methods(cls) -> List[str]:
+        """Публичные методы экземпляра — интроспекцией, а не литералом в ``get_info()``."""
+        names = set()
+        for klass in cls.__mro__:
+            if klass is object or klass is ABC:
+                continue
+            for name, attr in vars(klass).items():
+                if name.startswith('_') or isinstance(attr, (classmethod, staticmethod, property)):
+                    continue
+                if callable(attr):
+                    names.add(name)
+            if klass is BaseIndicator:
+                break
+        return sorted(names)
+
+    def _pick_column(self, frame: pd.DataFrame, column: Optional[str], position: int, what: str) -> str:
+        if column is None:
+            if len(frame.columns) <= position:
+                raise ValueError(
+                    f"{self.name}: {what} needs {position + 1} output column(s); "
+                    f"the result has {list(frame.columns)}"
+                )
+            return frame.columns[position]
+        if column not in frame.columns:
+            raise ValueError(
+                f"{self.name}: column '{column}' is not among the outputs {list(frame.columns)}"
+            )
+        return column
+
+    def get_statistics(self, data: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
+        """Описательная статистика каждой выходной колонки (без NaN; ``nan_count`` отдельно)."""
+        frame = self.calculate(data).data
+        stats: Dict[str, Dict[str, Any]] = {}
+        for col in frame.columns:
+            values = frame[col].dropna()
+            if len(values) == 0:
+                continue
+            stats[col] = {
+                'count': int(len(values)),
+                'min': float(values.min()),
+                'max': float(values.max()),
+                'mean': float(values.mean()),
+                'std': float(values.std()),
+                'median': float(values.median()),
+                'nan_count': int(frame[col].isnull().sum()),
+            }
+        return stats
+
+    def _last_pair(self, data: pd.DataFrame, column: Optional[str], what: str):
+        frame = self.calculate(data).data
+        column = self._pick_column(frame, column, 0, what)
+        values = frame[column].dropna()
+        if len(values) < 2:
+            return None
+        return float(values.iloc[-1]), float(values.iloc[-2])
+
+    def is_trending_up(self, data: pd.DataFrame, column: Optional[str] = None, threshold: float = 0.0) -> bool:
+        """Последнее значение колонки выше предыдущего **и** выше ``threshold``.
+
+        Смотрит только на два последних значения; меньше двух — ``False``.
+        Порог по умолчанию 0.0: рост ниже нуля читается как ``False`` — задавайте
+        ``threshold=float('-inf')``, если нужен рост без привязки к нулю.
+        """
+        pair = self._last_pair(data, column, 'is_trending_up')
+        if pair is None:
+            return False
+        last, previous = pair
+        return bool(last > previous and last > threshold)
+
+    def is_trending_down(self, data: pd.DataFrame, column: Optional[str] = None, threshold: float = 0.0) -> bool:
+        """Последнее значение колонки ниже предыдущего **и** ниже ``threshold``."""
+        pair = self._last_pair(data, column, 'is_trending_down')
+        if pair is None:
+            return False
+        last, previous = pair
+        return bool(last < previous and last < threshold)
+
+    def get_crossovers(self, data: pd.DataFrame, column1: Optional[str] = None,
+                       column2: Optional[str] = None) -> Dict[str, Any]:
+        """Пересечения ``column1`` и ``column2`` (по умолчанию — две первые выходные колонки).
+
+        Returns:
+            ``column1``, ``column2``, счётчики ``bullish_crossovers`` (первая пересекает
+            вторую снизу вверх) и ``bearish_crossovers``, списки индексов кадра
+            ``bullish_indices`` / ``bearish_indices``.
+
+        Raises:
+            ValueError: у результата меньше двух колонок или названная колонка не среди выходов.
+        """
+        frame = self.calculate(data).data
+        column1 = self._pick_column(frame, column1, 0, 'get_crossovers')
+        column2 = self._pick_column(frame, column2, 1, 'get_crossovers')
+        first, second = frame[column1], frame[column2]
+        up = (first > second) & (first.shift(1) <= second.shift(1))
+        down = (first < second) & (first.shift(1) >= second.shift(1))
+        return {
+            'column1': column1,
+            'column2': column2,
+            'bullish_crossovers': int(up.sum()),
+            'bearish_crossovers': int(down.sum()),
+            'bullish_indices': up[up].index.tolist(),
+            'bearish_indices': down[down].index.tolist(),
+        }
+
+
 class PreloadedIndicator(BaseIndicator):
     """
     Базовый класс для PRELOADED индикаторов.
@@ -308,173 +422,6 @@ class PreloadedIndicator(BaseIndicator):
         except Exception as e:
             raise IndicatorCalculationError(f"Failed to extract PRELOADED data: {e}")
     
-    def get_statistics(self, data: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Получить статистику по данным индикатора.
-        
-        Args:
-            data: DataFrame с данными
-        
-        Returns:
-            Словарь со статистикой
-        """
-        try:
-            result = self.calculate(data)
-            result_data = result.data
-            
-            stats = {}
-            for col in result_data.columns:
-                col_data = result_data[col].dropna()
-                if len(col_data) > 0:
-                    stats[col] = {
-                        'count': len(col_data),
-                        'min': float(col_data.min()),
-                        'max': float(col_data.max()),
-                        'mean': float(col_data.mean()),
-                        'std': float(col_data.std()),
-                        'median': float(col_data.median()),
-                        'nan_count': result_data[col].isnull().sum()
-                    }
-            
-            return stats
-            
-        except Exception as e:
-            self.logger.error(f"Failed to calculate statistics: {e}")
-            return {}
-    
-    def is_trending_up(self, data: pd.DataFrame, column: str = None, threshold: float = 0.0) -> bool:
-        """
-        Проверяет, растет ли указанная колонка (тренд вверх).
-        
-        Args:
-            data: DataFrame с данными
-            column: Колонка для анализа тренда. Если None, используется первая колонка
-            threshold: Порог для определения роста (по умолчанию 0.0)
-        
-        Returns:
-            True если колонка растет выше порога
-        """
-        try:
-            result = self.calculate(data)
-            
-            # Определяем колонку для анализа
-            if column is None:
-                column = result.data.columns[0]  # Используем первую колонку по умолчанию
-            
-            if column not in result.data.columns:
-                self.logger.error(f"Column '{column}' not found in data. Available: {list(result.data.columns)}")
-                return False
-            
-            values = result.data[column].dropna()
-            
-            if len(values) < 2:
-                return False
-            
-            # Проверяем последние значения
-            recent_values = values.tail(2)
-            return recent_values.iloc[-1] > recent_values.iloc[-2] and recent_values.iloc[-1] > threshold
-            
-        except Exception as e:
-            self.logger.error(f"Failed to check trend for column '{column}': {e}")
-            return False
-    
-    def is_trending_down(self, data: pd.DataFrame, column: str = None, threshold: float = 0.0) -> bool:
-        """
-        Проверяет, падает ли указанная колонка (тренд вниз).
-        
-        Args:
-            data: DataFrame с данными
-            column: Колонка для анализа тренда. Если None, используется первая колонка
-            threshold: Порог для определения падения (по умолчанию 0.0)
-        
-        Returns:
-            True если колонка падает ниже порога
-        """
-        try:
-            result = self.calculate(data)
-            
-            # Определяем колонку для анализа
-            if column is None:
-                column = result.data.columns[0]  # Используем первую колонку по умолчанию
-            
-            if column not in result.data.columns:
-                self.logger.error(f"Column '{column}' not found in data. Available: {list(result.data.columns)}")
-                return False
-            
-            values = result.data[column].dropna()
-            
-            if len(values) < 2:
-                return False
-            
-            # Проверяем последние значения
-            recent_values = values.tail(2)
-            return recent_values.iloc[-1] < recent_values.iloc[-2] and recent_values.iloc[-1] < threshold
-            
-        except Exception as e:
-            self.logger.error(f"Failed to check trend for column '{column}': {e}")
-            return False
-    
-    def get_crossovers(self, data: pd.DataFrame, column1: str = None, column2: str = None, 
-                       lookback: int = 5) -> Dict[str, List[int]]:
-        """
-        Определяет пересечения между двумя колонками.
-        
-        Args:
-            data: DataFrame с данными
-            column1: Первая колонка для анализа
-            column2: Вторая колонка для анализа
-            lookback: Количество периодов для анализа
-        
-        Returns:
-            Словарь с индексами пересечений
-        """
-        try:
-            result = self.calculate(data)
-            
-            # Определяем колонки для анализа
-            if column1 is None:
-                column1 = result.data.columns[0]
-            if column2 is None and len(result.data.columns) > 1:
-                column2 = result.data.columns[1]
-            else:
-                column2 = column1
-            
-            if column1 not in result.data.columns or column2 not in result.data.columns:
-                self.logger.error(f"Columns not found: {column1}, {column2}")
-                return {'bullish': [], 'bearish': []}
-            
-            # Получаем данные
-            series1 = result.data[column1].dropna()
-            series2 = result.data[column2].dropna()
-            
-            if len(series1) < lookback or len(series2) < lookback:
-                return {'bullish': [], 'bearish': []}
-            
-            # Анализируем пересечения
-            bullish_crosses = []
-            bearish_crosses = []
-            
-            for i in range(lookback, len(series1)):
-                # Бычье пересечение: series1 пересекает series2 снизу вверх
-                if (series1.iloc[i-1] <= series2.iloc[i-1] and 
-                    series1.iloc[i] > series2.iloc[i]):
-                    bullish_crosses.append(i)
-                
-                # Медвежье пересечение: series1 пересекает series2 сверху вниз
-                elif (series1.iloc[i-1] >= series2.iloc[i-1] and 
-                      series1.iloc[i] < series2.iloc[i]):
-                    bearish_crosses.append(i)
-            
-            return {
-                'bullish': bullish_crosses,
-                'bearish': bearish_crosses
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Failed to calculate crossovers: {e}")
-            return {'bullish': [], 'bearish': []}
-
-
 class CustomIndicator(BaseIndicator):
     """
     Базовый класс для пользовательских и встроенных индикаторов BQuant.
@@ -531,112 +478,6 @@ class CustomIndicator(BaseIndicator):
             IndicatorResult с результатами
         """
         pass
-    
-    def get_statistics(self, data: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Возвращает статистику по данным индикатора.
-        
-        Args:
-            data: DataFrame с данными
-        
-        Returns:
-            Словарь со статистикой
-        """
-        try:
-            result = self.calculate(data)
-            result_data = result.data
-            
-            stats = {}
-            for col in result_data.columns:
-                col_data = result_data[col].dropna()
-                if len(col_data) > 0:
-                    stats[col] = {
-                        'count': len(col_data),
-                        'min': float(col_data.min()),
-                        'max': float(col_data.max()),
-                        'mean': float(col_data.mean()),
-                        'std': float(col_data.std()),
-                        'median': float(col_data.median()),
-                        'nan_count': result_data[col].isnull().sum()
-                    }
-            
-            return stats
-            
-        except Exception as e:
-            self.logger.error(f"Failed to calculate statistics: {e}")
-            return {}
-    
-    def is_trending_up(self, data: pd.DataFrame, column: str = None, threshold: float = 0.0) -> bool:
-        """
-        Проверяет, растет ли указанная колонка (тренд вверх).
-        
-        Args:
-            data: DataFrame с данными
-            column: Колонка для анализа тренда. Если None, используется первая колонка
-            threshold: Порог для определения роста (по умолчанию 0.0)
-        
-        Returns:
-            True если колонка растет выше порога
-        """
-        try:
-            result = self.calculate(data)
-            
-            # Определяем колонку для анализа
-            if column is None:
-                column = result.data.columns[0]  # Используем первую колонку по умолчанию
-            
-            if column not in result.data.columns:
-                self.logger.error(f"Column '{column}' not found in data. Available: {list(result.data.columns)}")
-                return False
-            
-            values = result.data[column].dropna()
-            
-            if len(values) < 2:
-                return False
-            
-            # Проверяем последние значения
-            recent_values = values.tail(2)
-            return recent_values.iloc[-1] > recent_values.iloc[-2] and recent_values.iloc[-1] > threshold
-            
-        except Exception as e:
-            self.logger.error(f"Failed to check trend for column '{column}': {e}")
-            return False
-    
-    def is_trending_down(self, data: pd.DataFrame, column: str = None, threshold: float = 0.0) -> bool:
-        """
-        Проверяет, падает ли указанная колонка (тренд вниз).
-        
-        Args:
-            data: DataFrame с данными
-            column: Колонка для анализа тренда. Если None, используется первая колонка
-            threshold: Порог для определения падения (по умолчанию 0.0)
-        
-        Returns:
-            True если колонка падает ниже порога
-        """
-        try:
-            result = self.calculate(data)
-            
-            # Определяем колонку для анализа
-            if column is None:
-                column = result.data.columns[0]  # Используем первую колонку по умолчанию
-            
-            if column not in result.data.columns:
-                self.logger.error(f"Column '{column}' not found in data. Available: {list(result.data.columns)}")
-                return False
-            
-            values = result.data[column].dropna()
-            
-            if len(values) < 2:
-                return False
-            
-            # Проверяем последние значения
-            recent_values = values.tail(2)
-            return recent_values.iloc[-1] < recent_values.iloc[-2] and recent_values.iloc[-1] < threshold
-            
-        except Exception as e:
-            self.logger.error(f"Failed to check trend for column '{column}': {e}")
-            return False
     
     def calculate_with_cache(self, data: pd.DataFrame, **kwargs) -> IndicatorResult:
         """
