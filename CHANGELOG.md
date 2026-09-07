@@ -21,7 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   выше медианного размаха зоны 0.0028 и давала **3 зоны из 91** — масштаб зоны даёт 67 и 72.
   Пол — медианный размах бара, не константа 0.01, которая в G38 обнуляла обе стратегии.
   Пайплайн детектирует зоны до глобальных свингов и отдаёт слою их размахи; `per_zone`
-  берёт масштаб самой зоны. Пресеты не тронуты. Ломает: результаты под
+  берёт масштаб самой зоны. Пресеты не тронуты. **Неадаптивный путь не меняется** — это
+  замерено, а не выведено: прогон `zigzag` + `zero_crossing` без
+  `with_auto_swing_thresholds`, оба встроенных сэмпла (77 и 91 зона), `global` и `per_zone`,
+  даёт **побайтно те же** признаки всех зон до правки и после; тот же зонд на адаптивном
+  пути (`find_peaks`, `pivot_points`) различие видит, а на адаптивном `zigzag` — нет.
+  Ломает: результаты под
   `with_auto_swing_thresholds(True)` для `find_peaks`/`pivot_points`; `CACHE_VERSION` 26 → 27;
   `AdaptiveSwingStrategy.calculate_global` без `set_zone_scale()` — `ValueError`;
   `last_thresholds` несёт `min_amplitude_pct`. Исследование —
