@@ -15,7 +15,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+# NUMBA_DISABLE_JIT здесь НЕ ставится: под ним pandas-ta не регистрирует свой
+# numba-индикатор `zigzag`, и пример молча считал зоны без запрошенного детектора —
+# ноль свингов вместо настоящих (G70). Сегфолт, ради которого JIT когда-то гасили,
+# закрыт input-guard'ом в обёртке ZigZag.
 os.environ.setdefault("PANDAS_TA_SUPPRESS_WARNINGS", "1")
 os.environ.setdefault("PANDAS_TA_SUPPRESS_IMPORT_WARNINGS", "1")
 os.environ.setdefault("PANDAS_TA_VERBOSE", "0")

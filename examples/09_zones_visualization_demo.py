@@ -26,7 +26,10 @@ import os
 from pathlib import Path
 from datetime import datetime, timedelta
 
-os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+# NUMBA_DISABLE_JIT здесь НЕ ставится: под ним pandas-ta не регистрирует свой
+# numba-индикатор `zigzag`, и пример молча считал зоны без запрошенного детектора —
+# ноль свингов вместо настоящих (G70). Сегфолт, ради которого JIT когда-то гасили,
+# закрыт input-guard'ом в обёртке ZigZag.
 os.environ.setdefault("PANDAS_TA_SUPPRESS_ERRORS", "1")
 os.environ.setdefault("PANDAS_TA_LOG_LEVEL", "ERROR")
 

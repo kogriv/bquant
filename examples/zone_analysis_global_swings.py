@@ -26,7 +26,9 @@ from typing import Dict, List
 import pandas as pd
 
 os.environ.setdefault("BQUANT_SKIP_TALIB", "1")
-os.environ.setdefault("BQUANT_SKIP_PANDAS_TA", "1")
+# pandas-ta НЕ пропускается: этот пример показывает глобальные свинги, а ZigZag берёт
+# детектор именно оттуда. Под `BQUANT_SKIP_PANDAS_TA=1` пример считал зоны без
+# запрошенного детектора и печатал нули — те же, что дал бы неподвижный рынок (G70).
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

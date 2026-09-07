@@ -172,6 +172,11 @@ class SwingContext:
         full_data_length: Number of rows in the original dataset.
         strategy_name: Name of the strategy that produced the swings.
         strategy_params: Parameters of the strategy for traceability.
+        degraded: Why the context is empty when the detector did not actually
+            measure — ``'too_short'``, ``'degenerate'`` or ``'detector_unavailable'``.
+            ``None`` means the detector ran: an empty context is then a measurement
+            («no swings here»), not a silence. Until G70 all four produced the same
+            object, so a broken detector was indistinguishable from a still market.
 
     Example:
         >>> context = SwingContext(
@@ -193,8 +198,16 @@ class SwingContext:
     full_data_length: int
     strategy_name: str
     strategy_params: Dict[str, Any]
+    #: Причина, по которой детектор не измерял (см. docstring). ``None`` — измерял.
+    degraded: Optional[str] = None
 
     def __post_init__(self) -> None:
+        if self.degraded is not None and self.swing_points:
+            raise ValueError(
+                "SwingContext.degraded names a reason the detector did not measure, "
+                f"but the context carries {len(self.swing_points)} swing points "
+                f"(degraded={self.degraded!r})"
+            )
         if not isinstance(self.indices, np.ndarray):
             self.indices = np.asarray(self.indices, dtype=int)
         if self.indices.ndim != 1:

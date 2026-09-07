@@ -15,6 +15,7 @@ import pandas as pd
 from ...models import SwingContext, SwingPoint, ZoneInfo
 from ..base import SwingMetrics
 from ..registry import StrategyRegistry
+from .....core.exceptions import AnalysisError
 from .....core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -67,7 +68,7 @@ class ZigZagSwingStrategy:
                 len(full_data),
                 self.legs * 2,
             )
-            return self._empty_context(len(full_data))
+            return self._empty_context(len(full_data), degraded='too_short')
 
         if self._is_degenerate(full_data):
             report(
@@ -75,14 +76,17 @@ class ZigZagSwingStrategy:
                 "Skipping pandas-ta zigzag and returning empty SwingContext.",
                 scope,
             )
-            return self._empty_context(len(full_data))
+            return self._empty_context(len(full_data), degraded='degenerate')
 
         from .....indicators import LibraryManager
 
-        # ZigZag relies on the optional pandas-ta 'zigzag' indicator. If pandas-ta
-        # is unavailable (skipped/not installed) or ships no zigzag, degrade to an
-        # empty context with a clean warning instead of crashing the pipeline —
-        # this mirrors the per-zone calculate() fallback below.
+        # ZigZag relies on the pandas-ta 'zigzag' indicator. Until G70 an unavailable
+        # detector degraded to an empty context on BOTH scopes, so a caller who asked
+        # for ZigZag got a successful result with zero swings — the same object a
+        # still market produces (measured: 30 zones, 29 with swings against 30 zones,
+        # 0 with swings). The global pass now refuses, for the reason G54 refuses a
+        # failed global pass: whoever asked for this detector did not get it. Inside a
+        # zone the run continues, but the metrics carry `degraded`.
         try:
             zigzag = LibraryManager.create_indicator(
                 'pandas_ta',
@@ -99,17 +103,25 @@ class ZigZagSwingStrategy:
             )
             result = zigzag.calculate(full_data)
         except Exception as exc:
+            if scope == 'global':
+                raise AnalysisError(
+                    f"ZigZag global pass could not run: the pandas-ta 'zigzag' "
+                    f"detector is unavailable ({exc}). The result would be a "
+                    f"successful run with zero swings, indistinguishable from a "
+                    f"market that did not move. Install pandas-ta with zigzag, unset "
+                    f"BQUANT_SKIP_PANDAS_TA, or ask for another swing strategy."
+                ) from exc
             report(
                 "ZigZag %s: pandas-ta 'zigzag' unavailable (%s). "
                 "Returning empty SwingContext.",
                 scope,
                 exc,
             )
-            return self._empty_context(len(full_data))
+            return self._empty_context(len(full_data), degraded='detector_unavailable')
 
         if result.data.shape[1] < 2:
             report("ZigZag %s: insufficient columns returned, no swings detected", scope)
-            return self._empty_context(len(full_data))
+            return self._empty_context(len(full_data), degraded='detector_unavailable')
 
         swing_values = result.data.iloc[:, 1].dropna()
 
@@ -222,7 +234,7 @@ class ZigZagSwingStrategy:
             logger.debug(
                 "Zone %s: insufficient swings (%d points)", zone.zone_id, len(zone_swings)
             )
-            return self._empty_metrics()
+            return self._empty_metrics(context.degraded)
 
         rallies, drops = self._build_movements_from_points(zone_swings)
         return self._aggregate_metrics(rallies, drops)
@@ -247,7 +259,7 @@ class ZigZagSwingStrategy:
         """
         context = self._swing_context(zone_data, scope='per_zone')
         if len(context.swing_points) < 2:
-            return self._empty_metrics()
+            return self._empty_metrics(context.degraded)
         rallies, drops = self._build_movements_from_points(context.swing_points)
         return self._aggregate_metrics(rallies, drops)
 
@@ -428,16 +440,21 @@ class ZigZagSwingStrategy:
             conf = position + 1 + int(hits[0]) if len(hits) else next_position
         return conf
 
-    def _empty_metrics(self) -> SwingMetrics:
-        return self._aggregate_metrics([], [])
+    def _empty_metrics(self, degraded: Optional[str] = None) -> SwingMetrics:
+        metrics = self._aggregate_metrics([], [])
+        metrics.degraded = degraded
+        return metrics
 
-    def _empty_context(self, full_data_length: int) -> SwingContext:
+    def _empty_context(
+        self, full_data_length: int, degraded: Optional[str] = None
+    ) -> SwingContext:
         return SwingContext(
             swing_points=[],
             indices=np.array([], dtype=int),
             full_data_length=full_data_length,
             strategy_name='zigzag',
             strategy_params={'legs': self.legs, 'deviation': self.deviation},
+            degraded=degraded,
         )
 
     def _is_degenerate(self, data: pd.DataFrame) -> bool:

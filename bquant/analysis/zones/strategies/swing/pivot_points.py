@@ -42,12 +42,15 @@ class PivotPointsSwingStrategy:
                 len(full_data),
                 min_bars,
             )
+            # Детектор не смог отработать: паттерну не хватает баров. Это не
+            # «пивотов нет», и `degraded` отличает одно от другого (G70).
             return SwingContext(
                 swing_points=[],
                 indices=np.array([], dtype=int),
                 full_data_length=len(full_data),
                 strategy_name='pivot_points',
                 strategy_params=self._strategy_params(),
+                degraded='too_short',
             )
 
         pivot_highs = self._find_pivot_highs(full_data)

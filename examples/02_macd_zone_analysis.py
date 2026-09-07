@@ -25,7 +25,10 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Оптимизируем среду выполнения примера
-os.environ.setdefault("NUMBA_DISABLE_JIT", "1")  # NOTE: ускоряет расчёты в pipeline
+# NUMBA_DISABLE_JIT здесь НЕ ставится: под ним pandas-ta не регистрирует свой
+# numba-индикатор `zigzag`, и пример молча считал зоны без запрошенного детектора —
+# ноль свингов вместо настоящих (G70). Сегфолт, ради которого JIT когда-то гасили,
+# закрыт input-guard'ом в обёртке ZigZag.
 
 from bquant.core.logging_config import setup_logging
 from bquant.analysis import AnalysisResult

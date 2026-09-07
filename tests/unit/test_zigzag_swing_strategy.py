@@ -11,6 +11,7 @@ from bquant.analysis.zones.strategies.base import SwingMetrics
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
 from bquant.data.samples import get_sample_data
 from bquant.analysis.zones import analyze_macd_zones
+from bquant.core.exceptions import AnalysisError
 
 
 class TestZigZagSwingStrategy:
@@ -282,10 +283,19 @@ class TestZigZagDegenerateInput:
         assert context.swing_points == []
 
 
-def test_zigzag_global_degrades_when_pandas_ta_zigzag_unavailable(monkeypatch):
-    """calculate_global must degrade to an empty SwingContext (not raise) when the
-    optional pandas-ta 'zigzag' indicator is unavailable — mirroring the per-zone
-    calculate() fallback so a missing optional dependency never crashes the pipeline."""
+def test_zigzag_global_refuses_when_pandas_ta_zigzag_unavailable(monkeypatch):
+    """Просили ZigZag — либо он посчитал, либо прогон не состоялся (G70).
+
+    До 2026-09-07 здесь требовался пустой контекст «чтобы отсутствующая зависимость
+    никогда не роняла пайплайн». Замер показал цену этого требования: на встроенном
+    сэмпле здоровый прогон даёт 30 зон и 29 со свингами, а прогон со сломанным
+    детектором — те же 30 зон и **0** со свингами, и `build()` при этом успешен. Ноль
+    в метриках неотличим от «рынок не двигался».
+
+    Это тот же класс, что G54: глобальный проход, который не состоялся, обязан
+    отказать, а не вернуть успешную пустоту. Внутри зоны прогон продолжается — это
+    проверяется ниже.
+    """
     import bquant.indicators as indicators_pkg
 
     def _unavailable(*args, **kwargs):
@@ -309,10 +319,56 @@ def test_zigzag_global_degrades_when_pandas_ta_zigzag_unavailable(monkeypatch):
     )
 
     strategy = ZigZagSwingStrategy(legs=2, deviation=0.01)
-    context = strategy.calculate_global(df)  # must not raise
 
-    assert context is not None
+    with pytest.raises(AnalysisError) as exc:
+        strategy.calculate_global(df)
+
+    message = str(exc.value)
+    # Отказ обязан называть и причину, и выход из неё.
+    assert "zigzag" in message and "unavailable" in message
+    assert "BQUANT_SKIP_PANDAS_TA" in message or "pandas-ta" in message
+
+    # Внутри зоны прогон продолжается: пайплайн не падает из-за одной зоны, но
+    # метрики несут причину, по которой они нулевые.
+    metrics = strategy.calculate(df)
+    assert metrics.num_swings == 0
+    assert metrics.degraded == 'detector_unavailable'
+
+
+def test_a_short_or_degenerate_series_names_its_reason_too(monkeypatch):
+    """Три разные причины пустоты больше не один объект (G70)."""
+    strategy = ZigZagSwingStrategy(legs=10, deviation=0.01)
+
+    short = pd.DataFrame(
+        {
+            "open": np.linspace(100, 101, 12),
+            "high": np.linspace(101, 102, 12),
+            "low": np.linspace(99, 100, 12),
+            "close": np.linspace(100, 101, 12),
+            "volume": np.full(12, 1000.0),
+        },
+        index=pd.date_range("2024-01-01", periods=12, freq="h"),
+    )
+    context = strategy.calculate_global(short)
     assert context.swing_points == []
+    assert context.degraded == 'too_short'
+
+    flat = pd.DataFrame(
+        {
+            "open": np.full(200, 100.0),
+            "high": np.full(200, 100.0),
+            "low": np.full(200, 100.0),
+            "close": np.full(200, 100.0),
+            "volume": np.full(200, 1000.0),
+        },
+        index=pd.date_range("2024-01-01", periods=200, freq="h"),
+    )
+    degenerate = ZigZagSwingStrategy(legs=2, deviation=0.01).calculate_global(flat)
+    assert degenerate.swing_points == []
+    assert degenerate.degraded == 'degenerate'
+
+    # Вырожденный ряд по-прежнему НЕ роняет прогон: это была причина, по которой
+    # ветка вообще появилась (numba-крэш на плоском ряде), и она осталась.
 
 
 def run_tests():

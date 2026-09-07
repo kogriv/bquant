@@ -143,6 +143,10 @@ class SwingMetrics:
     # Metadata
     strategy_name: str
     strategy_params: Dict[str, Any] = field(default_factory=dict)
+    #: Почему метрики нулевые, если детектор не измерял: ``'too_short'``,
+    #: ``'degenerate'``, ``'detector_unavailable'``. ``None`` — детектор отработал,
+    #: и ноль свингов это результат замера, а не молчание (G70).
+    degraded: Optional[str] = None
     
     def validate(self):
         """Проверить, что метрики не противоречат своему определению."""
@@ -216,7 +220,11 @@ class SwingMetrics:
             
             # Metadata
             'strategy_name': self.strategy_name,
-            'strategy_params': self.strategy_params
+            'strategy_params': self.strategy_params,
+            # Причина, по которой ноль свингов — не замер (G70). Едет в
+            # `features.metadata.swing_metrics`, чтобы читатель зоны различал
+            # «детектор не считал» и «рынок не двигался».
+            'degraded': self.degraded,
         }
 
 
