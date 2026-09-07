@@ -243,9 +243,16 @@ class TestHypothesisTestSuite:
         assert 'p_value' in duration_test
         assert 'significant' in duration_test
     
-    def test_sequence_hypothesis(self, test_suite, test_zones):
-        """Тест гипотезы о последовательностях."""
-        result = test_suite.test_sequence_hypothesis(test_zones)
+    def test_sequence_hypothesis(self, test_suite, test_zones, bull_bear_vocabulary):
+        """Тест гипотезы о последовательностях.
+
+        Словарь передаётся явно: с 2026-09-07 тест отказывается считать без него, а
+        не подставляет словарь из наблюдаемых имён (G26) — отказ и цена этого отказа
+        пинятся в `test_the_sequence_test_needs_a_declared_vocabulary.py`.
+        """
+        result = test_suite.test_sequence_hypothesis(
+            test_zones, vocabulary=bull_bear_vocabulary
+        )
         
         assert isinstance(result, HypothesisTestResult)
         assert result.hypothesis == "Zone sequences follow non-random patterns"

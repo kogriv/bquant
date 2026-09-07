@@ -438,7 +438,21 @@ class HypothesisTestSuite:
                 raise StatisticalAnalysisError("Need at least 3 zones for sequence analysis")
             
             if vocabulary is None:
-                vocabulary = ZoneVocabulary.coerce(sorted(set(zone_types)))
+                # Раньше здесь словарь ФАБРИКОВАЛСЯ из наблюдаемых имён
+                # (`ZoneVocabulary.coerce(...)`). Такой словарь не объявляет
+                # полярности, поэтому runs-тест ниже всегда пропускался, и тест
+                # возвращал chi2-половину под именем и p-value полного теста. На
+                # строго чередующемся ряду (`bull`/`bear` у MACD) это давало
+                # p = 1.0 — «последовательность случайна» — там, где полный тест
+                # даёт p = 0.0. Не более слабый ответ, а противоположный (G26).
+                raise StatisticalAnalysisError(
+                    "Sequence test needs a declared zone vocabulary: the runs half "
+                    f"binarises the sequence by polarity, and observed types "
+                    f"{sorted(set(zone_types))} carry names only. Pass "
+                    "vocabulary=resolve_vocabulary(zones) "
+                    "(bquant.analysis.zones.detection); through the pipeline it is "
+                    "resolved automatically."
+                )
             
             # Примыкание: пара зон, разделённая пропуском (например, короткой зоной,
             # отброшенной по min_duration), переходом не является — между ними было
@@ -483,6 +497,7 @@ class HypothesisTestSuite:
                 runs_stat, runs_p = self._runs_test(directional)
                 combined_p = min(chi2_p * 2, runs_p * 2, 1.0)
                 runs_note = None
+                test_type = "Chi-square and runs tests"
             else:
                 runs_stat, runs_p = None, None
                 combined_p = min(chi2_p, 1.0)
@@ -491,6 +506,11 @@ class HypothesisTestSuite:
                     f"present among {sorted(set(zone_types))}, so the binarised "
                     "sequence would not vary"
                 )
+                # Словарь объявлен, но направления в нём нет — половина теста
+                # законно не считается. Тогда об этом говорит и сам вердикт, а не
+                # только metadata: chi2-результат не вправе носить имя полного
+                # теста (G26).
+                test_type = "Chi-square only (runs test skipped: no directional zone types)"
                 self.logger.debug(runs_note)
             
             metadata = {
@@ -509,7 +529,7 @@ class HypothesisTestSuite:
 
             return HypothesisTestResult(
                 hypothesis="Zone sequences follow non-random patterns",
-                test_type="Chi-square and runs tests",
+                test_type=test_type,
                 statistic=chi2_stat,
                 p_value=combined_p,
                 significant=combined_p < self.alpha,

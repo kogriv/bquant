@@ -162,6 +162,18 @@ print(sa_small.t_test(df['a'], df['b']))
 > его нужно передать явно; без него эти три теста **откажутся считать** и назовут
 > причину — отсутствие объявления, а не нехватку данных. Отказ намеренный: угадать
 > полярность по имени значило бы вернуть снятый хардкод.
+>
+> До 2026-09-07 третий из них, `sequence_patterns`, отказ обходил: без словаря он
+> строил его из наблюдаемых **имён**, runs-половина теста при этом всегда
+> пропускалась, и chi2-половина возвращалась под именем и p-value полного теста. На
+> зонах MACD это давало `p = 1.0` («последовательность случайна») там, где полный
+> тест даёт `p = 0.0`, — не более слабый ответ, а противоположный (G26). Теперь он
+> отказывается так же, как двое других.
+>
+> Отдельный случай: словарь **объявлен**, но направления в нём нет (ни у одного типа
+> не задана полярность). Тогда chi2-половина считается, а вердикт об этом говорит —
+> `test_type` = `"Chi-square only (runs test skipped: no directional zone types)"`,
+> подробности в `metadata['runs_test_skipped']`.
 
 Словарь получают из зон — а если зон под рукой нет, из имени стратегии детекции:
 
@@ -192,8 +204,10 @@ from bquant.analysis.statistical import (
     run_single_hypothesis_test
 )
 
-all_tests = run_all_hypothesis_tests(zones_features, alpha=0.05)
+all_tests = run_all_hypothesis_tests(zones_features, alpha=0.05, vocabulary=vocabulary)
 print(all_tests['summary'])
+# Без `vocabulary=` три направленных теста уходят в `summary['failed_tests']`
+# с причиной; остальные считаются как обычно.
 
 support_resistance = run_single_hypothesis_test(
     zones_features,
