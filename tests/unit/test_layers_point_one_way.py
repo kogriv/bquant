@@ -77,6 +77,147 @@ def _imports():
                     yield module, node, target, [a.name for a in node.names]
 
 
+def _classified_imports():
+    """(модуль, строка, цель, вид) по всему пакету.
+
+    Вид ребра решает, чем цикл является. ``eager`` — импорт на верхнем уровне
+    модуля, он исполняется при загрузке и цикл из таких рёбер ломает импорт или
+    оставляет полуинициализированный модуль. ``lazy`` — импорт в теле функции,
+    исполняется по вызову: цикл из них законен и в пакете есть намеренный
+    (``indicators.base`` ↔ ``custom.*`` через фабрику). ``type_only`` — импорт под
+    ``if TYPE_CHECKING:``, во время исполнения его нет вовсе.
+    """
+
+    def walk(node, module, lazy, type_only):
+        for child in ast.iter_child_nodes(node):
+            child_lazy = lazy or isinstance(
+                child, (ast.FunctionDef, ast.AsyncFunctionDef)
+            )
+            child_type_only = type_only or (
+                isinstance(node, ast.If)
+                and node.test is not child
+                and _is_type_checking_test(node.test)
+            )
+            if isinstance(child, ast.Import):
+                for a in child.names:
+                    target = _resolve(module, child, a.name)
+                    if target:
+                        yield module, child.lineno, target, _kind(child_lazy, child_type_only)
+            elif isinstance(child, ast.ImportFrom):
+                target = _resolve(module, child, None)
+                if target:
+                    yield module, child.lineno, target, _kind(child_lazy, child_type_only)
+            yield from walk(child, module, child_lazy, child_type_only)
+
+    for path in sorted(PACKAGE.rglob("*.py")):
+        module = _module_name(path)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        yield from walk(tree, module, False, False)
+
+
+def _kind(lazy: bool, type_only: bool) -> str:
+    if lazy:
+        return "lazy"
+    return "type_only" if type_only else "eager"
+
+
+def _is_type_checking_test(test) -> bool:
+    """``TYPE_CHECKING`` или ``typing.TYPE_CHECKING`` в условии ``if``."""
+    if isinstance(test, ast.Name):
+        return test.id == "TYPE_CHECKING"
+    if isinstance(test, ast.Attribute):
+        return test.attr == "TYPE_CHECKING"
+    return False
+
+
+def _cycle(edges):
+    """Первый найденный цикл как список модулей или ``None``."""
+    graph = {}
+    for src, dst in edges:
+        graph.setdefault(src, set()).add(dst)
+    colour, stack = {}, []
+
+    def visit(node):
+        colour[node] = "grey"
+        stack.append(node)
+        for nxt in sorted(graph.get(node, ())):
+            if colour.get(nxt) == "grey":
+                return stack[stack.index(nxt):] + [nxt]
+            if nxt not in colour:
+                found = visit(nxt)
+                if found:
+                    return found
+        stack.pop()
+        colour[node] = "black"
+        return None
+
+    for node in sorted(graph):
+        if node not in colour:
+            found = visit(node)
+            if found:
+                return found
+    return None
+
+
+def _package_modules():
+    return {_module_name(path) for path in PACKAGE.rglob("*.py")}
+
+
+def _edges(kinds):
+    """Рёбра между модулями пакета; цель-подпакет считается своим ``__init__``."""
+    modules = _package_modules()
+    for module, _, target, kind in _classified_imports():
+        if kind not in kinds or target not in modules or target == module:
+            continue
+        yield module, target
+
+
+def test_the_eager_import_graph_is_acyclic():
+    """Цикл из импортов верхнего уровня — полуинициализированный модуль, не стиль."""
+    cycle = _cycle(_edges({"eager"}))
+    assert cycle is None, "eager import cycle: " + " -> ".join(cycle or [])
+
+
+def test_the_type_only_graph_is_acyclic_too():
+    """Аннотация вверх стирается при исполнении, но связь описывает ту же зависимость."""
+    cycle = _cycle(_edges({"eager", "type_only"}))
+    assert cycle is None, "cycle through a type-only import: " + " -> ".join(cycle or [])
+
+
+def test_the_classifier_tells_the_three_kinds_apart():
+    """Иначе «циклов нет» означало бы только, что сканер не видит рёбер."""
+    kinds = {kind for *_, kind in _classified_imports()}
+    assert "eager" in kinds and "lazy" in kinds, sorted(kinds)
+
+    source = (
+        "from typing import TYPE_CHECKING\n"
+        "import bquant.core.cache\n"
+        "if TYPE_CHECKING:\n"
+        "    import bquant.analysis.zones\n"
+        "def f():\n"
+        "    import bquant.data.samples\n"
+    )
+    tree = ast.parse(source)
+    seen = {}
+    def walk(node, lazy, type_only):
+        for child in ast.iter_child_nodes(node):
+            child_lazy = lazy or isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+            child_type_only = type_only or (
+                isinstance(node, ast.If)
+                and node.test is not child
+                and _is_type_checking_test(node.test)
+            )
+            if isinstance(child, ast.Import):
+                seen[child.names[0].name] = _kind(child_lazy, child_type_only)
+            walk(child, child_lazy, child_type_only)
+    walk(tree, False, False)
+    assert seen == {
+        "bquant.core.cache": "eager",
+        "bquant.analysis.zones": "type_only",
+        "bquant.data.samples": "lazy",
+    }
+
+
 def test_imports_point_down_the_layer_stack():
     upward = []
     for module, node, target, _ in _imports():

@@ -45,8 +45,11 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 
 ### Layers point one way
 `cli → visualization → analysis → indicators → data → core`; a module imports only what is
-below it, function-local imports included. Guards: `tests/unit/test_layers_point_one_way.py`
-(ast scan) and the `[architecture]` contract in `codemap.toml` (`codemap check`). Strategy
+below it, function-local imports included, and the import graph is acyclic — both eagerly
+and through `if TYPE_CHECKING:` annotations (a cycle closed by a *function-local* import is
+allowed: `indicators.base` ↔ `custom.*` register through the factory on purpose). Guards:
+`tests/unit/test_layers_point_one_way.py` (ast scan, three kinds of import edge) and the
+`[architecture]` contract in `codemap.toml` (`codemap check`, codmap ≥ 0.0.14). Strategy
 factories and swing presets live in `analysis/zones/strategies/`, `IndicatorSchema` in
 `indicators/output_schema.py`; external indicator libraries load lazily on the first
 factory request, never at import (G64).

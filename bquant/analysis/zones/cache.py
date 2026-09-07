@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional
 import hashlib
 import json
 
@@ -14,9 +13,6 @@ from bquant import __version__
 from bquant.core.logging_config import get_logger
 
 from .models import ZoneAnalysisResult
-
-if TYPE_CHECKING:
-    from .pipeline import ZoneAnalysisConfig
 
 
 class ZoneAnalysisCache:
@@ -142,7 +138,11 @@ class ZoneAnalysisCache:
 
         Args:
             data_hash: Hash of the OHLC price data.
-            config_signature: JSON signature of :class:`ZoneAnalysisConfig`.
+            config_signature: ``ZoneAnalysisConfig.to_cache_key()`` — the
+                configuration serialises itself, so the key cannot drift from
+                the fields it is built out of. A second serialiser lived here
+                until 2026-09-07 and had already drifted: it was never called,
+                and it omitted `min_duration` and `atr_period` (G60).
             swing_signature: JSON signature of swing configuration.
             analyzer_signature: JSON signature of the metric strategies the
                 analyzer will run (shape, divergence, volatility, volume) and of
@@ -244,23 +244,6 @@ class ZoneAnalysisCache:
         digest.update("|".join(map(str, df.columns)).encode())
         digest.update(pd.util.hash_pandas_object(df, index=True).values.tobytes())
         return digest.hexdigest()
-
-    @staticmethod
-    def config_signature(config: "ZoneAnalysisConfig") -> str:
-        """Create JSON signature for :class:`ZoneAnalysisConfig`."""
-
-        payload = {
-            "indicator": asdict(config.indicator) if config.indicator else None,
-            "zone_detection": asdict(config.zone_detection)
-            if config.zone_detection
-            else None,
-            "perform_clustering": config.perform_clustering,
-            "n_clusters": config.n_clusters,
-            "run_regression": config.run_regression,
-            "run_validation": config.run_validation,
-            "swing_scope": config.swing_scope,
-        }
-        return json.dumps(payload, sort_keys=True, default=str)
 
     @staticmethod
     def swing_signature(swing_config: Any) -> str:

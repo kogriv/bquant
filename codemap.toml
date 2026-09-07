@@ -16,10 +16,15 @@ forbidden = [
   { from = "indicators", to = "visualization" },
 ]
 
-# The eager import graph must be acyclic. Off until codemap#18 is fixed: an import under
-# `if TYPE_CHECKING:` (cache.py → pipeline) is counted as eager and the rule stays red
-# on a correct tree. Flip to true once the tool reads TYPE_CHECKING as non-eager.
-no_cycles = false
+# The eager import graph must be acyclic. On since codmap 0.0.14, which counts an import
+# under `if TYPE_CHECKING:` as type-only rather than eager (codemap#18); before that the
+# rule was red on a correct tree.
+no_cycles = true
+
+# The type-only graph must be acyclic too. The one pair that made it red — cache.py →
+# pipeline for an annotation — was the dead twin of `ZoneAnalysisConfig.to_cache_key()`,
+# removed 2026-09-07; nothing else needs an upward annotation.
+no_type_only_cycles = true
 
 # Lazy cycles (closed by a function-local import) are reported by `report architecture`;
 # they are not gated: indicators.base ↔ custom.* register through the factory on purpose.
