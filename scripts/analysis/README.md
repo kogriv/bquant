@@ -25,17 +25,26 @@ python run_macd_analysis.py --symbol EURUSD --timeframe 15m --output results.jso
 
 **Использование:**
 ```bash
-python run_hypothesis_tests.py XAUUSD 1h
-python run_hypothesis_tests.py --symbol EURUSD --timeframe 1h --tests duration,slope
+python run_hypothesis_tests.py XAUUSD 1h --sample-data --all-tests
+python run_hypothesis_tests.py XAUUSD 1h --sample-data --tests duration,slope
 ```
 
-**Функциональность:**
-- Выполнение всех доступных статистических тестов
-- Тест продолжительности зон
-- Тест наклона гистограммы
-- Тест асимметрии быка/медведя
-- Тест последовательности паттернов
-- Тест волатильности
+Позиционных аргумента два — символ и таймфрейм; флага `--symbol/--timeframe` нет.
+
+**Тесты (`--tests`, через запятую; `--all-tests` — все семь):**
+
+| имя | что считает |
+|---|---|
+| `duration` | длительность зоны против доходности |
+| `slope` | наклон гистограммы |
+| `asymmetry` | асимметрия контрастной пары типов зон |
+| `sequence` | неслучайность последовательности зон |
+| `volatility` | эффекты волатильности |
+| `correlation_drawdown` | корреляция и величина экскурсии цены |
+| `stationarity` | стационарность длительности (ADF) |
+
+Скрипт **отказывается печатать отчёт, если не посчитался ни один тест**, и называет
+причины: отчёт по нулю выполненных тестов — не отчёт (G69).
 
 ### `batch_analysis.py`
 Выполняет пакетный анализ для множества инструментов и таймфреймов.

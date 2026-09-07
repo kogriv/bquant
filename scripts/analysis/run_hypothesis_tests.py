@@ -28,6 +28,7 @@ from bquant.core.logging_config import get_logger
 from bquant.data.samples import get_sample_data, list_dataset_names, validate_dataset_name
 from bquant.analysis.zones import analyze_macd_zones
 from bquant.analysis.statistical import run_all_hypothesis_tests, run_single_hypothesis_test
+from bquant.analysis.zones.detection import resolve_vocabulary
 
 logger = get_logger(__name__)
 
@@ -43,13 +44,29 @@ class HypothesisTestingScript:
         self.output_dir.mkdir(exist_ok=True)
         
         # Доступные тесты
-        self.available_tests = {
-            'duration': 'Zone Duration Analysis',
-            'slope': 'Histogram Slope Test',
-            'asymmetry': 'Bull/Bear Asymmetry Test',
-            'patterns': 'Sequence Patterns Test',
-            'volatility': 'Volatility Effects Test'
+        # У пакета ДВА набора имён на одни и те же тесты: `run_single_hypothesis_test`
+        # принимает короткие ('duration', 'sequence'), а `run_all_hypothesis_tests`
+        # возвращает свои ключи ('zone_duration', 'sequence_patterns'). Соответствие
+        # объявлено здесь один раз, а не угадывается в местах вывода: иначе отчёт
+        # печатает то заголовок, то ключ, смотря какой веткой шли. Раньше в каталоге
+        # стояло собственное третье имя `patterns`, которого пакет не знает вовсе.
+        self.tests_catalogue = {
+            # имя для --tests: (ключ в сводке run_all_hypothesis_tests, заголовок)
+            'duration': ('zone_duration', 'Zone Duration Analysis'),
+            'slope': ('histogram_slope', 'Histogram Slope Test'),
+            'asymmetry': ('contrast_asymmetry', 'Contrast Pair Asymmetry Test'),
+            'sequence': ('sequence_patterns', 'Sequence Patterns Test'),
+            'volatility': ('volatility_effects', 'Volatility Effects Test'),
+            'correlation_drawdown': ('correlation_drawdown', 'Correlation and Excursion Test'),
+            'stationarity': ('duration_stationarity', 'Zone Duration Stationarity (ADF)'),
         }
+        self.available_tests = {
+            name: title for name, (_, title) in self.tests_catalogue.items()
+        }
+        self._titles = dict(self.available_tests)
+        self._titles.update(
+            {key: title for _, (key, title) in self.tests_catalogue.items()}
+        )
     
     def test_hypotheses(
         self,
@@ -110,13 +127,24 @@ class HypothesisTestingScript:
             # Определение тестов для выполнения
             tests_to_run = self._determine_tests(tests, all_tests, verbose)
             
-            # Выполнение тестов
+            # Тесты считаются по СПИСКУ ПРИЗНАКОВ. Раньше сюда уезжал сам
+            # `zones_info` — конверт из четырёх ключей: pandas спотыкался на нём
+            # («Mixing dicts with non-Series...»), все семь тестов падали, а
+            # счётчик ниже считал ключи конверта и печатал «Successful Tests: 2».
+            zones_features = zones_info['zones_features']
+            # Три теста направленные и без объявленного словаря откажутся считать
+            # (G26). Зоны здесь есть, значит словарь резолвится, а не угадывается.
+            vocabulary = resolve_vocabulary(zones_analysis.zones)
+
             if all_tests or len(tests_to_run) > 3:
                 # Выполняем все тесты сразу
                 if verbose:
                     print(f"🧪 Running all available hypothesis tests...")
-                
-                test_results = run_all_hypothesis_tests(zones_info, alpha=alpha)
+
+                envelope = run_all_hypothesis_tests(
+                    zones_features, alpha=alpha, vocabulary=vocabulary
+                )
+                test_results = envelope['tests']
             else:
                 # Выполняем отдельные тесты
                 if verbose:
@@ -127,9 +155,12 @@ class HypothesisTestingScript:
                     if test_name in self.available_tests:
                         try:
                             result = run_single_hypothesis_test(
-                                zones_info, test_name, alpha=alpha
+                                zones_features, test_name, alpha=alpha,
+                                vocabulary=vocabulary
                             )
-                            test_results[test_name] = result
+                            # В словарь — чтобы счётчик и отчёт видели одну форму,
+                            # а не объект в одной ветке и словарь в другой.
+                            test_results[test_name] = result.to_dict()
                         except Exception as e:
                             self.logger.warning(f"Test {test_name} failed: {e}")
                             test_results[test_name] = {
@@ -259,17 +290,31 @@ class HypothesisTestingScript:
         """Сформировать результаты тестирования."""
         testing_duration = datetime.now() - testing_start
         
-        # Подсчет статистики по тестам
+        # Считается ТЕСТ, а не запись словаря: выполненным считается тот, у
+        # которого есть числовой p-value. Прежний счётчик спрашивал «нет ли ключа
+        # error» — этому условию удовлетворяли и `tests`, и `summary` конверта,
+        # поэтому на семи упавших тестах печаталось «Successful Tests: 2».
         successful_tests = 0
         significant_results = 0
-        
+        failed_tests = {}
+
         for test_name, result in test_results.items():
-            if isinstance(result, dict) and 'error' not in result:
-                successful_tests += 1
-                if hasattr(result, 'p_value') and result.p_value < alpha:
-                    significant_results += 1
-                elif isinstance(result, dict) and 'p_value' in result and result['p_value'] < alpha:
-                    significant_results += 1
+            p_value = self._p_value_of(result)
+            if p_value is None:
+                failed_tests[test_name] = self._error_of(result) or "no p-value returned"
+                continue
+            successful_tests += 1
+            if p_value < alpha:
+                significant_results += 1
+
+        if successful_tests == 0:
+            # Отчёт по нулю выполненных тестов — не отчёт: прежний скрипт на этом
+            # месте печатал сводку и **рекомендации по торговле**, выведенные из
+            # пустоты, и выходил с кодом 0.
+            raise ValueError(
+                "No hypothesis test produced a result; nothing to report. Failures: "
+                + "; ".join(f"{name}: {reason}" for name, reason in failed_tests.items())
+            )
         
         # Сводка по зонам
         zones_summary = self._summarize_zones(zones_info)
@@ -290,6 +335,7 @@ class HypothesisTestingScript:
                 'total_tests': len(test_results),
                 'successful_tests': successful_tests,
                 'failed_tests': len(test_results) - successful_tests,
+                'failed_reasons': failed_tests,
                 'significant_results': significant_results,
                 'significance_rate': significant_results / successful_tests if successful_tests > 0 else 0
             },
@@ -305,6 +351,24 @@ class HypothesisTestingScript:
         
         return results
     
+    @staticmethod
+    def _p_value_of(result: Any) -> Optional[float]:
+        """p-value теста или ``None``, если тест не дал результата."""
+        if isinstance(result, dict):
+            if 'error' in result:
+                return None
+            value = result.get('p_value')
+        else:
+            value = getattr(result, 'p_value', None)
+        return value if isinstance(value, (int, float)) else None
+
+    @staticmethod
+    def _error_of(result: Any) -> Optional[str]:
+        """Причина, названная тестом, если он не посчитался."""
+        if isinstance(result, dict):
+            return result.get('error')
+        return None
+
     def _summarize_zones(self, zones_info: Dict[str, Any]) -> Dict[str, Any]:
         """Создать сводку по зонам."""
         zones_features = zones_info.get('zones_features', [])
@@ -313,17 +377,23 @@ class HypothesisTestingScript:
             return {'error': 'No zone features available'}
         
         total_zones = len(zones_features)
-        bull_zones = len([z for z in zones_features if z.get('type') == 'Bull'])
-        bear_zones = len([z for z in zones_features if z.get('type') == 'Bear'])
-        
+        # Поле называется `zone_type`, и значения в нём — те, что объявила
+        # стратегия детекции. Прежняя редакция считала `z.get('type') == 'Bull'`:
+        # ни ключа, ни такого написания нет, поэтому обе группы всегда выходили
+        # нулевыми, а `bull_ratio` — 0.0 на любых данных. Заодно ушёл хардкод
+        # `bull`/`bear`: счёт идёт по НАБЛЮДАЕМЫМ типам (G20).
+        zone_types = {}
+        for zone in zones_features:
+            name = zone.get('zone_type')
+            if name:
+                zone_types[name] = zone_types.get(name, 0) + 1
+
         durations = [z.get('duration', 0) for z in zones_features if z.get('duration')]
         returns = [z.get('price_return', 0) for z in zones_features if z.get('price_return')]
         
         summary = {
             'total_zones': total_zones,
-            'bull_zones': bull_zones,
-            'bear_zones': bear_zones,
-            'bull_ratio': bull_zones / total_zones if total_zones > 0 else 0,
+            'zones_by_type': zone_types,
             'avg_duration': sum(durations) / len(durations) if durations else 0,
             'avg_return': sum(returns) / len(returns) if returns else 0,
             'duration_range': [min(durations), max(durations)] if durations else [0, 0],
@@ -341,7 +411,7 @@ class HypothesisTestingScript:
                 interpretations.append(f"{test_name}: Test failed - {result['error']}")
                 continue
             
-            test_title = self.available_tests.get(test_name, test_name)
+            test_title = self._titles.get(test_name, test_name)
             
             # Извлекаем p-value
             p_value = None
@@ -422,10 +492,11 @@ class HypothesisTestingScript:
         output_path = Path(output_file)
         
         if output_format == 'json':
-            # Для JSON нужно сериализовать специальные объекты
-            json_results = self._serialize_for_json(results)
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(json_results, f, indent=2, ensure_ascii=False)
+                json.dump(
+                    results, f, indent=2, ensure_ascii=False,
+                    default=self._json_default,
+                )
         
         elif output_format == 'html':
             html_content = self._generate_html_report(results)
@@ -440,26 +511,30 @@ class HypothesisTestingScript:
         if verbose:
             print(f"💾 Results saved to: {output_path}")
     
-    def _serialize_for_json(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """Сериализовать результаты для JSON."""
-        import copy
-        
-        json_results = copy.deepcopy(results)
-        
-        # Обрабатываем test_results
-        for test_name, result in json_results.get('test_results', {}).items():
-            if hasattr(result, '__dict__'):
-                # Конвертируем объект в словарь
-                json_results['test_results'][test_name] = {
-                    'test_name': getattr(result, 'test_name', test_name),
-                    'p_value': getattr(result, 'p_value', None),
-                    'statistic': getattr(result, 'statistic', None),
-                    'effect_size': getattr(result, 'effect_size', None),
-                    'is_significant': getattr(result, 'is_significant', None),
-                    'interpretation': getattr(result, 'interpretation', None)
-                }
-        
-        return json_results
+    @staticmethod
+    def _json_default(value: Any) -> Any:
+        """Довести до JSON то, что стандартный кодировщик не умеет.
+
+        Практически это скаляры numpy: `significant` у результата теста — `np.bool_`,
+        и на нём запись падала «Object of type bool is not JSON serializable». Не
+        всплывало, пока в отчёт ехали одни ошибки: до G69 ни один тест не считался,
+        а строки сериализуются.
+
+        Прежняя редакция вместо этого переписывала `test_results` в словарь с полями
+        `test_name`, `is_significant`, `interpretation` — таких у `HypothesisTestResult`
+        нет; получался словарь из пяти `None` для каждого теста.
+        """
+        import numpy as np
+
+        if isinstance(value, np.bool_):
+            return bool(value)
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.floating):
+            return float(value)
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        return str(value)
     
     def _generate_html_report(self, results: Dict[str, Any]) -> str:
         """Сгенерировать HTML отчет."""
@@ -509,7 +584,7 @@ class HypothesisTestingScript:
 """
         
         for test_name, result in results['test_results'].items():
-            test_title = self.available_tests.get(test_name, test_name)
+            test_title = self._titles.get(test_name, test_name)
             
             if isinstance(result, dict) and 'error' in result:
                 html += f'        <div class="test-result failed">\n'
@@ -583,7 +658,7 @@ TEST RESULTS
 """
         
         for test_name, result in results['test_results'].items():
-            test_title = self.available_tests.get(test_name, test_name)
+            test_title = self._titles.get(test_name, test_name)
             
             if isinstance(result, dict) and 'error' in result:
                 report += f"\n{test_title}: FAILED\n"
@@ -598,7 +673,8 @@ TEST RESULTS
                 significance = "SIGNIFICANT" if p_value and p_value < results['metadata']['alpha_level'] else "NOT SIGNIFICANT"
                 
                 report += f"\n{test_title}: {significance}\n"
-                report += f"  P-value: {p_value:.6f if p_value else 'N/A'}\n"
+                shown = f"{p_value:.6f}" if p_value is not None else "N/A"
+                report += f"  P-value: {shown}\n"
         
         report += f"\nRECOMMENDATIONS\n{'-' * 20}\n"
         for i, recommendation in enumerate(results['recommendations'], 1):
@@ -636,12 +712,14 @@ Examples:
   python run_hypothesis_tests.py EURUSD 15m --tests duration,slope --output results.json
   python run_hypothesis_tests.py XAUUSD 1h --all-tests --verbose
 
-Available Tests:
-  duration    - Zone Duration Analysis
-  slope       - Histogram Slope Test
-  asymmetry   - Bull/Bear Asymmetry Test
-  patterns    - Sequence Patterns Test
-  volatility  - Volatility Effects Test
+Available Tests (names accepted by --tests):
+  duration              - Zone Duration Analysis
+  slope                 - Histogram Slope Test
+  asymmetry             - Contrast Pair Asymmetry Test
+  sequence              - Sequence Patterns Test
+  volatility            - Volatility Effects Test
+  correlation_drawdown  - Correlation and Excursion Test
+  stationarity          - Zone Duration Stationarity (ADF)
         """
     )
     

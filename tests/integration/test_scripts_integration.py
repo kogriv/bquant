@@ -146,20 +146,21 @@ class TestScriptsExecution:
             timeout=90
         )
         
-        # Статистические тесты могут упасть из-за известных проблем
-        if result.returncode == 0:
-            # См. пояснение в test_run_macd_analysis_script: «testing completed» —
-            # строка лога, а не вывод скрипта, и живёт она в stderr.
-            assert "hypothesis testing results" in result.stdout.lower(), (
-                f"скрипт не напечатал свой отчёт:\n{result.stdout}"
-            )
-            assert "testing completed" in result.stderr.lower(), (
-                "нет записи о завершении в потоке диагностики"
-            )
-            hypothesis_success = True
-        else:
-            print(f"Hypothesis testing failed (may be expected): {result.stderr}")
-            hypothesis_success = False
+        # Прощение «may be expected» снято 2026-09-07 (G69): под ним скрипт полтора
+        # месяца печатал отчёт, в котором не посчитался ни один тест, и выходил с
+        # кодом 0. Тест, заранее прощающий тот отказ, ради которого он написан, —
+        # не тест. Число посчитанных тестов пинится в
+        # `test_the_hypothesis_script_reports_what_ran.py`.
+        assert result.returncode == 0, f"скрипт упал:\n{result.stderr[-1500:]}"
+        # См. пояснение в test_run_macd_analysis_script: «testing completed» —
+        # строка лога, а не вывод скрипта, и живёт она в stderr.
+        assert "hypothesis testing results" in result.stdout.lower(), (
+            f"скрипт не напечатал свой отчёт:\n{result.stdout}"
+        )
+        assert "testing completed" in result.stderr.lower(), (
+            "нет записи о завершении в потоке диагностики"
+        )
+        hypothesis_success = True
         
         # 3. Тест с конкретными тестами
         result = subprocess.run(
@@ -171,7 +172,8 @@ class TestScriptsExecution:
             timeout=90
         )
         
-        specific_tests_success = result.returncode == 0
+        assert result.returncode == 0, f"ветка --tests упала:\n{result.stderr[-1500:]}"
+        specific_tests_success = True
         
         print(f"✅ run_hypothesis_tests.py integration test completed!")
         print(f"   • Dry-run: ✅")
