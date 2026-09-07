@@ -1,5 +1,14 @@
 # ZO Validation Check
 
+> **Исторический отчёт, июль 2026.** Матрица «страница доки ↔ проверявший её скрипт»
+> из методики zodoctest. Скрипты переименованы в `zodoctest_archive/` (2026-09-06) и не
+> исполняются — пути в таблице ниже указывают на прежнее имя каталога. Живая проверка
+> доков — четыре слоя в `tests/unit/` (`test_docs_parity.py`,
+> `test_docs_call_signatures.py`, `test_public_surface_is_documented.py`) и
+> `tests/integration/test_docs_examples_run.py`.
+> Сокращённая копия этого файла лежала в **корне репозитория** и удалена 2026-09-07:
+> две строки из тридцати одной, более старая редакция, на видном месте публичного репо.
+
 | Файлы | Результат теста | Соответствие примеров | Непокрытые примеры кода |
 | --- | --- | --- | --- |
 | docs/api/README.md<br>devref/gaps/zo/zodoctest/test_api_readme_validation.py | ✅ 9/9 тестов пройдено | Universal Pipeline и PRELOADED MACD сценарии из документации запускаются в тестах `test_universal_pipeline_example` и `test_actual_macd_examples`; прочие шаги воспроизведены. | Вызов PRELOADED MACD `macd_indicator.calculate(data)` отсутствует в тесте. |

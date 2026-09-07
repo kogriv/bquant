@@ -113,11 +113,11 @@ Every flag and the JSON schema: [CLI guide](https://bquant.readthedocs.io/en/lat
 git clone https://github.com/kogriv/bquant.git
 cd bquant
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"   # extras: dev, docs, notebooks — extra `full` не существует
+pip install -e ".[dev]"
 pytest
 ```
 
-Extras: `dev`, `docs`, `notebooks`, `research`, `full`.
+Extras: `dev`, `docs`, `notebooks`, `research`, and `full` (= `dev` + `notebooks`).
 
 Repository layout: `bquant/` is the package itself; `tests/`, `docs/` and `examples/`
 support it; `research/` and `scripts/` hold notebook-style studies and automation.
