@@ -204,8 +204,13 @@ class ZoneAnalysisPipeline:
         self.column_schema = ColumnSchema()
         self._apply_swing_preset(DEFAULT_SWING_PRESET, update_active=False)
 
+    #: Колонки, по которым считаются метрики зон: дыра в любой из них меняет число,
+    #: а не делает его пустым.
+    _PRICE_COLUMNS = ("open", "high", "low", "close")
+
     def run(self, df: pd.DataFrame) -> ZoneAnalysisResult:
         """Execute the end-to-end analysis workflow (with optional caching)."""
+        self._assert_prices_have_no_holes(df)
         cache_wrapper = self._get_cache_wrapper()
         if cache_wrapper is None:
             return self._run_without_cache(df)
@@ -360,6 +365,43 @@ class ZoneAnalysisPipeline:
             len(zones),
         )
     
+    @classmethod
+    def _assert_prices_have_no_holes(cls, df: pd.DataFrame) -> None:
+        """Пропуск в цене меняет число, а не обнуляет его (G72).
+
+        Замер: один `NaN` в `close` ровно на границе зоны сдвинул её
+        `price_return` с −0.000958 на −0.000651 — тридцать процентов, молча.
+        `NaN` в выходе нет, предупреждения нет: `ewm` пропускает пропуск, и
+        метрика считается от соседнего бара, как будто он и был границей.
+
+        Валидатор данных (`validate_ohlcv_data`) отвечает на другой вопрос —
+        «пригоден ли датасет вообще» — и терпит малую долю пропусков намеренно.
+        Здесь спрашивается более узкое: можно ли считать метрики зон по ЭТИМ
+        колонкам. Ответ «нет» лучше числа, посчитанного через дыру.
+        """
+
+        present = [column for column in cls._PRICE_COLUMNS if column in df.columns]
+        if not present:
+            return
+
+        holes = {
+            column: int(df[column].isna().sum())
+            for column in present
+            if df[column].isna().any()
+        }
+        if not holes:
+            return
+
+        listed = ", ".join(f"{column}: {count}" for column, count in sorted(holes.items()))
+        raise ValueError(
+            f"Price columns carry missing values ({listed} of {len(df)} rows). Zone "
+            "metrics are read off these bars, so a hole does not make the number "
+            "empty — it makes it different: a gap on a zone boundary silently moves "
+            "price_return to the neighbouring bar. Fill or drop them first "
+            "(bquant.data.processor.clean_ohlcv_data), or slice a range without "
+            "holes."
+        )
+
     def _prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Enrich the dataframe with indicators when requested."""
         if self.config.indicator is None:

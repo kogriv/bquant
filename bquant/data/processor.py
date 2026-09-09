@@ -49,6 +49,7 @@ def resolve_time_index(df: pd.DataFrame) -> pd.DataFrame:
         Кадр с ``DatetimeIndex``, если время нашлось; иначе исходный кадр.
     """
     if isinstance(df.index, pd.DatetimeIndex):
+        _assert_time_axis_is_usable(df.index)
         return df
 
     for column in TIME_COLUMN_CANDIDATES:
@@ -75,9 +76,54 @@ def resolve_time_index(df: pd.DataFrame) -> pd.DataFrame:
         # Копия, а не правка на месте: подготовка не должна менять кадр вызывающего.
         prepared = df.drop(columns=[column]).set_index(parsed)
         prepared.index.name = column
+        _assert_time_axis_is_usable(prepared.index)
         return prepared
 
     return df
+
+
+def _assert_time_axis_is_usable(index: pd.DatetimeIndex) -> None:
+    """Ось времени обязана быть возрастающей и без повторов (G72).
+
+    До 2026-09-09 неотсортированный вход и дубли по времени доезжали до конца
+    пайплайна и падали **тремя слоями ниже** — на инварианте зоны, сообщением
+    «zone 5: start_time … > end_time …». Сообщение верное и бесполезное: оно
+    называет следствие (зона получилась задом наперёд) и молчит о причине (кадр
+    пришёл вперемешку или со сдвоенными барами). Та же форма, ради которой G57
+    здесь же завёл отказ на `NaT` в оси.
+
+    Проверяется ровно то, на что опирается всё ниже по течению: срезы зон
+    (`bisect` по индексу), границы `start_time`/`end_time` и ключ кэша.
+    """
+
+    if not index.is_monotonic_increasing:
+        first_break = None
+        for position in range(1, len(index)):
+            if index[position] < index[position - 1]:
+                first_break = (position, index[position - 1], index[position])
+                break
+        detail = (
+            f" (first at position {first_break[0]}: {first_break[1]} then {first_break[2]})"
+            if first_break
+            else ""
+        )
+        raise ValueError(
+            "The time axis is not sorted ascending"
+            f"{detail}. Zone boundaries and every slice below are read in index "
+            "order, so an unsorted frame produces zones that end before they "
+            "start. Sort it first: df.sort_index() (or df.sort_values('time'))."
+        )
+
+    if not index.is_unique:
+        duplicated = index[index.duplicated()]
+        examples = ", ".join(str(value) for value in duplicated[:3].tolist())
+        raise ValueError(
+            f"The time axis has {len(duplicated)} duplicate timestamps (e.g. "
+            f"{examples}). A bar that appears twice is counted twice in every "
+            "zone metric, and zone boundaries stop being addressable by time. "
+            "Drop or aggregate the duplicates first: "
+            "df[~df.index.duplicated(keep='last')]."
+        )
 
 
 def clean_ohlcv_data(
