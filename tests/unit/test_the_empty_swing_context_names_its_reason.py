@@ -168,3 +168,73 @@ def test_a_context_cannot_claim_a_reason_and_carry_points():
         )
 
     assert "degraded" in str(exc.value)
+
+
+def test_legs_without_a_pair_are_named_too():
+    """Ноги есть, пары нет — четвёртая законная пустота, и она называется (G73).
+
+    `num_swings = min(rally_count, drop_count)`: свинг — пара «импульс плюс коррекция».
+    Зона короче полного свинга даёт одностороннюю ногу, и до 2026-09-09 это выглядело так:
+    `num_swings 0`, `rally_count 1`, `avg_rally_pct 0.29 %`, `degraded None`. Читатель
+    `num_swings` заключал «структуры нет», читатель `rally_count` — обратное, а `degraded`
+    уверенно говорил «детектор отработал, движений нет».
+
+    Нашёл внешний потребитель на своей популяции (bquearch#13): у него такие зоны сидят в
+    обучающей выборке. Обещание поля — назвать **всякую** законную пустоту.
+    """
+    from bquant.analysis.zones.strategies.base import SwingMetrics
+
+    def metrics(**overrides):
+        base = dict(
+            num_swings=0, avg_rally_pct=0.0, avg_drop_pct=0.0, max_rally_pct=0.0,
+            max_drop_pct=0.0, rally_to_drop_ratio=0.0, rally_count=0, drop_count=0,
+            min_rally_pct=0.0, min_drop_pct=0.0, rally_amplitude_std=0.0,
+            drop_amplitude_std=0.0, rally_amplitude_median=0.0, drop_amplitude_median=0.0,
+            avg_rally_duration_bars=0.0, avg_drop_duration_bars=0.0,
+            max_rally_duration_bars=0, max_drop_duration_bars=0,
+            avg_rally_speed_pct_per_bar=0.0, avg_drop_speed_pct_per_bar=0.0,
+            max_rally_speed_pct_per_bar=0.0, max_drop_speed_pct_per_bar=0.0,
+            duration_symmetry=0.0, strategy_name="zigzag",
+        )
+        base.update(overrides)
+        return SwingMetrics(**base)
+
+    # Одна нога без пары — названо.
+    assert metrics(rally_count=1, avg_rally_pct=0.29).degraded == "unpaired_legs"
+    assert metrics(drop_count=1).degraded == "unpaired_legs"
+
+    # Ни одной ноги — детектор отработал, движений нет: это замер, причины нет.
+    assert metrics().degraded is None
+
+    # Пара есть — тем более.
+    assert metrics(num_swings=1, rally_count=1, drop_count=1).degraded is None
+
+    # Явно названная причина главнее выведенной: детектор не отработал вовсе.
+    assert metrics(rally_count=1, degraded="too_short").degraded == "too_short"
+
+
+def test_the_sample_carries_such_a_zone():
+    """Не выдуманный случай: на встроенном сэмпле он есть, и он один."""
+    data = get_sample_data("tv_xauusd_1h")
+    result = (
+        analyze_zones(data)
+        .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
+        .detect_zones("zero_crossing", indicator_role="line")
+        .with_strategies(swing="zigzag")
+        .with_swing_scope("per_zone")
+        .with_cache(enable=False)
+        .analyze(clustering=False)
+        .build()
+    )
+
+    unpaired = [
+        z
+        for z in result.zones
+        if ((z.features or {}).get("metadata", {}).get("swing_metrics", {}) or {}).get("degraded")
+        == "unpaired_legs"
+    ]
+    assert unpaired, "на сэмпле больше нет зоны с односторонней ногой — проверьте, почему"
+    metrics = (unpaired[0].features or {})["metadata"]["swing_metrics"]
+    assert metrics["num_swings"] == 0
+    assert metrics["rally_count"] or metrics["drop_count"]
+

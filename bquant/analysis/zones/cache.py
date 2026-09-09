@@ -109,7 +109,13 @@ class ZoneAnalysisCache:
     # v27 (G48): в адаптивном режиме `find_peaks` и `pivot_points` получают порог
     # амплитуды от масштаба зон с полом от данных вместо пресетного; результаты под
     # `with_auto_swing_thresholds(True)` меняются.
-    CACHE_VERSION = 27
+    # v28 (G74): форма payload изменилась в 0.0.16 (`swing_metrics.degraded`, G70) и в
+    # 0.0.17 — а версия не двигалась, и записи 0.0.15 продолжали отдаваться. Найдено
+    # внешним потребителем: его парный замер 0.0.15 против 0.0.16 сравнил пикл с самим
+    # собой («всё побайтово одинаково»), выдало время — 9.6 с там, где честная сборка
+    # занимает 27–48. С этой версии в ключ входит ещё и версия пакета, поэтому
+    # «забыли поднять» перестало быть возможным.
+    CACHE_VERSION = 28
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
@@ -154,6 +160,12 @@ class ZoneAnalysisCache:
 
         key_parts = [
             f"version={self.CACHE_VERSION}",
+            # Версия пакета — часть ключа, а не только payload (G74). `CACHE_VERSION`
+            # обязана подниматься, когда меняется форма результата, но это дисциплина:
+            # G70 изменил `swing_metrics`, а версию не тронули, и записи предыдущего
+            # релиза продолжали читаться. Правило вместо памяти: другой пакет — другой
+            # ключ. Цена — один пересчёт после обновления.
+            f"bquant={__version__}",
             f"data={data_hash}",
             f"config={hashlib.sha256(config_signature.encode()).hexdigest()}",
             f"swing={hashlib.sha256(swing_signature.encode()).hexdigest()}",

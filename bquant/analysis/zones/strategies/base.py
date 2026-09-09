@@ -147,7 +147,30 @@ class SwingMetrics:
     #: ``'degenerate'``, ``'detector_unavailable'``. ``None`` — детектор отработал,
     #: и ноль свингов это результат замера, а не молчание (G70).
     degraded: Optional[str] = None
-    
+
+    def __post_init__(self):
+        """Ноги есть, пары нет — это тоже причина, и она называется (G73).
+
+        `num_swings = min(rally_count, drop_count)`: свинг — пара «импульс плюс
+        коррекция». Зона короче полного свинга даёт одностороннюю ногу, и тогда
+        `num_swings = 0` при `rally_count = 1` и непустой `avg_rally_pct`. Читатель
+        `num_swings` видит «структуры нет», читатель `rally_count` — обратное, а
+        `degraded = None` уверенно говорит «детектор отработал, движений нет».
+
+        Замер на встроенном сэмпле (`tv_xauusd_1h`, `per_zone`): зона 14 на 9 баров —
+        `num_swings 0`, `rally_count 1`, `avg_rally_pct 0.29 %`, `degraded None`.
+
+        Найдено внешним потребителем на его популяции (bquearch#13). Обещание поля —
+        назвать **всякую** законную пустоту; этот случай в него не попадал, а выглядел
+        попавшим. Явно названная причина сюда не подставляется: она главнее.
+        """
+        if (
+            self.degraded is None
+            and self.num_swings == 0
+            and (self.rally_count or self.drop_count)
+        ):
+            self.degraded = "unpaired_legs"
+
     def validate(self):
         """Проверить, что метрики не противоречат своему определению."""
 
