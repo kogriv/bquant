@@ -335,6 +335,14 @@ else:
     print('выброшены как пустые:', model['metadata']['empty_predictors'])
 ```
 
+**Регрессия сообщает три состояния, а не два** — `result.metadata['regression']`:
+`{'status': 'not_requested'}`, `{'status': 'executed'}` или
+`{'status': 'skipped', 'reason': …, 'zones_measured': …, 'zones_required': 11}`. Третье
+появилось в G71: до него шаг при десяти зонах и меньше молча пропускался, и
+`regression_performed: False` был неотличим от выключенного флага — та же форма, которую
+G55 убрал у валидации. Флаг `regression_performed` остался и отвечает на свой вопрос
+(«посчиталось ли»), но на вопрос «просили ли» отвечает только блок `regression`.
+
 **Тесты гипотез** отказываются так же: у теста, которому не хватило данных или словаря
 типов, вместо `p_value` лежит `error` с причиной. Для собственного словаря типов
 (`strong`/`weak` и т.п.) это норма: `contrast_asymmetry` и `correlation_drawdown` требуют

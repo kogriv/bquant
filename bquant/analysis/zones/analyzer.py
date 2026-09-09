@@ -244,8 +244,36 @@ class UniversalZoneAnalyzer:
             self.logger.info(f"Performed clustering: {n_clusters} clusters")
         
         # 6. Регрессия (опционально)
+        #
+        # Статус — три состояния, как у валидации после G55: «не просили»,
+        # «посчитано» и «просили, но не считалось, вот почему». До G71 их было
+        # два: при десяти зонах и меньше шаг молча пропускался, и
+        # `regression_performed: False` был неотличим от выключенного флага —
+        # ровно та форма, которую G55 убрал у соседа (AQ-009).
         regression_results = None
-        if run_regression and self.regression and len(zones_features) > 10:
+        regression_status: Dict[str, Any] = {'status': 'not_requested'}
+        minimum_zones = 11
+        if run_regression and self.regression is None:
+            regression_status = {
+                'status': 'skipped',
+                'reason': 'no regression analyzer is injected into UniversalZoneAnalyzer',
+            }
+        elif run_regression and len(zones_features) < minimum_zones:
+            regression_status = {
+                'status': 'skipped',
+                'reason': (
+                    f'{len(zones_features)} zones measured, at least {minimum_zones} are '
+                    f'needed to fit the models'
+                ),
+                'zones_measured': len(zones_features),
+                'zones_required': minimum_zones,
+            }
+            self.logger.info(
+                "Regression requested but skipped: %d zones, %d needed",
+                len(zones_features),
+                minimum_zones,
+            )
+        if run_regression and self.regression and len(zones_features) >= minimum_zones:
             # Регрессия — необязательный шаг, и её отказ не повод убивать весь
             # анализ: остальные разделы результата от неё не зависят. Но и молчать
             # нельзя — иначе `regression_results is None` неотличимо от «не
@@ -263,6 +291,7 @@ class UniversalZoneAnalyzer:
                 except Exception as e:
                     self.logger.warning("Regression '%s' could not be fitted: %s", key, e)
                     regression_results[key] = {'error': str(e)}
+            regression_status = {'status': 'executed'}
             self.logger.info("Performed regression analysis")
         
         # 7. Валидация здесь не выполняется — и не принимается. Анализатор получает
@@ -280,6 +309,9 @@ class UniversalZoneAnalyzer:
             'zone_types': list(set(z.type for z in zones)),
             'clustering_performed': clustering is not None,
             'regression_performed': regression_results is not None,
+            # Флаг выше отвечает «посчиталось ли», и на вопрос «просили ли»
+            # ответить не может; блок ниже отвечает на оба (G71).
+            'regression': regression_status,
             # Что именно попало в агрегаты, а что осталось только в `zones`.
             'duration_filter': {**duration_filter, 'zones_unmeasured': unmeasured},
         }
