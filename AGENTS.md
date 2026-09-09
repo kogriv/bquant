@@ -173,6 +173,14 @@ All examples and tests should use embedded sample data from `bquant.data.samples
 Every guard test written for a gap record is **mutation-verified**: revert the fix and the
 test must go red. A test that passes on the defect is not a test (`devref/gaps/`).
 
+Invariants declared in the models are additionally checked on **generated** inputs:
+`tests/unit/test_invariants_hold_on_generated_data.py` builds valid OHLCV frames with
+`hypothesis` (a `dev` extra, never a runtime dependency) — varying length, volatility,
+flat stretches, gaps, timeframe and timezone — and asserts the rules that already exist,
+not new ones. The default budget is small so the suite does not double; the wide search
+is marked `slow` and belongs to the release gate. The generator itself carries a positive
+control: rules checked over frames without a single zone are not checked at all.
+
 ### Performance Tests
 Include performance validation in tests, especially for indicator calculations and data processing.
 
