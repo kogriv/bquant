@@ -817,18 +817,6 @@ class ValidationSuite:
 
         return synthetic
 
-    def _validate_result(self, result: ModelValidationResult) -> bool:
-        """
-        Validate that result meets success criteria.
-
-        Args:
-            result: ModelValidationResult to check
-
-        Returns:
-            True if validation successful
-        """
-        return result.success
-
 
 # Export
 __all__ = [

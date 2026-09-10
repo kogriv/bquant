@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Удалено:** `ValidationSuite._validate_result()` — приватный метод в одну строку
+(`return result.success`) без единого вызывающего. Найден отчётом `dead-code` по свежему
+графу зависимостей; публичной поверхности не касается.
+
 ## [0.0.18] - 2026-09-09
 
 Оба исправления этого релиза **нашёл внешний потребитель** — и нашёл, проверяя наше же
