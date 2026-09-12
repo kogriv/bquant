@@ -11,8 +11,8 @@
 | `clean_ohlcv_data(df, fill_method='forward', remove_outliers=True, outlier_threshold=3.0)` | заполняет пропуски, снимает выбросы |
 | `remove_price_outliers(df, columns=None, threshold=3.0, method='z_score')` | только выбросы; `method` — `'z_score'` или `'iqr'`; маска строится по исходному кадру, колонка без разброса выбросов не даёт, `NaN` — не выброс |
 | `calculate_derived_indicators(df)` | одиннадцать величин из самих цен |
-| `resample_ohlcv(df, target_timeframe, method='standard')` | меняет таймфрейм |
-| `normalize_prices(df, base_column='close', method='first_value')` | нормирует цены |
+| `resample_ohlcv(df, target_timeframe)` | меняет таймфрейм |
+| `normalize_prices(df, base_column='close', method='first_value')` | нормирует цены; `base_column` действует **только** при `method='first_value'` — `'percentage_change'` и `'z_score'` нормируют каждую колонку по ней самой и базу только проверяют на существование (G79) |
 | `detect_market_sessions(df, timezone='UTC')` | размечает торговые сессии; `london_ny_overlap` — булева колонка без пропусков |
 | `add_technical_features(df)` | семнадцать технических признаков |
 | `create_lagged_features(df, columns, lags)` | лаги указанных колонок |

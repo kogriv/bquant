@@ -351,7 +351,6 @@ def calculate_derived_indicators(df: pd.DataFrame) -> pd.DataFrame:
 def resample_ohlcv(
     df: pd.DataFrame, 
     target_timeframe: str,
-    method: str = 'standard'
 ) -> pd.DataFrame:
     """
     Resample OHLCV data to different timeframe.
@@ -362,7 +361,6 @@ def resample_ohlcv(
             '1h', '1d', '1w', '1M') or a pandas offset alias ('5min', 'D', 'ME').
             Project strings are translated before they reach pandas: '5m' is five
             minutes here, not five months.
-        method: Resampling method ('standard', 'custom')
     
     Returns:
         Resampled DataFrame
@@ -406,7 +404,7 @@ def resample_ohlcv(
     except Exception as e:
         raise DataProcessingError(
             f"Failed to resample data to {target_timeframe}: {e}",
-            {'target_timeframe': target_timeframe, 'method': method}
+            {'target_timeframe': target_timeframe}
         )
 
 
@@ -420,8 +418,13 @@ def normalize_prices(
     
     Args:
         df: DataFrame with price data
-        base_column: Column to use as base for normalization
-        method: Normalization method ('first_value', 'percentage_change', 'z_score')
+        base_column: База нормировки — **действует только при
+            ``method='first_value'``**, где все цены делятся на первое значение
+            этой колонки. ``'percentage_change'`` и ``'z_score'`` нормируют каждую
+            колонку по ней самой, и ``base_column`` там только проверяется на
+            существование, ни на что не влияя (G79)
+        method: Normalization method ('first_value', 'percentage_change', 'z_score');
+            иное значение — ``ValueError``, а не тихий откат к умолчанию
     
     Returns:
         DataFrame with normalized prices

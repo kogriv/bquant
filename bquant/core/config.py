@@ -328,12 +328,28 @@ def get_data_path(symbol: str, timeframe: str, data_source: str = 'tradingview',
     else:
         mapped_timeframe = timeframe
     
-    # Get file pattern for the data source and quote provider
-    source_patterns = DATA_FILE_PATTERNS.get(data_source, DATA_FILE_PATTERNS['generic'])
-    
+    # Get file pattern for the data source and quote provider.
+    #
+    # Both used to fall back silently (`.get(x, default)`): an unknown source
+    # returned the *generic* path and an unknown provider returned OANDA's, so a
+    # typo in `quote_provider='forexcom'` handed back a path to somebody else's
+    # file with no word said. `timeframe` two lines above refuses loudly; these
+    # two now do the same (G77).
+    if data_source not in DATA_FILE_PATTERNS:
+        raise ValueError(
+            f"Unknown data source: {data_source}. "
+            f"Supported: {sorted(DATA_FILE_PATTERNS)}"
+        )
+    source_patterns = DATA_FILE_PATTERNS[data_source]
+
     if isinstance(source_patterns, dict):
         # New format with quote providers
-        pattern = source_patterns.get(quote_provider, source_patterns.get('default', source_patterns))
+        if quote_provider not in source_patterns:
+            raise ValueError(
+                f"Unknown quote provider for {data_source}: {quote_provider}. "
+                f"Supported: {sorted(source_patterns)}"
+            )
+        pattern = source_patterns[quote_provider]
     else:
         # Legacy format (backward compatibility)
         pattern = source_patterns

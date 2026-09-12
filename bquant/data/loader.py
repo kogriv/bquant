@@ -200,9 +200,17 @@ def load_ohlcv_data(
         DataFrame with OHLCV data
         
     Raises:
+        ValueError: If `timeframe` is given and is not a supported project timeframe
         DataLoadingError: If file cannot be loaded
         DataValidationError: If data validation fails
     """
+    # Outside the try on purpose. The refusal used to be caught here and written
+    # to the log as a warning, so `timeframe='not_a_tf'` loaded happily and the
+    # caller learned nothing; moving it inside the try would only relabel the
+    # refusal as a loading failure, which it is not — the file is fine (G77).
+    if timeframe:
+        timeframe = validate_timeframe(timeframe)
+
     try:
         file_path = Path(file_path)
         context = {'symbol': symbol, 'timeframe': timeframe} if symbol and timeframe else None
@@ -210,12 +218,6 @@ def load_ohlcv_data(
         
         logger_with_context.info(f"Loading data from: {file_path}")
         
-        # Validate timeframe if provided
-        if timeframe:
-            try:
-                timeframe = validate_timeframe(timeframe)
-            except ValueError as e:
-                logger_with_context.warning(f"Timeframe validation warning: {e}")
         
         # Check if file exists
         if not file_path.exists():

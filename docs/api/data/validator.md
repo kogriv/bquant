@@ -8,7 +8,14 @@
 | `validate_ohlcv_data(df, strict=True)` | пригодны ли данные в целом | `is_valid` |
 | `validate_data_completeness(df, required_columns=None, min_rows=None)` | всё ли на месте | `is_complete` |
 | `validate_price_consistency(df)` | не противоречат ли цены друг другу | `is_consistent` |
-| `validate_time_series_continuity(df, expected_frequency=None)` | нет ли дыр во времени | `is_continuous` |
+| `validate_time_series_continuity(df, expected_frequency=None)` | нет ли дыр во времени | `is_continuous`, `gap_basis` |
+
+Без `expected_frequency` сетка берётся по **медианному шагу самого индекса**, и `gap_basis`
+говорит, чем мерили: `'expected_frequency'`, `'inferred_spacing'` или `None` — «не мерили»
+(шага не из чего вывести). До 2026-09-12 разрывы считались **только** при переданной частоте,
+а иначе ответ был `is_continuous: True` без единой проверки — на встроенном часовом сэмпле, где
+482 пропущенных метки (G78).
+
 | `validate_statistical_properties(df)` | как распределены значения | — |
 
 ## Общая проверка

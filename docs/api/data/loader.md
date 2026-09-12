@@ -7,7 +7,7 @@
 
 | Сигнатура | Что делает |
 |---|---|
-| `load_ohlcv_data(file_path, symbol=None, timeframe=None, validate_data=True)` | читает один файл |
+| `load_ohlcv_data(file_path, symbol=None, timeframe=None, validate_data=True)` | читает один файл; `symbol` подписывает только логи, `timeframe` — проверяется: неподдерживаемое значение даёт `ValueError` со списком допустимых, а не предупреждение в логе (G77) |
 | `load_symbol_data(symbol, timeframe, data_source='tradingview', quote_provider='default')` | находит файл по конфигурации и читает его |
 | `load_xauusd_data(timeframe='1h')` | то же для XAUUSD |
 | `load_all_data_files(data_dir=None)` | читает все CSV каталога |

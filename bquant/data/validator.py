@@ -237,7 +237,10 @@ def validate_time_series_continuity(
     Args:
         df: DataFrame with datetime index
         expected_frequency: Expected bar spacing in the project convention
-            ('15m', '1h', '1d') or as a pandas offset alias ('15min', 'D')
+            ('15m', '1h', '1d') or as a pandas offset alias ('15min', 'D').
+            Если не передана, сетка берётся по **медианному шагу самого индекса**,
+            и `gap_basis` в ответе говорит, чем мерили. Не передать частоту больше
+            не значит получить `is_continuous: True` без проверки (G78)
     
     Returns:
         Validation results dictionary
@@ -245,6 +248,12 @@ def validate_time_series_continuity(
     results = {
         'is_continuous': True,
         'detected_frequency': None,
+        # Чем мерили разрывы: 'expected_frequency' — по переданной сетке,
+        # 'inferred_spacing' — по медианному шагу самого индекса, None — не мерили.
+        # Раньше поля не было, а разрывы считались ТОЛЬКО при переданной частоте:
+        # на кадре с сорока четырьмя выходными разрывами функция отвечала
+        # `is_continuous: True`, ни разу не посмотрев (G78).
+        'gap_basis': None,
         'gaps': [],
         'duplicates': [],
         'irregular_intervals': [],
@@ -274,12 +283,31 @@ def validate_time_series_continuity(
         results['duplicates'] = df.index[duplicate_indices].tolist()
         results['recommendations'].append(f"Remove {duplicate_indices.sum()} duplicate timestamps")
     
-    # Check for gaps
+    # Check for gaps.
+    #
+    # Without `expected_frequency` there is still a grid to check against — the
+    # median spacing of the index itself. Reporting `is_continuous: True` because
+    # nobody passed a frequency is an answer that looks like a result.
+    grid_freq = None
     if expected_frequency:
+        grid_freq = pandas_offset_alias(expected_frequency)
+        results['gap_basis'] = 'expected_frequency'
+    else:
+        spacing = df.index.to_series().diff().median()
+        if pd.notna(spacing) and spacing > pd.Timedelta(0):
+            grid_freq = spacing
+            results['gap_basis'] = 'inferred_spacing'
+        else:
+            results['recommendations'].append(
+                "Continuity not tested: no expected_frequency given and the median "
+                "spacing of the index could not be inferred"
+            )
+
+    if grid_freq is not None:
         expected_index = pd.date_range(
             start=df.index.min(),
             end=df.index.max(),
-            freq=pandas_offset_alias(expected_frequency)
+            freq=grid_freq
         )
         missing_timestamps = expected_index.difference(df.index)
         if len(missing_timestamps) > 0:
