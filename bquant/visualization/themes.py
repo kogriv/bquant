@@ -19,16 +19,35 @@ logger = get_logger(__name__)
 # Проверка доступности библиотек
 try:
     import plotly.graph_objects as go
-    import plotly.io as pio
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
     logger.warning("Plotly not available - themes functionality will be limited")
 
+
+def _plotly_io():
+    """``plotly.io`` on first request, or ``None``.
+
+    Imported eagerly it pulls the renderer registry, which pulls ``nbformat`` and
+    ``jsonschema`` — 1.17 s measured, paid by every import of the visualization package.
+    It is needed only when a theme is actually applied, which is a call, not an import.
+    """
+    global _PIO
+    if _PIO is _UNSET:
+        try:
+            import plotly.io as pio
+            _PIO = pio
+        except ImportError:
+            _PIO = None
+    return _PIO
+
+
+_UNSET = object()
+_PIO = None if not PLOTLY_AVAILABLE else _UNSET
+
 try:
     import matplotlib.pyplot as plt
     import matplotlib.style as mplstyle
-    import seaborn as sns
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
@@ -142,6 +161,7 @@ class ChartThemes:
         # Plotly
         if PLOTLY_AVAILABLE:
             try:
+                pio = _plotly_io()
                 plotly_template = self._create_plotly_template(theme_config)
                 pio.templates['bquant_custom'] = plotly_template
                 pio.templates.default = 'bquant_custom'

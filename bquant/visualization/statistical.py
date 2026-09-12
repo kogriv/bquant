@@ -28,7 +28,6 @@ try:
     import plotly.subplots as sp
     from plotly.subplots import make_subplots
     import plotly.express as px
-    import plotly.figure_factory as ff
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
@@ -36,12 +35,37 @@ except ImportError:
 
 try:
     import matplotlib.pyplot as plt
-    import seaborn as sns
     from scipy import stats
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-    logger.warning("Matplotlib/Seaborn not available - statistical plots will be limited")
+    logger.warning("Matplotlib not available - statistical plots will be limited")
+
+
+def _seaborn():
+    """Seaborn on first request, or ``None``.
+
+    It used to be imported at module load in five modules and called in two, both here.
+    Same rule as G64 for the indicator libraries: load on first request, never at import.
+
+    The flag it hid behind was ``MATPLOTLIB_AVAILABLE``, raised only when matplotlib
+    **and** seaborn both imported — a name that promised one thing and meant another, so a
+    missing seaborn read as a missing matplotlib and switched off matplotlib drawing
+    entirely. They are separate questions now.
+    """
+    global _SEABORN
+    if _SEABORN is _UNSET:
+        try:
+            import seaborn as sns
+            _SEABORN = sns
+        except ImportError:
+            logger.info("Seaborn not available - falling back to plain matplotlib drawing")
+            _SEABORN = None
+    return _SEABORN
+
+
+_UNSET = object()
+_SEABORN = _UNSET
 
 
 class StatisticalPlots:
@@ -729,7 +753,8 @@ class StatisticalPlots:
         
         fig, ax = plt.subplots(figsize=(10, 8))
         
-        if MATPLOTLIB_AVAILABLE:
+        sns = _seaborn()
+        if sns is not None:
             sns.heatmap(corr_matrix, annot=True, cmap='RdBu', center=0, 
                        square=True, ax=ax, cbar_kws={"shrink": .8})
         else:
@@ -781,7 +806,8 @@ class StatisticalPlots:
         fig, ax = plt.subplots(figsize=(10, 6))
         
         if x_column and x_column in data.columns:
-            if MATPLOTLIB_AVAILABLE:
+            sns = _seaborn()
+            if sns is not None:
                 sns.boxplot(data=data, x=x_column, y=y_column, ax=ax)
             else:
                 # Простая реализация без seaborn

@@ -34,7 +34,6 @@ except ImportError:
 try:
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    import seaborn as sns
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False

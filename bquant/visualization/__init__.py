@@ -41,7 +41,6 @@ except ImportError:
 try:
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    import seaborn as sns
     _plotting_libraries['matplotlib'] = True
     logger.debug("Matplotlib/Seaborn libraries available")
 except ImportError:
