@@ -15,10 +15,23 @@
 seed фиксирован, поэтому красный тест воспроизводится.
 
 Бюджет: по умолчанию мало примеров, чтобы сьют не удлинялся вдвое; широкий поиск — под
-меткой `slow`, его зовёт релизный гейт.
+меткой `slow`, его зовёт релизный гейт и недельный прогон на свежем разрешении.
+
+**Про воспроизводимость — раздельно, потому что это два разных режима.** У бюджета по
+умолчанию `derandomize=True`: набор примеров один и тот же, красное воспроизводится. У
+широкого поиска `derandomize=False` намеренно — он затем и широкий, чтобы каждый прогон
+пробовал новые формы. Цена в том, что его находка **не воспроизводится повторным запуском**,
+и если процесс умирает жёстко (а он умеет: `pandas-ta` уводит интерпретатор в abort изнутри
+скомпилированного кода, и `except Exception` такого не ловит), вместе с процессом погибает и
+контрпример. Поэтому широкий поиск **выгружает каждый пробуемый кадр на диск** до проверки —
+см. `_record_wide_example`. Разбор: `devref/gaps/validation/g82_…`.
+
 
 Разбор и рамка: `devref/architecture/property_based_invariants_backlog_2026-09.md`.
 """
+
+import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -43,6 +56,27 @@ WIDE = settings(
     derandomize=False,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large],
 )
+
+
+def _record_wide_example(frame):
+    """Записать пробуемый кадр на диск до проверки — иначе жёсткая смерть не оставит следа.
+
+    Файл перезаписывается на каждом примере: нужен **последний**, тот, на котором процесс
+    умер. Запись идёт в файл, а не в `print`, потому что захваченный pytest'ом вывод при
+    `abort()` теряется вместе с процессом; и с `flush`, потому что буфер тоже.
+
+    Путь берётся из `BQUANT_WIDE_EXAMPLE_DUMP`, чтобы CI выгрузил его как артефакт.
+    Без переменной запись не делается: в обычном локальном прогоне мусор в дереве не нужен.
+    """
+    target = os.environ.get("BQUANT_WIDE_EXAMPLE_DUMP")
+    if not target:
+        return
+    path = Path(target)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        frame.to_csv(fh)
+        fh.flush()
+        os.fsync(fh.fileno())
 
 
 def build_frame(n, start_price, volatility, flat_from, freq, timezone, drop_share, seed):
@@ -252,7 +286,8 @@ def test_the_zone_model_rejects_numbers_that_contradict_each_other(start, length
 @given(frame=ohlcv_frames())
 @WIDE
 def test_zone_invariants_hold_on_a_wide_search(frame):
-    """Широкий поиск: тот же предмет, больше форм. Зовётся релизным гейтом."""
+    """Широкий поиск: тот же предмет, больше форм. Зовётся гейтом и недельным прогоном."""
+    _record_wide_example(frame)
     _check_zone_invariants(_run(frame), frame)
 
 
