@@ -1,0 +1,134 @@
+# Недельный прогон на свежем разрешении зависимостей.
+#
+# Зачем именно такая форма, а не матрица на каждый пуш. У проекта один разработчик и нет
+# внешних контрибьюторов; релизный гейт (чистый клон, два плеча pandas, батарея из 36
+# скриптов, контракт архитектуры, установочная проверка из нейтрального каталога) строже
+# типичного CI. Матрица на пуш почти целиком дублировала бы его и добавляла задержку.
+#
+# Чего гейт НЕ ловит и ловит этот прогон: дрейф внешних зависимостей. Гейт идёт только
+# перед релизом, поэтому «pandas выпустил версию, на которой мы краснеем» становилось
+# видно в день выпуска — так был найден G50. Здесь установка идёт БЕЗ лок-файла, свежим
+# разрешением, и окно незнания сокращается с «до следующего релиза» до семи дней.
+#
+# Этот прогон не заменяет гейт и не является условием релиза.
+
+name: weekly fresh resolution
+
+on:
+  schedule:
+    # Понедельник, 04:17 UTC. Минута не круглая намеренно: в :00 у GitHub пик очереди.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    name: ${{ matrix.arm }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Плечи независимы: падение одного не должно скрывать результат другого.
+      fail-fast: false
+      matrix:
+        include:
+          - arm: pandas-3
+            spec: "pandas>=3.0,<4"
+            major: "3"
+          - arm: pandas-2
+            spec: "pandas>=2.3,<3"
+            major: "2"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          # Нижняя граница `requires-python` — то, что обещано в метаданных и чего не
+          # покрывает ни одна локальная машина (там 3.13). Обещание проверяется здесь.
+          python-version: "3.12"
+
+      - name: uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Установка свежим разрешением (без лок-файла)
+        run: uv pip install --system -e ".[dev]" "${{ matrix.spec }}"
+
+      - name: Что именно разрешилось
+        # Зелёный прогон без этого шага говорит «что-то прошло». Состав обязан попасть в лог,
+        # иначе по нему нельзя ответить, на чём именно было зелено.
+        run: |
+          uv pip list
+          python - <<'PY'
+          import importlib.metadata as md
+          for name in ("pandas", "numpy", "scipy", "plotly", "matplotlib",
+                       "pandas-ta", "hypothesis", "pytest"):
+              try:
+                  print(f"{name:12s} {md.version(name)}")
+              except md.PackageNotFoundError:
+                  print(f"{name:12s} ОТСУТСТВУЕТ")
+          PY
+
+      - name: Положительный контроль
+        # Шаг, который ничего не сделал, обязан валить прогон, а не молчать. Ровно на этом
+        # 2026-09-12 дважды поймался сам релизный гейт: досыпка зависимостей звала pip,
+        # которого в окружении нет, и молча ничего не делала; проверка пересборки звала
+        # несуществующую подкоманду и печатала в лог текст ошибки, читавшийся как результат.
+        env:
+          EXPECTED_MAJOR: ${{ matrix.major }}
+        run: |
+          python - <<'PY'
+          import os, re, subprocess, sys
+
+          failures = []
+
+          # 1. Плечо обязано быть тем, чем названо. Иначе оба задания проверяют одно и то же.
+          import pandas
+          major = pandas.__version__.split(".")[0]
+          expected = os.environ["EXPECTED_MAJOR"]
+          if major != expected:
+              failures.append(f"плечо {expected}, а установлена pandas {pandas.__version__}")
+
+          # 2. Генератор входов обязан быть на месте: `test_invariants_hold_on_generated_data`
+          #    импортирует hypothesis на верхнем уровне, без него это ошибка сбора.
+          try:
+              import hypothesis  # noqa: F401
+          except ImportError:
+              failures.append("hypothesis не установлен — инварианты не проверятся")
+
+          # 3. Сьют обязан собраться целиком. Прогон, собравший двенадцать тестов,
+          #    не имеет права быть зелёным.
+          out = subprocess.run([sys.executable, "-m", "pytest", "tests", "-q", "--collect-only"],
+                               capture_output=True, text=True)
+          # Номер стоит ВТОРЫМ токеном строки вида
+          # `====== 3676 tests collected in 3.00s ======` — разбор по первому токену давал
+          # пустую строку и падал на int(). Поймано локальным прогоном этого же шага.
+          found = re.search(r"(\d+)\s+tests? collected", out.stdout)
+          collected = int(found.group(1)) if found else 0
+          if out.returncode != 0:
+              failures.append(f"сбор тестов вернул код {out.returncode}")
+          FLOOR = 3600  # на 2026-09-12 собиралось 3676; порог только снизу, поднимать не нужно
+          if collected < FLOOR:
+              failures.append(f"собрано {collected} тестов, порог {FLOOR}")
+          print(f"собрано тестов: {collected}")
+
+          if failures:
+              print("\nПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ НЕ ПРОЙДЕН:")
+              for f in failures:
+                  print(" -", f)
+              sys.exit(1)
+          print("положительный контроль: пройден")
+          PY
+
+      - name: Сьют
+        env:
+          # Без бэкенда headless-машина падает на построении фигур — ловушка, описанная
+          # в гейте и повторённая здесь как свойство окружения, а не как надежда.
+          MPLBACKEND: Agg
+        run: python -m pytest tests -q
+
+      - name: Контракт слоёв
+        # `codemap check` сюда не берётся намеренно: те же правила держит ast-сторож в сьюте,
+        # а лишний внешний инструмент в недельном прогоне — лишний источник красного не по делу.
+        run: python -m pytest tests/unit/test_layers_point_one_way.py -q
