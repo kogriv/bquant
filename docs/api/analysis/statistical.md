@@ -9,7 +9,9 @@
 ## Основные классы и функции
 
 - `StatisticalAnalyzer(config=None)`
-  - `descriptive_statistics(series, name='data') -> Dict`
+  - `descriptive_statistics(series, name='data') -> Dict` — `name` подписывает **только**
+    отладочную строку в логе: в результате его нет и быть не может, тип возврата
+    `Dict[str, float]`
   - `normality_test(series, alpha=None) -> Dict` — `shapiro` (до 5000 точек), `lilliefors` (KS с поправкой на оценённые по выборке параметры), `anderson_darling` с критическим значением **для переданного `alpha`** (доступны 0.15, 0.10, 0.05, 0.025, 0.01; иное — `ValueError`). До 2026-09-05 здесь стоял KS без поправки, принимавший равномерную выборку, и Андерсон всегда по 5 % (G63)
   - `correlation_analysis(x, y, methods=None) -> Dict`
   - `t_test(sample1, sample2=None, mu=0, alternative='two-sided') -> Dict`
@@ -315,8 +317,14 @@ for name, message in summary['failed_tests'].items():
 ```python
 from bquant.analysis.statistical import ZoneRegressionAnalyzer
 
-regressor = ZoneRegressionAnalyzer()
+regressor = ZoneRegressionAnalyzer()          # alpha=0.05 по умолчанию
 ```
+
+`alpha` конструктора решает, какие предикторы результат объявит значимыми: значение попадает
+в `metadata['alpha']`, а список — в `metadata['significant_predictors']` каждой подогнанной
+модели. Сами p-value от `alpha` не зависят. До 2026-09-12 этот параметр решал только, писать
+ли строку в лог: вердикт считался и выбрасывался, и два анализатора с разными уровнями
+значимости возвращали одинаковый результат (G76).
 
 **Регрессия объясняющая, не прогнозная.** Предикторы измерены по всей завершённой зоне —
 длительность, просадка от пика (содержит цену конца), число пиков, наклон осциллятора, — а

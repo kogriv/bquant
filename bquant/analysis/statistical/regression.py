@@ -165,7 +165,10 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
         Initialize the regression analyzer.
         
         Args:
-            alpha: Significance level for statistical tests
+            alpha: Significance level. Decides which predictors the result reports
+                as significant: it lands in ``metadata['alpha']`` and drives
+                ``metadata['significant_predictors']`` of every fitted model (G76).
+                The p-values themselves do not depend on it
         """
         super().__init__("ZoneRegressionAnalyzer")
         self.alpha = alpha
@@ -326,7 +329,12 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
                 f"p={result.n_predictors}"
             )
             
+            # `self.alpha` decided a log line and nothing else until G76: the
+            # verdict it produced was computed and thrown away, so two analyzers
+            # built with different significance levels returned identical results.
             significant_predictors = result.get_significant_predictors(self.alpha)
+            result.metadata['alpha'] = self.alpha
+            result.metadata['significant_predictors'] = significant_predictors
             if significant_predictors:
                 self.logger.info(f"Significant predictors: {list(significant_predictors.keys())}")
             
@@ -495,7 +503,12 @@ class ZoneRegressionAnalyzer(BaseAnalyzer):
                 f"p={result.n_predictors}"
             )
             
+            # `self.alpha` decided a log line and nothing else until G76: the
+            # verdict it produced was computed and thrown away, so two analyzers
+            # built with different significance levels returned identical results.
             significant_predictors = result.get_significant_predictors(self.alpha)
+            result.metadata['alpha'] = self.alpha
+            result.metadata['significant_predictors'] = significant_predictors
             if significant_predictors:
                 self.logger.info(f"Significant predictors: {list(significant_predictors.keys())}")
             
