@@ -125,8 +125,19 @@ support it; `research/` and `scripts/` hold notebook-style studies and automatio
 ## Status
 
 Beta. The public API changes between releases without deprecation windows — renames are
-carried through in one change, and `CHANGELOG.md` records every breaking change with its
-replacement. Pin an exact version if you need stability.
+carried through in one change. **Pin an exact version:** `bquant>=0.0.18,<0.0.19`.
+
+Breaking changes ship in the patch number, and the dangerous ones do not raise: when a
+defect in a calculation is fixed, nothing fails to import — your numbers change, and the
+old ones were wrong. Every breaking change is marked in [CHANGELOG.md](CHANGELOG.md) on a
+line naming its replacement, so one command lists them:
+
+```bash
+grep -nE "Ломает:|\(breaking\)" CHANGELOG.md
+```
+
+The full policy — what counts as breaking here, how to move a pin, what the project does
+**not** promise — is [docs/versioning.md](docs/versioning.md).
 
 Not in the package: machine learning. The `bquant.ml` placeholder was removed in 0.0.7
 because both of its public functions only ever raised `NotImplementedError`.

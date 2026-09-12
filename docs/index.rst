@@ -58,6 +58,12 @@ BQuant — инструментарий количественного иссл�
    user_guide/swing_strategies
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Версии и совместимость
+
+   versioning
+
+.. toctree::
    :maxdepth: 2
    :caption: Tutorials
    
