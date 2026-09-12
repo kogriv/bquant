@@ -2,7 +2,7 @@
 # The same rules are enforced without codemap by tests/unit/test_layers_point_one_way.py.
 [architecture]
 # Ordered top → bottom. A layer may import only layers below it.
-layers = ["cli", "visualization", "analysis", "indicators", "data", "core"]
+layers = ["__main__", "cli", "visualization", "analysis", "indicators", "data", "core"]
 
 # Hard bans regardless of layering (the two edges G64 removed).
 forbidden = [

@@ -21,6 +21,7 @@ import pandas as pd
 import pytest
 
 from bquant.core.config import get_data_path
+from bquant.core.exceptions import ConfigurationError, InvalidTimeframeError
 from bquant.data.loader import load_ohlcv_data
 from bquant.data.processor import normalize_prices, resample_ohlcv, resolve_time_index
 from bquant.data.samples import get_sample_data
@@ -50,7 +51,7 @@ def test_a_known_quote_provider_changes_the_path():
     ],
 )
 def test_an_unknown_path_argument_is_refused_and_names_the_options(kwargs, word):
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ConfigurationError) as excinfo:
         get_data_path("XAUUSD", "1h", **kwargs)
     message = str(excinfo.value)
     assert word in message.lower()
@@ -63,7 +64,7 @@ def test_an_invalid_timeframe_is_refused_by_the_loader(tmp_path, hourly):
 
     assert load_ohlcv_data(str(csv), timeframe="1h").shape[0] > 0  # control
 
-    with pytest.raises(ValueError, match="Unsupported timeframe"):
+    with pytest.raises(InvalidTimeframeError, match="Unsupported timeframe"):
         load_ohlcv_data(str(csv), timeframe="not_a_timeframe")
 
 

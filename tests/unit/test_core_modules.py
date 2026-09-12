@@ -5,6 +5,8 @@ Tests for BQuant core modules (Steps 1.2-1.3)
 """
 
 import pytest
+
+from bquant.core.exceptions import ConfigurationError, InvalidTimeframeError
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -307,12 +309,12 @@ def test_data_path_takes_the_universal_timeframe_not_the_providers():
     assert get_data_path('XAUUSD', '1h', 'tradingview').name == 'OANDA_XAUUSD, 60.csv'
 
     # Имя чужого словаря сюда попасть не должно, и проверка снова это ловит.
-    # (`validate_timeframe` бросает голый `ValueError`, а не `ConfigurationError`
-    # из иерархии `bquant.core.exceptions`, вопреки правилу AGENTS.md. Здесь
-    # закрепляется поведение как есть; смена типа исключения — отдельная правка,
-    # ломающая `except ValueError` у вызывающих.)
+    # С 2026-09-12 это `InvalidTimeframeError` из `bquant.core.exceptions`, а не голый
+    # `ValueError`: правило AGENTS.md об иерархии исключений было нарушено этим модулем
+    # с самого начала. Прежний `except ValueError` у вызывающих такой отказ больше не
+    # ловит — это ломающая правка, названная в CHANGELOG.
     for providers_name in ('H1', 'M15', 'Daily', '60'):
-        with pytest.raises(ValueError, match="Unsupported timeframe"):
+        with pytest.raises(InvalidTimeframeError, match="Unsupported timeframe"):
             get_data_path('XAUUSD', providers_name, 'metatrader')
 
     # И тот же путь через публичную функцию загрузки: она обязана дойти до

@@ -8,6 +8,11 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+# `exceptions` не импортирует ничего из пакета, поэтому цикла здесь нет и быть не может.
+# До 2026-09-12 этот модуль поднимал голый `ValueError` против правила AGENTS.md об
+# иерархии исключений — пункт §4 бэклога P2-A, отложенный с 28.08.
+from .exceptions import ConfigurationError, InvalidTimeframeError
+
 # ============================================================================
 # PROJECT STRUCTURE
 # ============================================================================
@@ -336,18 +341,22 @@ def get_data_path(symbol: str, timeframe: str, data_source: str = 'tradingview',
     # file with no word said. `timeframe` two lines above refuses loudly; these
     # two now do the same (G77).
     if data_source not in DATA_FILE_PATTERNS:
-        raise ValueError(
+        raise ConfigurationError(
             f"Unknown data source: {data_source}. "
-            f"Supported: {sorted(DATA_FILE_PATTERNS)}"
+            f"Supported: {sorted(DATA_FILE_PATTERNS)}",
+            {'parameter': 'data_source', 'actual_value': data_source,
+             'expected_values': sorted(DATA_FILE_PATTERNS)}
         )
     source_patterns = DATA_FILE_PATTERNS[data_source]
 
     if isinstance(source_patterns, dict):
         # New format with quote providers
         if quote_provider not in source_patterns:
-            raise ValueError(
+            raise ConfigurationError(
                 f"Unknown quote provider for {data_source}: {quote_provider}. "
-                f"Supported: {sorted(source_patterns)}"
+                f"Supported: {sorted(source_patterns)}",
+                {'parameter': 'quote_provider', 'actual_value': quote_provider,
+                 'expected_values': sorted(source_patterns)}
             )
         pattern = source_patterns[quote_provider]
     else:
@@ -399,10 +408,15 @@ def validate_timeframe(timeframe: str) -> str:
         Validated timeframe
     
     Raises:
-        ValueError: If timeframe is not supported
+        InvalidTimeframeError: If timeframe is not supported. Подкласс
+            ``ConfigurationError`` → ``BQuantError``; **не** подкласс ``ValueError``,
+            поэтому прежний ``except ValueError`` его не поймает.
     """
     if timeframe not in SUPPORTED_TIMEFRAMES:
-        raise ValueError(f"Unsupported timeframe: {timeframe}. Supported: {list(SUPPORTED_TIMEFRAMES.keys())}")
+        raise InvalidTimeframeError(
+            f"Unsupported timeframe: {timeframe}. Supported: {list(SUPPORTED_TIMEFRAMES.keys())}",
+            {'timeframe': timeframe, 'supported_timeframes': list(SUPPORTED_TIMEFRAMES.keys())}
+        )
     return timeframe
 
 
@@ -482,13 +496,17 @@ def set_data_dir(path: Union[str, Path]) -> None:
         path: Новый путь к директории данных
         
     Raises:
-        ValueError: Если путь не является директорией
+        ConfigurationError: Если путь существует и не является директорией.
+            Подкласс ``BQuantError``; прежний ``except ValueError`` его не поймает.
     """
     global _runtime_data_dir
     new_path = Path(path)
     
     if new_path.exists() and not new_path.is_dir():
-        raise ValueError(f"Path {path} exists but is not a directory")
+        raise ConfigurationError(
+            f"Path {path} exists but is not a directory",
+            {'path': str(path)}
+        )
     
     # Создаем директорию если её нет
     new_path.mkdir(exist_ok=True, parents=True)
@@ -513,13 +531,17 @@ def set_results_dir(path: Union[str, Path]) -> None:
         path: Новый путь к директории результатов
         
     Raises:
-        ValueError: Если путь не является директорией
+        ConfigurationError: Если путь существует и не является директорией.
+            Подкласс ``BQuantError``; прежний ``except ValueError`` его не поймает.
     """
     global _runtime_results_dir
     new_path = Path(path)
     
     if new_path.exists() and not new_path.is_dir():
-        raise ValueError(f"Path {path} exists but is not a directory")
+        raise ConfigurationError(
+            f"Path {path} exists but is not a directory",
+            {'path': str(path)}
+        )
     
     # Создаем директорию если её нет
     new_path.mkdir(exist_ok=True, parents=True)
@@ -544,13 +566,17 @@ def set_notebooks_dir(path: Union[str, Path]) -> None:
         path: Новый путь к директории ноутбуков
         
     Raises:
-        ValueError: Если путь не является директорией
+        ConfigurationError: Если путь существует и не является директорией.
+            Подкласс ``BQuantError``; прежний ``except ValueError`` его не поймает.
     """
     global _runtime_notebooks_dir
     new_path = Path(path)
     
     if new_path.exists() and not new_path.is_dir():
-        raise ValueError(f"Path {path} exists but is not a directory")
+        raise ConfigurationError(
+            f"Path {path} exists but is not a directory",
+            {'path': str(path)}
+        )
     
     # Создаем директорию если её нет
     new_path.mkdir(exist_ok=True, parents=True)
@@ -575,13 +601,17 @@ def set_processed_data_dir(path: Union[str, Path]) -> None:
         path: Новый путь к директории обработанных данных
         
     Raises:
-        ValueError: Если путь не является директорией
+        ConfigurationError: Если путь существует и не является директорией.
+            Подкласс ``BQuantError``; прежний ``except ValueError`` его не поймает.
     """
     global _runtime_processed_data_dir
     new_path = Path(path)
     
     if new_path.exists() and not new_path.is_dir():
-        raise ValueError(f"Path {path} exists but is not a directory")
+        raise ConfigurationError(
+            f"Path {path} exists but is not a directory",
+            {'path': str(path)}
+        )
     
     # Создаем директорию если её нет
     new_path.mkdir(exist_ok=True, parents=True)

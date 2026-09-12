@@ -94,11 +94,12 @@ print(path.name)
 Проверка таймфрейма:
 ```python
 from bquant.core.config import SUPPORTED_TIMEFRAMES, validate_timeframe
+from bquant.core.exceptions import InvalidTimeframeError
 
 print(validate_timeframe('1h'), len(SUPPORTED_TIMEFRAMES))
 try:
     validate_timeframe('2D')
-except ValueError as error:
+except InvalidTimeframeError as error:
     print(str(error)[:37])
 # 1h 27
 # Unsupported timeframe: 2D. Supported:

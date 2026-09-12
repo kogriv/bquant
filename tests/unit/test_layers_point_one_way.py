@@ -28,7 +28,11 @@ from pathlib import Path
 import pytest
 
 PACKAGE = Path(__file__).resolve().parents[2] / "bquant"
-LAYERS = ["cli", "visualization", "analysis", "indicators", "data", "core"]
+# `__main__` — точка входа `python -m bquant`, выше всех: она зовёт `cli` и больше
+# ничего. Объявлена слоем, а не исключением: при `exhaustive` нераспределённый модуль
+# должен ломать сторож, и он сломал — эта строка появилась после того, как сторож
+# покраснел на добавленном `bquant/__main__.py`.
+LAYERS = ["__main__", "cli", "visualization", "analysis", "indicators", "data", "core"]
 RANK = {name: i for i, name in enumerate(LAYERS)}
 
 
