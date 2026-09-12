@@ -853,8 +853,16 @@ class ZoneVisualizer(ZoneChartBuilder):
             indicator_chart_types: Словарь {колонка: тип} для указания типа отображения каждого индикатора.
                                    Типы: 'line' (линия) или 'bar' (столбики). По умолчанию все 'line'.
                                    Пример: {'macd_12_26_9__hist': 'bar', 'rsi_14': 'line'}
-            show_gap_lines: Показывать ли вертикальные пунктирные линии для разрывов (выходные) (по умолчанию False)
-            xaxis_num_ticks: Количество меток на оси X (по умолчанию 16). Автоматически корректируется
+            show_gap_lines: Показывать ли вертикальные пунктирные линии там, где ось
+                проглотила разрыв во времени — выходные и праздники (по умолчанию False).
+                Порог тот же, что у ``find_all_gaps``: интервал больше 1.5 медианных.
+                Действует в обоих режимах оси и **только на бэкенде plotly**;
+                matplotlib-запасной путь линий не рисует.
+            xaxis_num_ticks: Желаемое количество меток на оси X (по умолчанию 16).
+                Значение **не обязательное к исполнению**: оно зажимается в
+                ``[8, ideal]``, где ``ideal`` считается по длине окна и временному
+                диапазону. На коротком окне (десятки баров) весь диапазон схлопывается
+                в одно значение, и параметр там не меняет ничего. Автоматически корректируется
                             на основе диапазона данных для оптимальной читаемости.
             time_axis_mode: Режим оси времени ('dense' или 'timeseries'). 'dense' для плотного графика,
                             'timeseries' для реальной временной шкалы с пропуском выходных.
@@ -1825,6 +1833,40 @@ class ZoneVisualizer(ZoneChartBuilder):
             return self._create_matplotlib_zones_correlation(zones_df, title, **kwargs)
     
     # Plotly реализации
+    def _gap_boundaries(self, index) -> List[int]:
+        """Positions of the first bar after each collapsed time gap.
+
+        Same threshold as :func:`find_all_gaps` (1.5x the median spacing), so the
+        lines land exactly where the axis swallowed a gap — by ``rangebreaks`` in
+        ``timeseries`` mode, by positional indexing in ``dense``.
+        """
+        if not isinstance(index, pd.DatetimeIndex) or len(index) < 2:
+            return []
+        diffs = index.to_series().diff()
+        normal = diffs.median()
+        if pd.isna(normal) or normal <= pd.Timedelta(0):
+            return []
+        threshold = normal * 1.5
+        return [pos for pos, delta in enumerate(diffs) if pd.notna(delta) and delta > threshold]
+
+    def _add_gap_lines(self, fig, index, *, positional: bool) -> int:
+        """Draw a dashed vertical line at every collapsed gap. Returns how many."""
+        drawn = 0
+        for pos in self._gap_boundaries(index):
+            x = pos - 0.5 if positional else index[pos]
+            fig.add_vline(
+                x=x,
+                line_width=1,
+                line_dash="dot",
+                line_color="rgba(128, 128, 128, 0.6)",
+                row="all",
+                col=1,
+            )
+            drawn += 1
+        if drawn:
+            self.logger.debug("Gap lines drawn: %d", drawn)
+        return drawn
+
     def _create_plotly_zones_on_price(self, price_data: pd.DataFrame,
                                      zones: List[Dict], title: str,
                                      show_indicators: bool = False,
@@ -2008,7 +2050,10 @@ class ZoneVisualizer(ZoneChartBuilder):
                         bgcolor='rgba(255,255,255,0.8)',
                         borderpad=4
                     )
-            
+
+            if show_gap_lines:
+                self._add_gap_lines(fig, price_data.index, positional=False)
+
             return fig
 
         # --- РЕЖИМ DENSE ---
@@ -2055,6 +2100,9 @@ class ZoneVisualizer(ZoneChartBuilder):
                     fig.add_shape(type="rect", x0=x0_pos, y0=y0, x1=x1_pos, y1=y1, fillcolor=color_config['fill'], line=dict(color=color_config['line'], width=1), layer="below", xref="x", row=1, col=1)
                     if self.default_config['show_zone_labels']:
                         fig.add_annotation(x=x0_pos, y=y1, text=f"{zone_type.title()} Zone {i+1}", showarrow=False, font=dict(size=10), bgcolor="white", opacity=0.8, xref="x", row=1, col=1)
+
+            if show_gap_lines:
+                self._add_gap_lines(fig, price_data.index, positional=True)
 
             num_ticks_requested = kwargs.get('xaxis_num_ticks', xaxis_num_ticks)
             tick_positions, tick_labels = generate_dense_axis_labels(x_dates_list, x_positions, num_ticks_requested)
