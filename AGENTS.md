@@ -173,6 +173,14 @@ All examples and tests should use embedded sample data from `bquant.data.samples
 Every guard test written for a gap record is **mutation-verified**: revert the fix and the
 test must go red. A test that passes on the defect is not a test (`devref/gaps/`).
 
+A run whose result will be **presented as evidence** — a release gate, an artifact rebuild,
+a measurement that goes into an outside message, a check of someone else's fix on our tree —
+carries **pre-registered expectations**: what must change, what must stay, and where a refusal
+must be heard, written into the day's trace log in a commit *before* the run, then reconciled
+after it, with anything unlisted reported as a surprise. At least one expectation must fail if
+nothing was done. A green run without such a list proves only that nothing crashed. Procedure:
+`devref/architecture/preregistered_expectations_backlog_2026-09.md` §2.
+
 Invariants declared in the models are additionally checked on **generated** inputs:
 `tests/unit/test_invariants_hold_on_generated_data.py` builds valid OHLCV frames with
 `hypothesis` (a `dev` extra, never a runtime dependency) — varying length, volatility,
