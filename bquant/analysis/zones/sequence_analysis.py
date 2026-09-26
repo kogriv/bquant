@@ -286,11 +286,34 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
             available_features = [f for f in features_to_use if f in df_features.columns]
             if not available_features:
                 raise AnalysisError("No clustering features available in data")
-            
+
+            # Признак, пустой во всех зонах, — не признак (G84). У осциллятора без
+            # линии (RSI) `line_amplitude` пуст по построению; `fillna(0)` делал из
+            # него колонку нулей, а отчёт называл его использованным с важностью 0.0 —
+            # «измерен и не различает» о том, чего не было ни в одной зоне. Регрессия
+            # по той же колонке (`_usable_predictors`, G23) выбрасывает её громко;
+            # здесь так же.
+            empty_features = [f for f in available_features if df_features[f].isna().all()]
+            if empty_features:
+                if len(empty_features) == len(available_features):
+                    raise AnalysisError(
+                        f"Every clustering feature is empty for this zone set: "
+                        f"{empty_features}. Nothing to cluster on."
+                    )
+                self.logger.warning(
+                    "Dropping clustering feature(s) with no observations at all: %s. "
+                    "They are NaN in every zone; filling them would report a feature "
+                    "that was never measured.",
+                    ", ".join(empty_features),
+                )
+                available_features = [f for f in available_features if f not in empty_features]
+
             self.logger.info(f"Using features for clustering: {available_features}")
-            
-            # Подготавливаем данные для кластеризации
-            clustering_data = df_features[available_features].fillna(0)
+
+            # Подготавливаем данные для кластеризации. Явный `float` до `fillna`:
+            # колонка с `None` приходит как `object`, и без приведения результат
+            # зависел бы от того, как версия pandas обращается с таким типом.
+            clustering_data = df_features[available_features].astype(float).fillna(0)
             
             # Нормализация признаков
             scaler = StandardScaler()
@@ -321,6 +344,7 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
                 'clustering_summary': {
                     'n_clusters': n_clusters,
                     'features_used': available_features,
+                    'empty_features': empty_features,
                     'total_zones': len(df_features),
                     'clustering_quality': clustering_quality
                 },
@@ -334,6 +358,7 @@ class ZoneSequenceAnalyzer(BaseAnalyzer):
                 'analysis_method': 'zone_clustering',
                 'n_clusters': n_clusters,
                 'features_used': available_features,
+                'empty_features': empty_features,
                 'timestamp': datetime.now().isoformat()
             }
             

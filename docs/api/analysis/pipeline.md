@@ -335,6 +335,14 @@ else:
     print('выброшены как пустые:', model['metadata']['empty_predictors'])
 ```
 
+**Кластеризация** (`clustering=True`) обращается с пустым признаком так же, как регрессия с
+пустым предиктором: признак, пустой во всех зонах (тот же `line_amplitude` у осциллятора без
+линии), в кластеризацию не входит, его имя попадает в `result.clustering['clustering_summary']['empty_features']`,
+в лог — `WARNING`. До 2026-09-26 он заполнялся нулём и получал `feature_importance` 0.0 —
+«измерен и не различает» о признаке, которого не было ни в одной зоне (G84). Если пусты все
+признаки — отказ `AnalysisError`, а не кластеры по нулям. Частично пустой признак (например,
+`correlation_price_oscillator` у зон в 1–2 бара) по-прежнему заполняется нулём.
+
 **Регрессия сообщает три состояния, а не два** — `result.metadata['regression']`:
 `{'status': 'not_requested'}`, `{'status': 'executed'}` или
 `{'status': 'skipped', 'reason': …, 'zones_measured': …, 'zones_required': 11}`. Третье

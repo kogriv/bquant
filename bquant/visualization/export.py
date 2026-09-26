@@ -2,6 +2,10 @@ from pathlib import Path
 import sys
 import inspect
 
+from ..core.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 def _resolve_default_output_dir() -> Path:
     """Compute default output directory: outputs/vis/<script_name> under CWD.
@@ -40,6 +44,8 @@ def save_figure(
 
     Поведение:
     - Plotly: prefer='png' → попытка PNG (kaleido), иначе HTML (fallback). prefer='html' → HTML.
+      Откат на HTML пишет в лог WARNING с причиной отказа PNG (G86): без неё `.html`
+      вместо `.png` не отличить — нет Chrome, несовместимый kaleido или что-то ещё.
     - Matplotlib: PNG.
 
     Args:
@@ -70,7 +76,11 @@ def save_figure(
                 fig_height = fig.layout.height if fig.layout.height else height
                 fig.write_image(str(path), width=fig_width, height=fig_height)
                 return str(path.resolve())
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "PNG export of '%s' failed, saved as HTML instead: %s: %s",
+                    filename, type(exc).__name__, str(exc).strip(),
+                )
                 path = out / f"{filename}.html"
                 # Удаляем существующий файл для принудительной перезаписи
                 if path.exists():

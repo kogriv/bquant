@@ -28,4 +28,22 @@
 [not_included] [Technical] **Отказ обязан прозвучать (3/4).** RSI-кластеризация пишет `WARNING` с именем `line_amplitude` и кладёт его в `empty_features`; кластеризация по одним пустым признакам — `AnalysisError` со списком; `save_figure(prefer="png")` в этом окружении пишет `WARNING` с текстом исключения kaleido («Kaleido requires Google Chrome»)
 [not_included] [Technical] **Положительный контроль (4/4).** Пункт 1 проваливается на пустой правке (останется 92). Каждый новый сторож краснеет на откате своей правки — мутации по одной на гэп, откат мутации копией файла, а не `git checkout` (урок 2026-09-12)
 
+[СВЕРКА] Прогон после правок G83, G84, G86, 2026-09-26. Все четыре пункта сошлись; сюрпризов в предмете нет.
+
+[not_included] [Technical] **1/4 обязано измениться — сошлось.** Предупреждений 92 → **4**: `utcnow` 85 → 0, `FutureWarning` 3 → 0, plotly 3 (G85, не наш аргумент), намеренный 1 из `utils.md`. Сьют **3643 → 3656 passed / 34 skipped**; дельта +13 объяснена точно: 10 новых тестовых функций (2 + 5 + 3) и +3 от сторожа молчаливых пропусков, параметризованного по файлам тестов (три новых файла). Доковые сторожа не добавили ничего: новых python-блоков и ссылок в правке нет. 13 = 13, остатка нет
+[not_included] [Technical] **2/4 обязано остаться — сошлось.** Прежние 3643 зелёные, пропусков 34, все по той же причине. RSI (32 зоны): метки кластеров поэлементно равны прежнему расчёту (сверка — проверка сторожа, прежний расчёт воспроизведён в тесте). MACD (77 зон): те же 7 признаков, `feature_importance['line_amplitude']` = 1.2726624, как до правки
+[not_included] [Technical] **3/4 отказ обязан прозвучать — сошлось.** RSI-кластеризация: `WARNING … Dropping clustering feature(s) … line_amplitude`, имя в `empty_features`; одни пустые признаки → `AnalysisError: … Every clustering feature is empty … ['line_amplitude']`; `save_figure(prefer="png")` в этом окружении → `WARNING … PNG export of 'probe' failed, saved as HTML instead: RuntimeError: Kaleido requires Google Chrome to be installed.`
+[not_included] [Technical] **4/4 положительный контроль — сошлось.** Пустая правка оставила бы 92 предупреждения. Мутации, откат каждой копией файла: G83 `utcnow()` — 2/2 красные; G84 полный откат — 4/5, откат только отбрасывания — 3/5 (зелёными остаются сверка меток и контроль MACD, то есть ровно то, что правка менять не должна); G86 без записи в лог — 1/3, ровно проверка причины
+[not_included] [Technical] **Вне предмета, замечено:** на RSI-зонах пайплайн пишет `ERROR … Sequence hypothesis test failed: Need at least 2 different transition types, got 0 from 0 adjacent zone pairs`. У пороговых зон нет примыкающих пар, и отказ громкий и с причиной. Так было и до правки (проверено на `git stash`), к G84 не относится
+[not_included] [Technical] **Мой промах:** первый сторож G84 ловил `WARNING` через `caplog` на корневом логгере и покраснел на исправленном коде. Логгеры пакета настроены с `propagate=False`, в `test_a_swing_strategy_that_finds_nothing_says_so.py` это уже было записано. Обработчик теперь вешается на логгер анализатора
+
+[included] [Fixed] `bquant/analysis/zones/cache.py` — G83: `created_at` через `datetime.now(timezone.utc)`; `CACHE_VERSION` 28 → 29 ради G84
+[included] [Fixed] `bquant/analysis/zones/sequence_analysis.py` — G84: пустой во всех зонах признак исключается с `WARNING` и `empty_features` (в `clustering_summary` и `metadata`), все пусты — `AnalysisError`, приведение к `float` до `fillna`
+[included] [Fixed] `bquant/visualization/export.py` — G86: откат PNG → HTML пишет `WARNING` с типом и текстом исключения; докстрока об этом
+[included] [Added] `tests/unit/test_the_cache_stamp_names_its_zone.py` (2), `tests/unit/test_clustering_does_not_count_an_empty_feature.py` (5), `tests/unit/test_save_figure_says_why_it_fell_back.py` (3)
+[included] [Changed] `docs/api/analysis/pipeline.md`, `docs/user_guide/zone_analysis_result.md` — `empty_features` у кластеризации; `CHANGELOG.md` [Unreleased] — G83, G84 (с `Ломает:`), G86
+[included] [Changed] `devref/gaps/gap_inventory_2026-07.md` и записи G83, G84, G86 — ✅ с тем, что сделано и чем проверено. G85 остаётся 🟠 по границе `kaleido`
+
+[not_included] [Technical] **Кандидат на релиз:** правки в `bquant/` лежат на ветке. Попав в `main`, они сдвинут кандидата `8d77a55` и поднимут `CACHE_VERSION`: это сообщение потребителю (issue №15), и одно из изменений ломающее по форме (`feature_importance` без `line_amplitude` у зон без линии). Решение о слиянии — за владельцем
+
 ==================== COMMIT DIVIDER ====================

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 import hashlib
 import json
@@ -115,7 +115,11 @@ class ZoneAnalysisCache:
     # собой («всё побайтово одинаково»), выдало время — 9.6 с там, где честная сборка
     # занимает 27–48. С этой версии в ключ входит ещё и версия пакета, поэтому
     # «забыли поднять» перестало быть возможным.
-    CACHE_VERSION = 28
+    # v29 (G84): кластеризация больше не считает нулём признак, пустой во всех зонах:
+    # у зон без линии индикатора `line_amplitude` уходит из `features_used` и
+    # `feature_importance`, появляется `empty_features`. Версия пакета в ключе при том
+    # же номере 0.0.18 рабочее дерево от записей v28 не отделила бы.
+    CACHE_VERSION = 29
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager
@@ -220,7 +224,9 @@ class ZoneAnalysisCache:
             "cache_version": self.CACHE_VERSION,
             "result": result,
             "metadata": {
-                "created_at": datetime.utcnow().isoformat(),
+                # С поясом в самой строке (G83): `utcnow()` давал UTC без пояса, и
+                # отметка была неотличима от местного времени остальных отметок пакета.
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "schema": "ZoneAnalysisResult_v2",
                 "bquant_version": __version__,
             },
