@@ -18,7 +18,7 @@ def moving_average(xs, window):
     if window <= 0:
         raise ValueError("window must be positive")
     result = []
-    for i in range(len(xs) - window):
+    for i in range(len(xs) - window + 1):
         result.append(sum(xs[i:i + window]) / window)
     return result
 
