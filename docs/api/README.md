@@ -85,7 +85,7 @@ result = (
 )
 
 print(len(result.zones), result.metadata['swing_coverage']['zones_with_swings'])
-# 32 29
+# 30 29
 ```
 
 Второе число — сколько зон получили хотя бы один свинг. Смотреть на него стоит всегда:

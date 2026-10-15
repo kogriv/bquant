@@ -26,7 +26,7 @@ result = (
     .build()
 )
 print(f"Zones: {len(result.zones)}")
-# Zones: 83
+# Zones: 77
 ```
 
 Or the one-call preset:
@@ -38,12 +38,12 @@ from bquant.data.samples import get_sample_data
 result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
 
 print(f"Zones: {len(result.zones)}")
-# Zones: 32
+# Zones: 30
 ```
 
 **The two are not the same run.** The preset draws the boundary on the sign of the MACD
 *line* (`zone_basis='line'`); the example above uses the histogram, which changes sign
-more often. Pass `zone_basis='histogram'` to the preset to reproduce the 83 zones.
+more often. Pass `zone_basis='histogram'` to the preset to reproduce the 77 zones.
 
 ## See also
 

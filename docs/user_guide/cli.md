@@ -67,14 +67,14 @@ bquant analyze --output chart.html
 ```
 Набор данных: tv_xauusd_1h
 Индикатор:    macd
-Найдено зон:  32
-  по типам:   bear: 16, bull: 16
-  длительность (баров): мин 1, средн 31.2, макс 98
+Найдено зон:  30
+  по типам:   bear: 15, bull: 15
+  длительность (баров): мин 1, средн 32.5, макс 98
 Кластеров:    3
 Колонки индикатора:
-  macd_12_26_9:hist -> macd_12_26_9__hist
-  macd_12_26_9:line -> macd_12_26_9__line
-  macd_12_26_9:signal -> macd_12_26_9__signal
+  custom.macd_12_26_9:hist -> macd_12_26_9__hist
+  custom.macd_12_26_9:line -> macd_12_26_9__line
+  custom.macd_12_26_9:signal -> macd_12_26_9__signal
 График: results/charts/zones_macd_tv_xauusd_1h_20260828_130000.html
 ```
 
@@ -90,18 +90,18 @@ bquant analyze --output chart.html
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "dataset": "tv_xauusd_1h",
   "indicator": "macd",
   "zones": {
-    "total": 32,
-    "by_type": {"bull": 16, "bear": 16},
-    "duration": {"min": 1, "max": 98, "mean": 31.25}
+    "total": 30,
+    "by_type": {"bull": 15, "bear": 15},
+    "duration": {"min": 1, "max": 98, "mean": 32.5}
   },
-  "duration_filter": {"min_duration": 1, "zones_analysed": 32, "zones_excluded": 0},
-  "total_statistics": {"total_zones": 32, "zones_by_type": {"bull": 16, "bear": 16},
+  "duration_filter": {"min_duration": 1, "zones_analysed": 30, "zones_excluded": 0},
+  "total_statistics": {"total_zones": 30, "zones_by_type": {"bull": 15, "bear": 15},
                        "bull_ratio": 0.5, "bear_ratio": 0.5},
-  "columns": {"macd_12_26_9:line": "macd_12_26_9__line"},
+  "columns": {"custom.macd_12_26_9:line": "macd_12_26_9__line"},
   "clustering": {"n_clusters": 3}
 }
 ```

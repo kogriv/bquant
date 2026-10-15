@@ -65,7 +65,7 @@ features = pd.DataFrame([
 ])
 
 print(features.shape, list(features.columns[:5]))
-# (32, 20) ['zone_id', 'zone_type', 'duration', 'start_price', 'end_price']
+# (30, 20) ['zone_id', 'zone_type', 'duration', 'start_price', 'end_price']
 ```
 
 Дальше это обычный `DataFrame` — ML, статистика, BI. Вложенные метрики стратегий лежат в

@@ -48,7 +48,7 @@ by_role = (
     .build()
 )
 
-print(len(by_role.zones))                                       # 83
+print(len(by_role.zones))                                       # 77
 print([c for c in by_role.data.columns if c.startswith('macd_')])
 # ['macd_12_26_9__line', 'macd_12_26_9__signal', 'macd_12_26_9__hist']
 ```

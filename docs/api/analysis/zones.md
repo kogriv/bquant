@@ -167,7 +167,7 @@ result = (
 summary = result.sequence_analysis['sequence_summary']
 print(len(result.zones), summary['total_transitions'], summary['discarded_transitions'])
 print(summary['bars_missing'], summary['contiguous_segments'], summary['adjacency_verified'])
-# 83 82 0
+# 77 76 0
 # 0 1 True
 ```
 

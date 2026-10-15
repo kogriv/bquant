@@ -211,7 +211,7 @@ result = (
 print(len(result.zones))
 print(sorted(result.statistics))
 print(len(result.hypothesis_tests['tests']))
-# 32
+# 30
 # ['additional_metrics', 'duration_distribution', 'line_amplitude_distribution',
 #  'oscillator_amplitude_distribution', 'return_distribution', 'total_statistics']
 # 7

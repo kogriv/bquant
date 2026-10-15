@@ -42,7 +42,7 @@ data = get_sample_data('tv_xauusd_1h')
 by_line = analyze_macd_zones(data)                            # zone_basis='line' — умолчание
 by_hist = analyze_macd_zones(data, zone_basis='histogram')
 
-print(len(by_line.zones), len(by_hist.zones))   # 32 83
+print(len(by_line.zones), len(by_hist.zones))   # 30 77
 ```
 
 Линия MACD меняет знак редко — зоны получаются длинными и устойчивыми. Гистограмма
@@ -70,7 +70,7 @@ result = (
     .build()
 )
 
-print(len(result.zones))   # 32
+print(len(result.zones))   # 30
 ```
 
 Значение выше нуля — `bull`, ниже — `bear`, пересечение — граница.
@@ -120,7 +120,7 @@ result = (
     .build()
 )
 
-print(len(result.zones))   # 83
+print(len(result.zones))   # 77
 ```
 
 Восемьдесят три — ровно столько же, сколько даёт `zero_crossing` по гистограмме, и это не
@@ -265,11 +265,11 @@ print(len(result.zones))   # 237
 
 | Стратегия | `wide_zone`, `per_zone` | `wide_zone`, `global` | `narrow_zone`, `per_zone` | `narrow_zone`, `global` |
 |---|---|---|---|---|
-| `zigzag` | 12/32 | 26/32 | 23/32 | **29/32** |
-| `find_peaks` | 0/32 | 0/32 | 14/32 | 20/32 |
-| `pivot_points` | 0/32 | 2/32 | 10/32 | 23/32 |
+| `zigzag` | 12/30 | 26/30 | 23/30 | **29/30** |
+| `find_peaks` | 0/30 | 0/30 | 14/30 | 19/30 |
+| `pivot_points` | 0/30 | 2/30 | 10/30 | 23/30 |
 
-Доля зон, у которых нашёлся хотя бы один свинг; 32 зоны MACD по линии на `tv_xauusd_1h`.
+Доля зон, у которых нашёлся хотя бы один свинг; 30 зон MACD по линии на `tv_xauusd_1h`.
 
 Ноль в этой таблице сам по себе **неотличим** от честно измеренного отсутствия движения,
 поэтому результат несёт `metadata['swing_coverage']`, а пустой улов у всех зон пишет

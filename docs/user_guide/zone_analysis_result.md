@@ -36,7 +36,7 @@ result = (
     .build()
 )
 
-print(type(result).__name__, len(result.zones))   # ZoneAnalysisResult 83
+print(type(result).__name__, len(result.zones))   # ZoneAnalysisResult 77
 ```
 
 `with_swing_preset('narrow_zone')` здесь можно и опустить — с 0.0.10 это умолчание.
@@ -486,7 +486,7 @@ analyze_macd_zones(get_sample_data('tv_xauusd_1h')).save(out_dir / 'full_analysi
 result = ZoneAnalysisResult.load(out_dir / 'full_analysis.pkl', format='pickle')
 
 print(len(result.zones), result.data is not None, len(result.zones[0].data))
-# 32 True 3
+# 30 True 41
 ```
 
 Из JSON результат читается тем же методом (`format='json'`). Сохранённый с

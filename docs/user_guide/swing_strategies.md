@@ -40,7 +40,7 @@ result = (
     .build()
 )
 
-print(len(result.zones))   # 83
+print(len(result.zones))   # 77
 ```
 
 Свинг-метрики зоны доступны в `zone.features["metadata"]["swing_metrics"]`:
@@ -72,13 +72,13 @@ for zone in result.zones:
 зоны — проценты цены.
 
 **Выбор пресета влияет сильнее выбора стратегии.** Доля зон, у которых нашёлся хотя бы
-один свинг — 32 зоны MACD по линии на `tv_xauusd_1h`, замер прогоном:
+один свинг — 30 зон MACD по линии на `tv_xauusd_1h`, замер прогоном:
 
 | Стратегия | `wide_zone`, `per_zone` | `wide_zone`, `global` | `narrow_zone`, `per_zone` | `narrow_zone`, `global` |
 |---|---|---|---|---|
-| `zigzag` | 12/32 | 26/32 | 23/32 | **29/32** |
-| `find_peaks` | 0/32 | 0/32 | 14/32 | 20/32 |
-| `pivot_points` | 0/32 | 2/32 | 10/32 | 23/32 |
+| `zigzag` | 12/30 | 26/30 | 23/30 | **29/30** |
+| `find_peaks` | 0/30 | 0/30 | 14/30 | 19/30 |
+| `pivot_points` | 0/30 | 2/30 | 10/30 | 23/30 |
 
 Нули в колонках `wide_zone` — не свойство рынка, а свойство порога: `min_amplitude_pct`
 там равен 2% цены, тогда как медианный размах зоны на этих данных — 1.2%. Мерка крупнее
@@ -175,7 +175,7 @@ result = (
 params = next(z.features["metadata"]["swing_metrics"]["strategy_params"]
               for z in result.zones
               if z.features["metadata"].get("swing_metrics", {}).get("strategy_params"))
-print(params)   # {'legs': 10, 'deviation': 0.030924448545605776}
+print(params)   # {'legs': 3, 'deviation': 0.030924448545605776}
 ```
 
 Порог выведен из данных: `deviation` пресета `wide_zone` — `0.05`, адаптивный дал `0.031`.
@@ -233,7 +233,7 @@ pipeline = ZoneAnalysisPipeline(
 pipeline.with_swing_preset("wide_zone")  # опциональная база
 result = pipeline.run(get_sample_data("tv_xauusd_1h"))
 
-print(len(result.zones))   # 32
+print(len(result.zones))   # 30
 ```
 
 Адаптивный режим откатывается к параметрам пресета, когда вычисленный диапазон меньше

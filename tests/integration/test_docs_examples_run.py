@@ -39,7 +39,10 @@ import ast
 import copy
 import builtins
 import io
+import json
 import os
+import re
+import subprocess
 import sys
 import textwrap
 from pathlib import Path
@@ -271,6 +274,11 @@ _REGISTRY_STATE = (
      ("_strategies", "_metadata")),
     ("bquant.analysis.zones.strategies.registry", "StrategyRegistry", ("_registry",)),
 )
+# Реестр индикаторов в этот список НЕ добавлен, и это проверено попыткой: наполняется он
+# **лениво**, снимок берётся до первой загрузки, и восстановление вычищало 158 лениво
+# зарегистрированных имён, оставляя загрузчику флаг «уже загружено». Следующие примеры
+# получали пустой реестр — 62 падения вместо двух. Протечка индикаторов между примерами
+# решается не здесь, а тем, что проверка напечатанного идёт в отдельном процессе.
 
 
 @pytest.fixture
@@ -488,4 +496,230 @@ def test_every_expected_failure_still_points_at_an_example():
     assert not orphans, (
         "записи реестра не совпадают ни с одним примером — уберите их:\n  "
         + "\n  ".join(orphans)
+    )
+
+
+# --------------------------------------------------------------------------- #
+# 5. Напечатанное число обязано быть измеренным
+# --------------------------------------------------------------------------- #
+#
+# Чего не хватало. Исполнение примера доказывает, что он **работает**, и ничего не
+# говорит о том, что он печатает. `print(len(result.zones))   # 32` проходит все
+# четыре прежних слоя — ссылка резолвится, имена существуют, сигнатура верна, блок
+# отрабатывает без исключений, — а напечатает 30. Утверждение в комментарии не
+# сверялось ни с чем после того, как его однажды написали.
+#
+# Как нашлось. Не сьютом, а **первым потребителем помимо лабы** (2026-10-15): он
+# прогнал пример из README и получил 30 вместо обещанных 32. Число было выписано
+# 2026-08-31, за два дня до выхода 0.0.10, который убрал зоны на незаполненном
+# окне MACD; прогон на деревьях подтвердил перелом (0.0.9 → 32, 0.0.10 → 30). Коммит,
+# внёсший `32`, называется «the pages a reader starts with printed numbers nobody had
+# run»: правка, чинившая непрогнанные числа, внесла число, протухшее через два дня.
+#
+# Почему это дефект той же породы, что остальные. Читатель сверяет свой прогон с
+# документированным числом. Расхождение он читает как «я что-то делаю не так» или как
+# «пакет сломан», а не как «дока устарела», — и тратит время не туда. Правило
+# `AGENTS.md` «числа в прозе берутся прогоном, никогда не переписываются» существовало
+# с самого начала; механической проверки у него не было.
+#
+# Разбор: `devref/gaps/docs/g83_a_printed_number_nobody_rechecked_2026-10.md`.
+
+#: Утверждение на той же строке: `print(len(result.zones))   # 32`.
+_TAIL_CLAIM_RE = re.compile(r"\)\s*#\s*(?P<claim>\S.*?)\s*$")
+
+
+def _claims(code: str) -> list[tuple[int, int, str]]:
+    """`[(первая строка вызова, последняя строка вызова, утверждение), ...]`.
+
+    Берётся **только хвостовая** форма — комментарий в конце самого вызова. Вторая
+    форма (комментарий отдельной строкой под вызовом) в доке встречается не реже, и
+    попытка брать и её провалилась предметно: под `print` стоит и проза
+    («ниже то же через схему»), и ожидание, и отличить их механически нечем. Результат
+    был 87 падений, из которых настоящими оказались единицы — остальные привязывали
+    ожидание к чужому вызову. Сторож с такой долей ложного хуже отсутствующего: его
+    начинают отключать.
+
+    Цена решения названа прямо: **утверждения второй формы не проверяются**, и их в
+    доке больше, чем проверяемых. Перенос комментария на строку ниже выводит
+    утверждение из-под сторожа. Закрывается это не регуляркой, а соглашением в доке
+    (ожидание пишется в хвосте вызова) — отдельным решением, не этой правкой.
+    Разбор ``ast`` оставлен: он правильно находит границы многострочного вызова, чего
+    строчная регулярка не умела.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return []  # предмет `test_a_python_fence_contains_python`, не этого теста
+
+    lines = code.splitlines()
+    calls = sorted(
+        (node.lineno, node.end_lineno or node.lineno)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+        and node.value.func.id == "print"
+    )
+
+    found = []
+    for start, end in calls:
+        tail = _TAIL_CLAIM_RE.search(lines[end - 1])
+        if tail:
+            found.append((start, end, tail.group("claim")))
+            continue
+    return found
+
+
+def _claim_is_met(claim: str, printed: str) -> bool:
+    """Выполнено ли утверждение напечатанным текстом.
+
+    Сравнение **не** построчно-дословное, и это не снисходительность, а форма
+    утверждений в доке: `print(f"Найдено зон: {len(result.zones)}")   # 64` печатает
+    «Найдено зон: 64», а утверждает про `64`. Поэтому утверждение обязано
+    **содержаться** в напечатанном.
+
+    У чистого целого числа containment пришлось бы сузить: `30` нашлось бы в `300`
+    и в `0.30`. Для него требуется граница — иначе сторож пропускал бы ровно те
+    расхождения, за которыми заведён (протухшие счётчики зон).
+
+    Утверждение, оборванное многоточием (список, который в доке не дописан), сверяется
+    по своему началу: дока имеет право сократить вывод, но не переврать его начало.
+    """
+    expected = " ".join(claim.split())
+    actual = " ".join(printed.split())
+    if expected.endswith(("...", "…")):
+        return expected.rstrip("… .") in actual
+    if re.fullmatch(r"-?\d+", expected):
+        return re.search(rf"(?<![\w.]){re.escape(expected)}(?![\w.])", actual) is not None
+    return expected in actual
+
+
+#: Обёртка, в которой пример исполняется **отдельным процессом**.
+#:
+#: Почему не в общем: каталог индикаторов наполняется лениво и общий на процесс, поэтому
+#: примеры, регистрирующие свои индикаторы, меняли ответ соседям — пример из
+#: `api/README.md` печатал 167 имён вместо 164, и выглядело это протухшим числом в доке.
+#: Снимать и восстанавливать этот реестро нельзя (проверено: ленивая загрузка плюс флаг
+#: «уже загружено» дают 62 падения). Отдельный процесс снимает вопрос целиком — и, что
+#: важнее, совпадает с тем, как пример запускает читатель: с нуля, а не тридцатым в ряду.
+_RUNNER = """
+import builtins, io, json, sys
+sys.argv = ["example.py", "--no-trap"]
+_recorded = []
+_real = builtins.print
+
+
+def _rec(*args, **kwargs):
+    kwargs.pop("file", None)
+    sink = io.StringIO()
+    _real(*args, file=sink, **kwargs)
+    _recorded.append([sys._getframe(1).f_lineno, sink.getvalue().rstrip("\\n")])
+
+
+builtins.print = _rec
+_code = {code!r}
+try:
+    exec(compile(_code, "example", "exec"),
+         {{"__name__": "__main__", "__file__": "example.py", "print": _rec}})
+finally:
+    builtins.print = _real
+    _real("{marker}" + json.dumps(_recorded, ensure_ascii=False))
+"""
+
+_CLAIM_MARKER = "<<<RECORDED-PRINTS>>>"
+
+
+def _run_and_record(code: str, workdir) -> dict[int, list[str]] | None:
+    """Исполнить пример в отдельном процессе и вернуть вывод по строкам вызова.
+
+    ``None`` — пример не доехал до конца; это предмет соседнего теста, не этого.
+    """
+    script = workdir / "runner.py"
+    script.write_text(_RUNNER.format(code=code, marker=_CLAIM_MARKER), encoding="utf-8")
+
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(PROJECT_ROOT)
+    environment["MPLBACKEND"] = "Agg"
+
+    finished = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=str(workdir), env=environment, stdin=subprocess.DEVNULL,
+        capture_output=True, text=True, timeout=600,
+    )
+    for line in finished.stdout.splitlines():
+        if line.startswith(_CLAIM_MARKER):
+            by_line: dict[int, list[str]] = {}
+            for lineno, text in json.loads(line[len(_CLAIM_MARKER):]):
+                by_line.setdefault(lineno, []).append(text)
+            return by_line
+    return None
+
+
+CLAIMING_EXAMPLES = [
+    (rel, line, code, claims)
+    for rel, line, code in EXAMPLES
+    if (claims := _claims(code))
+]
+
+#: Пол охвата, замеренный 2026-10-15: 42 хвостовых утверждения в самодостаточных
+#: примерах. Утверждений второй формы (комментарий под вызовом) в доке больше, и они
+#: здесь НЕ проверяются — см. докстроку `_claims`.
+#: Пол ловит **обвал** разбора, а не дрейф на одно-два утверждения от правки текста:
+#: без него сломавшаяся регулярка даёт пустой список, все проверки становятся
+#: вырожденно зелёными, и отчёт сообщает ни о чём.
+MIN_PRINTED_CLAIMS = 35
+
+
+def test_the_scan_found_printed_claims():
+    """Положительный контроль: пустой разбор не имеет права пройти как чистая дока."""
+    total = sum(len(claims) for *_, claims in CLAIMING_EXAMPLES)
+    assert total >= MIN_PRINTED_CLAIMS, (
+        f"найдено {total} утверждений о напечатанном при поле {MIN_PRINTED_CLAIMS}; "
+        f"похоже, сломался разбор, а не похудела дока"
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "rel, line, code, claims",
+    CLAIMING_EXAMPLES,
+    ids=[f"{rel}:{line}" for rel, line, _, _ in CLAIMING_EXAMPLES],
+)
+def test_a_printed_number_is_a_measured_number(rel, line, code, claims, tmp_path):
+    """Что пример печатает, то дока и обязана обещать.
+
+    Исполняется отдельным процессом — см. ``_RUNNER``. Примеры из `EXPECTED_TO_FAIL`
+    пропускаются: пример, который обязан упасть, ничего не печатает. Исключение не
+    слепое — у реестра есть свои два сторожа: запись, указывающая в никуда, краснеет,
+    и пример, числящийся падающим и отработавший, краснеет тоже.
+    """
+    if _expected_reason(rel, code):
+        pytest.skip("пример заявлен падающим — печатать ему нечего")
+
+    recorded = _run_and_record(code, tmp_path)
+    if recorded is None:
+        pytest.skip(
+            "пример не доехал до конца — это предмет "
+            "test_a_self_contained_doc_example_runs, здесь дублировать нечего"
+        )
+
+    wrong, silent = [], []
+    for start, end, claim in claims:
+        # Вызов может занимать несколько строк, а номер строки во фрейме указывает
+        # не обязательно на первую из них — поэтому ищем по всему диапазону вызова.
+        printed = [text for lineno in range(start, end + 1)
+                   for text in recorded.get(lineno, [])]
+        if not printed:
+            silent.append(f"строка {start}: обещано {claim!r}, но ничего не напечатано")
+            continue
+        if not any(_claim_is_met(claim, text) for text in printed):
+            wrong.append(
+                f"строка {start}: обещано {claim!r}, напечатано "
+                + " | ".join(repr(t[:120]) for t in printed)
+            )
+
+    assert not (wrong or silent), (
+        f"{rel}:{line} — документированный вывод не совпал с прогоном:\n  "
+        + "\n  ".join(wrong + silent)
+        + "\nЧисла в доке берутся прогоном (AGENTS.md). Перемерьте и впишите измеренное."
     )

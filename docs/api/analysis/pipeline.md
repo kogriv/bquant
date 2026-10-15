@@ -166,7 +166,7 @@ result = (
 
 report = result.metadata['duration_filter']
 print(len(result.zones), report['zones_analysed'], report['zones_excluded'])
-# 83 59 24
+# 77 57 20
 ```
 
 `validation=True` — out-of-sample проверка настроенной детекции: кадр делится 70/30,
@@ -239,7 +239,7 @@ config = ZoneAnalysisConfig(
 )
 
 result = ZoneAnalysisPipeline(config, enable_cache=False).run(get_sample_data('tv_xauusd_1h'))
-print(len(result.zones))   # 83
+print(len(result.zones))   # 77
 ```
 
 `IndicatorSpec` — это **заявка на расчёт**: какой индикатор посчитать и с какими

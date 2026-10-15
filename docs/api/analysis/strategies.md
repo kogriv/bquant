@@ -265,9 +265,9 @@ for name in ('zigzag', 'find_peaks', 'pivot_points'):
     )
     coverage = result.metadata['swing_coverage']
     print(f"{name:<13} {coverage['zones_with_swings']}/{coverage['zones']}")
-# zigzag        29/32
-# find_peaks    20/32
-# pivot_points  23/32
+# zigzag        29/30
+# find_peaks    19/30
+# pivot_points  23/30
 ```
 
 Сравнивать стратегии по числу найденных свингов имеет смысл только при одинаковых

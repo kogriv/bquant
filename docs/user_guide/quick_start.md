@@ -102,13 +102,13 @@ from bquant.data.samples import get_sample_data
 
 result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
 
-print(len(result.zones))   # 32
+print(len(result.zones))   # 30
 ```
 
 Пресет — тот же пайплайн с заранее выбранными индикатором и стратегией детекции.
 Границу он проводит **по знаку линии MACD** (`zone_basis='line'`), а не по
-гистограмме: гистограмма меняет знак чаще, и по ней тех же данных выходит 83 зоны
-вместо 32. Переключается параметром: `analyze_macd_zones(data, zone_basis='histogram')`.
+гистограмме: гистограмма меняет знак чаще, и по ней тех же данных выходит 77 зон
+вместо 30. Переключается параметром: `analyze_macd_zones(data, zone_basis='histogram')`.
 
 ### 5. Статистические тесты
 

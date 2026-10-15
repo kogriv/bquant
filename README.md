@@ -49,7 +49,7 @@ from bquant.data.samples import get_sample_data
 
 result = analyze_macd_zones(get_sample_data('tv_xauusd_1h'))
 
-print(len(result.zones))                              # 32
+print(len(result.zones))                              # 30
 print(sorted({zone.type for zone in result.zones}))   # ['bear', 'bull']
 ```
 
