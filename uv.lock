@@ -193,7 +193,7 @@ css = [
 
 [[package]]
 name = "bquant"
-version = "0.0.18"
+version = "0.0.19"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
@@ -231,6 +231,7 @@ docs = [
 full = [
     { name = "black" },
     { name = "flake8" },
+    { name = "hypothesis" },
     { name = "jupyter" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -252,6 +253,7 @@ requires-dist = [
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=3.8" },
     { name = "flake8", marker = "extra == 'full'", specifier = ">=3.8" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
+    { name = "hypothesis", marker = "extra == 'full'", specifier = ">=6.100" },
     { name = "ipywidgets", specifier = ">=8.1.7" },
     { name = "jupyter", marker = "extra == 'full'", specifier = ">=1.1.1" },
     { name = "jupyter", marker = "extra == 'notebooks'", specifier = ">=1.1.1" },
