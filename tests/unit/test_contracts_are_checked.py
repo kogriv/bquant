@@ -205,3 +205,38 @@ def test_the_generator_refuses_a_period_it_cannot_determine():
               "license": "", "disclaimer": ""}
     with pytest.raises(ValueError, match="cannot determine the period"):
         generator._create_metadata(config, pd.DataFrame({"open": [1.0]}), "x", Path("x.csv"))
+
+
+def test_full_extra_is_dev_plus_notebooks():
+    """`full` обязан быть тем, чем его называет README, — пока README так говорит.
+
+    Два списка, обязанные совпадать, разъехались при правке одного: `hypothesis` добавили
+    в `dev` вместе с проверкой инвариантов на генерируемых входах и забыли в `full`.
+    Снаружи это выглядело так: `pip install bquant[full]` плюс `pytest` давали **ошибку
+    сбора** (сторож инвариантов импортирует `hypothesis` на верхнем уровне), то есть
+    обещанный «всё необязательное разом» набор не позволял прогнать сьют.
+
+    Класс тот же, что G33 (второй литерал версии): проверять надо не содержимое каждого
+    списка, а **равенство** — тогда следующая правка `dev` сама потянет за собой `full`.
+    """
+    import tomllib
+
+    extras = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    extras = extras["project"]["optional-dependencies"]
+
+    def names(extra: str) -> set[str]:
+        # Сравниваем имена пакетов, а не строки с границами версий: иначе тест начнёт
+        # краснеть от поднятия нижней границы в одном списке, и его отключат.
+        return {
+            requirement.split(">=")[0].split("==")[0].split("[")[0].strip().lower()
+            for requirement in extras[extra]
+        }
+
+    expected = names("dev") | names("notebooks")
+    actual = names("full")
+    assert actual == expected, (
+        "README говорит «full (= dev + notebooks)», а списки разошлись:\n"
+        f"  нет в full: {sorted(expected - actual)}\n"
+        f"  лишнее в full: {sorted(actual - expected)}\n"
+        "Либо пополните `full`, либо перепишите README — но не оставляйте расхождение."
+    )

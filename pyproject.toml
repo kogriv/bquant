@@ -69,6 +69,11 @@ notebooks = [
 full = [
     "pytest>=6.0",
     "pytest-cov>=2.0",
+    # README обещает `full` = `dev` + `notebooks`, и до 0.0.19 обещание было неверным:
+    # `hypothesis` добавили в `dev` вместе с проверкой инвариантов и забыли здесь, из-за
+    # чего `pip install bquant[full]` и `pytest` давали ошибку сбора. Равенство держится
+    # тестом `test_full_extra_is_dev_plus_notebooks`.
+    "hypothesis>=6.100",
     "black>=21.0",
     "flake8>=3.8",
     "jupyter>=1.1.1",

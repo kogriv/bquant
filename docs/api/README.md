@@ -48,12 +48,20 @@ from bquant.indicators import IndicatorFactory
 
 catalogue = IndicatorFactory.list_indicators()
 
-print(len(catalogue))                                    # 164
 print(sorted({source for source in catalogue.values()}))  # ['custom', 'library', 'preloaded']
+print('pandas_ta_rsi' in catalogue)                       # True
 ```
 
-На сегодня это 158 индикаторов из `pandas-ta`, 5 собственных (`sma`, `ema`, `rsi`,
-`macd`, `bbands`) и 1 preloaded. TA-Lib добавляет свои, если библиотека установлена.
+**Сколько их — зависит от окружения, и это не фигура речи.** На `pandas` 2.3.3 каталог
+содержит **164** имени: 158 из `pandas-ta`, 5 собственных (`sma`, `ema`, `rsi`, `macd`,
+`bbands`) и 1 preloaded. На `pandas` 3.0.5 — **163**: `vp` (volume profile) под pandas 3
+не регистрируется и молча выпадает из каталога. TA-Lib добавляет свои, если библиотека
+установлена.
+
+Поэтому пример выше печатает не счёт, а состав источников и наличие конкретного имени —
+то, что от версии окружения не зависит. Счёт, выписанный в пример как `# 164`, краснел
+на плече pandas 3 релизного гейта: страница объявляла «здесь не число, а способ его
+получить» — и печатала число.
 
 ## С чего начать
 
