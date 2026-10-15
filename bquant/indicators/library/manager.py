@@ -42,10 +42,36 @@ class LibraryManager:
         пустой словарь при последующих.
         """
         with cls._load_lock:
-            if cls._loaded:
+            if cls._loaded and cls._registrations_still_hold():
                 return {}
+            # Либо ещё не грузили, либо записи из фабрики исчезли после загрузки (G84):
+            # закорачивать по одному флагу нельзя — фабрика тогда навсегда остаётся без
+            # библиотечных индикаторов, а загрузчик продолжает докладывать об успехе.
             results = cls.load_all_libraries()
             return results
+
+    @classmethod
+    def _registrations_still_hold(cls) -> bool:
+        """Держатся ли ещё регистрации, о которых загрузчики доложили успех.
+
+        Спрашивается у самих загрузчиков — утиной типизацией: загрузчик, который такого
+        вопроса не понимает, молча считается держащимся, и это намеренно. Проверять за
+        него здесь значило бы завести второе место, знающее про формат его ключей, —
+        ровно тот дефект, который проект закрывал трижды (G8, G32, G33).
+
+        Известное ограничение: `talib` отвечать на этот вопрос не умеет — он регистрирует
+        пятью отдельными хелперами и ключей не запоминает. Проверить правку на нём нечем,
+        библиотеки нет ни локально, ни в недельном прогоне, поэтому вслепую она не
+        делается. Названо в `devref/gaps/swing/g84_…`.
+        """
+        for library_name in cls._loaders:
+            loader = cls._get_loader(library_name)
+            if loader is None:
+                continue
+            still_holds = getattr(loader, "registration_still_holds", None)
+            if still_holds is not None and not still_holds():
+                return False
+        return True
     
     @classmethod
     def _get_loader(cls, library_name: str):

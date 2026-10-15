@@ -104,12 +104,26 @@ class ZigZagSwingStrategy:
             result = zigzag.calculate(full_data)
         except Exception as exc:
             if scope == 'global':
+                # Текст переписан в G84. Прежний утверждал «the library is not
+                # installed or has no indicator by that name» — и это оказалось ложным
+                # диагнозом в самом частом случае: библиотека установлена,
+                # `pandas_ta.zigzag` на месте, а записи пропали из фабрики. Читателя
+                # отправляли переустанавливать то, что стоит. Прежний текст также
+                # советовал перейти в `per_zone`, не называя цену: тот режим продолжит
+                # работу, но каждая затронутая зона получит
+                # `swing_metrics['degraded'] == 'detector_unavailable'`, и этот признак
+                # надо читать — иначе нули выглядят измерением.
                 raise AnalysisError(
-                    f"ZigZag global pass could not run: the pandas-ta 'zigzag' "
-                    f"detector is unavailable ({exc}). The result would be a "
-                    f"successful run with zero swings, indistinguishable from a "
-                    f"market that did not move. Install pandas-ta with zigzag, unset "
-                    f"BQUANT_SKIP_PANDAS_TA, or ask for another swing strategy."
+                    f"ZigZag global pass could not run: the 'zigzag' detector was not "
+                    f"obtained from the indicator factory ({exc}). The result would be a "
+                    f"successful run with zero swings, indistinguishable from a market "
+                    f"that did not move. Check that pandas-ta is installed and exposes "
+                    f"'zigzag', that BQUANT_SKIP_PANDAS_TA is unset, and that nothing "
+                    f"cleared the factory registry in this process; or ask for another "
+                    f"swing strategy. Scope 'per_zone' would continue instead of "
+                    f"refusing, marking every affected zone with "
+                    f"swing_metrics['degraded'] == 'detector_unavailable' — readable, "
+                    f"but only if you read it."
                 ) from exc
             report(
                 "ZigZag %s: pandas-ta 'zigzag' unavailable (%s). "

@@ -43,6 +43,10 @@ class PandasTALoader:
 
     _indicators_registered: bool = False
     _available_indicators: List[str] = []
+    #: Ключи, под которыми записи реально легли в фабрику. Нужны, чтобы отличить
+    #: «уже зарегистрировано» от «когда-то регистрировалось, а сейчас этого в фабрике
+    #: нет»: до G84 эти два состояния были неразличимы, и второе читалось как первое.
+    _registered_keys: set = set()
     _ta_module: Optional[Any] = None
     _function_cache: Dict[str, Callable] = {}
 
@@ -107,6 +111,24 @@ class PandasTALoader:
 
             functions[attr_name] = attr
 
+        if not functions:
+            # Ноль найденных вызываемых при импортируемой библиотеке означает не «в
+            # библиотеке нечего регистрировать», а что модуль застали **недостроенным**:
+            # обнаружение шло по `dir()` модуля, который ещё импортируется. Замерено
+            # 2026-10-15: в этот момент `dir(pandas_ta)` отдавал 16 имён вместо сотен и
+            # `hasattr(ta, 'zigzag')` был False, а после завершения импорта — True.
+            # Кэш в этом случае НЕ заполняется, чтобы следующий запрос обнаружил заново;
+            # записать пустоту значило бы зафиксировать «успешно нашли ничего» на весь
+            # процесс — ровно та форма дефекта, которую проект чинит (G84).
+            logger.warning(
+                "pandas-ta discovery found no callables: the module looks partially "
+                "initialised (dir() size %d, zigzag present: %s). Not caching this; "
+                "the next request will look again.",
+                len(dir(ta)),
+                hasattr(ta, "zigzag"),
+            )
+            return {}
+
         cls._function_cache = functions
         cls._available_indicators = sorted(functions.keys())
         # Переводим на DEBUG, чтобы не засорять консоль при тихих профилях
@@ -114,6 +136,23 @@ class PandasTALoader:
             "Discovered %s pandas-ta callables", len(cls._available_indicators)
         )
         return functions
+
+    @classmethod
+    def registration_still_holds(cls) -> bool:
+        """Лежат ли в фабрике те записи, об успехе которых загрузчик доложил.
+
+        Пустой список зарегистрированного — не повод перерегистрировать: библиотеки
+        может не быть вовсе, и тогда терять нечего. Проверка дешёвая (разность
+        множеств по ключам), поэтому делается на каждом запросе загрузки, а не раз.
+        """
+        if not cls._registered_keys:
+            # Ничего не зарегистрировано — и это два разных состояния, которые нельзя
+            # смешивать. Библиотеки нет: терять нечего, держится. Библиотека есть, а
+            # записей нет: регистрация **не состоялась** (ранний проход по недостроенному
+            # модулю), и повторить её обязательно — иначе один неудачный ранний вызов
+            # замораживает пустой каталог на весь процесс.
+            return not cls.is_available()
+        return cls._registered_keys <= set(IndicatorFactory._registry)
 
     @classmethod
     def get_available_indicators(cls) -> List[str]:
@@ -135,7 +174,22 @@ class PandasTALoader:
         """Зарегистрировать индикаторы pandas-ta в IndicatorFactory."""
 
         if cls._indicators_registered:
-            return len(cls._available_indicators)
+            if cls.registration_still_holds():
+                return len(cls._available_indicators)
+            # Записи, об успехе которых загрузчик уже доложил, из фабрики исчезли.
+            # До G84 здесь был безусловный возврат по флагу, и это давало сразу три
+            # неверных утверждения: каталог продолжал перечислять индикатор,
+            # `load_all_indicators()` продолжал отвечать «158 загружено», а создание
+            # падало с «the library is not installed» — при установленной библиотеке.
+            # Успешный отчёт над нулём достижимых — та самая форма, которую проект чинит,
+            # просто в загрузчике. Флаг снимается, регистрация идёт заново.
+            logger.warning(
+                "pandas-ta indicators were registered earlier but %d of %d are no longer "
+                "in the factory; registering again",
+                len(cls._registered_keys - set(IndicatorFactory._registry)),
+                len(cls._registered_keys),
+            )
+            cls._indicators_registered = False
 
         if not cls.is_available():
             logger.warning("pandas-ta is not available")
@@ -144,8 +198,21 @@ class PandasTALoader:
         if not cls._function_cache:
             cls._discover_all_functions()
 
+        if not cls._function_cache:
+            # Обнаружение ничего не дало и намеренно не закэшировалось (см.
+            # `_discover_all_functions`). Флаг «зарегистрировано» не ставится: иначе
+            # ранний неудачный проход замораживает пустой каталог на весь процесс, и
+            # каждый последующий запрос библиотечного индикатора получает
+            # «the library is not installed» при установленной библиотеке.
+            logger.warning(
+                "pandas-ta registration deferred: nothing discovered yet. "
+                "The next request will try again."
+            )
+            return 0
+
         registered = 0
         registered_names: List[str] = []
+        registered_keys: set = set()
 
         for func_name, func in cls._function_cache.items():
             config = cls._analyze_function_dynamically(func_name, func)
@@ -170,8 +237,10 @@ class PandasTALoader:
 
             registered += 1
             registered_names.append(func_name)
+            registered_keys.add(registry_key)
 
         cls._available_indicators = sorted(registered_names)
+        cls._registered_keys = registered_keys
         cls._indicators_registered = True
         # DEBUG вместо INFO для тихих профилей
         logger.debug("Registered %s pandas-ta indicators", registered)
