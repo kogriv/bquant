@@ -33,3 +33,6 @@
 [included] [Added] `devref/gaps/detection/g85_a_rule_accepted_and_ignored_2026-10.md` + строка реестра — попутная находка, открыта
 [included] [Changed] `docs/user_guide/zone_analysis.md` — раздел «Кросс одного уровня» с прогнанным примером и двумя сверяемыми утверждениями; `docs/api/analysis/pipeline.md` — строка таблицы стратегий ведёт в него
 [included] [Changed] `CHANGELOG.md` — раздел Unreleased: режим, правило ничьей, оба отказа, изменённый текст отказа названы
+
+[not_included] [Technical] **`CACHE_VERSION` 28 → 29, и это не формальность, а урок G74.** Форма payload изменилась: в `indicator_context` зон `threshold` появились `threshold_mode` и `tie_rule`. Между релизами это закрыла бы версия пакета в ключе (её внесли как раз при G74), но правило «меняется форма — версия растёт» дисциплинарное, и G74 случился ровно там, где на автоматику понадеялись. Проверено: четыре сторожа кэша и сторож changelog'а — 85 passed
+[included] [Changed] `bquant/analysis/zones/cache.py` — `CACHE_VERSION` 29 с названной причиной; `CHANGELOG.md` — подъём назван в Unreleased
