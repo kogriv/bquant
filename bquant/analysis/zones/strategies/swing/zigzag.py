@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 @StrategyRegistry.register_swing_strategy('zigzag')
-@dataclass
+@dataclass(init=False)
 class ZigZagSwingStrategy:
     """
     Swing detection using pandas-ta ZigZag algorithm.
@@ -68,16 +68,52 @@ class ZigZagSwingStrategy:
     deviation_pct: float = 0.05
     confirmation_retrace_pct: float = 5.0
 
-    #: Имена, которые отказывают с названной заменой (читает ``StrategyRegistry.get``).
+    #: Имена, которые отказывают с названной заменой — и при прямом конструировании, и
+    #: через ``StrategyRegistry.get``.
     RETIRED_PARAMS: ClassVar[Dict[str, str]] = {
         'deviation': (
             "`deviation` renamed to `deviation_pct` in 0.0.20 (G86): the value is the "
-            "PERCENT pandas-ta reads, not a fraction — 0.008 means 0.008 %. Pass the same "
-            "digits as `deviation_pct` to keep the swing object you had; the retrace that "
-            "confirms a pivot is now its own `confirmation_retrace_pct` (0.8 for the "
-            "narrow_zone preset, 5.0 for wide_zone — what the old code applied in effect)."
+            "PERCENT pandas-ta reads, not a fraction — 0.008 means 0.008 %. To keep the "
+            "swing object you had bit for bit, pass the same digits as `deviation_pct` AND "
+            "`confirmation_retrace_pct = 100 × old deviation` (the old code applied the "
+            "fraction as the confirming retrace): deviation=0.008 → deviation_pct=0.008, "
+            "confirmation_retrace_pct=0.8. Leaving the retrace at its default moves the "
+            "confirmation indices while the pivots stay."
         ),
     }
+
+    def __init__(
+        self,
+        legs: int = 10,
+        deviation_pct: float = 0.05,
+        confirmation_retrace_pct: float = 5.0,
+        **retired: Any,
+    ) -> None:
+        gone = [key for key in retired if key in self.RETIRED_PARAMS]
+        if gone:
+            raise ValueError(
+                f"ZigZagSwingStrategy no longer accepts {gone}: "
+                + " ".join(self.RETIRED_PARAMS[key] for key in gone)
+            )
+        if retired:
+            raise TypeError(f"ZigZagSwingStrategy got unexpected keyword(s) {sorted(retired)}")
+        # pandas-ta подменяет неположительный `deviation` своим умолчанием 5.0 молча
+        # (`v_pos_default`): `deviation=0.0` даёт детектор на 5 % и колонку
+        # `ZIGZAGs_5.0%_<legs>`, а `strategy_params` сообщал бы 0.0 (G87). Ноль здесь —
+        # не «без порога», а чужое число под нашим именем; отказ с названной причиной.
+        if not deviation_pct > 0:
+            raise ValueError(
+                f"deviation_pct must be > 0, got {deviation_pct}: pandas-ta silently "
+                f"replaces a non-positive deviation with its default 5.0 (the returned "
+                f"column would be named ZIGZAGs_5.0%_{legs}), so the strategy would report "
+                f"a threshold it did not apply. For a detector that reduces to the "
+                f"`legs`-window extremes use a value below one bar's range, e.g. 0.008."
+            )
+        if confirmation_retrace_pct < 0:
+            raise ValueError(f"confirmation_retrace_pct must be >= 0, got {confirmation_retrace_pct}")
+        self.legs = legs
+        self.deviation_pct = deviation_pct
+        self.confirmation_retrace_pct = confirmation_retrace_pct
 
     @property
     def deviation(self) -> float:

@@ -180,3 +180,44 @@ def test_the_adaptive_layer_no_longer_carries_a_zigzag_threshold(data):
         auto_swing_thresholds(data, base_deviation=0.01, amplitude_k=0.3)  # type: ignore[call-arg]
     thresholds = auto_swing_thresholds(data, amplitude_k=0.3)
     assert 0 < thresholds.min_amplitude_pct < 1
+
+
+# --------------------------------------------------------------------------- #
+# 5. G87: ноль — не «без порога», а чужое умолчание под нашим именем
+# --------------------------------------------------------------------------- #
+def test_the_library_substitutes_its_default_for_zero(data):
+    """Факт о библиотеке, на котором стоит отказ ниже: `deviation=0.0` → 5.0 %."""
+    import pandas_ta as ta
+
+    frame = ta.zigzag(data["high"], data["low"], data["close"], legs=3, deviation=0.0, backtest=True)
+    assert any(column.startswith("ZIGZAGs_5.0%_3") for column in frame.columns), list(frame.columns)
+
+
+@pytest.mark.parametrize("value", [0.0, -0.5])
+def test_a_non_positive_threshold_is_refused_naming_the_substitution(value):
+    with pytest.raises(ValueError) as refusal:
+        ZigZagSwingStrategy(legs=3, deviation_pct=value)
+    message = str(refusal.value)
+    assert "5.0" in message and "ZIGZAGs_5.0%_3" in message
+
+
+def test_direct_construction_with_the_old_name_names_the_replacement_and_the_rule():
+    """Потребитель строит стратегию напрямую, не через реестр; голый TypeError там не
+    назвал бы ни замену, ни правило побитового переноса."""
+    with pytest.raises(ValueError) as refusal:
+        ZigZagSwingStrategy(legs=3, deviation=0.008)
+    message = str(refusal.value)
+    assert "deviation_pct" in message
+    assert "100" in message and "confirmation_retrace_pct=0.8" in message
+
+
+def test_an_unknown_keyword_is_still_a_type_error():
+    with pytest.raises(TypeError):
+        ZigZagSwingStrategy(legs=3, legz=4)  # type: ignore[call-arg]
+
+
+def test_the_dataclass_surface_survived_the_custom_init():
+    a = ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8)
+    b = ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8)
+    assert a == b
+    assert repr(a) == "ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8)"
