@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.20] - 2026-10-30
+
 **G86 — порог ZigZag уходил в библиотеку долей, а читался процентами; имя теперь говорит
 правду, объект не сдвинут.** Пресеты задавали `deviation=0.008` (`narrow_zone`) и `0.05`
 (`wide_zone`), у нас это была доля («0.05 = 5%»), а `pandas_ta.zigzag` читает проценты:

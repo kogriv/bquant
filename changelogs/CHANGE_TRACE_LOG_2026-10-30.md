@@ -98,3 +98,17 @@
 [included] [Changed] Дока: `user_guide/swing_strategies.md` (раздел «Единицы ZigZag» с двумя сверяемыми числами, адаптивный раздел переписан, пример на `find_peaks`), `api/analysis/strategies.md`, `api/analysis/pipeline.md`, `api/analysis/zones/global_swings_strategies.md`, `api/visualization/zones.md`, `api/core/config.md`, `developer_guide/zone_analyzer_deep_dive.md`
 [included] [Changed] Батарея: `examples/zone_analysis_global_swings.py`, `research/notebooks/04_zones_sample.py`, `04_zones_viz.py`, `06_swing_strategy_comparison.py`
 [included] [Changed] `CHANGELOG.md` — Unreleased: G86 с четырьмя строками «Ломает:», G85 с одной, `CACHE_VERSION` 30; записи G85/G86 закрыты, строки реестра переписаны
+
+---
+
+## Релиз 0.0.20 — ожидания гейта
+
+[ОЖИДАНИЯ] Выписаны 2026-10-30 до прогона гейта и до релизного коммита.
+
+[not_included] [Technical] **Что судится.** Гейт судит `origin/main` — коммит с разделом CHANGELOG 0.0.20 поверх `95c2671` (G86). Релизный коммит (версия в трёх местах + `uv.lock`) идёт после `GATE_OK`, как на 0.0.19
+[not_included] [Technical] **Сьют.** Локально собрано **3761** тестов (0.0.19 на стенде: 3719). Оба плеча обязаны дать `rc=0` и строку `N passed` с N ≥ 3720; пропусков порядка 34, как раньше. Расхождение числа между плечами допустимо только на `pandas_ta_vp` (G83, одна проверка каталога)
+[not_included] [Technical] **Батарея.** ≥ 36 скриптов, 0 ненулевых. Четыре скрипта, трогавшие мёртвый переключатель, прогнаны локально с rc 0; на стенде обязаны пройти так же — если упадёт другой скрипт, это сюрприз
+[not_included] [Technical] **Контракт.** `codemap check --require-contract` rc=0, те же `layered (7)`, `forbidden (8)`: новых модулей в корне нет
+[not_included] [Technical] **Положительный контроль пересборки графа — про ЭТОТ релиз.** Скрипт гейта параметризован (`ADDED`/`REMOVED` из окружения; умолчания — пара 0.0.19, чтобы старые прогоны воспроизводились). Для 0.0.20: `ADDED=_classify_by_level` (новая функция G121 в `detection/threshold.py`), `REMOVED=test_adaptive_thresholds_global_mode` (тест, удалённый в G86). Условие честности контроля: удалённый символ обязан **присутствовать в графе 0.0.19** на стенде — иначе «отсутствует» ничего не доказывает; проверяется запросом к старому графу до запуска
+[not_included] [Technical] **Положительный контроль досыпки** (`hypothesis` удалён и восстановлен) обязан отработать, как на 0.0.19
+[not_included] [Technical] **Установочная проверка после публикации.** Чистый venv Python 3.12 из нейтрального каталога, `--refresh --no-cache`: импорт из site-packages, G86 (старое имя отказывает с заменой, `deviation_pct` работает, имя колонки библиотеки несёт `0.008%`), G85 (`smooth_window` у threshold отказывает с текстом про `zero_crossing`), кросс уровня (107 зон на `tv_xauusd_1h`), адаптивный режим с zigzag отказывает, `bquant list` rc=0, read-only site-packages. Первая установка через минуту после `twine upload` может не найти версию — это индекс, не дефект (0.0.13)
