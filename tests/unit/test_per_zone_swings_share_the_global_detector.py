@@ -26,7 +26,7 @@ pytestmark = pytest.mark.skipif(
     reason="needs the real pandas-ta detector",
 )
 
-STRATEGY = ZigZagSwingStrategy(legs=3, deviation=0.008)   # the narrow_zone preset
+STRATEGY = ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8)   # the narrow_zone preset
 
 
 @pytest.fixture(scope="module")

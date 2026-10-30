@@ -83,7 +83,7 @@ def test_global_scope_reaches_the_indicator_once(monkeypatch):
 
     # --- global: one pass over the whole frame, then slicing ------------------
     calls = use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
-    strategy = ZigZagSwingStrategy(legs=3, deviation=0.01)
+    strategy = ZigZagSwingStrategy(legs=3, deviation_pct=0.01, confirmation_retrace_pct=1.0)
     context = strategy.calculate_global(data)
     for zone in zones:
         strategy.aggregate_for_zone(zone, context)
@@ -137,7 +137,7 @@ def test_slicing_a_zone_does_not_scale_with_the_dataset(monkeypatch):
         pivot_timestamps = evenly_spaced_pivots(data, count=dataset_size // 20)
         use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
         zones = _build_zones(data, dataset_size, count=20)
-        strategy = ZigZagSwingStrategy(legs=3, deviation=0.01)
+        strategy = ZigZagSwingStrategy(legs=3, deviation_pct=0.01, confirmation_retrace_pct=1.0)
         context = strategy.calculate_global(data)
 
         best = float("inf")

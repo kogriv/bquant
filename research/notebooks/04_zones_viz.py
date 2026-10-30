@@ -87,7 +87,9 @@ with nb.error_handling("Building and running pipeline"):
         )
         .detect_zones("zero_crossing", indicator_role="line")
         .with_strategies(swing="zigzag")
-        .with_auto_swing_thresholds(True)
+        # `.with_auto_swing_thresholds(True)` здесь стоял до 0.0.20 и не делал ничего:
+        # адаптивный `deviation` zigzag был измерен мёртвым и удалён (G86); теперь с
+        # активным zigzag переключатель отказывает. Пороги задаёт пресет narrow_zone.
         .with_swing_scope("global")
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -110,18 +112,19 @@ with nb.error_handling("Building and running pipeline"):
             f"  swing_points_total: {len(getattr(swing_context, 'swing_points', []))}"
         )
 
-        # Извлекаем параметры ZigZag (legs, deviation) из контекста стратегии
+        # Извлекаем параметры ZigZag из контекста стратегии. `deviation_pct` —
+        # проценты, как читает pandas-ta (G86): 0.008 — это 0.008 %, не 0.8 %.
         if swing_context and getattr(swing_context, "strategy_params", None):
             strategy_params = swing_context.strategy_params
             legs = strategy_params.get("legs")
-            deviation = strategy_params.get("deviation")
+            deviation = strategy_params.get("deviation_pct")
 
         nb.log("Zone indicator context (detection + swing):")
         nb.log(str(first_zone.indicator_context))
 
     if legs is None or deviation is None:
         nb.warning(
-            "ZigZag parameters (legs/deviation) not found in swing_context; "
+            "ZigZag parameters (legs/deviation_pct) not found in swing_context; "
             "fallback comparison may be less meaningful."
         )
 nb.wait()
@@ -186,7 +189,7 @@ with nb.error_handling("Creating ZigZag verification figure for the same date ra
     if legs is None or deviation is None:
         nb.warning(
             "Cannot build ZigZag verification chart: "
-            "legs/deviation parameters are not available."
+            "legs/deviation_pct parameters are not available."
         )
     else:
         tz = result.data.index.tz
@@ -209,7 +212,7 @@ with nb.error_handling("Creating ZigZag verification figure for the same date ra
         )
 
         nb.log("\n--- ZigZag Indicator Verification on Range ---")
-        nb.log(f"Parameters: legs={legs}, deviation={deviation:.6f} ({deviation*100:.4f}%)")
+        nb.log(f"Parameters: legs={legs}, deviation_pct={deviation} %")
 
         zigzag_data = None  # Инициализируем для использования в Step 5
         # Функция ничего не считает: рисует точки swing_context, попавшие в срез (G64).
@@ -372,7 +375,7 @@ with nb.error_handling("Extracting and comparing ZigZag points from both sources
             },
             "parameters": {
                 "legs": int(legs),
-                "deviation": float(deviation),
+                "deviation_pct": float(deviation),
             },
             "package_points": package_points,
             "verification_points": verification_points,

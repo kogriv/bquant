@@ -7,7 +7,7 @@ meaningful price movements.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -26,17 +26,66 @@ logger = get_logger(__name__)
 class ZigZagSwingStrategy:
     """
     Swing detection using pandas-ta ZigZag algorithm.
-    
-    This strategy identifies swing points by finding price reversals that exceed
-    a specified percentage threshold. It provides comprehensive metrics including
-    amplitudes, durations, speeds, and distributions of both rally and drop movements.
-    
+
+    Two thresholds, two units, and the names say which is which (G86):
+
+    ``deviation_pct`` — **percent, exactly as pandas-ta reads it.** ``0.008`` means
+    0.008 %, not 0.8 %. Until 0.0.20 the field was called ``deviation`` and documented
+    as a fraction ("0.05 = 5%"), while the library's ``nb_zz_backtest`` compares
+    ``current_dev > 0.01 * deviation`` and prints the unit in the column it returns
+    (``ZIGZAGs_0.008%_3``). The presets kept their digits on purpose: 0.008 and 0.05
+    are the values the library has always been reading, and the object they produce
+    is the one every swing measurement in this project (G35, G38, G48, G54) and the
+    external consumer's acceptance were made on. Measured on ``tv_xauusd_1h``
+    (1000 bars, ``legs=3``): 0.008 → 402 pivots, 0.8 → 132. At the preset values the
+    threshold sits below one bar's range, so the detector reduces to the extremes of
+    the ``legs`` window — ``legs`` is the lever that bites. Raising ``deviation_pct``
+    to "honest" 0.8 does not give a better object: under ``backtest=True`` the
+    parameter does not bound the size of a leg (at 5.0, 8 of 10 legs on the sample
+    are smaller than 5 %), and most of the remaining points become updates of the
+    same extreme (61.8 % at 0.8) — see ``devref/gaps/swing/g86_…``.
+
+    ``confirmation_retrace_pct`` — percent of the pivot price the next leg must
+    retrace before the pivot counts as causally confirmed (``_confirmation_index``).
+    It is a separate quantity by necessity, not by taste: the next pivot *is* the
+    first bar where the retrace exceeded the detection threshold, so a confirmation
+    defined through the same number lands on the next pivot by construction (measured
+    99.2 % of pairs) and carries no information. The defaults (0.8 for ``narrow_zone``,
+    5.0 for ``wide_zone``) are the values the old code applied in effect — the
+    fraction it believed ``deviation`` to be — and the causal replay contract
+    (#110, G54) was verified against them.
+
+    What a "leg" is: ``_build_movements_from_points`` takes every pair of consecutive
+    points, so an update (two peaks in a row, the second higher) is a movement too.
+    Measured: never contrary to its type, 11–14 % of pairs at the preset values.
+
     Attributes:
-        legs: Number of bars to confirm a pivot (default: 10)
-        deviation: Minimum percentage move to qualify as swing (default: 0.05 = 5%)
+        legs: Number of bars on each side a pivot must dominate (default: 10)
+        deviation_pct: pandas-ta reversal threshold, percent (default: 0.05)
+        confirmation_retrace_pct: retrace, percent, that confirms a pivot (default: 5.0)
     """
     legs: int = 10
-    deviation: float = 0.05  # 5% minimum movement
+    deviation_pct: float = 0.05
+    confirmation_retrace_pct: float = 5.0
+
+    #: Имена, которые отказывают с названной заменой (читает ``StrategyRegistry.get``).
+    RETIRED_PARAMS: ClassVar[Dict[str, str]] = {
+        'deviation': (
+            "`deviation` renamed to `deviation_pct` in 0.0.20 (G86): the value is the "
+            "PERCENT pandas-ta reads, not a fraction — 0.008 means 0.008 %. Pass the same "
+            "digits as `deviation_pct` to keep the swing object you had; the retrace that "
+            "confirms a pivot is now its own `confirmation_retrace_pct` (0.8 for the "
+            "narrow_zone preset, 5.0 for wide_zone — what the old code applied in effect)."
+        ),
+    }
+
+    @property
+    def deviation(self) -> float:
+        raise AttributeError(self.RETIRED_PARAMS['deviation'])
+
+    @deviation.setter
+    def deviation(self, _value: float) -> None:
+        raise AttributeError(self.RETIRED_PARAMS['deviation'])
 
     def calculate_global(self, full_data: pd.DataFrame) -> SwingContext:
         """Run a single ZigZag pass on the full dataset and build context."""
@@ -92,7 +141,10 @@ class ZigZagSwingStrategy:
                 'pandas_ta',
                 'zigzag',
                 legs=self.legs,
-                deviation=self.deviation,
+                # Процент, как читает библиотека (G86). Не делить и не умножать: число
+                # уходит как есть, и имя колонки в ответе (`ZIGZAGs_<число>%_<legs>`)
+                # печатает ту же единицу — это оракул, на который смотрит сторож.
+                deviation=self.deviation_pct,
                 # Issue #110: the default (backtest=False) is a repainting, centred
                 # detector — truncating the raw series at as_of relocates/adds/drops
                 # earlier pivots, so a pivot with confirmation_index <= as_of is not
@@ -196,7 +248,7 @@ class ZigZagSwingStrategy:
                     amplitude_to_next=amplitude_to_next,
                     duration_to_next=duration_to_next,
                     strategy_name='zigzag',
-                    strategy_params={'legs': self.legs, 'deviation': self.deviation},
+                    strategy_params=self._params(),
                     confirmation_index=confirmation_index,
                 )
             )
@@ -236,7 +288,7 @@ class ZigZagSwingStrategy:
             indices=np.asarray(indices, dtype=int),
             full_data_length=len(full_data),
             strategy_name='zigzag',
-            strategy_params={'legs': self.legs, 'deviation': self.deviation},
+            strategy_params=self._params(),
         )
 
     def aggregate_for_zone(self, zone: ZoneInfo, context: SwingContext) -> SwingMetrics:
@@ -405,7 +457,7 @@ class ZigZagSwingStrategy:
             max_drop_speed_pct_per_bar=max_drop_speed_pct_per_bar,
             duration_symmetry=duration_symmetry,
             strategy_name='zigzag',
-            strategy_params={'legs': self.legs, 'deviation': self.deviation},
+            strategy_params=self._params(),
         )
 
         metrics.validate()
@@ -419,6 +471,13 @@ class ZigZagSwingStrategy:
 
         return metrics
 
+    def _params(self) -> Dict[str, Any]:
+        return {
+            'legs': self.legs,
+            'deviation_pct': self.deviation_pct,
+            'confirmation_retrace_pct': self.confirmation_retrace_pct,
+        }
+
     def _confirmation_index(
         self,
         position: int,
@@ -431,24 +490,30 @@ class ZigZagSwingStrategy:
         """Bar by which this ZigZag pivot is causally confirmed.
 
         A peak is confirmed at the first bar after ``position`` whose low has
-        fallen ``deviation`` below the pivot price; a trough, at the first bar
-        whose high has risen ``deviation`` above it. This is the ZigZag-specific
-        realisation of the generic :attr:`SwingPoint.confirmation_index` contract:
-        it is the point at which a repainting ZigZag "locks in" the previous swing,
-        i.e. when the next leg starts drawing. It is guaranteed to occur no later
-        than ``next_position`` (the next pivot already exceeds the deviation
-        threshold), which is used as a safe upper bound if no earlier crossing is
-        found. ``deviation`` is a fraction (0.05 == 5%), matching the pivot scale.
+        fallen ``confirmation_retrace_pct`` percent below the pivot price; a trough,
+        at the first bar whose high has risen that much above it. This is the
+        ZigZag-specific realisation of the generic
+        :attr:`SwingPoint.confirmation_index` contract: the point at which a
+        repainting ZigZag "locks in" the previous swing, i.e. when the next leg
+        starts drawing. ``next_position`` is the safe upper bound if no earlier
+        crossing is found.
+
+        The retrace is deliberately **not** ``deviation_pct`` (G86): the next pivot
+        is itself the first bar where the retrace exceeded the detection threshold,
+        so a confirmation defined through the same number would land on the next
+        pivot by construction — measured 99.2 % of pairs — and the causal label
+        would carry no information.
         """
+        retrace = self.confirmation_retrace_pct / 100.0
         if next_position <= position:
             conf = next_position
         else:
             if swing_type == 'peak':
-                threshold = price * (1.0 - self.deviation)
+                threshold = price * (1.0 - retrace)
                 seg = low_arr[position + 1:next_position + 1]
                 hits = np.nonzero(seg <= threshold)[0]
             else:
-                threshold = price * (1.0 + self.deviation)
+                threshold = price * (1.0 + retrace)
                 seg = high_arr[position + 1:next_position + 1]
                 hits = np.nonzero(seg >= threshold)[0]
             conf = position + 1 + int(hits[0]) if len(hits) else next_position
@@ -467,7 +532,7 @@ class ZigZagSwingStrategy:
             indices=np.array([], dtype=int),
             full_data_length=full_data_length,
             strategy_name='zigzag',
-            strategy_params={'legs': self.legs, 'deviation': self.deviation},
+            strategy_params=self._params(),
             degraded=degraded,
         )
 
@@ -500,10 +565,7 @@ class ZigZagSwingStrategy:
         return {
             'name': 'ZigZag',
             'description': 'Swing detection via pandas-ta ZigZag algorithm',
-            'params': {
-                'legs': self.legs,
-                'deviation': self.deviation
-            },
+            'params': self._params(),
             'source': 'pandas-ta library via LibraryManager',
             'calculates': [
                 'swing amplitudes (rally/drop)',
@@ -516,8 +578,5 @@ class ZigZagSwingStrategy:
 
     def config_hash(self) -> Dict[str, Any]:
         """Return configuration parameters for cache key generation."""
-        return {
-            'legs': self.legs,
-            'deviation': self.deviation
-        }
+        return self._params()
 

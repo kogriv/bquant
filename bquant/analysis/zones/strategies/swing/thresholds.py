@@ -22,6 +22,18 @@ class SwingThresholds:
     ~0.019 handed to scipy's ``prominence``, on an instrument trading near 3350, reads
     as under two cents and switches the filter off.
 
+    Until 0.0.20 the class also carried ``zigzag_deviation`` — the ZigZag threshold
+    "adapted" as ``max(base_deviation, frame_range × 0.5)``. G86 found the lever dead
+    twice over: the value was a fraction that pandas-ta reads as a percent (0.015
+    arrived as 0.015 %, below one bar's range, so it never decided anything — the G38
+    table below already shows zigzag at 90.9 % with and without the layer, and the
+    pipeline measured 193 swings against 192 on 2026-10-30), and converting it would
+    not have revived a sensible lever: half the frame's range is not a swing threshold,
+    it is a formula that survived only because nothing read it. The field and the
+    ``base_deviation`` floor are gone; ZigZag's thresholds are set by hand or by preset
+    (``deviation_pct``, ``confirmation_retrace_pct``), and asking this layer to adapt
+    ZigZag refuses and says so.
+
     The class carried two more fields — ``peak_min_amplitude`` and ``pivot_deviation``,
     the amplitude floors for find_peaks and pivot_points. They were measured out in G38.
     Both were computed as ``max(base_deviation, range * k)``, and on zones of ordinary
@@ -55,12 +67,9 @@ class SwingThresholds:
     See ``devref/gaps/swing/g48_zone_scale_thresholds_measured_but_unproven_2026-09.md``.
     """
 
-    #: relative price move required by ZigZag
-    zigzag_deviation: float
     #: relative amplitude floor for ``find_peaks`` / ``pivot_points`` — the zone scale
-    #: (G48, 2026-09-06): ``max(bar_floor, median zone range × k)``. ``None`` means the
-    #: strategy keeps the floor it was constructed with (ZigZag: always ``None``).
-    min_amplitude_pct: Optional[float] = None
+    #: (G48, 2026-09-06): ``max(bar_floor, median zone range × k)``.
+    min_amplitude_pct: float
 
 
 def _safe_mid_price(close_series: pd.Series) -> Optional[float]:
@@ -117,44 +126,54 @@ def zone_scale_amplitude(zone_ranges: Sequence[float], k: float, floor: float) -
 def auto_swing_thresholds(
     zone_df: pd.DataFrame,
     *,
-    base_deviation: float = 0.01,
-    amplitude_k: Optional[float] = None,
+    amplitude_k: float,
     zone_ranges: Optional[Sequence[float]] = None,
 ) -> SwingThresholds:
-    """Пороги свингов из данных: ``deviation`` ZigZag от размаха кадра и, если задан
-    ``amplitude_k``, амплитудный пол от масштаба зон (``zone_ranges``; без них — от
-    размаха самого ``zone_df``, это режим ``per_zone``)."""
+    """Порог свингов из данных: амплитудный пол от масштаба зон (``zone_ranges``; без
+    них — от размаха самого ``zone_df``, это режим ``per_zone``), с полом от бара.
+
+    Пустой кадр — отказ, а не порог по умолчанию: до 0.0.20 здесь возвращался
+    ``base_deviation`` для ZigZag, то есть число, которого никто не применял (G86)."""
 
     if zone_df.empty:
-        return SwingThresholds(zigzag_deviation=base_deviation)
+        raise ValueError("auto_swing_thresholds: empty frame has no scale to take a threshold from")
 
     if not {"high", "low", "close"}.issubset(zone_df.columns):
         raise KeyError("Zone dataframe must contain 'high', 'low', and 'close' columns")
 
-    frame_range = relative_range(zone_df)
-    deviation = max(base_deviation, (frame_range if frame_range is not None else base_deviation) * 0.5)
-
-    min_amplitude_pct = None
-    if amplitude_k is not None:
-        ranges = list(zone_ranges) if zone_ranges is not None else [frame_range]
-        min_amplitude_pct = zone_scale_amplitude(ranges, amplitude_k, bar_floor(zone_df))
-
-    return SwingThresholds(zigzag_deviation=deviation, min_amplitude_pct=min_amplitude_pct)
+    ranges = list(zone_ranges) if zone_ranges is not None else [relative_range(zone_df)]
+    return SwingThresholds(
+        min_amplitude_pct=zone_scale_amplitude(ranges, amplitude_k, bar_floor(zone_df))
+    )
 
 
 class AdaptiveSwingStrategy:
-    """Wrapper that adapts swing thresholds for base strategies."""
+    """Wrapper that adapts swing thresholds for base strategies.
+
+    Adapts ``find_peaks`` and ``pivot_points`` — the strategies with an amplitude
+    floor (``ZONE_SCALE_K``). For any other strategy it **refuses** at construction:
+    a wrapper that wraps and adapts nothing would be the G85 defect in another coat —
+    a mode accepted and ignored. ZigZag lost its adapted threshold in G86 (see
+    :class:`SwingThresholds`).
+    """
 
     def __init__(
         self,
         strategy_name: str,
         base_params: Dict[str, Any],
-        *,
-        base_deviation: float,
     ) -> None:
+        if strategy_name not in ZONE_SCALE_K:
+            raise ValueError(
+                f"Adaptive swing thresholds: nothing to adapt for '{strategy_name}'. The "
+                f"layer adapts the amplitude floor of {sorted(ZONE_SCALE_K)} from the zone "
+                f"scale (G48). ZigZag's adapted `deviation` was removed in 0.0.20 (G86): it "
+                f"was a fraction read by pandas-ta as a percent, sat below one bar's range "
+                f"and decided nothing (193 vs 192 swings with the layer on and off). Set "
+                f"`deviation_pct` / `confirmation_retrace_pct` by preset or by hand, and "
+                f"keep `with_auto_swing_thresholds(False)` for this strategy."
+            )
         self.base_strategy_name = strategy_name
         self._base_params = dict(base_params)
-        self._base_deviation = base_deviation
         self.base_strategy = StrategyRegistry.get_swing_strategy(
             strategy_name, **base_params
         )
@@ -163,9 +182,9 @@ class AdaptiveSwingStrategy:
         self._zone_ranges: Optional[Sequence[float]] = None
 
     @property
-    def amplitude_k(self) -> Optional[float]:
-        """Множитель плеча G48 для этой стратегии; ``None`` — слой её амплитуду не трогает."""
-        return ZONE_SCALE_K.get(self.base_strategy_name)
+    def amplitude_k(self) -> float:
+        """Множитель плеча G48 для этой стратегии (конструктор гарантирует, что он есть)."""
+        return ZONE_SCALE_K[self.base_strategy_name]
 
     def set_zone_scale(self, zone_ranges: Sequence[float]) -> None:
         """Сообщить слою масштаб зон (относительные размахи) перед ``calculate_global``.
@@ -179,7 +198,7 @@ class AdaptiveSwingStrategy:
     def calculate_global(self, full_data: pd.DataFrame) -> SwingContext:
         """Calculate global swings with adaptive thresholds applied once."""
 
-        if self.amplitude_k is not None and self._zone_ranges is None:
+        if self._zone_ranges is None:
             raise ValueError(
                 f"Adaptive {self.base_strategy_name}: the amplitude floor is the zone "
                 "scale, and no zone scale was given — call set_zone_scale(zone_ranges) "
@@ -187,7 +206,6 @@ class AdaptiveSwingStrategy:
             )
         thresholds = auto_swing_thresholds(
             full_data,
-            base_deviation=self._base_deviation,
             amplitude_k=self.amplitude_k,
             zone_ranges=self._zone_ranges,
         )
@@ -215,7 +233,6 @@ class AdaptiveSwingStrategy:
             'description': 'Swing strategy with auto-scaled thresholds',
             'base_params': dict(self._base_params),
             'auto_thresholds': True,
-            'base_deviation': self._base_deviation,
         }
         if self._last_thresholds:
             metadata['last_thresholds'] = dict(self._last_thresholds)
@@ -225,26 +242,20 @@ class AdaptiveSwingStrategy:
         return {
             'base_strategy': self.base_strategy_name,
             'base_params': dict(self._base_params),
-            'base_deviation': self._base_deviation,
         }
 
     def _calculate_adaptive_thresholds(self, data: pd.DataFrame) -> SwingThresholds:
         """Пороги для одной зоны (``per_zone``): масштаб — размах самой зоны."""
-        return auto_swing_thresholds(
-            data, base_deviation=self._base_deviation, amplitude_k=self.amplitude_k
-        )
+        return auto_swing_thresholds(data, amplitude_k=self.amplitude_k)
 
     def _apply_thresholds_to_strategy(
         self,
         strategy,
         thresholds: SwingThresholds,
     ) -> None:
-        if self.base_strategy_name == 'zigzag':
-            strategy.deviation = thresholds.zigzag_deviation
-        elif thresholds.min_amplitude_pct is not None and self.amplitude_k is not None:
-            # G48: the floor is the zone scale, floored by the data's own bar range —
-            # never the 0.01 constant that G38 measured as switching both strategies off.
-            strategy.min_amplitude_pct = thresholds.min_amplitude_pct
+        # G48: the floor is the zone scale, floored by the data's own bar range —
+        # never the 0.01 constant that G38 measured as switching both strategies off.
+        strategy.min_amplitude_pct = thresholds.min_amplitude_pct
         # `prominence` of find_peaks is deliberately left alone.
         #
         # `prominence` was removed first (G16): it is absolute, an amount of price, and
@@ -257,15 +268,12 @@ class AdaptiveSwingStrategy:
         # must admit admits nothing, and "no swings" is indistinguishable from "the
         # market stood still".
         #
-        # So this layer adapts ZigZag's `deviation` and nothing else. Both strategies
-        # keep the preset's floor, which is what they use with the layer switched off,
-        # and find_peaks keeps its own range-adaptive, warm-up-frozen prominence (G15).
+        # So this layer adapts the amplitude floor and nothing else: find_peaks keeps
+        # its own range-adaptive, warm-up-frozen prominence (G15), and ZigZag is not
+        # wrapped at all since G86 (its "adapted" deviation was measured dead).
 
     @staticmethod
     def _thresholds_to_dict(thresholds: SwingThresholds) -> Dict[str, float]:
         # Only what is applied is reported: a metadata key naming a threshold that
         # reaches no strategy is a claim the run cannot support (G38).
-        out = {'zigzag_deviation': thresholds.zigzag_deviation}
-        if thresholds.min_amplitude_pct is not None:
-            out['min_amplitude_pct'] = thresholds.min_amplitude_pct
-        return out
+        return {'min_amplitude_pct': thresholds.min_amplitude_pct}

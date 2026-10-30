@@ -56,10 +56,10 @@ print(sorted(k for k in metadata if k.endswith('_metrics')))
 ```python
 from bquant.analysis.zones.strategies.registry import StrategyRegistry
 
-strategy = StrategyRegistry.get_swing_strategy('zigzag', legs=3, deviation=0.008)
+strategy = StrategyRegistry.get_swing_strategy('zigzag', legs=3, deviation_pct=0.008)
 
 print(strategy)
-# ZigZagSwingStrategy(legs=3, deviation=0.008)
+# ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=5.0)
 ```
 
 Тот же результат через фабрику из конфигурации — она принимает имя, словарь или готовый
@@ -74,8 +74,8 @@ from bquant.analysis.zones.strategies import create_swing_strategy
 print(create_swing_strategy('find_peaks'))
 # FindPeaksSwingStrategy(prominence=None, distance=5, min_amplitude_pct=0.02, prominence_warmup=200)
 
-print(create_swing_strategy({'type': 'zigzag', 'params': {'legs': 4, 'deviation': 0.01}}))
-# ZigZagSwingStrategy(legs=4, deviation=0.01)
+print(create_swing_strategy({'type': 'zigzag', 'params': {'legs': 4, 'deviation_pct': 0.01}}))
+# ZigZagSwingStrategy(legs=4, deviation_pct=0.01, confirmation_retrace_pct=5.0)
 ```
 
 Для свингов есть третий путь и обычно он лучше двух первых —
@@ -91,7 +91,7 @@ from bquant.analysis.zones.strategies.swing import DEFAULT_SWING_PRESET, SWING_P
 print(DEFAULT_SWING_PRESET, sorted(SWING_PRESETS))
 print(SWING_PRESETS['narrow_zone'].zigzag)
 # narrow_zone ['narrow_zone', 'wide_zone']
-# {'legs': 3, 'deviation': 0.008}
+# {'legs': 3, 'deviation_pct': 0.008, 'confirmation_retrace_pct': 0.8}
 ```
 
 ## Протоколы
@@ -128,7 +128,7 @@ print(meta['params'])
 
 | Стратегия | Идея | Параметры по умолчанию |
 |---|---|---|
-| `zigzag` | фильтр движений по проценту отклонения | `legs=10`, `deviation=0.05` |
+| `zigzag` | пивоты pandas-ta ZigZag; `deviation_pct` — проценты, как читает библиотека (G86) | `legs=10`, `deviation_pct=0.05`, `confirmation_retrace_pct=5.0` |
 | `find_peaks` | локальные экстремумы по проминенции | `prominence=None`, `distance=5`, `min_amplitude_pct=0.02`, `prominence_warmup=200` |
 | `pivot_points` | классический N-баровый пивот | `left_bars=2`, `right_bars=2`, `min_amplitude_pct=0.015` |
 

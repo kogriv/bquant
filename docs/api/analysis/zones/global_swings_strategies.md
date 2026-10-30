@@ -66,7 +66,7 @@
 
   | Стратегия | Параметры |
   |---|---|
-  | `ZigZagSwingStrategy` | `legs=10`, `deviation=0.05` |
+  | `ZigZagSwingStrategy` | `legs=10`, `deviation_pct=0.05` (проценты, как читает pandas-ta), `confirmation_retrace_pct=5.0` |
   | `FindPeaksSwingStrategy` | `prominence=None`, `distance=5`, `min_amplitude_pct=0.02`, `prominence_warmup=200` |
   | `PivotPointsSwingStrategy` | `left_bars=2`, `right_bars=2`, `min_amplitude_pct=0.015` |
 

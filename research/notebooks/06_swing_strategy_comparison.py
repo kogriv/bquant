@@ -86,12 +86,13 @@ def _run_pipeline(df, strategy: str, scope: str) -> Dict[str, float]:
         .with_swing_preset("narrow_zone")
         # В 0.0.10 и раньше эта строка обнуляла find_peaks и pivot_points — она поднимала их
         # min_amplitude_pct выше движения типичной зоны (G38), и отчёт 2025-11 прочитал
-        # ноль свингов как свойство стратегий. После починки G38 слой адаптирует только deviation
-        # ZigZag, а эти две остаются на пороге пресета, поэтому прогон снова сравнивает
-        # стратегии, а не конфигурации. Числа отчёта 2025-11 этим прогоном больше не
-        # воспроизводятся — это и есть починка. Поправка в отчёте:
-        # docs/analytics/zones/swing_strategy_comparison_case_study.md
-        .with_auto_swing_thresholds(True)
+        # ноль свингов как свойство стратегий. С G48 слой даёт этим двум порог от масштаба
+        # зоны. Для zigzag переключатель до 0.0.20 «адаптировал» deviation и не менял ничего
+        # (G86: 193 свинга против 192) — теперь с активным zigzag он отказывает, поэтому
+        # здесь включается только для двух стратегий, у которых есть что адаптировать.
+        # Числа отчёта 2025-11 этим прогоном больше не воспроизводятся — это и есть
+        # починка. Поправка в отчёте: docs/analytics/zones/swing_strategy_comparison_case_study.md
+        .with_auto_swing_thresholds(strategy != "zigzag")
         .with_swing_scope(scope)
         .analyze(clustering=False)
         .build()

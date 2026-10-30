@@ -137,20 +137,20 @@ def test_a_zone_where_the_detector_found_nothing_is_a_measurement():
 
 def test_the_three_reasons_are_told_apart_at_the_strategy_level(broken_detector):
     """Одна и та же пустота, три разных имени."""
-    short = ZigZagSwingStrategy(legs=10, deviation=0.01).calculate_global(_frame(12))
+    short = ZigZagSwingStrategy(legs=10, deviation_pct=0.01, confirmation_retrace_pct=1.0).calculate_global(_frame(12))
     assert short.degraded == "too_short"
 
-    flat = ZigZagSwingStrategy(legs=2, deviation=0.01).calculate_global(_frame(200, flat=True))
+    flat = ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0).calculate_global(_frame(200, flat=True))
     assert flat.degraded == "degenerate"
 
     # Недоступный детектор внутри зоны: контекст пуст и назван.
-    per_zone = ZigZagSwingStrategy(legs=2, deviation=0.01)._swing_context(
+    per_zone = ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0)._swing_context(
         _frame(60), scope="per_zone"
     )
     assert per_zone.degraded == "detector_unavailable"
 
     with pytest.raises(AnalysisError):
-        ZigZagSwingStrategy(legs=2, deviation=0.01).calculate_global(_frame(60))
+        ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0).calculate_global(_frame(60))
 
 
 def test_a_context_cannot_claim_a_reason_and_carry_points():

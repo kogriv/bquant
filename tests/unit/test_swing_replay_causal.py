@@ -73,7 +73,7 @@ def test_zigzag_confirmation_is_replay_safe(sample):
     warm-up floor. With the old backtest=False centred detector this fails on ~35%
     of pivots on this sample (and 73% on the downstream narrow_zone cohort).
     """
-    violations = _repaint_violations(ZigZagSwingStrategy(legs=3, deviation=0.008), sample)
+    violations = _repaint_violations(ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8), sample)
     assert violations == [], (
         f"{len(violations)} ZigZag pivots repaint under truncation "
         f"(first few: {violations[:5]})"
@@ -83,7 +83,7 @@ def test_zigzag_confirmation_is_replay_safe(sample):
 def test_zigzag_replay_safe_across_configs(sample):
     """Replay-safety holds for other legs/deviation settings, not just one."""
     for legs, dev in [(2, 0.01), (5, 0.005)]:
-        violations = _repaint_violations(ZigZagSwingStrategy(legs=legs, deviation=dev), sample)
+        violations = _repaint_violations(ZigZagSwingStrategy(legs=legs, deviation_pct=dev, confirmation_retrace_pct=dev * 100), sample)
         assert violations == [], f"legs={legs} dev={dev}: {len(violations)} repaint(s)"
 
 
@@ -160,7 +160,7 @@ def _vanish_violations(strategy, df, step=50) -> list:
 def test_confirmed_swings_do_not_vanish(sample):
     """A swing confirmed as of bar t survives into the full history."""
     for strategy in (
-        ZigZagSwingStrategy(legs=3, deviation=0.008),
+        ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8),
         FindPeaksSwingStrategy(distance=3, prominence=0.5),
         PivotPointsSwingStrategy(left_bars=3, right_bars=3),
     ):

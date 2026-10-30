@@ -77,7 +77,9 @@ with nb.error_handling("Building and running pipeline"):
         .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
         .detect_zones("zero_crossing", indicator_role="line")
         .with_strategies(swing="zigzag")
-        .with_auto_swing_thresholds(True)
+        # `.with_auto_swing_thresholds(True)` здесь стоял до 0.0.20 и не делал ничего:
+        # адаптивный `deviation` zigzag был измерен мёртвым и удалён (G86); теперь с
+        # активным zigzag переключатель отказывает. Пороги задаёт пресет narrow_zone.
         .with_swing_scope("global")
         .analyze(clustering=True, n_clusters=3)
         .build()
@@ -104,11 +106,14 @@ with nb.error_handling("Building and running pipeline"):
         # для визуальной проверки параметров стратегии
         if swing_context and swing_context.strategy_name == 'zigzag':
             strategy_params = swing_context.strategy_params
-            legs = strategy_params.get('legs', 10)
-            deviation = strategy_params.get('deviation', 0.05)
-            
+            legs = strategy_params['legs']
+            # Проценты, как читает pandas-ta (G86): 0.008 — это 0.008 %, не 0.8 %.
+            deviation_pct = strategy_params['deviation_pct']
+            retrace_pct = strategy_params['confirmation_retrace_pct']
+
             nb.log(f"\n--- ZigZag Indicator Visualization ---")
-            nb.log(f"Parameters: legs={legs}, deviation={deviation:.6f} ({deviation*100:.4f}%)")
+            nb.log(f"Parameters: legs={legs}, deviation_pct={deviation_pct} %, "
+                   f"confirmation_retrace_pct={retrace_pct} %")
             
             # Используем функцию из пакета для построения графика.
             # Она НИЧЕГО не считает: точки берутся из swing_context, посчитанного

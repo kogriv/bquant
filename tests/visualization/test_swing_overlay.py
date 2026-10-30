@@ -55,7 +55,7 @@ def _make_zone_with_swing_context(zone_id: int, price_data: pd.DataFrame) -> Zon
         indices=np.array([sp.index for sp in swing_points]),
         full_data_length=len(index),
         strategy_name="zigzag",
-        strategy_params={"deviation": 0.05},
+        strategy_params={"deviation_pct": 0.05, "confirmation_retrace_pct": 5.0},
     )
     return ZoneInfo(
         zone_id=zone_id,

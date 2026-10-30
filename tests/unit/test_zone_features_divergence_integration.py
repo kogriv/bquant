@@ -103,7 +103,7 @@ class TestZoneFeaturesDivergenceIntegration:
         from bquant.analysis.zones.strategies.swing import ZigZagSwingStrategy
         from bquant.analysis.zones.strategies.shape import StatisticalShapeStrategy
         
-        swing_strategy = ZigZagSwingStrategy(legs=10, deviation=0.05)
+        swing_strategy = ZigZagSwingStrategy(legs=10, deviation_pct=0.05, confirmation_retrace_pct=5.0)
         divergence_strategy = ClassicDivergenceStrategy()
         shape_strategy = StatisticalShapeStrategy()
         

@@ -56,7 +56,7 @@ def test_the_zone_scale_admits_no_new_pivot():
     data = get_sample_data("tv_xauusd_1h")
     zones = _build("tv_xauusd_1h", "find_peaks", auto=False).zones
     preset = FindPeaksSwingStrategy(**SWING_PRESETS["narrow_zone"].find_peaks)
-    wrapper = AdaptiveSwingStrategy("find_peaks", SWING_PRESETS["narrow_zone"].find_peaks, base_deviation=0.01)
+    wrapper = AdaptiveSwingStrategy("find_peaks", SWING_PRESETS["narrow_zone"].find_peaks)
     wrapper.set_zone_scale([relative_range(z.data) for z in zones])
     assert set(map(int, preset.calculate_global(data).indices)) == set(map(int, wrapper.calculate_global(data).indices))
     assert wrapper.base_strategy.min_amplitude_pct < preset.min_amplitude_pct
@@ -95,16 +95,17 @@ def test_the_floor_is_the_bar_range_not_a_constant():
 
 
 def test_global_without_a_zone_scale_is_refused_not_guessed():
-    wrapper = AdaptiveSwingStrategy("pivot_points", SWING_PRESETS["narrow_zone"].pivot_points, base_deviation=0.01)
+    wrapper = AdaptiveSwingStrategy("pivot_points", SWING_PRESETS["narrow_zone"].pivot_points)
     with pytest.raises(ValueError, match="set_zone_scale"):
         wrapper.calculate_global(get_sample_data("tv_xauusd_1h"))
 
 
-def test_zigzag_is_untouched_and_the_applied_threshold_is_reported():
-    zigzag = AdaptiveSwingStrategy("zigzag", SWING_PRESETS["narrow_zone"].zigzag, base_deviation=0.01)
-    assert zigzag.amplitude_k is None
-    zigzag.calculate_global(get_sample_data("tv_xauusd_1h"))
-    assert "min_amplitude_pct" not in zigzag.get_metadata()["last_thresholds"]
+def test_zigzag_is_refused_by_the_layer_and_the_applied_threshold_is_reported():
+    """Until G86 the layer "adapted" ZigZag's deviation — a lever measured dead (193
+    vs 192 swings). Wrapping a strategy and adapting nothing is a mode accepted and
+    ignored, so the wrapper now refuses and names what it does adapt."""
+    with pytest.raises(ValueError, match="nothing to adapt for 'zigzag'"):
+        AdaptiveSwingStrategy("zigzag", SWING_PRESETS["narrow_zone"].zigzag)
     result = _build("tv_xauusd_1h", "find_peaks", auto=True)
     params = next(z.features["metadata"]["swing_metrics"]["strategy_params"] for z in result.zones
                   if (z.features["metadata"].get("swing_metrics") or {}).get("strategy_params"))

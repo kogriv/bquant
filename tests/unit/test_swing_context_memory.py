@@ -26,7 +26,7 @@ def test_swing_context_memory_footprint_within_expected_bounds():
         indices=np.arange(point_count),
         full_data_length=point_count,
         strategy_name="zigzag",
-        strategy_params={"legs": 10, "deviation": 0.05},
+        strategy_params={"legs": 10, "deviation_pct": 0.05, "confirmation_retrace_pct": 5.0},
     )
 
     total_bytes = (

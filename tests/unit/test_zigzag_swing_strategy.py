@@ -47,17 +47,17 @@ class TestZigZagSwingStrategy:
         """Test strategy creation with default parameters."""
         strategy = ZigZagSwingStrategy()
         assert strategy.legs == 10
-        assert strategy.deviation == 0.05
+        assert strategy.deviation_pct == 0.05
     
     def test_strategy_custom_params(self):
         """Test strategy with custom parameters."""
-        strategy = ZigZagSwingStrategy(legs=15, deviation=0.03)
+        strategy = ZigZagSwingStrategy(legs=15, deviation_pct=0.03, confirmation_retrace_pct=3.0)
         assert strategy.legs == 15
-        assert strategy.deviation == 0.03
+        assert strategy.deviation_pct == 0.03
     
     def test_calculate_basic(self, bull_zone):
         """Test basic calculation on real data."""
-        strategy = ZigZagSwingStrategy(legs=10, deviation=0.05)
+        strategy = ZigZagSwingStrategy(legs=10, deviation_pct=0.05, confirmation_retrace_pct=5.0)
         result = strategy.calculate(bull_zone)
         
         assert isinstance(result, SwingMetrics)
@@ -175,7 +175,7 @@ class TestZigZagSwingStrategy:
     
     def test_insufficient_swings(self):
         """Test handling when ZigZag finds no swings."""
-        strategy = ZigZagSwingStrategy(legs=50, deviation=0.20)  # Very strict
+        strategy = ZigZagSwingStrategy(legs=50, deviation_pct=0.20, confirmation_retrace_pct=20.0)  # Very strict
         
         # Small flat data
         dates = pd.date_range('2025-01-01', periods=20, freq='1h')
@@ -207,12 +207,12 @@ class TestZigZagSwingStrategy:
         
         assert isinstance(strategy, ZigZagSwingStrategy)
         assert strategy.legs == 10
-        assert strategy.deviation == 0.05
+        assert strategy.deviation_pct == 0.05
     
     def test_different_parameters_different_results(self, bull_zone):
         """Test that different parameters produce different results."""
-        strategy1 = ZigZagSwingStrategy(legs=5, deviation=0.03)   # More sensitive
-        strategy2 = ZigZagSwingStrategy(legs=20, deviation=0.10)  # Less sensitive
+        strategy1 = ZigZagSwingStrategy(legs=5, deviation_pct=0.03, confirmation_retrace_pct=3.0)   # More sensitive
+        strategy2 = ZigZagSwingStrategy(legs=20, deviation_pct=0.10, confirmation_retrace_pct=10.0)  # Less sensitive
         
         result1 = strategy1.calculate(bull_zone)
         result2 = strategy2.calculate(bull_zone)
@@ -318,7 +318,7 @@ def test_zigzag_global_refuses_when_pandas_ta_zigzag_unavailable(monkeypatch):
         index=idx,
     )
 
-    strategy = ZigZagSwingStrategy(legs=2, deviation=0.01)
+    strategy = ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0)
 
     with pytest.raises(AnalysisError) as exc:
         strategy.calculate_global(df)
@@ -337,7 +337,7 @@ def test_zigzag_global_refuses_when_pandas_ta_zigzag_unavailable(monkeypatch):
 
 def test_a_short_or_degenerate_series_names_its_reason_too(monkeypatch):
     """Три разные причины пустоты больше не один объект (G70)."""
-    strategy = ZigZagSwingStrategy(legs=10, deviation=0.01)
+    strategy = ZigZagSwingStrategy(legs=10, deviation_pct=0.01, confirmation_retrace_pct=1.0)
 
     short = pd.DataFrame(
         {
@@ -363,7 +363,7 @@ def test_a_short_or_degenerate_series_names_its_reason_too(monkeypatch):
         },
         index=pd.date_range("2024-01-01", periods=200, freq="h"),
     )
-    degenerate = ZigZagSwingStrategy(legs=2, deviation=0.01).calculate_global(flat)
+    degenerate = ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0).calculate_global(flat)
     assert degenerate.swing_points == []
     assert degenerate.degraded == 'degenerate'
 

@@ -34,7 +34,7 @@ def _make_zone_with_context() -> ZoneInfo:
         indices=np.array([2, 5]),
         full_data_length=len(index),
         strategy_name="zigzag",
-        strategy_params={"deviation": 0.05},
+        strategy_params={"deviation_pct": 0.05, "confirmation_retrace_pct": 5.0},
     )
 
     return ZoneInfo(

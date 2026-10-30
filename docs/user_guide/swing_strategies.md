@@ -66,10 +66,49 @@ for zone in result.zones:
 Доступные пресеты: **`narrow_zone`** (по умолчанию) и **`wide_zone`**.
 
 Пресеты названы по ширине зоны, под которую откалиброваны. `narrow_zone` ужимает ZigZag
-(`legs=3`, `deviation=0.008`) и сопутствующие пороги, чтобы узкие диапазоны
-регистрировали пивоты; `wide_zone` — крупные пороги (`legs=10`, `deviation=0.05`,
-`min_amplitude_pct=0.02`) для инструментов и таймфреймов, где рядовое движение внутри
-зоны — проценты цены.
+(`legs=3`, `deviation_pct=0.008`, `confirmation_retrace_pct=0.8`) и сопутствующие пороги,
+чтобы узкие диапазоны регистрировали пивоты; `wide_zone` — крупные пороги (`legs=10`,
+`deviation_pct=0.05`, `confirmation_retrace_pct=5.0`, `min_amplitude_pct=0.02`) для
+инструментов и таймфреймов, где рядовое движение внутри зоны — проценты цены.
+
+### Единицы ZigZag: `deviation_pct` и `confirmation_retrace_pct`
+
+`deviation_pct` — **проценты, ровно так, как читает их pandas-ta**: `0.008` — это 0.008 %,
+не 0.8 %. До 0.0.20 поле называлось `deviation` и описывалось как доля («0.05 = 5%»), тогда
+как библиотека сравнивает `current_dev > 0.01 * deviation` и печатает единицу в имени
+колонки, которую возвращает: `ZIGZAGs_0.008%_3`. Цифры пресетов при переименовании **не
+менялись** — это то, что библиотека всегда читала, и именно этот объект измерен в G35/G38/
+G48/G54. На значениях пресетов порог лежит ниже размаха одного бара часового золота, и
+детектор сводится к экстремумам окна `legs`: рычаг, который решает, — `legs`.
+
+```python
+from bquant.analysis.zones.strategies.swing.zigzag import ZigZagSwingStrategy
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+
+shipped = ZigZagSwingStrategy(legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8)
+print(len(shipped.calculate_global(data).swing_points))   # 402
+
+honest = ZigZagSwingStrategy(legs=3, deviation_pct=0.8, confirmation_retrace_pct=0.8)
+print(len(honest.calculate_global(data).swing_points))   # 132
+```
+
+«Честные» 0.8 % — не лучший объект, а другой: под `backtest=True` параметр не ограничивает
+размер ноги (при 5.0 восемь ходов из десяти на сэмпле меньше 5 %), а больше половины
+оставшихся точек становятся обновлениями того же экстремума (61.8 % при 0.8). Разбор —
+`devref/gaps/swing/g86_…`.
+
+`confirmation_retrace_pct` — откат от цены пивота, в процентах, после которого пивот
+считается причинно подтверждённым (`SwingPoint.confirmation_index`). Это отдельная
+величина по необходимости: следующий пивот и есть первый бар, где откат превысил порог
+обнаружения, поэтому подтверждение, определённое тем же числом, попадало бы на следующий
+пивот по построению (99.2 % пар) и не несло бы информации. Значения пресетов — та доля, за
+которую старый код принимал `deviation`; на них проверен причинный контракт (#110, G54).
+
+Что считается ногой: движение строится из **каждой** пары соседних точек, поэтому
+обновление (две вершины подряд, вторая выше) — тоже движение. Обновления никогда не
+противоречат своему типу; на значениях пресетов их 11–14 % пар.
 
 **Выбор пресета влияет сильнее выбора стратегии.** Доля зон, у которых нашёлся хотя бы
 один свинг — 30 зон MACD по линии на `tv_xauusd_1h`, замер прогоном:
@@ -131,11 +170,18 @@ strategy = FindPeaksSwingStrategy(distance=3, prominence=0.5)
 
 ## Адаптивные пороги
 
-Адаптивный режим выводит пороги из данных: у ZigZag — `deviation` от размаха кадра, у
-`find_peaks` и `pivot_points` (с G48, 2026-09-06) — `min_amplitude_pct` от **масштаба зоны**:
-`max(медианный размах бара, медианный размах зоны × k)`, k = 0.3 и 0.25. В `global` масштаб —
-все найденные зоны (пайплайн детектирует их до свингов), в `per_zone` — сама зона. Пол —
-размах бара, не константа: движение меньше типичного бара движением не считается.
+Адаптивный режим выводит порог из данных у `find_peaks` и `pivot_points` (с G48, 2026-09-06):
+`min_amplitude_pct` от **масштаба зоны** — `max(медианный размах бара, медианный размах
+зоны × k)`, k = 0.3 и 0.25. В `global` масштаб — все найденные зоны (пайплайн детектирует
+их до свингов), в `per_zone` — сама зона. Пол — размах бара, не константа: движение меньше
+типичного бара движением не считается.
+
+**С ZigZag режим отказывает.** До 0.0.20 слой «адаптировал» его `deviation` от размаха
+кадра — величину, которую pandas-ta читал как проценты ниже размаха одного бара; измерено:
+193 свинга без слоя, 192 со слоем (G86). Переключатель, который принимается и ничего не
+меняет, — дефект той же породы, что G85, поэтому `with_auto_swing_thresholds(True)` при
+активном `zigzag` поднимает `ValueError` и называет, что слой адаптирует на самом деле.
+Пороги ZigZag задаются пресетом или руками: `deviation_pct`, `confirmation_retrace_pct`.
 
 Fluent-билдер предоставляет `.with_auto_swing_thresholds(True)` — под ним пайплайн оборачивает
 базовую стратегию в `AdaptiveSwingStrategy` (`bquant.analysis.zones.strategies.swing`; до G64
@@ -166,7 +212,7 @@ result = (
     .with_cache(enable=False)
     .with_indicator("custom", "macd", fast_period=12, slow_period=26, signal_period=9)
     .detect_zones("zero_crossing", indicator_role="line")
-    .with_strategies(swing="zigzag")
+    .with_strategies(swing="find_peaks")
     .with_auto_swing_thresholds(True)
     .analyze()
     .build()
@@ -175,12 +221,13 @@ result = (
 params = next(z.features["metadata"]["swing_metrics"]["strategy_params"]
               for z in result.zones
               if z.features["metadata"].get("swing_metrics", {}).get("strategy_params"))
-print(params)   # {'legs': 3, 'deviation': 0.030924448545605776}
+print(sorted(params))   # ['distance', 'min_amplitude_pct', 'prominence']
+print(round(params['min_amplitude_pct'], 5))   # 0.00373
 ```
 
-Порог выведен из данных: `deviation` пресета `wide_zone` — `0.05`, адаптивный дал `0.031`.
-На покрытии зон свингами у ZigZag это не сказалось — режим меняет порог, а не гарантирует
-прибавку.
+Порог выведен из данных: пресет `narrow_zone` просит `min_amplitude_pct=0.006`, масштаб зон
+на этом кадре дал `0.00373` — ниже пресета, и движения между пивотами, которые пресет
+отбрасывал, проходят.
 
 > **В 0.0.10 и раньше этот режим обнулял `find_peaks` и `pivot_points`** — во всех зонах, в обоих
 > режимах области. Он поднимал их `min_amplitude_pct` до `0.01` (пол `base_deviation`),
@@ -198,46 +245,16 @@ print(params)   # {'legs': 3, 'deviation': 0.030924448545605776}
 > они с выключенным режимом. Ноль свингов при этом ничем не отличался от «рынок стоял»,
 > поэтому опубликованный отчёт девять месяцев читал это как свойство стратегий.
 >
-> Отдельно стоит знать, чего режим **не** даёт: на этих данных он не меняет и покрытия
-> ZigZag — только его `deviation`, с `0.05` на `0.031`. Считать порог от масштаба зоны, а
-> не от датасета, и снять пол — измеренное направление (те же две стратегии дают 84.4 %),
-> но оно не отгружено: рост покрытия сам по себе не доказывает, что добавленные свинги
-> реальны. Разбор:
-> `devref/gaps/swing/g38_adaptive_thresholds_restore_the_threshold_g35_removed_2026-08.md`.
+> Строка `zigzag` в этой таблице — 90.9 % во всех трёх столбцах — и была уликой G86: слой
+> менял его `deviation` с `0.05` на `0.031`, и это не меняло ничего, потому что оба числа
+> библиотека читала как сотые доли процента. Два месяца одинаковые числа читались как
+> «не задет», а не как «рычаг мёртв». Разбор:
+> `devref/gaps/swing/g38_adaptive_thresholds_restore_the_threshold_g35_removed_2026-08.md`,
+> `devref/gaps/swing/g86_…`.
 
-Или напрямую через `ZoneAnalysisPipeline` — флаг конструктора `strategy_auto_thresholds`
-и база отката `auto_threshold_base_deviation`:
-
-```python
-from bquant.analysis.zones.pipeline import (
-    IndicatorSpec,
-    ZoneAnalysisConfig,
-    ZoneAnalysisPipeline,
-    ZoneDetectionConfig,
-)
-from bquant.data.samples import get_sample_data
-
-config = ZoneAnalysisConfig(
-    indicator=IndicatorSpec(source="custom", name="macd",
-                            parameters={"fast_period": 12, "slow_period": 26, "signal_period": 9}),
-    zone_detection=ZoneDetectionConfig(strategy_name="zero_crossing",
-                                       rules={"indicator_role": "line"}),
-)
-
-pipeline = ZoneAnalysisPipeline(
-    config=config,
-    enable_cache=False,
-    strategy_auto_thresholds=True,
-    auto_threshold_base_deviation=0.01,
-)
-pipeline.with_swing_preset("wide_zone")  # опциональная база
-result = pipeline.run(get_sample_data("tv_xauusd_1h"))
-
-print(len(result.zones))   # 30
-```
-
-Адаптивный режим откатывается к параметрам пресета, когда вычисленный диапазон меньше
-`auto_threshold_base_deviation`, что обеспечивает стабильность на тонких зонах.
+Низкоуровневый флаг конструктора `ZoneAnalysisPipeline` — `strategy_auto_thresholds`; база
+отката `auto_threshold_base_deviation` удалена в 0.0.20 вместе с адаптивной половиной
+ZigZag, которую одну она и питала.
 
 ## Режим расчёта (scope)
 

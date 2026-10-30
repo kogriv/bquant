@@ -78,7 +78,18 @@ class StrategyRegistry:
             raise ValueError(
                 f"Unknown {family} strategy: '{name}'. Available: {list(bucket.keys())}"
             )
-        return bucket[name](**params)
+        strategy_cls = bucket[name]
+        # Отказ с названной заменой (решение 2026-09-12): переименованный параметр не
+        # принимается молча под старым именем и не отвергается голым TypeError —
+        # стратегия сама говорит, чем его заменить (`RETIRED_PARAMS`).
+        retired = getattr(strategy_cls, 'RETIRED_PARAMS', {})
+        gone = [key for key in params if key in retired]
+        if gone:
+            raise ValueError(
+                f"{family} strategy '{name}' no longer accepts {gone}: "
+                + " ".join(retired[key] for key in gone)
+            )
+        return strategy_cls(**params)
 
     @classmethod
     def list_strategies(cls, family: str) -> List[str]:

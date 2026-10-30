@@ -54,7 +54,7 @@ def test_zigzag_global_vs_isolated(monkeypatch, synthetic_data):
     pivot_timestamps = [synthetic_data.index[i] for i in pivot_indices]
     use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
 
-    strategy = ZigZagSwingStrategy(legs=2, deviation=0.01)
+    strategy = ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0)
     context = strategy.calculate_global(synthetic_data)
 
     zone = _make_zone(synthetic_data, 5, 15, zone_id=1)
@@ -78,7 +78,7 @@ def test_zigzag_confirmation_index_causal(monkeypatch, synthetic_data):
     pivot_timestamps = [synthetic_data.index[i] for i in pivot_indices]
     use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
 
-    strategy = ZigZagSwingStrategy(legs=2, deviation=0.01)
+    strategy = ZigZagSwingStrategy(legs=2, deviation_pct=0.01, confirmation_retrace_pct=1.0)
     context = strategy.calculate_global(synthetic_data)
     swings = context.swing_points
 
@@ -210,40 +210,22 @@ def test_swing_context_slice_with_neighbors():
     assert [sp.index for sp in sliced] == [10, 20, 30]
 
 
-def test_adaptive_thresholds_global_mode(monkeypatch):
-    """Adaptive wrapper should compute thresholds on the full dataset once."""
-
-    data = create_sample_ohlcv_data(60)
-    data.index = pd.date_range("2024-02-01", periods=len(data), freq="h")
-    pivot_timestamps = [data.index[i] for i in range(0, len(data), 10)]
-    use_fake_zigzag_indicator(monkeypatch, pivot_timestamps)
-
-    adaptive = AdaptiveSwingStrategy("zigzag", {"legs": 2, "deviation": 0.02}, base_deviation=0.01)
-    context = adaptive.calculate_global(data)
-
-    expected_thresholds = auto_swing_thresholds(data, base_deviation=0.01)
-    assert adaptive._global_threshold_cache == expected_thresholds  # pylint: disable=protected-access
-    assert adaptive.base_strategy.deviation == pytest.approx(expected_thresholds.zigzag_deviation)
-    assert isinstance(context, SwingContext)
-
-    zone = ZoneInfo(
-        zone_id=0,
-        type="bull",
-        start_idx=5,
-        end_idx=20,
-        start_time=data.index[5].to_pydatetime(),
-        end_time=data.index[20].to_pydatetime(),
-        duration=16,
-        data=data.iloc[5:21].copy(),
-    )
-    metrics = adaptive.aggregate_for_zone(zone, context)
-    assert metrics.strategy_name == "zigzag"
+def test_adaptive_layer_refuses_zigzag_instead_of_adapting_nothing():
+    """Until G86 this test wrapped ZigZag in the adaptive layer and asserted that the
+    wrapper's `deviation` equalled the "adapted" value — a value pandas-ta read as a
+    percent, below one bar's range, that decided nothing (193 vs 192 swings with the
+    layer on and off). A wrapper that adapts nothing is a mode accepted and ignored,
+    so the layer now refuses and names what it does adapt."""
+    with pytest.raises(ValueError, match="nothing to adapt for 'zigzag'") as refusal:
+        AdaptiveSwingStrategy("zigzag", {"legs": 2, "deviation_pct": 0.02})
+    assert "deviation_pct" in str(refusal.value)
+    assert "find_peaks" in str(refusal.value) and "pivot_points" in str(refusal.value)
 
 
 @pytest.mark.parametrize(
     ("strategy_cls", "kwargs"),
     [
-        (ZigZagSwingStrategy, {"legs": 3, "deviation": 0.02}),
+        (ZigZagSwingStrategy, {"legs": 3, "deviation_pct": 0.02, "confirmation_retrace_pct": 2.0}),
         (FindPeaksSwingStrategy, {"prominence": 0.02, "distance": 5, "min_amplitude_pct": 0.02}),
         (PivotPointsSwingStrategy, {"left_bars": 2, "right_bars": 2, "min_amplitude_pct": 0.02}),
     ],

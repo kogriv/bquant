@@ -91,7 +91,9 @@ def run_zone_analysis(data, swing_scope: str):
             zone_types=["bull", "bear"],
         )
         .with_strategies(swing="zigzag")
-        .with_auto_swing_thresholds(True)
+        # `.with_auto_swing_thresholds(True)` стоял здесь до 0.0.20 и не делал ничего:
+        # адаптивный `deviation` zigzag был измерен мёртвым и удалён (G86); с активным
+        # zigzag переключатель теперь отказывает. Пороги задаёт пресет narrow_zone.
         .with_swing_scope(swing_scope)
         .analyze(min_duration=8)
         .build()

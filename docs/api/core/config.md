@@ -149,7 +149,7 @@ ANALYSIS_CONFIG = {
     'zone_features': {
         'swing_strategy': {
             'type': 'zigzag',
-            'params': {'legs': 10, 'deviation': 0.05},
+            'params': {'legs': 10, 'deviation_pct': 0.05, 'confirmation_retrace_pct': 5.0},
         },
         'divergence_strategy': {
             'type': 'none',

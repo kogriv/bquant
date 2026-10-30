@@ -366,7 +366,7 @@ fig_cmp = plot_zones_comparison(result.data, result.zones[:3], max_zones=3)
 
 Рисует точки готового `SwingContext` поверх свечей — чтобы глазами проверить пороги
 свинг-стратегии. Функция **ничего не считает**: до G64 (2026-09-06) она сама запускала
-ZigZag из pandas-ta по `legs`/`deviation`, и нарисованные точки могли расходиться с теми,
+ZigZag из pandas-ta по `legs`/`deviation_pct`, и нарисованные точки могли расходиться с теми,
 по которым посчитаны метрики зон. Теперь единственный источник точек — контекст,
 посчитанный слоем анализа.
 
@@ -391,8 +391,8 @@ print(len(points['peaks']), len(points['troughs']), fig.layout.title.text)
 
 fig_slice = plot_zigzag_verification(result.data.iloc[:200], context)
 print(sum(len(trace.x) for trace in fig_slice.data[1:]))
-# zigzag {'legs': 3, 'deviation': 0.008} 402
-# 205 197 zigzag swing verification (legs=3, deviation=0.008)
+# zigzag {'legs': 3, 'deviation_pct': 0.008, 'confirmation_retrace_pct': 0.8} 402
+# 205 197 zigzag swing verification (legs=3, deviation_pct=0.008, confirmation_retrace_pct=0.8)
 # 81
 ```
 

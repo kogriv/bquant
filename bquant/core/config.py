@@ -220,7 +220,8 @@ ANALYSIS_CONFIG = {
             'type': 'zigzag',  # ZigZagSwingStrategy (pandas-ta)
             'params': {
                 'legs': 10,
-                'deviation': 0.05  # 5% minimum movement
+                'deviation_pct': 0.05,            # проценты, как читает pandas-ta (G86)
+                'confirmation_retrace_pct': 5.0,  # откат, подтверждающий пивот
             }
         },
         'divergence_strategy': {

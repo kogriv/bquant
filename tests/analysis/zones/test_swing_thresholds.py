@@ -1,7 +1,5 @@
 """Tests for adaptive swing threshold utilities and pipeline integration."""
 
-from statistics import mean
-
 import pandas as pd
 import pytest
 
@@ -34,16 +32,21 @@ def test_auto_thresholds_scale_with_range() -> None:
         }
     )
 
-    narrow_thresholds = auto_swing_thresholds(narrow_zone, base_deviation=0.01)
-    wide_thresholds = auto_swing_thresholds(wide_zone, base_deviation=0.01)
+    narrow_thresholds = auto_swing_thresholds(narrow_zone, amplitude_k=0.3)
+    wide_thresholds = auto_swing_thresholds(wide_zone, amplitude_k=0.3)
 
     for value in (
-        narrow_thresholds.zigzag_deviation,
-        wide_thresholds.zigzag_deviation,
+        narrow_thresholds.min_amplitude_pct,
+        wide_thresholds.min_amplitude_pct,
     ):
-        assert value >= 0.01
+        assert 0 < value < 1
 
-    assert wide_thresholds.zigzag_deviation > narrow_thresholds.zigzag_deviation
+    assert wide_thresholds.min_amplitude_pct > narrow_thresholds.min_amplitude_pct
+
+    # `zigzag_deviation` left with G86: the layer "adapted" a value pandas-ta read as a
+    # percent, below one bar's range — measured dead (193 vs 192 swings). A field that
+    # scales and decides nothing is exactly what this test used to certify.
+    assert not hasattr(narrow_thresholds, "zigzag_deviation")
 
     # The two amplitude floors this class used to carry were removed in G38: they
     # were computed, they scaled, and they zeroed the strategies they reached. This
@@ -53,8 +56,11 @@ def test_auto_thresholds_scale_with_range() -> None:
     assert not hasattr(narrow_thresholds, "pivot_deviation")
 
 
-@pytest.mark.slow
-def test_pipeline_auto_thresholds_matches_kpi() -> None:
+def test_pipeline_auto_thresholds_with_zigzag_is_refused() -> None:
+    """The adaptive layer has nothing to adapt for ZigZag since G86, and a toggle that
+    is accepted and changes nothing is the defect this project keeps closing (G85).
+    Until 0.0.20 this test ran the pipeline with the toggle on and asserted that
+    `strategy_params['deviation'] >= 0.01` — a number the detector never used."""
     df = get_sample_data("tv_xauusd_1h").set_index("time")
 
     config = ZoneAnalysisConfig(
@@ -74,27 +80,14 @@ def test_pipeline_auto_thresholds_matches_kpi() -> None:
         run_validation=False,
     )
 
-    pipeline = ZoneAnalysisPipeline(
-        config,
-        enable_cache=False,
-        strategy_auto_thresholds=True,
-    )
-    pipeline.with_swing_preset("narrow_zone")
-    preset = SWING_PRESETS["narrow_zone"]
-
-    result = pipeline.run(df)
-    bull_zones = [zone for zone in result.zones if zone.type == "bull"]
-    assert bull_zones, "Expected bull zones when validating swing thresholds"
-
-    swing_counts = [
-        zone.features["metadata"]["swing_metrics"]["num_swings"]
-        for zone in bull_zones
-    ]
-    assert mean(swing_counts) > 1.0
-
-    sample_metrics = bull_zones[0].features["metadata"]["swing_metrics"]
-    assert sample_metrics["strategy_params"]["legs"] == preset.zigzag["legs"]
-    assert sample_metrics["strategy_params"]["deviation"] >= 0.01
+    with pytest.raises(ValueError, match="nothing to adapt"):
+        pipeline = ZoneAnalysisPipeline(
+            config,
+            enable_cache=False,
+            strategy_auto_thresholds=True,
+        )
+        pipeline.with_swing_preset("narrow_zone")
+        pipeline.run(df)
 
 
 # -- units contract (G16) -----------------------------------------------------
@@ -104,7 +97,7 @@ def test_pipeline_auto_thresholds_matches_kpi() -> None:
 
 def _adaptive(name, params):
     from bquant.analysis.zones.strategies.swing.thresholds import AdaptiveSwingStrategy
-    return AdaptiveSwingStrategy(name, params, base_deviation=0.01)
+    return AdaptiveSwingStrategy(name, params)
 
 
 def test_adaptive_never_sets_find_peaks_prominence() -> None:
@@ -137,13 +130,11 @@ def test_adaptive_relative_values_stay_relative() -> None:
     df = get_sample_data("tv_xauusd_1h")
     price_scale = float(df["close"].median())
     for name, params, attrs in (
-        ("zigzag", {"legs": 3, "deviation": 0.008}, ("deviation",)),
         ("find_peaks", {"distance": 3}, ("min_amplitude_pct",)),
         ("pivot_points", {"left_bars": 3, "right_bars": 3}, ("min_amplitude_pct",)),
     ):
         wrapper = _adaptive(name, params)
-        if wrapper.amplitude_k is not None:
-            wrapper.set_zone_scale([0.0075])
+        wrapper.set_zone_scale([0.0075])
         wrapper.calculate_global(df)
         for attr in attrs:
             value = getattr(wrapper.base_strategy, attr)

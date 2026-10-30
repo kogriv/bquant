@@ -27,9 +27,18 @@ class SwingPreset:
 #: здесь одной строкой.
 DEFAULT_SWING_PRESET = "narrow_zone"
 
+#: Про единицы ZigZag (G86). `deviation_pct` — проценты, как читает pandas-ta: 0.008 —
+#: это 0.008 %, ниже размаха одного бара часового золота, и детектор сводится к
+#: экстремумам окна `legs`. Цифры намеренно те же, что стояли под старым именем
+#: `deviation` («доля»): библиотека всегда читала их как проценты, и именно этот объект
+#: измерен в G35/G38/G48/G54 и принят внешним потребителем. `confirmation_retrace_pct` —
+#: отдельный порог подтверждения (откат, после которого пивот причинно зафиксирован);
+#: его значение — та доля, за которую старый код принимал `deviation`, и на ней
+#: проверен причинный контракт (#110, G54).
+
 SWING_PRESETS: Dict[str, SwingPreset] = {
     "wide_zone": SwingPreset(
-        zigzag={"legs": 10, "deviation": 0.05},
+        zigzag={"legs": 10, "deviation_pct": 0.05, "confirmation_retrace_pct": 5.0},
         find_peaks={
             "prominence": 0.015,
             "distance": 5,
@@ -42,7 +51,7 @@ SWING_PRESETS: Dict[str, SwingPreset] = {
         },
     ),
     "narrow_zone": SwingPreset(
-        zigzag={"legs": 3, "deviation": 0.008},
+        zigzag={"legs": 3, "deviation_pct": 0.008, "confirmation_retrace_pct": 0.8},
         find_peaks={
             "prominence": 0.004,
             "distance": 3,

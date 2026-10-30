@@ -24,7 +24,7 @@ from bquant.core.exceptions import AnalysisError
 from bquant.core.cache import get_cache_manager
 from .strategies.swing.presets import DEFAULT_SWING_PRESET, SWING_PRESETS
 from bquant.data.processor import resolve_time_index, calculate_atr
-from .strategies.swing.thresholds import AdaptiveSwingStrategy
+from .strategies.swing.thresholds import AdaptiveSwingStrategy, ZONE_SCALE_K
 
 from .detection import ZoneDetectionRegistry, ZoneDetectionConfig
 from .analyzer import UniversalZoneAnalyzer
@@ -182,8 +182,7 @@ class ZoneAnalysisPipeline:
                  enable_cache: bool = True,
                  cache_ttl: int = 3600,
                  *,
-                 strategy_auto_thresholds: bool = False,
-                 auto_threshold_base_deviation: float = 0.01):
+                 strategy_auto_thresholds: bool = False):
         """Initialize the pipeline with optional dependency overrides."""
         self.config = config
         self.analyzer = zone_analyzer or UniversalZoneAnalyzer()
@@ -196,7 +195,6 @@ class ZoneAnalysisPipeline:
         self._active_swing_strategy: Optional[str] = self._detect_current_swing_strategy()
         self._swing_preset: str = DEFAULT_SWING_PRESET
         self.strategy_auto_thresholds = strategy_auto_thresholds
-        self._auto_threshold_base_deviation = auto_threshold_base_deviation
         self._adaptive_swing_wrappers: Dict[str, AdaptiveSwingStrategy] = {}
         self._swing_preset_params: Dict[str, Dict[str, Any]] = {}
         # Накапливается при расчёте индикаторов; переживает слияние в кадр и
@@ -672,14 +670,17 @@ class ZoneAnalysisPipeline:
         self._swing_preset = name
         return self
 
-    def with_auto_swing_thresholds(
-        self, enable: bool = True, *, base_deviation: Optional[float] = None
-    ) -> "ZoneAnalysisPipeline":
-        """Toggle adaptive swing threshold calculation."""
+    def with_auto_swing_thresholds(self, enable: bool = True) -> "ZoneAnalysisPipeline":
+        """Toggle adaptive swing threshold calculation.
+
+        Adapts the amplitude floor of ``find_peaks`` / ``pivot_points`` from the zone
+        scale (G48). With ZigZag active it **refuses**: the layer has nothing to adapt
+        there since G86, and a toggle that is accepted and changes nothing is the
+        defect this project keeps closing. The former ``base_deviation`` keyword fed
+        only that removed ZigZag half and is gone with it.
+        """
 
         self.strategy_auto_thresholds = enable
-        if base_deviation is not None:
-            self._auto_threshold_base_deviation = base_deviation
         self._rebuild_adaptive_wrappers()
         self._update_feature_swing_strategy()
         return self
@@ -717,11 +718,12 @@ class ZoneAnalysisPipeline:
 
         wrappers: Dict[str, AdaptiveSwingStrategy] = {}
         for strategy_name, params in self._swing_preset_params.items():
-            wrappers[strategy_name] = AdaptiveSwingStrategy(
-                strategy_name,
-                params,
-                base_deviation=self._auto_threshold_base_deviation,
-            )
+            if strategy_name not in ZONE_SCALE_K:
+                # Нечего адаптировать (ZigZag с G86): обёртка не строится, а если такая
+                # стратегия активна при включённом слое — отказ в
+                # `_update_feature_swing_strategy`, не молчаливый пропуск.
+                continue
+            wrappers[strategy_name] = AdaptiveSwingStrategy(strategy_name, params)
         self._adaptive_swing_wrappers = wrappers
 
     def _update_feature_swing_strategy(self) -> None:
@@ -732,10 +734,16 @@ class ZoneAnalysisPipeline:
         if not self._active_swing_strategy:
             return
 
-        if (
-            self.strategy_auto_thresholds
-            and self._active_swing_strategy in self._adaptive_swing_wrappers
-        ):
+        if self.strategy_auto_thresholds:
+            if self._active_swing_strategy not in self._adaptive_swing_wrappers:
+                raise ValueError(
+                    f"with_auto_swing_thresholds(True) with swing='{self._active_swing_strategy}': "
+                    f"the adaptive layer has nothing to adapt for this strategy — it adapts "
+                    f"the amplitude floor of {sorted(ZONE_SCALE_K)} only. ZigZag's adapted "
+                    f"deviation was removed in 0.0.20 (G86): measured dead (193 vs 192 swings). "
+                    f"Use a preset or set `deviation_pct` / `confirmation_retrace_pct` "
+                    f"yourself, and drop the toggle for this strategy."
+                )
             features.swing_strategy = self._adaptive_swing_wrappers[
                 self._active_swing_strategy
             ]
@@ -763,7 +771,6 @@ class ZoneAnalysisPipeline:
             "preset": self._swing_preset,
             "active_strategy": self._active_swing_strategy,
             "strategy_auto_thresholds": self.strategy_auto_thresholds,
-            "auto_threshold_base_deviation": self._auto_threshold_base_deviation,
             "strategies": strategies,
             "preset_params": preset_params,
         }

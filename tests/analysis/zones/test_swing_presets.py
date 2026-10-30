@@ -41,7 +41,7 @@ def test_narrow_zone_applies_parameters():
     preset = SWING_PRESETS["narrow_zone"]
     zigzag = pipeline.swing_strategies["zigzag"]
     assert zigzag.legs == preset.zigzag["legs"]
-    assert zigzag.deviation == pytest.approx(preset.zigzag["deviation"])
+    assert zigzag.deviation_pct == pytest.approx(preset.zigzag["deviation_pct"])
 
     find_peaks = pipeline.swing_strategies["find_peaks"]
     assert find_peaks.prominence == pytest.approx(preset.find_peaks["prominence"])
@@ -68,8 +68,8 @@ def test_narrow_zone_applies_parameters():
 
     sample_metrics = bull_zones[0].features["metadata"]["swing_metrics"]
     assert sample_metrics["strategy_params"]["legs"] == preset.zigzag["legs"]
-    assert sample_metrics["strategy_params"]["deviation"] == pytest.approx(
-        preset.zigzag["deviation"]
+    assert sample_metrics["strategy_params"]["deviation_pct"] == pytest.approx(
+        preset.zigzag["deviation_pct"]
     )
 
 

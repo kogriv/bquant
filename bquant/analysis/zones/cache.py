@@ -120,7 +120,11 @@ class ZoneAnalysisCache:
     # порогов. Версия пакета в ключе уже закрывала бы это между релизами; поднято всё
     # равно, потому что форма payload изменилась, а правило «меняется форма — версия
     # растёт» дисциплинарное: G74 случился именно там, где на него понадеялись.
-    CACHE_VERSION = 29
+    # v30 (G86): `strategy_params` свингов несут `deviation_pct` и
+    # `confirmation_retrace_pct` вместо `deviation`; адаптивный слой больше не пишет
+    # `zigzag_deviation` / `base_deviation` в метаданные. Числа свингов не меняются —
+    # меняется форма payload.
+    CACHE_VERSION = 30
 
     def __init__(self, cache_manager: Optional[Any]) -> None:
         self._cache_manager = cache_manager

@@ -66,7 +66,7 @@ class TestZoneFeaturesSwingIntegration:
     
     def test_analyzer_with_explicit_zigzag_strategy(self, sample_zone_info):
         """Test analyzer with explicitly provided ZigZagSwingStrategy."""
-        strategy = ZigZagSwingStrategy(legs=5, deviation=0.02)
+        strategy = ZigZagSwingStrategy(legs=5, deviation_pct=0.02, confirmation_retrace_pct=2.0)
         analyzer = ZoneFeaturesAnalyzer(swing_strategy=strategy
         )
         
@@ -121,7 +121,7 @@ class TestZoneFeaturesSwingIntegration:
     
     def test_different_strategies_different_results(self, sample_zone_info):
         """Test that different strategies produce different results."""
-        strategy1 = ZigZagSwingStrategy(legs=5, deviation=0.02)   # Sensitive
+        strategy1 = ZigZagSwingStrategy(legs=5, deviation_pct=0.02, confirmation_retrace_pct=2.0)   # Sensitive
         strategy2 = FindPeaksSwingStrategy(distance=10)  # Less sensitive
         
         analyzer1 = ZoneFeaturesAnalyzer(swing_strategy=strategy1)

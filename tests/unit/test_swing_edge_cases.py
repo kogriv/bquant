@@ -80,7 +80,7 @@ def _make_zone(df: pd.DataFrame, start_idx: int, end_idx: int, zone_id: int = 0)
 
 
 STRATEGY_CASES = [
-    ("zigzag", ZigZagSwingStrategy, {"legs": 3, "deviation": 0.02}),
+    ("zigzag", ZigZagSwingStrategy, {"legs": 3, "deviation_pct": 0.02, "confirmation_retrace_pct": 2.0}),
     ("find_peaks", FindPeaksSwingStrategy, {"prominence": 0.02, "distance": 5, "min_amplitude_pct": 0.02}),
     ("pivot_points", PivotPointsSwingStrategy, {"left_bars": 2, "right_bars": 2, "min_amplitude_pct": 0.02}),
 ]
@@ -149,7 +149,7 @@ def test_zone_at_dataset_boundaries():
         [5, 30, 50, 70, 95],
         [100.0, 120.0, 90.0, 130.0, 95.0],
         strategy_name="zigzag",
-        strategy_params={"legs": 3, "deviation": 0.02},
+        strategy_params={"legs": 3, "deviation_pct": 0.02, "confirmation_retrace_pct": 2.0},
         full_length=len(data),
     )
 
@@ -227,7 +227,7 @@ def test_zone_exactly_matching_swing_boundaries():
         [10, 30, 50, 70, 90],
         [100.0, 120.0, 90.0, 130.0, 95.0],
         strategy_name="zigzag",
-        strategy_params={"legs": 3, "deviation": 0.02},
+        strategy_params={"legs": 3, "deviation_pct": 0.02, "confirmation_retrace_pct": 2.0},
         full_length=len(data),
     )
 

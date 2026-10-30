@@ -51,8 +51,8 @@ def test_cache_key_changes_on_strategy_update() -> None:
 
     original_key = pipeline._generate_cache_key(df)
 
-    pipeline.swing_strategies["zigzag"].deviation = 0.02
-    pipeline._swing_preset_params["zigzag"]["deviation"] = 0.02
+    pipeline.swing_strategies["zigzag"].deviation_pct = 0.02
+    pipeline._swing_preset_params["zigzag"]["deviation_pct"] = 0.02
 
     updated_key = pipeline._generate_cache_key(df)
 
