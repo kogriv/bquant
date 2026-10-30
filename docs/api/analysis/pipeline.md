@@ -66,7 +66,7 @@ print(type(macd).__name__, type(rsi).__name__, type(ao).__name__)
 | `strategy` | Обязательные правила | Для чего |
 |---|---|---|
 | `'zero_crossing'` | `indicator_role` или `indicator_col` | осцилляторы с нулевой линией |
-| `'threshold'` | то же + `upper_threshold`, `lower_threshold` | ограниченные осцилляторы |
+| `'threshold'` | то же + `upper_threshold`, `lower_threshold` | ограниченные осцилляторы; равные пороги — [кросс одного уровня](../../user_guide/zone_analysis.md#кросс-одного-уровня) |
 | `'line_crossing'` | `line1_role`/`line2_role` или `line1_col`/`line2_col` | пары линий |
 | `'preloaded'` | `zones_data` | готовые зоны из файла или кадра |
 | `'combined'` | `conditions` | несколько условий сразу |
