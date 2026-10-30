@@ -67,7 +67,10 @@ class LineCrossingDetection:
         """Обнаружить зоны по пересечению линий."""
         config.validate(
             required_rules=['line1_col', 'line2_col'],
-            optional_rules=['smooth_window'],
+            # `smooth_window` здесь не объявлен намеренно (G85): объявлялся, но не
+            # читался — вызов проходил, сглаживания не было. Отказ с заменой в
+            # `RETIRED_RULES`.
+            optional_rules=(),
         )
         
         line1_col = config.rules['line1_col']

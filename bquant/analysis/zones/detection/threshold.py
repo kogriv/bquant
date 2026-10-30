@@ -139,7 +139,10 @@ class ThresholdDetection:
         # Валидация
         config.validate(
             required_rules=['indicator_col', 'upper_threshold', 'lower_threshold'],
-            optional_rules=['smooth_window'],
+            # `smooth_window` здесь не объявлен намеренно (G85): объявлялся, но не
+            # читался — вызов проходил, сглаживания не было. Отказ с заменой в
+            # `RETIRED_RULES`.
+            optional_rules=(),
         )
         
         indicator_col = config.rules['indicator_col']
