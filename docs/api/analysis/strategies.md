@@ -231,8 +231,8 @@ metrics = short.features['metadata']['volatility_metrics']
 
 print(short.duration, metrics['bollinger_width_pct'], metrics['volatility_regime'])
 print(round(metrics['avg_atr'], 2))
-# 3 None None
-# 14.28
+# 4 None None
+# 7.56
 ```
 
 ## Объём

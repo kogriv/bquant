@@ -10,6 +10,8 @@
 | `bquant.analysis.zones` | пайплайн анализа зон, детекция, модели, пресеты | [пайплайн](analysis/pipeline.md) · [зоны](analysis/zones.md) |
 | `bquant.analysis.zones.strategies` | метрики зон: swing, shape, divergence, volatility, volume | [стратегии](analysis/strategies.md) |
 | `bquant.analysis.statistical` | проверка гипотез, распределения, регрессия | [статистика](analysis/statistical.md) |
+| `bquant.analysis.validation` | устойчивость модели: out-of-sample, walk-forward, чувствительность, Монте-Карло | [обзор](analysis/README.md#валидация) |
+| `bquant.analysis.evaluation` | оценка списка сделок: бутстреп по месяцам, случайный базис, критерий, окна, кварталы | [оценка](analysis/evaluation.md) |
 | `bquant.analysis` | базовые классы анализа, реестр видов анализа | [база](analysis/base.md) · [обзор](analysis/README.md) |
 | `bquant.indicators` | фабрика, встроенные индикаторы, внешние библиотеки | [обзор](indicators/README.md) |
 | `bquant.indicators.base` | `BaseIndicator`, `IndicatorFactory`, `IndicatorConfig` | [база](indicators/base.md) · [фабрика](indicators/factory.md) |

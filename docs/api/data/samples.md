@@ -154,9 +154,9 @@ records = get_sample_data('tv_xauusd_1h', format='dict')
 frame = convert_to_dataframe(records, 'tv_xauusd_1h')
 back = convert_to_list_of_dicts(frame, 'tv_xauusd_1h')
 
-print(frame.shape, frame['time'].dtype)
+print(frame.shape, frame['time'].dt.tz)
 print(len(back), type(back[0]['time']).__name__)
-# (1000, 15) datetime64[ns, UTC+07:00]
+# (1000, 15) UTC+07:00
 # 1000 Timestamp
 ```
 

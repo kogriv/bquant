@@ -655,6 +655,93 @@ def _run_and_record(code: str, workdir) -> dict[int, list[str]] | None:
     return None
 
 
+def _block_claims(code: str) -> list[str]:
+    """Утверждения **второй формы**: блок комментариев в конце примера сразу за ``print``.
+
+    Почему эта форма стала проверяемой (G92). Докстрока `_claims` честно называла цену
+    своего решения: комментарий под вызовом не сверяется, а таких в доке больше, чем
+    хвостовых. Прогон всех примеров 2026-11-03 показал, что именно там протухает: из 182
+    самодостаточных примеров у 22 блок под выводом не совпадал с напечатанным, и среди
+    них — пример загрузчика, обещавший ``DatetimeIndex`` и печатавший ``Index`` (G89),
+    каталог библиотеки на 158 имён, печатавший 246 (G90), и числа примера, написанного в
+    тот же день. Прежняя попытка дала 87 ложных падений, потому что привязывала ожидание
+    к **каждому** вызову. Здесь правило уже: блок берётся, только если он **последний** в
+    примере и стоит сразу за ``print`` — комментарий после присваивания или ``with``
+    остаётся иллюстрацией. Строки, разорванные внутри скобок, склеиваются в одну.
+    """
+    lines = code.rstrip().splitlines()
+    i = len(lines)
+    block: list[str] = []
+    while i > 0 and (lines[i - 1].strip().startswith("#") or not lines[i - 1].strip()):
+        text = lines[i - 1].strip()
+        if text:
+            block.append(text[1:].strip())
+        i -= 1
+    block.reverse()
+    if not block or i == 0:
+        return []
+    try:
+        tree = ast.parse("\n".join(lines[:i]))
+    except SyntaxError:
+        return []
+    if not tree.body:
+        return []
+    last = tree.body[-1]
+    if not (isinstance(last, ast.Expr) and isinstance(last.value, ast.Call)
+            and isinstance(last.value.func, ast.Name) and last.value.func.id == "print"):
+        return []
+    logical: list[str] = []
+    depth = 0
+    for text in block:
+        if depth > 0 and logical:
+            logical[-1] += " " + text
+        else:
+            logical.append(text)
+        depth += sum(text.count(c) for c in "([{") - sum(text.count(c) for c in ")]}")
+        depth = max(depth, 0)
+    return [claim for claim in logical if claim]
+
+
+BLOCK_EXAMPLES = [
+    (rel, line, code, claims)
+    for rel, line, code in EXAMPLES
+    if (claims := _block_claims(code))
+]
+
+#: Пол охвата, замеренный 2026-11-03: 163 примера с блоком под последним ``print``.
+#: Ловит обвал разбора — пустой список сделал бы проверку вырожденно зелёной.
+MIN_BLOCK_EXAMPLES = 140
+
+
+def test_the_scan_found_printed_blocks():
+    assert len(BLOCK_EXAMPLES) >= MIN_BLOCK_EXAMPLES, (
+        f"найдено {len(BLOCK_EXAMPLES)} примеров с блоком вывода при поле {MIN_BLOCK_EXAMPLES}"
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "rel, line, code, claims",
+    BLOCK_EXAMPLES,
+    ids=[f"{rel}:{line}" for rel, line, _, _ in BLOCK_EXAMPLES],
+)
+def test_a_printed_block_is_a_measured_block(rel, line, code, claims, tmp_path):
+    """Блок под выводом — тоже обещание, и сверяется он с прогоном (G92)."""
+    if _expected_reason(rel, code):
+        pytest.skip("пример заявлен падающим — печатать ему нечего")
+    recorded = _run_and_record(code, tmp_path)
+    if recorded is None:
+        pytest.skip("пример не доехал до конца — это предмет test_a_self_contained_doc_example_runs")
+    printed = "\n".join(text for lineno in sorted(recorded) for text in recorded[lineno])
+    wrong = [claim for claim in claims if not _claim_is_met(claim, printed)]
+    assert not wrong, (
+        f"{rel}:{line} — блок под выводом не совпал с прогоном:\n  обещано: "
+        + "\n  обещано: ".join(repr(w[:160]) for w in wrong)
+        + "\n  напечатано:\n    " + "\n    ".join(printed.splitlines()[:12])
+        + "\nЧисла в доке берутся прогоном (AGENTS.md). Перемерьте и впишите измеренное."
+    )
+
+
 CLAIMING_EXAMPLES = [
     (rel, line, code, claims)
     for rel, line, code in EXAMPLES

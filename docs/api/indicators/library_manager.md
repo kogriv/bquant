@@ -56,8 +56,10 @@ data = get_sample_data('tv_xauusd_1h')
 print(LibraryManager.create_indicator('pandas_ta', 'rsi', length=14).calculate(data).data.columns.tolist())
 print(LibraryManager.create_indicator('pandas_ta', 'rsi', length=50).calculate(data).data.columns.tolist())
 # ['RSI_14']
-# ['RSI_50']   <- имя следует за параметром
+# ['RSI_50']
 ```
+
+Имя следует за параметром расчёта.
 
 Практическое следствие: **не задавайте имя колонки константой, если меняете параметры.**
 Узнать его заранее можно у самого индикатора:

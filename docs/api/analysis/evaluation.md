@@ -138,12 +138,14 @@ trades = pd.DataFrame({
 })
 print(attach_random_baseline(trades, table)[['side', 'hold', 'net', 'rand']].round(4).to_string(index=False))
 #  year  side  hold  expectation  bars
-#  2021     1     6      -0.1449  1979
-#  2021    -1     6       0.0449  1979
+# (4, 5) ['year', 'side', 'hold', 'expectation', 'bars']
+#  year  side  hold  expectation  bars
+#  2021     1     6      -0.1443  1980
+#  2021    -1     6       0.0443  1980
 #  side  hold  net    rand
-#     1     6  0.4 -0.1449
-#    -1    24 -0.2  0.3454
-#     1     6  1.1 -0.1449
+#     1     6  0.4 -0.1443
+#    -1    24 -0.2  0.3446
+#     1     6  1.1 -0.1443
 ```
 
 Покупка в год роста выигрывает в среднем при любом сигнале. Базис это снимает: для каждой

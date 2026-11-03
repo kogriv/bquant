@@ -78,6 +78,12 @@ rsi = LibraryManager.create_indicator('pandas_ta', 'rsi', length=14)
 print(rsi.calculate(data).data.columns.tolist())   # ['RSI_14']
 ```
 
+**Evaluation of trades.** A frame of trades is checked for consistency rather than read
+off one backtest number: a block bootstrap over calendar months, the advantage over a
+random entry of the same year, side and holding time, a Benjamini–Hochberg correction for
+everything that was tried, rule objects with thresholds, a pick-on-back / trade-forward
+procedure evaluator and a quarterly measure (`bquant.analysis.evaluation`).
+
 **Data.** OHLCV loading, processing and validation, with sample datasets embedded in the
 package so that every example runs without external files.
 
@@ -125,7 +131,7 @@ support it; `research/` and `scripts/` hold notebook-style studies and automatio
 ## Status
 
 Beta. The public API changes between releases without deprecation windows — renames are
-carried through in one change. **Pin an exact version:** `bquant>=0.0.18,<0.0.19`.
+carried through in one change. **Pin an exact version:** `bquant>=0.0.20,<0.0.21`.
 
 Breaking changes ship in the patch number, and the dangerous ones do not raise: when a
 defect in a calculation is fixed, nothing fails to import — your numbers change, and the

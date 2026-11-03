@@ -77,8 +77,10 @@ result = (
 )
 
 print(f"Zones: {len(result.zones)}")
-# result.data is the indicator-augmented frame; pass it (not the raw input) to visualizers.
+# Zones: 77
 ```
+
+`result.data` is the indicator-augmented frame; pass it (not the raw input) to visualizers.
 
 **📖 Full Documentation:** `docs/api/analysis/pipeline.md` (builder reference),
 `docs/user_guide/swing_strategies.md` (swing config).

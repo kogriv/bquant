@@ -207,7 +207,7 @@ class SpreadIndicator(CustomIndicator):
 IndicatorFactory.register_indicator("spread_indicator", SpreadIndicator)
 indicator = IndicatorFactory.create("custom", "spread_indicator")
 print(indicator.calculate(pd.DataFrame({"close": [1.0, 1.2, 1.1]})).data["spread"].tolist())
-# [nan, 0.19999999999999996, -0.10000000000000009]
+# [nan, 0.19999999999999996, -0.09999999999999987]
 ```
 
 Стратегии метрик зон (свинги, форма, дивергенции, волатильность, объём) — в
@@ -242,7 +242,7 @@ def mean_close(df: pd.DataFrame) -> float:
 
 with performance_context("demo"):
     print(mean_close(pd.DataFrame({"close": [1.0, 1.1, 1.2]})))
-# 1.1
+# 1.0999999999999999
 ```
 
 ## Изменения и релизы

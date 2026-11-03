@@ -130,10 +130,16 @@ class PandasTALoader:
             return {}
 
         cls._function_cache = functions
-        cls._available_indicators = sorted(functions.keys())
+        # NOT the list of indicators: every callable of the package lands here, classes and
+        # helpers included (`AnalysisIndicators`, `Study`, `above`, …). The indicator list
+        # is what passes `_analyze_function_dynamically` — see `get_available_indicators`.
+        # Until G90 this line published the raw callables as "available indicators", and
+        # registration later overwrote them with the filtered set: the same question got
+        # 246 before any registration and 158 after it.
+        cls._available_indicators = []
         # Переводим на DEBUG, чтобы не засорять консоль при тихих профилях
         logger.debug(
-            "Discovered %s pandas-ta callables", len(cls._available_indicators)
+            "Discovered %s pandas-ta callables", len(functions)
         )
         return functions
 
@@ -164,6 +170,13 @@ class PandasTALoader:
         if not cls._function_cache:
             cls._discover_all_functions()
 
+        if not cls._available_indicators and cls._function_cache:
+            # The same filter registration applies, without registering: the answer must
+            # not depend on whether someone happened to load the library first (G90).
+            cls._available_indicators = sorted(
+                name for name, func in cls._function_cache.items()
+                if cls._analyze_function_dynamically(name, func) is not None
+            )
         return cls._available_indicators.copy()
 
     # ------------------------------------------------------------------

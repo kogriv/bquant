@@ -230,7 +230,7 @@ features = [zone.features for zone in result.zones]
 
 print(sorted(create_zone_sequence_analysis(features)))
 print(sorted(cluster_zone_shapes(features, n_clusters=3)))
-# ['markov_analysis', 'patterns', 'randomness_tests', 'sequence_summary', 'transition_details', 'transition_probabilities', 'zone_types']
+# ['markov_analysis', 'patterns', 'randomness_tests', 'sequence_summary', 'transition_details', 'transition_probabilities', 'transitions']
 # ['cluster_labels', 'clustering_summary', 'clusters_analysis', 'feature_importance']
 ```
 

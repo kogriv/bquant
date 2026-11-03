@@ -7,7 +7,7 @@
 |---|---|---|
 | `custom` | реализации внутри пакета, без внешних зависимостей | 5 |
 | `preloaded` | чтение уже посчитанных колонок из кадра | 1 |
-| `pandas_ta` | всё из `pandas-ta` | 158 |
+| `pandas_ta` | всё из `pandas-ta` | 158 на pandas 2.3, 157 на pandas 3 |
 | `talib` | всё из TA-Lib, если библиотека установлена | 0, пока не установлена |
 
 ```python
@@ -16,12 +16,17 @@ from collections import Counter
 from bquant.indicators import IndicatorFactory
 
 catalogue = IndicatorFactory.list_indicators()
+counts = Counter(catalogue.values())
 
-print(len(catalogue))
-print(Counter(catalogue.values()))
-# 164
-# Counter({'library': 158, 'custom': 5, 'preloaded': 1})
+print(counts['custom'], counts['preloaded'])
+print(counts['library'] in (157, 158))
+# 5 1
+# True
 ```
+
+Число библиотечных индикаторов зависит от окружения, а не от пакета: на pandas 3
+`pandas_ta.vp` не проходит проверку сигнатуры и не регистрируется — 157 вместо 158 на
+pandas 2.3. Поэтому пример утверждает только то, что от окружения не зависит.
 
 ## Страницы
 

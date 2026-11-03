@@ -70,7 +70,7 @@ for name in ('SwingMetrics', 'ShapeMetrics', 'DivergenceMetrics',
     fields = [f.name for f in dataclasses.fields(getattr(base, name))
               if f.name not in ('strategy_name', 'strategy_params')]
     print(f"{name}: {len(fields)}")
-# SwingMetrics: 23
+# SwingMetrics: 24
 # ShapeMetrics: 3
 # DivergenceMetrics: 4
 # VolatilityMetrics: 10
@@ -179,7 +179,7 @@ try:
     CandlestickAnalyzer().analyze(frame)
 except NotImplementedError as exc:
     print(str(exc)[:70])
-# CandlestickAnalyzer is a stub: candlestick analysis is not implemented.
+# CandlestickAnalyzer is a stub: candlestick analysis is not implemented
 ```
 
 В каталог фабрики (`get_available_analyzers()`) заглушки не входят — они перечислены

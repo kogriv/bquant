@@ -329,7 +329,9 @@ def find_datasets(
             source_datasets = set(get_datasets_by_source(source))
             results = results.intersection(source_datasets)
         
-        result_list = list(results)
+        # Sorted: `list(set)` gave a different order in every process (string hashing
+        # is randomised per process), so the same call printed differently twice (G91).
+        result_list = sorted(results)
         logger.debug(f"Found {len(result_list)} datasets matching criteria")
         return result_list
         
