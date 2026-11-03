@@ -1,0 +1,210 @@
+{
+ "seed": 20261103,
+ "bootstrap": {
+  "B": 2000,
+  "seed": 1,
+  "months": [
+   24252,
+   24287
+  ]
+ },
+ "trial_stats": {
+  "n": 525,
+  "long_share": 0.49142857142857144,
+  "net_atr": 0.020899971428571414,
+  "net_lo": -0.06182900301074647,
+  "net_hi": 0.098152615330735,
+  "gross_atr": 0.08089997142857144,
+  "cost_atr": 0.06,
+  "rand_atr": -0.007286527619047619,
+  "excess_atr": 0.028186499047619048,
+  "excess_lo": -0.04922477577607952,
+  "excess_hi": 0.10052032061296572,
+  "excess_se": 0.037810194280264574,
+  "p": 0.2279927532475281,
+  "p_boot": 0.21639180409795103,
+  "hit": 0.4876190476190476,
+  "mfe_atr": 0.0,
+  "mae_atr": 0.0,
+  "hold_mean": 15.003809523809524,
+  "years_n": 3,
+  "years_net_pos": 2,
+  "years_ex_pos": 2
+ },
+ "years": {
+  "2021": {
+   "n": 190,
+   "net": -0.15815502631578948,
+   "ex": -0.13232614210526317
+  },
+  "2022": {
+   "n": 159,
+   "net": 0.1048990503144654,
+   "ex": 0.08021479245283017
+  },
+  "2023": {
+   "n": 176,
+   "net": 0.13831244886363636,
+   "ex": 0.15446435795454547
+  }
+ },
+ "bh": {
+  "p": [
+   0.001,
+   0.01,
+   0.02,
+   0.5,
+   null
+  ],
+  "m_total": 10,
+  "q": [
+   0.01,
+   0.05,
+   0.0666666667,
+   1.0,
+   null
+  ]
+ },
+ "criterion": {
+  "m_total": 50,
+  "rows": [
+   {
+    "n": 525,
+    "p": 0.2279927532475281,
+    "q": 1.0,
+    "ok_min_trades": true,
+    "ok_net_positive": true,
+    "ok_years_stable": true,
+    "ok_beats_random": false,
+    "pass": false
+   },
+   {
+    "n": 500,
+    "p": 0.02279927532475281,
+    "q": 1.0,
+    "ok_min_trades": true,
+    "ok_net_positive": true,
+    "ok_years_stable": true,
+    "ok_beats_random": false,
+    "pass": false
+   },
+   {
+    "n": 50,
+    "p": 0.2279927532475281,
+    "q": null,
+    "ok_min_trades": false,
+    "ok_net_positive": true,
+    "ok_years_stable": true,
+    "ok_beats_random": false,
+    "pass": false
+   },
+   {
+    "n": 525,
+    "p": null,
+    "q": null,
+    "ok_min_trades": true,
+    "ok_net_positive": true,
+    "ok_years_stable": true,
+    "ok_beats_random": false,
+    "pass": false
+   }
+  ]
+ },
+ "procedure": {
+  "per_window": [
+   {
+    "window": 1,
+    "chosen": 90.06,
+    "defaults": 21.87,
+    "grid_mean": 14.887500000000003,
+    "grid_median": 19.130000000000003,
+    "grid_pos_share": 0.75,
+    "percentile": 0.75,
+    "oracle": 93.49
+   },
+   {
+    "window": 2,
+    "chosen": 95.01,
+    "defaults": 66.96,
+    "grid_mean": 44.8425,
+    "grid_median": 60.379999999999995,
+    "grid_pos_share": 0.875,
+    "percentile": 0.875,
+    "oracle": 95.01
+   },
+   {
+    "window": 3,
+    "chosen": 51.42,
+    "defaults": -28.83,
+    "grid_mean": 40.9525,
+    "grid_median": 46.705,
+    "grid_pos_share": 0.875,
+    "percentile": 0.5,
+    "oracle": 91.31
+   },
+   {
+    "window": 4,
+    "chosen": 54.66,
+    "defaults": 50.82,
+    "grid_mean": 43.34,
+    "grid_median": 46.269999999999996,
+    "grid_pos_share": 0.875,
+    "percentile": 0.625,
+    "oracle": 100.86
+   },
+   {
+    "window": 5,
+    "chosen": 99.14,
+    "defaults": 59.39,
+    "grid_mean": 29.95125,
+    "grid_median": 26.17,
+    "grid_pos_share": 0.75,
+    "percentile": 0.875,
+    "oracle": 99.14
+   },
+   {
+    "window": 6,
+    "chosen": 71.99,
+    "defaults": 73.86,
+    "grid_mean": 58.9425,
+    "grid_median": 72.925,
+    "grid_pos_share": 0.875,
+    "percentile": 0.375,
+    "oracle": 94.84
+   }
+  ],
+  "t_chosen_vs_grid_mean": 3.0888924013017385,
+  "t_chosen_vs_defaults": 2.676479674869934,
+  "sum": {
+   "chosen": 462.28,
+   "defaults": 244.07,
+   "grid_mean": 232.91625,
+   "oracle": 574.65
+  }
+ },
+ "quarters": {
+  "initial": 10000,
+  "q_n": 13,
+  "q_pos": 9,
+  "q_median": 0.10675620855885737,
+  "q_worst": -0.16942400000000002,
+  "q_mean_over_std": 0.7067460316096725,
+  "max_dd": -0.24426705220025813,
+  "longest_underwater_days": 169,
+  "q_returns": {
+   "2021-03-31": -0.169424,
+   "2021-06-30": 0.34129086,
+   "2021-09-30": 0.31771636,
+   "2021-12-31": 0.07474622,
+   "2022-03-31": -0.08707623,
+   "2022-06-30": 0.15262587,
+   "2022-09-30": 0.196776,
+   "2022-12-31": 0.10675621,
+   "2023-03-31": 0.18677895,
+   "2023-06-30": 0.08898437,
+   "2023-09-30": 0.16133092,
+   "2023-12-31": -0.01566481,
+   "2024-03-31": -0.00059716
+  }
+ }
+}
