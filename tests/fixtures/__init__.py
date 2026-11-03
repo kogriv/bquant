@@ -59,7 +59,7 @@ def create_sample_ohlcv_data(periods: int = 100, freq: str = 'h') -> pd.DataFram
     })
     
     # Устанавливаем time как индекс
-    df.set_index('time', inplace=True)
+    df = df.set_index('time')
     
     return df
 

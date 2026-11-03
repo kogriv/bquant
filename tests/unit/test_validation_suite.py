@@ -50,7 +50,7 @@ def create_test_data(n_bars: int = 1000, seed: int = 42) -> pd.DataFrame:
         'volume': np.random.exponential(1000, n_bars)
     })
     
-    data.set_index('timestamp', inplace=True)
+    data = data.set_index('timestamp')
     
     return data
 

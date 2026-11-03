@@ -120,7 +120,7 @@ class TestAnalysisStructure:
             'value': range(10),
             'timestamp': dates
         })
-        data.set_index('timestamp', inplace=True)
+        data = data.set_index('timestamp')
         
         # Перемешиваем данные
         shuffled_data = data.sample(frac=1)

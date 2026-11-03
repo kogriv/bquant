@@ -32,4 +32,16 @@
 [not_included] [Technical] **Прогон — сьют, не гейт.** Рабочая копия гейта на стенде отсутствует (канон скриптов цел); батарея примеров, `codemap check` и положительные контроли гейта в этот прогон не входили — батарея и контракт на этом коммите прогнаны локально сторожами (`test_layers_point_one_way`, `test_docs_examples_run -k evaluation`). Перед релизом 0.0.21 гейт нужно пересобрать — за владельцем
 [not_included] [Technical] **СЮРПРИЗ 4 — pandas 3.1.0 печатает `Pandas4Warning` на нашем коде, 13 штук на плече p3 (0 на p2).** Источники не в новом модуле: `inplace=` в `dropna`/`set_index`/`rename` (`data/loader.py`, `data/processor.py`, четыре теста и `tests/fixtures/__init__.py`), `infer_freq` вернёт объект вместо строки (`data/validator.py`), плюс `pandas_ta` (`'d'` → `'D'`, `infer_freq`). PDEP-8: в pandas 4 ключ `inplace` исчезнет — это будущая поломка слоя данных, не предупреждение. Кандидат в реестр разрывов (слой data); решение о приоритете — за владельцем. На 0.0.20 плечо p3 шло на pandas 3.0.5 и этих строк не печатало — вот почему предупреждений 262 против 119
 
+
+## G88 — pandas 4 заберёт `inplace`, слой данных на нём стоял
+
+[not_included] [Fixed] **Десять вызовов с `inplace=True` в `data/loader.py` (`set_index` ×3, `rename`, `dropna`, `sort_index`) и `data/processor.py` (`dropna` ×3) заменены присваиванием результата; `infer_freq` в `data/validator.py` приводится к строке через `.freqstr`, если библиотека вернёт объект.** Четыре теста и `tests/fixtures/__init__.py` — так же. Поведение не меняется: `inplace` у этих методов никогда не работал на месте (PDEP-8), это было присваивание под другим именем
+[not_included] [Added] Сторож `tests/unit/test_the_data_layer_does_not_lean_on_a_deprecated_keyword.py`: статический — ни одного `inplace=` в пакете (AST), мутация «вернуть `inplace=True` в `resample_ohlcv`» — красный; рантайм — на pandas с `Pandas4Warning` загрузчик, чистка, ресемпл, подготовка и проверка непрерывности идут с этим предупреждением как ошибкой, на старшем pandas проверка пропускается по имени. Локально (pandas 2.3.3): 105 passed, 1 skipped — пропуск и есть тот самый
+
+[ОЖИДАНИЯ] Выписаны до прогона на pandas 3.1 (стенд x99 занят по указанию владельца; машина — по ответу соседних сессий).
+
+[not_included] [Technical] Рантайм-сторож G88 на pandas 3.1 обязан **пройти, не пропуститься**: `1 passed` в своём файле, пропусков 0. Мутация «вернуть `inplace=True` в `resample_ohlcv`» на pandas 3.1 обязана красить **оба** сторожа — статический и рантайм; мутация «убрать `.freqstr`» — только рантайм, по `detected_frequency`
+[not_included] [Technical] Полный сьют на pandas 3.1: `passed` не меньше 3828 (3827 + рантайм-сторож), `Pandas4Warning` из **нашего** кода — 0 строк; из `pandas_ta` (`'d'`, `infer_freq` в `pivots.py`) остаются — чужой пакет, не наш рычаг. На pandas 2.3.3 — 3828 passed, 35 skipped (один пропуск — рантайм-сторож по имени)
+[not_included] [Technical] Что не меняется: `data/loader.py` даёт те же кадры (сторожа контрактов слоёв `test_data_contracts_agree_between_layers` зелёные без правки), `CACHE_VERSION` не трогается
+
 ==================== COMMIT DIVIDER ====================

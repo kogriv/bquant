@@ -109,7 +109,7 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
             column_names.extend([f'col_{i}' for i in range(6, num_cols)])
         df = pd.read_csv(file_path, header=None, names=column_names, encoding=encoding)
         df['time'] = pd.to_datetime(df['time'])
-        df.set_index('time', inplace=True)
+        df = df.set_index('time')
         return df
     
     # Попытка 1: Стандартный формат с заголовками
@@ -120,7 +120,7 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
             else:  # Остальные попытки
                 df = pd.read_csv(file_path, parse_dates=['time'], date_format=date_format, encoding=encoding)
                 if 'time' in df.columns:
-                    df.set_index('time', inplace=True)
+                    df = df.set_index('time')
             
             return df
         except (ValueError, TypeError, UnicodeDecodeError):
@@ -136,7 +136,7 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
         try:
             df = pd.read_csv(file_path, parse_dates=['time'], encoding=encoding)
             if 'time' in df.columns:
-                df.set_index('time', inplace=True)
+                df = df.set_index('time')
                 if df.index.dtype == 'object':
                     df.index = pd.to_datetime(df.index)
             return df
@@ -275,18 +275,18 @@ def load_ohlcv_data(
             'o': 'open', 'h': 'high', 'l': 'low', 'c': 'close', 'v': 'volume',
             'vol': 'volume', 'adj close': 'adj_close', 'adj_close': 'adj_close'
         }
-        df.rename(columns=column_mapping, inplace=True)
+        df = df.rename(columns=column_mapping)
         
         # Validate data structure if requested
         if validate_data:
             _validate_ohlcv_structure(df, symbol, timeframe)
         
         # Remove any rows with all NaN values
-        df.dropna(how='all', inplace=True)
+        df = df.dropna(how='all')
         
         # Sort by index (time)
         if not df.index.is_monotonic_increasing:
-            df.sort_index(inplace=True)
+            df = df.sort_index()
         
         logger_with_context.info(f"Successfully loaded {len(df)} rows of data")
         return df

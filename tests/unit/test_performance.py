@@ -141,7 +141,7 @@ def create_large_ohlcv_data(rows: int = 10000, symbol: str = "XAUUSD") -> pd.Dat
         })
     
     df = pd.DataFrame(data)
-    df.set_index('timestamp', inplace=True)
+    df = df.set_index('timestamp')
     
     logger.info(f"Created dataset with {len(df)} rows, shape: {df.shape}")
     return df

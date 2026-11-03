@@ -272,6 +272,10 @@ def validate_time_series_continuity(
     # Detect frequency
     try:
         inferred_freq = pd.infer_freq(df.index)
+        # pandas 3.1 announces that a future version returns an offset object here;
+        # the contract of this key is the string alias, so take it from either form.
+        if inferred_freq is not None and not isinstance(inferred_freq, str):
+            inferred_freq = inferred_freq.freqstr
         results['detected_frequency'] = inferred_freq
     except Exception:
         results['detected_frequency'] = None

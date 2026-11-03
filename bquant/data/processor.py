@@ -158,7 +158,7 @@ def clean_ohlcv_data(
         
         # Remove rows with all NaN values
         initial_rows = len(cleaned_df)
-        cleaned_df.dropna(how='all', inplace=True)
+        cleaned_df = cleaned_df.dropna(how='all')
         removed_empty = initial_rows - len(cleaned_df)
         if removed_empty > 0:
             logger.info(f"Removed {removed_empty} empty rows")
@@ -396,7 +396,7 @@ def resample_ohlcv(
         resampled = df.resample(pandas_offset_alias(target_timeframe)).agg(existing_agg_rules)
         
         # Remove rows with NaN values (incomplete periods)
-        resampled.dropna(inplace=True)
+        resampled = resampled.dropna()
         
         logger.info(f"Resampled from {len(df)} to {len(resampled)} rows")
         return resampled
@@ -790,7 +790,7 @@ def prepare_data_for_analysis(
         # анализу отношения не имеющие, и одна такая колонка обнуляла выборку.
         subset = [target_column] + [col for col in feature_columns if col != target_column]
         initial_rows = len(prepared_df)
-        prepared_df.dropna(subset=subset, inplace=True)
+        prepared_df = prepared_df.dropna(subset=subset)
         final_rows = len(prepared_df)
 
         if final_rows < initial_rows:
