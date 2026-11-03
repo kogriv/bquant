@@ -1,0 +1,7559 @@
+{
+ "seed": 20261103,
+ "bars": 480,
+ "point": 0.01,
+ "atr_period": 3,
+ "first_valid": 3,
+ "cost": {
+  "name": "fx",
+  "spread": "bar",
+  "fixed_spread_points": 0.0,
+  "min_spread_points": 15.0,
+  "commission_points": 7.0,
+  "swap_long_points": -3.2,
+  "swap_short_points": 1.1,
+  "triple_weekday": 2
+ },
+ "holds": [
+  2,
+  3
+ ],
+ "modes": [
+  0,
+  1
+ ],
+ "segments": {
+  "A": {
+   "lo": 0,
+   "hi": 479,
+   "table": [
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.268146909893,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.258773300315,
+     "bars": 239
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.171463727987,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.150947510708,
+     "bars": 239
+    },
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.318978762643,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.165651363461,
+     "bars": 238
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.120631875237,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.244232407298,
+     "bars": 238
+    },
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.315965438285,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.247310214895,
+     "bars": 238
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.124475886078,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.163404285997,
+     "bars": 238
+    },
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.360125336603,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.139365090858,
+     "bars": 237
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.08031598776,
+     "bars": 237
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.271614829457,
+     "bars": 237
+    }
+   ],
+   "table_hour": [
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.196269053544,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.300949753405,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.104239515564,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.350849632852,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.258696600439,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.166225414432,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.181432075993,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.190034211667,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.207933367087,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.166645780172,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.574864284081,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.254711941658,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.572974728953,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.167450815898,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.347290373418,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.439044118695,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.274489857942,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.43377446617,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.335245451716,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.116286007421,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.232405014314,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.366208327904,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.253183265722,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.676677509399,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.078339146498,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.114480584176,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.678207174313,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.03239827671,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.083121668897,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.181707912161,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.236377767704,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.170893861901,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.161996011466,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.141934169432,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.821653643398,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.21206904214,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.535530233296,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.325808550479,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.039860210775,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.311587987359,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.389430406169,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.114541196604,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.426759058833,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.512653379187,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.309441894353,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.488081769471,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.633541359841,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.277436957101,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.221965005444,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.129931019576,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.489095788571,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.114881947471,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.23989779555,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.549467725753,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.275755853317,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.248500984882,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.250449605383,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.278650681577,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.09172395057,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.259977628067,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.106703564397,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.31555688259,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.072887997978,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.01713527763,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.109509115554,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.03323403897,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.136717576649,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.53414114507,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.133349594485,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.012802575664,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.203003968589,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.214227081222,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.356630915594,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.333812531663,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.30980956383,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.306957737623,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.360691243928,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.223715507439,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.551694431204,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.239830443748,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.285174069983,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.53122191759,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.411945116764,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.212642885876,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.121137391541,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.107773761258,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.413758234938,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.014653220009,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.001039555785,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.537369803983,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.034733711659,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.003335566462,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.119733799558,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.088416811388,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.219869625922,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.14525089999,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.279365350765,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.186555737374,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.144823126816,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.337462789145,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.057125418753,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.199091890248,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.169075950974,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.46303730412,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.232500346362,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.283850539501,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.413068780737,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.832253099353,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.77595416029,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.358224098979,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.370348613868,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.489590051406,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.306448111685,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.250815375388,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.225559962693,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.046954654137,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.168501491298,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.412839898659,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.610896891267,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.498620541089,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.085496713616,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.285933277083,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.265913218638,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.000952009299,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.1806643723,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.107675069968,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.029045609256,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.182638523715,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.19494929639,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.282400373496,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.451676853053,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.338972086223,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.367090788152,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.040410397629,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.088716136264,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.375122737911,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.002272266657,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.029359615701,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.529382182602,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.230384279106,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.009386678254,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.375249190021,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.32067334069,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.045540776424,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.138868708222,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.244325035606,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.240033146191,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.128268791178,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.441468977236,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.58233420157,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.288111978337,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.024502107571,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.225882626108,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.161445922248,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.070071552773,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.317563529629,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.309682995733,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.124783599509,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.049829757529,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.033410655081,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.077550861811,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.149725051811,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.246403065673,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.464809791786,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.197253117501,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.03382899509,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.154709656956,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.036170112912,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.520466775709,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.162359838757,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.102484391845,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.340308023631,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.263148540524,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.513098489568,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.344362272755,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.228085781934,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.64211937784,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.106887374663,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.041968326419,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.085739841794,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.047302053604,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.393171914109,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.285181887899,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.048881530543,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.392742228611,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.393468991679,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.06788941211,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.278933533619,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.419789015657,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.024415768063,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.097746764348,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.377147080667,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.272982423122,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.00914205825,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.163265683995,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.339972719864,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.13899421814,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.05760425313,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.012916191587,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.362860225678,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.226608101495,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.493050895985,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.336500262191,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.733352657702,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.654098932962,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.442167965393,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.458045627622,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.380292463011,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.628369376914,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.239919536392,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.005367057186,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.160477205136,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.205933620272,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.387967834319,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.760458963026,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.498056661094,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.067065423667,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.548541925525,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.32300805534,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.159146899108,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.226758629979,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.259394892722,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.15086128671,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.248519586868,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.177605409175,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.57130136861,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.538542506592,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.497741220281,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.515057459421,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.038158504621,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.149005321199,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.464780929111,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.021693868447,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.136175066504,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.634876095322,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.561761211239,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.272991283836,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.652093769897,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.411038659483,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.054244639659,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.145251635866,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.440022831231,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.221590589012,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.125758860459,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.63758861413,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.440846564452,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.470104120898,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.075674970871,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.231774870975,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.047754434236,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.14664007132,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.218663087977,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.187827768405,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.040839733096,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.037867256225,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.075886933314,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.244370403419,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.160620890807,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.46659597118,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.257377932512,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.159820988527,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.010730338895,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.304271728715,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.035606232916,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.50203548576,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.100248809686,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.045389555143,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.49850291344,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.217054282845,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.664818312322,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.466177950209,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.162204718781,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.624775490624,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.182013620451,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.128833979958,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.073029292264,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.100664617665,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.471740816359,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.224892702965,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.138539721742,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.412163830401,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.286653540876,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.17338332483,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.052443398514,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.156184410075,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.232657434641,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.007381445555,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.368443217432,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.161432355463,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.282055429689,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.117159444643,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.147402391679,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.243527150757,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.052416961553,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.287941245198,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.382232882093,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.382342762105,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.349537462325,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.830405922716,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.888077109819,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.850482589349,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.417118443202,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.575029373167,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.466564463138,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.362733970066,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.158725079738,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.076860242613,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.033729155496,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.257446431448,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.714758074622,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.563039705528,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.581904778676,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.120258105949,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.115280551744,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.246412053466,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.070597195965,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.062201490141,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.033977271544,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.120625392422,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.105222886766,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.191965316019,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.127604765893,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.654316786179,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.327847862448,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.228142122487,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.109245087475,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.174011641021,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.086632390573,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.131472098577,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.195639317582,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.32947633612,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.283321254011,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.156213754267,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.296419898243,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.12693758095,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.181426983234,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.256801703525,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.148825343291,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.267696828364,
+     "bars": 9
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.318329188643,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.742121546747,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.435659272874,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.169246684113,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.056302314455,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.076040210364,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.095758999424,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.347265589205,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.373387540095,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.384211424793,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.065889255286,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.15485100177,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.010385066813,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.02126500343,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.241815347461,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.395102785752,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.384125982153,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.108308177351,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.316059901408,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.106852471217,
+     "bars": 10
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.119454350499,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.314711956144,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.333012564095,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.121985557016,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.409953210298,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.506014402966,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.439400691144,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.435942055921,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.515947192415,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.25520476543,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.261682982265,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.244608259545,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.096864065569,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.186250719268,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.324337224262,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.199886383142,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.239608816795,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.258997863377,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.227189289797,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.132016434372,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.225996558714,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.272961939644,
+     "bars": 10
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.130974907843,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.291482524089,
+     "bars": 9
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.604114840325,
+     "bars": 9
+    }
+   ],
+   "trades": [
+    {
+     "entry_idx": 88,
+     "entry_time": "2021-12-23 16:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "rand": -0.268146909893,
+     "rand_hour": -0.274489857942
+    },
+    {
+     "entry_idx": 129,
+     "entry_time": "2021-12-27 09:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "rand": -0.124475886078,
+     "rand_hour": 0.047754434236
+    },
+    {
+     "entry_idx": 136,
+     "entry_time": "2021-12-27 16:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "rand": -0.318978762643,
+     "rand_hour": -0.306448111685
+    },
+    {
+     "entry_idx": 239,
+     "entry_time": "2021-12-31 23:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "rand": -0.08031598776,
+     "rand_hour": 0.119454350499
+    },
+    {
+     "entry_idx": 248,
+     "entry_time": "2022-01-03 08:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "rand": -0.258773300315,
+     "rand_hour": -0.161996011466
+    },
+    {
+     "entry_idx": 408,
+     "entry_time": "2022-01-12 00:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "rand": -0.163404285997,
+     "rand_hour": -0.50203548576
+    }
+   ]
+  },
+  "B": {
+   "lo": 200,
+   "hi": 400,
+   "table": [
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.279964451785,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.237425108059,
+     "bars": 160
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.144658248257,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.175455485247,
+     "bars": 160
+    },
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.233587872144,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.133058765734,
+     "bars": 159
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.191034827899,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.280421482831,
+     "bars": 159
+    },
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.322354094098,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.203245549699,
+     "bars": 159
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.102984728788,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.210942175064,
+     "bars": 159
+    },
+    {
+     "year": 2021,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.248993652033,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.096183681389,
+     "bars": 158
+    },
+    {
+     "year": 2021,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.176345170852,
+     "bars": 40
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.318376965236,
+     "bars": 158
+    }
+   ],
+   "table_hour": [
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.086431552356,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.519188805523,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.054001598035,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.258991730381,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.407149731904,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.525170861756,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.644226944905,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.111535436508,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.134895334968,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.297416051434,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.120690683193,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.541593781313,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.786822675784,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.625183157919,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.011495071113,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.418565379016,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.013385457897,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.335212451125,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.168340432848,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.485696056045,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.021938082917,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.698937806106,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.415497150265,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.653123678687,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.11188912945,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.128570634284,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.591303242241,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.08179619708,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.194975705512,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.430536323185,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.316733380791,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.161300542186,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.042756665863,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.166695503172,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.890372469055,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.160298165146,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.549973768928,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.35755195843,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.074340061177,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.222330446576,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.088057866465,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.307942519887,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.188655924425,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.538370954281,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.547434069561,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.494806483416,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.775482138536,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.097001595293,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.498643571283,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.113968274383,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.362582158238,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.604314037556,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.118204760875,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.797024013724,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.976302689701,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.803940724518,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.214779555442,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.254126914682,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.458951404791,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.148176082108,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 1.328217985679,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.015426053522,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.366356142999,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.0967588362,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.345990155018,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.004350611101,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.450702058546,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.008196329683,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.271540451166,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.380728362826,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.004067628805,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.106484180013,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.330323596966,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.356728512322,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.26092187587,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.403269064363,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.302104946581,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.029791283245,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.642563561176,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.194869612507,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.376875978046,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.549105445262,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.450439796933,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.290098578561,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.124826352017,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.093908857356,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.300263314253,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.122082911726,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.288761521081,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.691899496384,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.295492091583,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.016207129993,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.064220297743,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.093536357112,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.31673545554,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.281108155034,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.15291736186,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.690141217098,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.131146738086,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.682796380095,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.052535449278,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 1.229517664582,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.252377566045,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.055609125237,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.218227952301,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.203824356139,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.038158568746,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.571208658418,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.471195246765,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.216141063494,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.256878551734,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.27540236748,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.105097544692,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.087383430483,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.510260880088,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.036494191012,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.790003015347,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.577361383556,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.292270257034,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.460023737112,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.061723956599,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.197000079771,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.054410300895,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.079058775801,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.537258229351,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.06765168211,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.082556338619,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.017132901877,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.445529014826,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.304130172637,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.330377883266,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.238034428585,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.364538543263,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.174456317686,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.118763023253,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.009449849164,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.364603659216,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.256788700596,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.467964510686,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.6311106507,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.555385848773,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.559470796943,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.195187490793,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.128218411807,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.565129380787,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.095361748238,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.54773049436,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.33747407292,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.472819043502,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.50137081655,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.584453310841,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.748014413247,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.131446938108,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.347718609977,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.699897847148,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.964626357624,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 1.01259055666,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.393616040903,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.120972662378,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.597208910297,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.437702241812,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.426946492709,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.792622505785,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.55899446465,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.496524481265,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.259151940277,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.119159264426,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.086615761562,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.503936683015,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.288299066835,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.384791667267,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.400531643084,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.040177577258,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.333093357831,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.408386519004,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.37330305657,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.865161658735,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.078279769453,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.109554788857,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.212362315121,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.060608873648,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.2770044981,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.255840352177,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.339443167656,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.741423046761,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.640745677093,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.016183505323,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.108946826412,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.072172076954,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.158200670638,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.263559192202,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -0.506328162134,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.565129380787,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.291252256757,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.856311054563,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.651403443079,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.269244177549,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.976199954794,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.006641514896,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.957738080513,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.413647230491,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.829221851569,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.339772045243,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.599055624618,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -2.251154001458,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.161723404711,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.561819356394,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.168882184362,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.101513374517,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.106449349062,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.852937190723,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.203004255747,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.693555292977,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.048941450483,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.478926140851,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.41470501553,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.06579053376,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.528713368634,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.0437634076,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.241047590017,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.591716534938,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.090695925993,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.220213474019,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.128035111129,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.421729668716,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.543997498481,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.514129600423,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.350717644763,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.558638739415,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.041794483017,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.218501508774,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.091688649499,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.469007198308,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.235754241386,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.505212378604,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.840036839068,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.650017205119,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.914659643435,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.278272776577,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.083071474364,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.15291736186,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.696472787897,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.272894810837,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.306081135905,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.794598670329,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.248053106762,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.338717259692,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.650143368523,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.063972340081,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.277678885452,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.001511323645,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.992473323823,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 1.792549311353,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.771480509108,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.183968142282,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.490688727179,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.231091322604,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.446012411288,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.13529881642,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.725504529385,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.400076758894,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.716409550358,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.067496619391,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.131934483144,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.508003260175,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.043414222028,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.286617958772,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.5625204573,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.094635882844,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.491440965934,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.546043654404,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.228135043564,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.841362312624,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.161587556391,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.0741969283,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.099679098943,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.133491322503,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.409666332769,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.156101866656,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.257204367321,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.845826585853,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.619711217883,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.021064362596,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.31787301478,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.166803433301,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.49464139789,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.180473906419,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -0.46118122469,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.704749580746,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.443209955935,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.069430626046,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.227598793365,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 1.01787432976,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.611669591928,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.059773634063,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -1.013664391784,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.381379826406,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.17734140214,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -1.503394360634,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -1.221589136211,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -1.606781143825,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.097191879542,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.018240043475,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.247074608957,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.373582923474,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.429545283606,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.423399307239,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.425954537572,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.498828700314,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.945282772703,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.169062038939,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.562883854017,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.002493530118,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.13637910243,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.008664976926,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.096023832738,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.220451238293,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.166863916786,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.360621022645,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.337379120591,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.00284344228,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.015129241711,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.58692446158,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.187159275084,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.400200916551,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.116312752353,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.061799803908,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.326785984958,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.413170287538,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.012842805336,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.60784242355,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.837265908267,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.708024132086,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.360118606507,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.026194351649,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.377922706539,
+     "bars": 6
+    },
+    {
+     "year": 2021,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -1.116961599673,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.848430487075,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.347153130228,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.11772351381,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -1.54322882254,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.883522743896,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.39184937886,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.706069679794,
+     "bars": 1
+    },
+    {
+     "year": 2021,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.031704935997,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.728884368256,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.841655082231,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.615006835416,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 1.14817645372,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.512565224855,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.396091257587,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.568881151774,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.706187620594,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.769108345832,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.705760932936,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.096545736066,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.205350166231,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.612750872578,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.242367482522,
+     "bars": 2
+    },
+    {
+     "year": 2021,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.016244355343,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "hour": 0,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.444706256533,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 1,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.621678249036,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 2,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.321716389446,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 3,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.225449034545,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 4,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.2766294138,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 5,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.233881123155,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 6,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.68645120303,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 7,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.693549275284,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 8,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.416789201629,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 9,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.397539183801,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 10,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.146991789458,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 11,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.263237468622,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 12,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.024946500361,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 13,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.335148063433,
+     "bars": 7
+    },
+    {
+     "year": 2022,
+     "hour": 14,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.316026455688,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 15,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.675679001779,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.789989675083,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.37111417116,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.123694407541,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 19,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.315102083979,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 20,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 0.224810360268,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 21,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.059899639037,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 22,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.484941034644,
+     "bars": 6
+    },
+    {
+     "year": 2022,
+     "hour": 23,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -0.756032456865,
+     "bars": 6
+    }
+   ],
+   "trades": [
+    {
+     "entry_idx": 204,
+     "entry_time": "2021-12-30 12:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "rand": -0.279964451785,
+     "rand_hour": -1.786822675784
+    },
+    {
+     "entry_idx": 211,
+     "entry_time": "2021-12-30 19:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "rand": -0.102984728788,
+     "rand_hour": -0.725504529385
+    },
+    {
+     "entry_idx": 229,
+     "entry_time": "2021-12-31 13:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "rand": -0.233587872144,
+     "rand_hour": -0.216141063494
+    },
+    {
+     "entry_idx": 230,
+     "entry_time": "2021-12-31 14:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "rand": -0.176345170852,
+     "rand_hour": -0.396091257587
+    },
+    {
+     "entry_idx": 255,
+     "entry_time": "2022-01-03 15:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "rand": -0.237425108059,
+     "rand_hour": -0.222330446576
+    },
+    {
+     "entry_idx": 278,
+     "entry_time": "2022-01-04 14:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "rand": -0.210942175064,
+     "rand_hour": -0.156101866656
+    }
+   ]
+  },
+  "C": {
+   "lo": 472,
+   "hi": 475,
+   "table": [
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.103954063706,
+     "bars": 3
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.654541965522,
+     "bars": 3
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.462603792369,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.956958281156,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.796847582473,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 1.29120207126,
+     "bars": 2
+    },
+    {
+     "year": 2022,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -2.323073694303,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 1.796330240362,
+     "bars": 1
+    }
+   ],
+   "table_hour": [
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.411402331713,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.438711987682,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -1.461747871722,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 0.884658877772,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": -0.045835580803,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 18,
+     "side": -1,
+     "hold": 2,
+     "mode": 0,
+     "expectation": 1.124802599596,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.451921058939,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": -1.473286525799,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.925177604999,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 2,
+     "mode": 1,
+     "expectation": 0.988738957314,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -1.256080544013,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": 1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": -2.337614620934,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 0.729337090072,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 17,
+     "side": -1,
+     "hold": 3,
+     "mode": 0,
+     "expectation": 1.853067052449,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": 1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": -2.323073694303,
+     "bars": 1
+    },
+    {
+     "year": 2022,
+     "hour": 16,
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "expectation": 1.796330240362,
+     "bars": 1
+    }
+   ],
+   "trades": [
+    {
+     "entry_idx": 472,
+     "entry_time": "2022-01-14 16:00:00",
+     "side": 1,
+     "hold": 2,
+     "mode": 0,
+     "rand": -1.103954063706,
+     "rand_hour": -1.411402331713
+    },
+    {
+     "entry_idx": 473,
+     "entry_time": "2022-01-14 17:00:00",
+     "side": -1,
+     "hold": 3,
+     "mode": 1,
+     "rand": 1.796330240362,
+     "rand_hour": null
+    }
+   ]
+  }
+ }
+}

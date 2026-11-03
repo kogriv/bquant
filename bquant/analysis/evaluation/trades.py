@@ -1,6 +1,6 @@
 """The trade frame — the one object every function of this package reads.
 
-One row is one trade. Four columns are required, three are optional, and nothing is
+One row is one trade. Four columns are required, four are optional, and nothing is
 coerced silently: a frame that does not meet the contract is refused with the name
 of the column and what it has to be.
 
@@ -9,7 +9,8 @@ Required: ``entry_time`` and ``exit_time`` (datetime64, exit not before entry),
 evaluates in — ATR of the entry bar, percent of price, money; the package never
 rescales it). Optional: ``gross`` (outcome before costs), ``rand`` (expected outcome
 of a random entry, see :mod:`.baseline`; ``NaN`` means "no baseline for this trade"),
-``hold`` (holding time in bars, needed to attach a baseline).
+``hold`` (holding time in bars, needed to attach a baseline), ``mode`` (the label of
+the exit the trade used, needed to attach a baseline built with exit modes).
 
 Derived keys: ``year`` and the integer month key ``year * 12 + month - 1`` are taken
 from ``entry_time``; the calendar quarter is taken from ``exit_time`` and only by the
@@ -25,7 +26,7 @@ import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype
 
 REQUIRED_COLUMNS = ("entry_time", "exit_time", "side", "net")
-OPTIONAL_COLUMNS = ("gross", "rand", "hold")
+OPTIONAL_COLUMNS = ("gross", "rand", "hold", "mode")
 
 
 def validate_trades(trades: pd.DataFrame) -> pd.DataFrame:

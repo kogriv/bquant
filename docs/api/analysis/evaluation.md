@@ -157,6 +157,62 @@ print(attach_random_baseline(trades, table)[['side', 'hold', 'net', 'rand']].rou
 `rand` по ключу; сделка, для которой клетки нет, получает `NaN` — она остаётся в `n`, но
 выпадает из преимущества.
 
+### Режим выхода
+
+Две стратегии с одним и тем же удержанием `H` могут выходить по-разному: одна на закрытии
+бара `e + H − 1`, другая на открытии следующего. Исходы у них разные, и сравнивать вторую с
+базисом первой — значит приписать входу то, что сделал выход. `modes` называет каждый способ
+выхода и число баров, которое ему нужно сверх `e + H − 1` (*хвост*):
+
+```python
+import numpy as np
+import pandas as pd
+
+from bquant.analysis.evaluation import attach_random_baseline, random_entry_baseline
+
+rng = np.random.default_rng(1)
+index = pd.date_range('2021-01-01', periods=2000, freq='h')
+open_ = 1800 + np.cumsum(rng.normal(0, 1.0, len(index)))
+close = open_ + rng.normal(0, 0.5, len(index))
+atr = pd.Series(close).diff().abs().rolling(14).mean().to_numpy()
+
+
+def outcome(entries, hold, side, mode):
+    # enter at the open of bar e; mode 'close' leaves at the close of bar e + hold - 1,
+    # mode 'next_open' at the open of the bar after it
+    exit_price = close[entries + hold - 1] if mode == 'close' else open_[entries + hold]
+    return side * (exit_price - open_[entries]) / atr[entries - 1] - 0.05
+
+
+table = random_entry_baseline(index, outcome, holds=[6], modes={'close': 0, 'next_open': 1}, lo=14)
+print(table.round(4).to_string(index=False))
+
+trades = pd.DataFrame({
+    'entry_time': index[[100, 500]],
+    'exit_time': index[[106, 506]],
+    'side': [1, 1],
+    'net': [0.4, 0.4],
+    'hold': [6, 6],
+    'mode': ['close', 'next_open'],
+})
+print(attach_random_baseline(trades, table)[['hold', 'mode', 'rand']].round(4).to_string(index=False))
+# year  side  hold      mode  expectation  bars
+# 2021     1     6     close      -0.1172  1980
+# 2021    -1     6     close       0.0172  1980
+# 2021     1     6 next_open      -0.1260  1979
+# 2021    -1     6 next_open       0.0260  1979
+# hold      mode    rand
+#    6     close -0.1172
+#    6 next_open -0.1260
+```
+
+С `modes` функция исхода получает четвёртый аргумент — метку режима, допустимый вход —
+только тот, чьё окно вместе с хвостом лежит внутри отрезка (у `next_open` на один бар
+меньше: 1979 против 1980), а в таблице и в ключе подстановки появляется столбец `mode`.
+Сделкам тогда нужен свой столбец `mode`; без него `attach_random_baseline` отказывает, а не
+считает все сделки первым режимом — иначе сделка с выходом на открытии молча получила бы
+ожидание выхода на закрытии. Без `modes` всё как раньше: три аргумента, столбца `mode` нет.
+
 ## Процедура по окнам
 
 ```python
