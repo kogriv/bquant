@@ -67,10 +67,17 @@ def test_the_data_layer_runs_clean_under_pandas4_warnings_as_errors(tmp_path):
         cleaned = clean_ohlcv_data(loaded)
         resampled = resample_ohlcv(cleaned, "4h")
         prepared = prepare_data_for_analysis(cleaned, target_column="close")
-        continuity = validate_time_series_continuity(cleaned)
+        # The sample's own axis is irregular (daily breaks, weekends): pandas infers no
+        # frequency there and honestly returns None. The path under test is the call into
+        # infer_freq, so the same 48 bars are put on an even hourly axis.
+        regular = cleaned.iloc[:48].set_axis(pd.date_range(cleaned.index[0], periods=48, freq="h"))
+        continuity = validate_time_series_continuity(regular)
 
     assert isinstance(loaded.index, pd.DatetimeIndex), type(loaded.index).__name__
     assert len(loaded) == 300 and len(cleaned) <= 300
     assert 0 < len(resampled) < len(cleaned)
     assert len(prepared) > 0
+    # A pandas offset compares equal to its alias (`Hour() == "h"` is True), so the value
+    # check alone cannot see an object leaking through; the type check can.
+    assert isinstance(continuity["detected_frequency"], str), type(continuity["detected_frequency"])
     assert continuity["detected_frequency"] in ("h", "H"), continuity["detected_frequency"]
