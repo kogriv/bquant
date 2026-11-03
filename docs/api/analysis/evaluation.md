@@ -251,6 +251,88 @@ print(apply_rules(summary, default_quarter_rules()))
 стороной и подлежащие пересмотру новым объектом. `apply_rules(summary, rules)` даёт флаги и
 `pass`.
 
+## От зон к оценке — пример стыковки
+
+Пакет не превращает зоны в сделки: правила входа и выхода — решение торговой системы, а не
+методологии, и одна зашитая связка читалась бы как ответ на вопрос «торгуются ли зоны», хотя
+отвечала бы за один произвольный набор правил. Ниже правило — **самого примера**: вход на
+открытии бара после первого бара зоны, выход на закрытии первого бара следующей зоны, бычья
+зона — покупка, медвежья — продажа, издержки 0.05 ATR.
+
+```python
+import numpy as np
+import pandas as pd
+
+from bquant.analysis.evaluation import (
+    BlockBootstrap, attach_random_baseline, default_criterion, months_between,
+    random_entry_baseline, trial_stats,
+)
+from bquant.analysis.zones import analyze_zones
+from bquant.data import calculate_atr
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze()
+    .build()
+)
+bars = result.data
+open_, close = bars['open'].to_numpy(), bars['close'].to_numpy()
+atr = calculate_atr(bars, period=14).to_numpy()
+COST = 0.05          # round-trip costs, in ATR of the bar before entry
+
+
+def outcome(entries, hold, side):
+    exits = entries + hold - 1
+    return side * (close[exits] - open_[entries]) / atr[entries - 1] - COST
+
+
+# The rule is the example's, not the package's: the zone is known at the close of its
+# first bar, so enter on the next open; its end is known at the close of the first bar
+# of the next zone, so exit there. Bull zone -> buy, bear zone -> sell.
+rows = []
+for zone in result.zones:
+    entry, exit_ = zone.start_idx + 1, zone.end_idx + 1
+    if exit_ >= len(bars) or np.isnan(atr[entry - 1]):
+        continue                      # the last zone is still open; the first has no ATR yet
+    side = 1 if zone.type == 'bull' else -1
+    rows.append({
+        'entry_time': bars.index[entry], 'exit_time': bars.index[exit_],
+        'side': side, 'hold': exit_ - entry + 1,
+        'net': float(outcome(np.array([entry]), exit_ - entry + 1, side)[0]),
+    })
+trades = pd.DataFrame(rows)
+
+baseline = random_entry_baseline(bars.index, outcome, holds=trades['hold'].unique(), lo=15)
+trades = attach_random_baseline(trades, baseline)
+
+boot = BlockBootstrap(months_between(bars.index[0], bars.index[-1]), B=2000, seed=1)
+row = trial_stats(trades, boot)
+print(row['n'], round(row['net_mean'], 3), round(row['net_lo'], 3), round(row['net_hi'], 3))
+print(round(row['excess_mean'], 3), round(row['excess_lo'], 3), round(row['p'], 3))
+print(len(boot.months), row['years_n'])
+
+verdict = default_criterion().evaluate(pd.DataFrame([{k: v for k, v in row.items() if k != 'years'}]), m_total=1)
+print({k: bool(v) for k, v in verdict.iloc[0].items() if k.startswith('ok_') or k == 'pass'})
+# 76 -0.069 -0.352 0.15
+# -0.019 -0.306 0.558
+# 3 1
+# {'ok_min_trades': False, 'ok_net_positive': False, 'ok_years_stable': False, 'ok_beats_random': False, 'pass': False}
+```
+
+**Как это читать.** 76 сделок, средний итог −0.069 ATR, интервал от −0.352 до 0.15 —
+ноль внутри; преимущество над случайным входом того же года, стороны и удержания — −0.019 при `p = 0.558`. Ни одно из четырёх правил не пройдено, и важно,
+*почему*: образец — 1000 часовых баров, около двух месяцев, это **три** блока бутстрепа и
+**один** год. На таком отрезке метод не имеет права сказать «состоятельно», даже будь среднее
+положительным: `MinTrades` требует 100 сделок, `YearsStable` — два года. Это и есть рабочий
+результат — отказ с названной причиной, а не число, которое хочется прочитать как сигнал.
+
+Функция исхода одна и для сделок, и для базиса: так случайный вход оценивается ровно теми же
+издержками и в том же масштабе. `lo=15` — разогрев ATR: бар входа должен иметь ATR
+предыдущего бара. Последняя зона ещё не закрыта и в сделки не идёт.
+
 ## Чего модуль не делает
 
 Не хранит реестр опробованных вариантов (`m_total` — от вызывающего), не знает про зоны,
