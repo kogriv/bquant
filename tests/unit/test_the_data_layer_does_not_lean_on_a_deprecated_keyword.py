@@ -57,9 +57,9 @@ def test_the_data_layer_runs_clean_under_pandas4_warnings_as_errors(tmp_path):
     )
     from bquant.data.samples import get_sample_data
 
-    data = get_sample_data("tv_xauusd_1h")
+    data = get_sample_data("tv_xauusd_1h")          # time is a column, the index is a RangeIndex
     csv = tmp_path / "sample.csv"
-    data.head(300).to_csv(csv)
+    data.head(300).to_csv(csv, index=False)          # the file a user has: time first, no row numbers
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", Pandas4Warning)
@@ -69,6 +69,7 @@ def test_the_data_layer_runs_clean_under_pandas4_warnings_as_errors(tmp_path):
         prepared = prepare_data_for_analysis(cleaned, target_column="close")
         continuity = validate_time_series_continuity(cleaned)
 
+    assert isinstance(loaded.index, pd.DatetimeIndex), type(loaded.index).__name__
     assert len(loaded) == 300 and len(cleaned) <= 300
     assert 0 < len(resampled) < len(cleaned)
     assert len(prepared) > 0

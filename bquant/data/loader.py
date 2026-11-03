@@ -86,6 +86,9 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
     Returns:
         DataFrame if successful, None otherwise
     """
+    # A file with offsets (`2025-06-11 20:00:00+07:00`, the shape of the package's own
+    # samples) fits none of these; it is read by the fallback below, which converts any
+    # index that is not yet a time axis (G89).
     date_formats = [
         '%Y-%m-%d %H:%M:%S',
         '%Y.%m.%d %H:%M:%S', 
@@ -112,24 +115,33 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
         df = df.set_index('time')
         return df
     
-    # Попытка 1: Стандартный формат с заголовками
-    for i, date_format in enumerate(date_formats):
-        try:
-            if i == 0:  # Первая попытка с автоопределением индекса
-                df = pd.read_csv(file_path, index_col=0, parse_dates=True, date_format=date_format, encoding=encoding)
-            else:  # Остальные попытки
-                df = pd.read_csv(file_path, parse_dates=['time'], date_format=date_format, encoding=encoding)
-                if 'time' in df.columns:
-                    df = df.set_index('time')
-            
-            return df
-        except (ValueError, TypeError, UnicodeDecodeError):
-            continue
-    
-    # Попытка 2: Автоопределение без парсинга дат
+    # Попытка 1: Стандартный формат с заголовками.
+    # Попытка засчитывается, только если дала ось времени. `read_csv` с форматом, который
+    # не подошёл, НЕ бросает исключение — он оставляет строки как есть; до G89 первая же
+    # такая «удачная» попытка возвращала кадр с текстовым индексом, и он доезжал до
+    # ресемпла, где падал с чужим сообщением.
+    for date_format in date_formats:
+        for index_first in (True, False):
+            try:
+                if index_first:
+                    df = pd.read_csv(file_path, index_col=0, parse_dates=True,
+                                     date_format=date_format, encoding=encoding)
+                else:
+                    df = pd.read_csv(file_path, parse_dates=['time'],
+                                     date_format=date_format, encoding=encoding)
+                    if 'time' in df.columns:
+                        df = df.set_index('time')
+            except (ValueError, TypeError, UnicodeDecodeError):
+                continue
+            if isinstance(df.index, pd.DatetimeIndex):
+                return df
+
+    # Попытка 2: Автоопределение без парсинга дат. Проверка — «ось времени», а не
+    # `dtype == 'object'`: в pandas 3 текст имеет dtype `str`, и прежнее условие молча
+    # пропускало преобразование (G89).
     try:
         df = pd.read_csv(file_path, index_col=0, parse_dates=True, encoding=encoding)
-        if df.index.dtype == 'object':
+        if not isinstance(df.index, pd.DatetimeIndex):
             df.index = pd.to_datetime(df.index)
         return df
     except (ValueError, TypeError, UnicodeDecodeError):
@@ -137,7 +149,7 @@ def _try_read_csv_with_encoding(file_path: Path, encoding: str, logger_with_cont
             df = pd.read_csv(file_path, parse_dates=['time'], encoding=encoding)
             if 'time' in df.columns:
                 df = df.set_index('time')
-                if df.index.dtype == 'object':
+                if not isinstance(df.index, pd.DatetimeIndex):
                     df.index = pd.to_datetime(df.index)
             return df
         except (ValueError, TypeError, UnicodeDecodeError):

@@ -227,6 +227,25 @@ def validate_price_consistency(df: pd.DataFrame) -> Dict[str, Any]:
     return results
 
 
+def _inferred_frequency_alias(index: pd.DatetimeIndex) -> Optional[str]:
+    """The inferred frequency as a string alias (``'h'``), on any pandas (G88).
+
+    pandas 3.1 warns on every ``infer_freq`` call that a future version returns an
+    offset object instead of a string — the warning comes from the call, not from what
+    we do with the answer, so normalising the answer afterwards does not silence it.
+    Where the option exists we opt into the future behaviour and read ``.freqstr``;
+    on a pandas without it the call already returns the string.
+    """
+    try:
+        with pd.option_context('future.infer_freq_returns_offset', True):
+            inferred = pd.infer_freq(index)
+    except (KeyError, pd.errors.OptionError):
+        inferred = pd.infer_freq(index)
+    if inferred is None or isinstance(inferred, str):
+        return inferred
+    return inferred.freqstr
+
+
 def validate_time_series_continuity(
     df: pd.DataFrame, 
     expected_frequency: Optional[str] = None
@@ -271,12 +290,7 @@ def validate_time_series_continuity(
     
     # Detect frequency
     try:
-        inferred_freq = pd.infer_freq(df.index)
-        # pandas 3.1 announces that a future version returns an offset object here;
-        # the contract of this key is the string alias, so take it from either form.
-        if inferred_freq is not None and not isinstance(inferred_freq, str):
-            inferred_freq = inferred_freq.freqstr
-        results['detected_frequency'] = inferred_freq
+        results['detected_frequency'] = _inferred_frequency_alias(df.index)
     except Exception:
         results['detected_frequency'] = None
     
