@@ -666,8 +666,8 @@ def _block_claims(code: str) -> list[str]:
     каталог библиотеки на 158 имён, печатавший 246 (G90), и числа примера, написанного в
     тот же день. Прежняя попытка дала 87 ложных падений, потому что привязывала ожидание
     к **каждому** вызову. Здесь правило уже: блок берётся, только если он **последний** в
-    примере и стоит сразу за ``print`` — комментарий после присваивания или ``with``
-    остаётся иллюстрацией. Строки, разорванные внутри скобок, склеиваются в одну.
+    примере и стоит сразу за ``print`` (на любой глубине вложенности) — комментарий после
+    присваивания остаётся иллюстрацией. Строки, разорванные внутри скобок, склеиваются в одну.
     """
     lines = code.rstrip().splitlines()
     i = len(lines)
@@ -686,7 +686,17 @@ def _block_claims(code: str) -> list[str]:
         return []
     if not tree.body:
         return []
-    last = tree.body[-1]
+    # Лексически последний оператор — на любой глубине: ``print`` в теле ``for``, ``with``
+    # или ``except`` печатает в тот же вывод. Первая версия смотрела только на верхний
+    # уровень, и положительный контроль на доке до аудита показал цену: три протухших
+    # блока (счётчик полей ``SwingMetrics`` в цикле, текст заглушки в ``except``, число
+    # под ``with performance_context``) проверка не видела вовсе.
+    end = max(node.end_lineno for node in tree.body)
+    last = max(
+        (node for node in ast.walk(tree)
+         if isinstance(node, ast.stmt) and node.end_lineno == end),
+        key=lambda node: (node.lineno, node.col_offset),
+    )
     if not (isinstance(last, ast.Expr) and isinstance(last.value, ast.Call)
             and isinstance(last.value.func, ast.Name) and last.value.func.id == "print"):
         return []
@@ -708,9 +718,10 @@ BLOCK_EXAMPLES = [
     if (claims := _block_claims(code))
 ]
 
-#: Пол охвата, замеренный 2026-11-03: 163 примера с блоком под последним ``print``.
-#: Ловит обвал разбора — пустой список сделал бы проверку вырожденно зелёной.
-MIN_BLOCK_EXAMPLES = 140
+#: Пол охвата, замеренный 2026-11-03: 180 примеров с блоком под последним ``print``
+#: (163, пока смотрели только на верхний уровень). Ловит обвал разбора — пустой список
+#: сделал бы проверку вырожденно зелёной.
+MIN_BLOCK_EXAMPLES = 160
 
 
 def test_the_scan_found_printed_blocks():

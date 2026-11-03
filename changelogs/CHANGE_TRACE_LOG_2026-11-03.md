@@ -98,3 +98,16 @@
 [not_included] [Technical] Положительный контроль: та же проверка на `docs/` и `AGENTS.md` из `7050a66` (до правок аудита, с кодом G90/G91) краснеет как минимум на восьми примерах — `analysis/README.md` (SwingMetrics), `strategies.md`, `zones.md`, `samples.md` ×1 (dtype), `indicators/README.md`, `developer_guide/README.md` ×2, `evaluation.md`; если краснеет меньше — проверка не видит то, что нашёл ручной проход
 
 ==================== COMMIT DIVIDER ====================
+
+[СВЕРКА] Прогон на `e46d3c5` — 2026-11-03. **Не сошлось в трёх местах.**
+
+[not_included] [Technical] Блок-проверка: pandas 2.3.3 — 165 passed, 0 падений; pandas 3.1.0 — **1 падение**, `docs/api/indicators/library_manager.md:108` обещал `True 158`, напечатано `True 157`. Полный сьют: p2 **4018 passed / 35 skipped**, rc=0; p3 4018 passed / 1 failed — то же падение
+[not_included] [Technical] Положительный контроль (дока из `7050a66`, плечо pandas 2.3.3) покраснел на **шести**, не на восьми: `AGENTS.md`, `evaluation.md`, `strategies.md`, `zones.md`, `library_manager.md:51`, `developer_guide/README.md` (float в `SpreadIndicator`)
+[not_included] [Technical] **СЮРПРИЗ 8 — проверка не видела `print` внутри оператора.** `_block_claims` смотрел только на последний оператор верхнего уровня, а счётчик полей `SwingMetrics` печатается в `for`, текст заглушки — в `except`, `1.1` — под `with performance_context`. Эти три протухших блока ручной проход нашёл, а проверка пропускала. Теперь берётся лексически последний оператор на любой глубине: охват 163 → **180**, пол 140 → 160
+[not_included] [Technical] **СЮРПРИЗ 9 — моё ожидание перепутало плечо.** `samples.md` (`ns` в dtype) и `indicators/README.md` (158) на pandas 2.3 печатают то, что обещала старая дока, — красными они бывают только на 3.1, а контроль шёл на 2.3. Это ошибка списка, не проверки; контроль теперь гоняется в обоих плечах
+[not_included] [Fixed] **СЮРПРИЗ 10 — третий счётчик каталога.** `library_manager.md` печатал `indicators_count`, равный 158 только на pandas 2.3, — тот же `vp`, что в обзоре индикаторов, пропущенный ручным проходом. Пример теперь утверждает `in (157, 158)`, зависимость названа в прозе
+
+[ОЖИДАНИЯ] Выписаны до повторного прогона на стенде.
+
+[not_included] [Technical] Текущее дерево: блок-проверка зелёная в обоих плечах — 180 примеров, 0 падений; полный сьют без падений, `passed` ≥ 4018 + 17
+[not_included] [Technical] Положительный контроль (дока и `AGENTS.md` из `7050a66`, проверка с текущего дерева), **оба плеча**. pandas 2.3 — красные ровно девять: прежние шесть плюс `analysis/README.md` (SwingMetrics в цикле, текст заглушки в `except`) и `developer_guide/README.md` (`1.1` под `with`). pandas 3.1 — те же девять плюс `samples.md` (dtype), `indicators/README.md` (158) и `library_manager.md:108` (158), итого двенадцать. Любой лишний красный — сюрприз, который надо разобрать, а не принять

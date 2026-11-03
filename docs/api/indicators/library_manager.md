@@ -109,11 +109,14 @@ from bquant.indicators import LibraryManager
 
 info = LibraryManager.get_library_info('pandas_ta')
 
-print(info['available'], info['indicators_count'])
+print(info['available'], info['indicators_count'] in (157, 158))
 print(info['indicators'][:5])
-# True 158
+# True True
 # ['aberration', 'accbands', 'ad', 'adosc', 'adx']
 ```
+
+Счётчик зависит от окружения: на pandas 2.3 он 158, на pandas 3 — 157, потому что там
+`vp` не проходит проверку сигнатуры (см. [обзор индикаторов](README.md)).
 
 У недоступной библиотеки `available` будет `False`, а причина — в `info['error']`.
 
