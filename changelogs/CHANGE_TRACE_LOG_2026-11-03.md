@@ -127,3 +127,9 @@
 [not_included] [Technical] Батарея ≥ 36 скриптов, 0 ненулевых — первая с G90/G91 в коде (каталог `pandas_ta` до загрузки, порядок `find_datasets`)
 [not_included] [Technical] Контракт rc=0, `layered (7)`, `forbidden (8)` без правки `codemap.toml`; codmap 0.0.23 печатает «The graph matches its source tree», сайдкар на месте
 [not_included] [Technical] Положительный контроль графа: `trial_stats` и `_inferred_frequency_alias` (новые с 0.0.20) присутствуют; удалённых публичных символов нет. Если хоть одно из этого не сойдётся — релиз ждёт разбора, не выходит
+
+[СВЕРКА] Релизный гейт 0.0.21 — 2026-11-03, **GATE_OK**. Сошлись все четыре ожидания; сюрпризов нет.
+
+[not_included] [Technical] `HEAD 384ad94` — коммит с ожиданиями. pandas 3.1.0 — **4037 passed / 34 skipped** (14:08), pandas 2.3.3 — **4036 passed / 35 skipped** (13:46), оба rc=0; собрано 4071 в обоих плечах; досыпка с контролем `hypothesis` отработала
+[not_included] [Technical] Батарея **36 скриптов, 0 ненулевых**. Контракт rc=0, `layered (7)`, `forbidden (8)`; codmap 0.0.23 — «The graph matches its source tree», сайдкар на месте. `trial_stats` и `_inferred_frequency_alias` в графе
+[not_included] [Changed] Релизный коммит — версия в `pyproject.toml` и `bquant/__init__.py`, `uv.lock`, раздел `[0.0.21]` в CHANGELOG, пин и каденция в `docs/versioning.md` и README. Содержимое пакета — то, что прошло гейт
