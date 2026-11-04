@@ -13,6 +13,10 @@ four questions a single backtest number cannot:
   and is a run's result spread over **quarters** or made in one stretch
   (:func:`quarterly_summary`).
 
+What a round trip costs — spread, commission and swap over the nights held — is
+:class:`CostModel` with :func:`rollover_nights`; the outcome functions the baseline
+averages are where it usually goes.
+
 The package holds no registry of variants, no notion of zones or bars, and no data: the
 number of tests corrected for comes from the caller, as does the outcome function the
 baseline averages.
@@ -20,6 +24,7 @@ baseline averages.
 
 from .baseline import attach_random_baseline, random_entry_baseline
 from .bootstrap import BlockBootstrap
+from .costs import CostModel, rollover_nights
 from .criterion import (
     BeatsRandom,
     Criterion,
@@ -47,6 +52,7 @@ from .trades import month_key, month_label, months_between, validate_trades
 __all__ = [
     "validate_trades", "month_key", "month_label", "months_between",
     "BlockBootstrap",
+    "CostModel", "rollover_nights",
     "random_entry_baseline", "attach_random_baseline",
     "trial_stats", "benjamini_hochberg",
     "Rule", "MinTrades", "NetPositive", "YearsStable", "BeatsRandom", "MinEffect",

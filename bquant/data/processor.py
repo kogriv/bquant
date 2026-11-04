@@ -278,18 +278,41 @@ def calculate_true_range(df: pd.DataFrame) -> pd.Series:
     return candidates.max(axis=1, skipna=True)
 
 
-def calculate_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
-    """Average True Range: the rolling mean of :func:`calculate_true_range` over ``period`` bars.
+def calculate_atr(df: pd.DataFrame, period: int = 14, method: str = "sma") -> pd.Series:
+    """Average True Range of :func:`calculate_true_range` over ``period`` bars.
 
     The one ATR the package computes. The pipeline adds it to the analysed
     frame as ``atr`` when the caller did not bring one (G60): until then the
     branch waiting for it was unreachable, and ``atr_normalized_return`` was
     ``None`` in every zone of the flagship path. The first ``period - 1``
-    values are ``NaN`` — the window is not full.
+    values are ``NaN`` in both methods — the window is not full.
+
+    ``method`` picks the average:
+
+    * ``"sma"`` (the default) — the rolling mean of the last ``period`` true ranges;
+    * ``"wilder"`` — Wilder's smoothing: the first value (bar ``period - 1``) is the
+      mean of the first ``period`` true ranges, each later one
+      ``atr[i] = atr[i-1] + (tr[i] - atr[i-1]) / period``. This is the ATR of most
+      trading terminals; it remembers the whole history, so two frames that start on
+      different bars give different values on the same bar.
     """
     if not isinstance(period, int) or isinstance(period, bool) or period <= 0:
         raise ValueError(f"ATR period must be a positive integer, got {period!r}")
-    return calculate_true_range(df).rolling(window=period).mean()
+    if method not in _ATR_METHODS:
+        raise ValueError(f"ATR method must be one of {_ATR_METHODS}, got {method!r}")
+    tr = calculate_true_range(df)
+    if method == "sma":
+        return tr.rolling(window=period).mean()
+    values = tr.to_numpy(dtype=float)
+    out = np.full(len(values), np.nan)
+    if len(values) >= period:
+        out[period - 1] = values[:period].mean()
+        for i in range(period, len(values)):
+            out[i] = out[i - 1] + (values[i] - out[i - 1]) / period
+    return pd.Series(out, index=tr.index)
+
+
+_ATR_METHODS = ("sma", "wilder")
 
 
 def calculate_derived_indicators(df: pd.DataFrame) -> pd.DataFrame:

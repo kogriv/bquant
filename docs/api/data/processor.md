@@ -103,6 +103,28 @@ print([c for c in derived.columns if c not in data.columns])
 именем `true_range` лежал `high - low`, а в `add_technical_features()` — True Range: два
 числа под одной подписью, расходящиеся на каждом гэпе (G57).
 
+`calculate_atr(df, period=14, method='sma')` усредняет True Range двумя способами. `'sma'`
+(умолчание, его берёт пайплайн) — скользящее среднее последних `period` значений. `'wilder'` —
+сглаживание Уайлдера, ATR большинства торговых терминалов: первое значение (бар `period − 1`) —
+среднее первых `period` TR, дальше `atr[i] = atr[i−1] + (tr[i] − atr[i−1]) / period`. У обоих
+первые `period − 1` значений — `NaN`:
+
+```python
+from bquant.data import calculate_atr
+from bquant.data.samples import get_sample_data
+
+data = get_sample_data('tv_xauusd_1h')
+sma = calculate_atr(data, period=14)
+wilder = calculate_atr(data, period=14, method='wilder')
+print(int(sma.isna().sum()), int(wilder.isna().sum()))
+print(round(sma.iloc[-1], 4), round(wilder.iloc[-1], 4))
+# 13 13
+# 7.6679 8.7819
+```
+
+Уайлдер помнит всю историю: два кадра, начатые с разных баров, дают на одном и том же баре
+разный ATR, тогда как скользящее среднее после `period` баров совпадает.
+
 Ничего внешнего здесь не считается — только арифметика по OHLCV. Индикаторы живут в
 [`bquant.indicators`](../indicators/README.md).
 

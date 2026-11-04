@@ -309,6 +309,53 @@ print(apply_rules(summary, default_quarter_rules()))
 стороной и подлежащие пересмотру новым объектом. `apply_rules(summary, rules)` даёт флаги и
 `pass`.
 
+## Издержки сделки
+
+Издержки круга сделки — в **пунктах** символа, положительное — расход; делить на ATR или на что
+угодно ещё — дело вызывающего. Обычно они живут в функции исхода, которую усредняет случайный базис.
+
+`rollover_nights(entry_time, exit_time, *, triple_weekday=2)` считает ночи свопа по календарю
+сервера брокера. Полночь `m`, где `вход < m ≤ выход`, начисляется, если день, который она
+завершает, — пн…пт: ночи после субботы и воскресенья не начисляются. Полночь после дня
+`triple_weekday` (0 — понедельник; у большинства брокеров 2, ночь на четверг) идёт за три,
+поэтому неделя — это 7 ночей. Время выхода — момент закрытия позиции: закрытие последнего бара
+(его время плюс бар) или открытие следующего. Время с поясом читается по его собственным часам,
+поэтому сначала переведите его в пояс сервера.
+
+`CostModel` считает `спред + комиссия − своп(сторона) · ночи`:
+
+```python
+import numpy as np
+import pandas as pd
+
+from bquant.analysis.evaluation import CostModel, rollover_nights
+
+entry = pd.to_datetime(['2022-01-04 10:00', '2022-01-05 15:00', '2022-01-07 12:00'])   # Tue, Wed, Fri
+exit_ = pd.to_datetime(['2022-01-04 18:00', '2022-01-06 09:00', '2022-01-10 08:00'])   # same day, Thu, Mon
+nights = rollover_nights(entry, exit_, triple_weekday=2)     # the Wednesday night counts three
+print(nights.tolist())
+
+spec = {'swap_mode': 1, 'swap_long': -3.2, 'swap_short': 1.1, 'swap_rollover3day': 3}   # MT5: Sunday = 0
+model = CostModel.from_symbol_spec(spec, spread='bar', min_spread_points=15.0, commission_points=7.0)
+spread = np.array([12.0, 25.0, np.nan])          # the spread of each entry bar; a missing one counts as 0
+cost = model.round_trip(spread, entry_idx=[0, 1, 2], side=[1, 1, -1], nights=nights)
+print(model.triple_weekday, cost.round(2).tolist())
+# [0, 3, 1]
+# 2 [22.0, 41.6, 20.9]
+```
+
+Бары MetaTrader — это цены bid, поэтому за круг платится **один** спред. В режиме `spread='bar'`
+это спред бара входа: не меньше `min_spread_points`, пустой считается нулём. Режим `'fixed'` берёт
+`fixed_spread_points`, это стресс-вариант. Своп указан со знаком MetaTrader: отрицательный
+платится и прибавляется к издержкам. `from_symbol_spec` читает своп из спецификации символа,
+где день недели считается от воскресенья: `triple_weekday = (swap_rollover3day − 1) % 7`.
+
+Отказы, а не подмены:
+- модели со свопом нужны `nights`; без них своп выпал бы из издержек без следа;
+- `swap_mode ≠ 1` (своп не в пунктах) и спецификация без `swap_rollover3day` отклоняются;
+- `triple_weekday` вне 0…4 отклоняется: тройная ночь в выходной никогда бы не начислилась;
+- выход раньше входа и `side` не ±1 тоже отклоняются.
+
 ## От зон к оценке — пример стыковки
 
 Пакет не превращает зоны в сделки: правила входа и выхода — решение торговой системы, а не

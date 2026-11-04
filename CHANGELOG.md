@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Издержки сделки и ATR Уайлдера** — заказ лаборатории стратегий, нужен двум потребителям.
+- `bquant.analysis.evaluation.rollover_nights(entry_time, exit_time, *, triple_weekday=2)` считает ночи
+  свопа по календарю сервера. Ночи после субботы и воскресенья не начисляются, ночь после
+  `triple_weekday` идёт за три, неделя — 7 ночей.
+- `CostModel(...).round_trip(spread_points, entry_idx, side, nights)` считает издержки круга в
+  пунктах: спред бара входа или фиксированный, нижняя граница спреда, комиссия, своп со знаком
+  MetaTrader. `CostModel.from_symbol_spec` читает своп из спецификации символа MT5.
+- `calculate_atr(df, period, method='wilder')` — сглаживание Уайлдера. Без `method` ATR прежний,
+  скользящее среднее.
+- Отказ, а не молчаливая подмена: модель со свопом без `nights`, `triple_weekday` в выходной,
+  спецификация со своп не в пунктах или без дня тройной ночи. Фикстура лаборатории
+  воспроизводится до `1e-9`.
+
 ## [0.0.22] - 2026-11-04
 
 **Режим выхода в случайном базисе.** `random_entry_baseline` принимает `modes={метка: хвост}`:
