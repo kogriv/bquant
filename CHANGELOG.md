@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.27] - 2026-11-04
+
 **Исход при заданном баре выхода, векторно** — заказ лаборатории №6 по идее внешнего потребителя.
 - `ExitAt(column)` в `zone_trades` — бар выхода, заданный на зону, не позже смены зоны; если он
   не после бара решения, пропуск `exit_before_entry`.
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `permutation_placebo(…, batched=True)` — все перестановки одной матрицей, побитно как
   построчно.
 - В фикстуру парной статистики добавлены края с точным нулём средних повторов.
+- Пустые кадры сделок и пропусков из `zone_trades` получают ту же схему типов, что и непустые; раньше они были типа `object`.
 
 ## [0.0.26] - 2026-11-04
 
