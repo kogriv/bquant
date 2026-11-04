@@ -32,6 +32,8 @@ def _close(a, b, what):
 
 def _compare(got, want):
     for key, expected in want.items():
+        if key == "inputs":
+            continue
         if key == "years":
             assert set(map(int, expected)) == set(got["years"]), "years"
             for year, row in expected.items():
@@ -105,18 +107,25 @@ def test_a_group_too_small_gives_nan(name, flags):
 
 def test_years_on_the_threshold_are_counted_and_below_it_are_not():
     edge = REF["edges"]["years_edge"]
-    rng = np.random.default_rng(REF["seed"])
-    # rebuild the generator's draws in its order: units first, then the edge noise
-    n = REF["n"]
-    rng.integers(0, 24, n); rng.normal(0.1, 1.0, n); rng.normal(0.08, 0.6, n); rng.random(n); rng.random(n)
-    ym = np.r_[np.full(10, 2020 * 12 + 3), np.full(9, 2021 * 12 + 5), np.full(30, 2022 * 12 + 7), np.full(1, 2023 * 12)]
-    yd = np.r_[np.full(10, 0.4), np.full(9, 0.2), np.full(30, -0.1), np.full(1, 0.5)] + rng.normal(0, 0.01, 50)
-    variant = pd.DataFrame({"u": range(50), "month": ym, "net": yd})
+    ym, yd = np.asarray(edge["inputs"]["month"]), np.asarray(edge["inputs"]["d"])
+    variant = pd.DataFrame({"u": range(len(yd)), "month": ym, "net": yd})
     base = variant.assign(net=0.0)
     got = paired_stats(variant, base, key="u", boot_months=np.arange(2020 * 12, 2024 * 12), B=REF["B"], seed=1)
     _compare(got, edge)
     assert (got["years_n"], got["years_pos"]) == (2, 1)
     assert got["replicates_used"] < REF["B"]
+
+
+@pytest.mark.parametrize("name, months, d", [
+    ("zero_replicates", np.repeat(np.arange(2024 * 12, 2024 * 12 + 12), 4), np.tile([0.3, -0.3, 0.7, -0.7], 12)),
+    ("zero_replicates_boundary", np.r_[np.repeat(np.arange(2024 * 12, 2024 * 12 + 11), 2), [2024 * 12 + 11]],
+     np.r_[np.tile([0.4, -0.4], 11), [1.0]]),
+])
+def test_replicate_means_of_exactly_zero(name, months, d):
+    variant = pd.DataFrame({"u": range(len(d)), "month": months, "net": d})
+    got = paired_stats(variant, variant.assign(net=0.0), key="u", boot_months=np.arange(2024 * 12, 2024 * 12 + 12),
+                       B=REF["B"], seed=1)
+    _compare(got, REF["edges"][name])
 
 
 def test_units_are_matched_by_key_and_the_unmatched_are_counted():

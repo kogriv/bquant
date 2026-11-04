@@ -153,6 +153,7 @@
 
   Мутации двух последних фикстура не различала.
 - Сторож — `tests/unit/test_trades_from_zones_reproduce_the_reference.py`.
+- **Заказ №6 (2026-11-04):** `ExitAt` и векторная `trades_at_exit` (`exit_at.py`). Чтение зон и сигналов вынесено в `inputs.py`, общий для обоих путей. Векторный путь обязан совпадать с построчным побитно; сторож — `tests/unit/test_the_outcome_at_a_given_exit_bar.py`.
 
 
 ## Дополнение 2026-11-04 — гейты исследования

@@ -28,6 +28,12 @@ zone_k0_horizon80_cap,0,atr_nan_at_decision_bar
 zone_k0_horizon80_cap,9,exit_beyond_data
 zone_k0_horizon15_cap,0,atr_nan_at_decision_bar
 zone_k0_horizon15_cap,9,exit_beyond_data
+exit_at_none,0,atr_nan_at_decision_bar
+exit_at_none,7,exit_before_entry
+exit_at_stop2,0,atr_nan_at_decision_bar
+exit_at_stop2,7,exit_before_entry
+exit_at_stopcol_cost,0,atr_nan_at_decision_bar
+exit_at_stopcol_cost,7,exit_before_entry
 zone_k0_trail05_03,0,atr_nan_at_decision_bar
 zone_k0_trail05_03,9,exit_beyond_data
 zone_k0_trail07_1,0,atr_nan_at_decision_bar

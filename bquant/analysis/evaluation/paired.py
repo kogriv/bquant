@@ -248,6 +248,7 @@ def permutation_placebo(
     n_perm: int = 200,
     seed: int = 1,
     n_units: Optional[int] = None,
+    batched: bool = False,
 ) -> Dict[str, Any]:
     """How the statistic falls when what it rests on is shuffled.
 
@@ -257,6 +258,12 @@ def permutation_placebo(
     ``placebo_p`` the share of them ``>= observed``, **without** the ``+1`` correction.
     ``N`` is ``statistic.n_units`` (:class:`SignFlip`, :class:`PermuteFlags`,
     :class:`PermuteColumn`) or ``n_units`` for a plain callable.
+
+    ``batched=True`` hands the statistic all permutations at once — an ``(n_perm, N)``
+    matrix, drawn from the same generator in the same order — and expects ``n_perm``
+    values back: for a statistic that computes every permutation in one vectorised pass
+    (:func:`~bquant.analysis.trading.trades_at_exit` with a 2-d ``exit_idx``). The result
+    is bit for bit that of the one-by-one call.
     """
     n = n_units if n_units is not None else getattr(statistic, "n_units", None)
     if n is None:
@@ -264,5 +271,11 @@ def permutation_placebo(
     n = _check_min(n, "n_units")
     n_perm = _check_min(n_perm, "n_perm")
     rng = np.random.default_rng(seed)
-    values = np.array([statistic(rng.permutation(n)) for _ in range(n_perm)], dtype=float)
+    if batched:
+        perms = np.array([rng.permutation(n) for _ in range(n_perm)])
+        values = np.asarray(statistic(perms), dtype=float)
+        if values.shape != (n_perm,):
+            raise ValueError(f"a batched statistic must return one value per permutation ({n_perm}), got shape {values.shape}")
+    else:
+        values = np.array([statistic(rng.permutation(n)) for _ in range(n_perm)], dtype=float)
     return {"placebo_mean_diff": float(values.mean()), "placebo_p": float(np.mean(values >= observed)), "n_perm": n_perm}

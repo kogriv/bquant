@@ -15,7 +15,7 @@ import pytest
 
 from bquant.analysis.evaluation import CostModel, validate_trades
 from bquant.analysis.trading import (
-    ColumnStop, FixedAtrStop, Horizon, NextOpen, SignalThreshold, TakeProfit, TrailingAfterSignal,
+    ColumnStop, ExitAt, FixedAtrStop, Horizon, NextOpen, SignalThreshold, TakeProfit, TrailingAfterSignal,
     ZoneBarClose, ZoneChange, zone_trades,
 )
 
@@ -27,6 +27,7 @@ ZONES = pd.read_csv(HERE / "zones.csv")
 SIGNALS = pd.read_csv(HERE / "signals.csv")
 TRADES = pd.read_csv(HERE / "trades.csv", parse_dates=["decision_time", "entry_time", "exit_time"])
 SKIPPED = pd.read_csv(HERE / "skipped.csv")
+EXIT_AT = pd.read_csv(HERE / "exit_at.csv")
 TOL = REF["tolerance"]
 NUMBERS = {"entry_price": "entry_price", "exit_price": "exit_price", "atr_points": "atr_points",
            "gross_points": "gross_points", "cost_points": "cost_points", "net_points": "net_points",
@@ -49,6 +50,8 @@ def _entry(spec):
 
 def _exit(spec):
     rule = spec["rule"]
+    if rule == "exit_at":
+        return ExitAt()
     if rule == "zone_change":
         return ZoneChange()
     if rule == "horizon":
@@ -79,7 +82,8 @@ def _costs(name):
 
 def _run(name):
     v = REF["variants"][name]
-    return zone_trades(BARS, ZONES, point=REF["point"], entry=_entry(v["entry"]), exit=_exit(v["exit"]),
+    zones = ZONES.merge(EXIT_AT, on="zone_id") if v["exit"]["rule"] == "exit_at" else ZONES
+    return zone_trades(BARS, zones, point=REF["point"], entry=_entry(v["entry"]), exit=_exit(v["exit"]),
                        stop=_stop(v["stop"]), costs=_costs(v["costs"]), signals=SIGNALS, atr_period=REF["atr_period"])
 
 
@@ -101,8 +105,9 @@ def test_every_variant_reproduces_row_by_row(name):
 
 
 def test_the_fixture_covers_what_the_contract_names():
-    assert set(SKIPPED["reason"]) == {"atr_nan_at_decision_bar", "exit_beyond_data", "zone_shorter_than_k", "no_side"}
-    assert set(TRADES["exit_reason"]) == {"zone_change", "horizon", "signal", "trail", "take", "fallback", "stop"}
+    assert set(SKIPPED["reason"]) == {"atr_nan_at_decision_bar", "exit_beyond_data", "zone_shorter_than_k", "no_side",
+                                      "exit_before_entry"}
+    assert set(TRADES["exit_reason"]) == {"zone_change", "horizon", "signal", "trail", "take", "fallback", "stop", "exit_at"}
     assert TRADES["stop_and_take_same_bar"].sum() >= 1
     assert TRADES.groupby("variant")["mode"].nunique().max() == 1
     assert TRADES.loc[TRADES["variant"] == "zone_k0_zone_change", "nights"].max() > 0      # nights without a cost model

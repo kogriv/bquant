@@ -10,7 +10,8 @@ a named reason. The rules are objects, not strings:
 * entries — :class:`ZoneBarClose` (close of the zone's bar of age ``k``),
   :class:`NextOpen` (open of the bar after the decision);
 * exits — :class:`ZoneChange`, :class:`Horizon`, :class:`SignalThreshold`,
-  :class:`TrailingAfterSignal`, :class:`TakeProfit`;
+  :class:`TrailingAfterSignal`, :class:`TakeProfit`, :class:`ExitAt` (a bar given per zone;
+  for many sets of them at once, :func:`trades_at_exit`);
 * stops — :class:`FixedAtrStop`, :class:`ColumnStop`.
 
 The outcome is in ATR of the decision bar (Wilder's, by default).
@@ -18,6 +19,7 @@ The outcome is in ATR of the decision bar (Wilder's, by default).
 
 from .rules import (
     ColumnStop,
+    ExitAt,
     FixedAtrStop,
     Horizon,
     NextOpen,
@@ -29,11 +31,12 @@ from .rules import (
     describe,
 )
 from .zone_trades import TRADE_COLUMNS, ZoneTrades, zone_trades
+from .exit_at import ExitMatrix, trades_at_exit
 
 __all__ = [
-    "zone_trades", "ZoneTrades", "TRADE_COLUMNS",
+    "zone_trades", "ZoneTrades", "TRADE_COLUMNS", "trades_at_exit", "ExitMatrix",
     "ZoneBarClose", "NextOpen",
-    "ZoneChange", "Horizon", "SignalThreshold", "TrailingAfterSignal", "TakeProfit",
+    "ZoneChange", "Horizon", "SignalThreshold", "TrailingAfterSignal", "TakeProfit", "ExitAt",
     "FixedAtrStop", "ColumnStop",
     "describe",
 ]

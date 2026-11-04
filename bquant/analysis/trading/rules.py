@@ -203,7 +203,22 @@ class TakeProfit:
         _check_fallback(self.fallback)
 
 
-Exit = Union[ZoneChange, Horizon, SignalThreshold, TrailingAfterSignal, TakeProfit]
+@dataclass(frozen=True)
+class ExitAt:
+    """Leave at a bar given per zone, not later than the zone change.
+
+    The bar is the zone frame's column ``column`` (an absolute position in the bars):
+    ``x = min(exit_idx, e + 1)``, at the close; the reason is ``exit_at`` while
+    ``exit_idx < e + 1`` and ``zone_change`` from the boundary on. A bar not after the
+    decision (``exit_idx <= j``) gives no trade (``exit_before_entry``). For many sets of
+    exit bars at once — a placebo — use :func:`~bquant.analysis.trading.trades_at_exit`.
+    """
+
+    column: str = "exit_idx"
+    name: str = field(default="exit_at", init=False)
+
+
+Exit = Union[ZoneChange, Horizon, SignalThreshold, TrailingAfterSignal, TakeProfit, ExitAt]
 
 
 # --------------------------------------------------------------------------- stops

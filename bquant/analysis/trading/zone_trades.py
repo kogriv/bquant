@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
 from ...data.processor import calculate_atr
 from ..evaluation.costs import CostModel, rollover_nights
+from .inputs import bar_length, signal_table, zones_frame
 from .rules import (
     ColumnStop,
     Entry,
     Exit,
+    ExitAt,
     FixedAtrStop,
     Horizon,
     NextOpen,
@@ -31,7 +33,6 @@ TRADE_COLUMNS = (
     "gross", "net", "mfe", "mae", "dur", "stop_and_take_same_bar",
 )
 SKIPPED_COLUMNS = ("zone_id", "reason")
-_ZONE_SIDES = {"bull": 1, "bear": -1}
 
 
 @dataclass(frozen=True, eq=False)
@@ -44,7 +45,7 @@ class ZoneTrades:
     :func:`~bquant.analysis.evaluation.random_entry_baseline`), ``exit_reason`` what
     actually closed the trade. ``skipped`` has ``zone_id`` and ``reason``:
     ``zone_shorter_than_k``, ``no_next_bar``, ``atr_nan_at_decision_bar``, ``no_side``,
-    ``exit_beyond_data``.
+    ``exit_before_entry``, ``exit_beyond_data``.
     """
 
     trades: pd.DataFrame
@@ -54,56 +55,6 @@ class ZoneTrades:
 class _Skip(Exception):
     def __init__(self, reason: str) -> None:
         self.reason = reason
-
-
-def _zones_frame(zones: Any, n: int) -> pd.DataFrame:
-    if isinstance(zones, pd.DataFrame):
-        missing = [c for c in ("zone_id", "start_idx", "end_idx", "side") if c not in zones.columns]
-        if missing:
-            raise ValueError(f"the zone frame has no {missing}; it needs zone_id, start_idx, end_idx, side")
-        frame = zones[["zone_id", "start_idx", "end_idx", "side"]].copy()
-    else:
-        items = getattr(zones, "zones", zones)
-        rows = []
-        for zone in items:
-            if zone.type not in _ZONE_SIDES:
-                raise ValueError(
-                    f"zone {zone.zone_id} is of type {zone.type!r}, which has no side; pass a zone frame "
-                    "with an explicit side column instead"
-                )
-            rows.append({"zone_id": zone.zone_id, "start_idx": zone.start_idx, "end_idx": zone.end_idx,
-                         "side": _ZONE_SIDES[zone.type]})
-        frame = pd.DataFrame(rows, columns=["zone_id", "start_idx", "end_idx", "side"])
-    for column in ("start_idx", "end_idx", "side"):
-        if len(frame) and not pd.api.types.is_integer_dtype(frame[column]):
-            raise ValueError(f"zone column {column!r} must be whole numbers")
-    bad = frame[(frame["start_idx"] < 0) | (frame["end_idx"] >= n) | (frame["start_idx"] > frame["end_idx"])]
-    if len(bad):
-        raise ValueError(f"zone {bad['zone_id'].iloc[0]!r} lies outside the bars or starts after it ends")
-    if not frame["side"].isin((1, -1)).all():
-        raise ValueError("zone side must be +1 or -1")
-    if frame["zone_id"].duplicated().any():
-        raise ValueError("zone_id must be unique")
-    return frame.reset_index(drop=True)
-
-
-def _signal_table(signals: Optional[pd.DataFrame]) -> Dict[Any, pd.DataFrame]:
-    if signals is None:
-        return {}
-    missing = [c for c in ("zone_id", "k") if c not in signals.columns]
-    if missing:
-        raise ValueError(f"the signal frame has no {missing}; rows are keyed by zone_id and k")
-    if signals.duplicated(["zone_id", "k"]).any():
-        raise ValueError("the signal frame has more than one row for some (zone_id, k)")
-    return {zid: rows.set_index("k").sort_index() for zid, rows in signals.groupby("zone_id", sort=False)}
-
-
-def _bar_length(index: pd.DatetimeIndex) -> pd.Timedelta:
-    steps = pd.Series(index[1:] - index[:-1])
-    steps = steps[steps > pd.Timedelta(0)]
-    if steps.empty:
-        raise ValueError("cannot tell the bar length from fewer than two distinct times; pass bar=")
-    return steps.mode().iloc[0]
 
 
 class _Builder:
@@ -181,6 +132,14 @@ class _Builder:
             if x >= self.n:
                 raise _Skip("exit_beyond_data")
             return x, self.c[x], reason
+        if isinstance(rule, ExitAt):
+            wanted = int(zone.exit_idx)
+            if wanted <= j:
+                raise _Skip("exit_before_entry")
+            x = min(wanted, zone.end_idx + 1)
+            if x >= self.n:
+                raise _Skip("exit_beyond_data")
+            return x, self.c[x], "exit_at" if wanted < zone.end_idx + 1 else "zone_change"
         x_fb, price_fb, _ = self.rule_exit(zone, rule.fallback, j, k, entry_idx, entry_price, side, unit)
         if isinstance(rule, (SignalThreshold, TrailingAfterSignal)):
             x_s = self._first_signal_bar(zone, k, rule)
@@ -300,7 +259,7 @@ def zone_trades(
     if isinstance(point, bool) or not isinstance(point, (int, float)) or not point > 0:
         raise ValueError(f"point must be a positive number, got {point!r}")
     for value, kinds, name in ((entry, (ZoneBarClose, NextOpen), "entry"),
-                               (exit, (ZoneChange, Horizon, SignalThreshold, TrailingAfterSignal, TakeProfit), "exit")):
+                               (exit, (ZoneChange, Horizon, SignalThreshold, TrailingAfterSignal, TakeProfit, ExitAt), "exit")):
         if not isinstance(value, kinds):
             raise ValueError(f"{name} must be one of {[k.__name__ for k in kinds]}, got {value!r}")
     if stop is not None and not isinstance(stop, (FixedAtrStop, ColumnStop)):
@@ -317,10 +276,10 @@ def zone_trades(
         if atr_price.shape != (len(bars),):
             raise ValueError(f"atr must have one value per bar ({len(bars)}), got shape {atr_price.shape}")
 
-    frame = _zones_frame(zones, len(bars))
-    builder = _Builder(bars, _signal_table(signals), float(point), atr_price / float(point), costs,
+    frame = zones_frame(zones, len(bars), exit.column if isinstance(exit, ExitAt) else None)
+    builder = _Builder(bars, signal_table(signals), float(point), atr_price / float(point), costs,
                        costs.triple_weekday if costs is not None else 2)
-    builder.bar = pd.Timedelta(bar) if bar is not None else _bar_length(bars.index)
+    builder.bar = pd.Timedelta(bar) if bar is not None else bar_length(bars.index)
 
     trades: List[Dict[str, Any]] = []
     skipped: List[Dict[str, Any]] = []

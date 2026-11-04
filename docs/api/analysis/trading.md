@@ -92,15 +92,71 @@ print(trades[['entry_time', 'side', 'hold', 'exit_reason', 'net']].head(3).round
 | `ZoneChange()` | `e + 1` | закрытие | `zone_change` |
 | `Horizon(h)` | `j + h` | закрытие | `horizon` |
 | `Horizon(h, cap=ZoneChange())` | `j + h`, но не позже `e + 1` | закрытие | `horizon`; при пределе (и ровно на границе) — `zone_change` |
+| `ExitAt(column='exit_idx')` | заданный на зону бар (столбец кадра зон), но не позже `e + 1` | закрытие | `exit_at`; при пределе (и ровно на границе) — `zone_change` |
 | `SignalThreshold(signal, thr, k_min=1, require={}, fallback=ZoneChange())` | первый возраст `k' ≥ k_min`, `k' > k`, где `signal ≥ thr` и выполнены все `require` | закрытие | `signal` |
 | `TrailingAfterSignal(signal, thr, s_atr, …)` | с бара сигнала (включительно) — первый бар, где закрытие отдало `s_atr` от лучшего | закрытие | `trail` |
 | `TakeProfit(level_atr=… \| share_of_forecast=…, forecast=…)` | первый бар окна, чей high (покупка) или low (продажа) достал цель | цель | `take` |
 
 Если сигнала, отката или цели нет до бара `fallback` (`ZoneChange` или `Horizon`), сделка
 выходит по нему с причиной `fallback`. У `Horizon` с пределом за концом данных должен лежать именно бар выхода, а не любой из двух. Если выход приходится за концом данных, сделки нет:
-причина `exit_beyond_data`, а не укороченная сделка. В `mode` всегда стоит **имя правила
+причина `exit_beyond_data`, а не укороченная сделка. У `ExitAt` бар выхода не позже бара решения — тоже пропуск, `exit_before_entry`. В `mode` всегда стоит **имя правила
 выхода**, одно на вызов: это метка для `random_entry_baseline`, и задаётся она решением, а не
 исходом. Чем сделка закрылась на самом деле, показывает `exit_reason`.
+
+## Много наборов баров выхода
+
+Плацебо пересчитывает исход на сотни перестановок бара выхода.
+`trades_at_exit(bars, zones, exit_idx, …)` делает это одним вызовом. Всё, что от бара выхода
+не зависит, считается один раз на зону: вход, уровень стопа, первый бар касания стопа,
+накопленные максимум и минимум окна. Каждый набор баров выхода затем — векторная выборка.
+
+- Одномерный `exit_idx` (по бару на зону, в порядке кадра зон) возвращает `ZoneTrades`,
+  **побитно** равный `zone_trades(…, exit=ExitAt())`.
+- Двумерный `(наборы × зоны)` возвращает `ExitMatrix`: матрицы `net`, `gross`, `hold`,
+  `exit_reason` и `skip_reason`. Клетка без сделки — `NaN`, остальная строка сохраняется.
+
+`permutation_placebo(…, batched=True)` отдаёт статистике все перестановки сразу, матрицей
+`(n_perm, N)` из того же генератора в том же порядке. Итог побитно тот же, что при
+построчном вызове.
+
+```python
+import numpy as np
+import pandas as pd
+
+from bquant.analysis.evaluation import permutation_placebo
+from bquant.analysis.trading import FixedAtrStop, ZoneBarClose, trades_at_exit
+from bquant.analysis.zones import analyze_zones
+from bquant.data.samples import get_sample_data
+
+result = (
+    analyze_zones(get_sample_data('tv_xauusd_1h'))
+    .with_indicator('custom', 'macd', fast_period=12, slow_period=26, signal_period=9)
+    .detect_zones('zero_crossing', indicator_role='hist')
+    .analyze()
+    .build()
+)
+zones = pd.DataFrame([{'zone_id': z.zone_id, 'start_idx': z.start_idx, 'end_idx': z.end_idx,
+                       'side': 1 if z.type == 'bull' else -1} for z in result.zones])
+exit_idx = (zones['start_idx'] + 4).to_numpy()          # the variant leaves at age 4 of each zone
+kw = dict(point=0.01, entry=ZoneBarClose(k=1), stop=FixedAtrStop(1.5))
+
+one = trades_at_exit(result.data, zones, exit_idx, **kw)
+print(len(one.trades), one.trades['exit_reason'].value_counts().to_dict(), round(one.trades['net'].mean(), 3))
+
+
+def statistic(perms):                                    # 200 shuffles of the exit bars, one call
+    return np.nanmean(trades_at_exit(result.data, zones, exit_idx[perms], **kw).net, axis=1)
+
+
+placebo = permutation_placebo(one.trades['net'].mean(), statistic, n_units=len(zones), n_perm=200, seed=1, batched=True)
+print(round(placebo['placebo_mean_diff'], 3), placebo['placebo_p'])
+# 67 {'exit_at': 51, 'stop': 10, 'zone_change': 6} -0.103
+# -0.239 0.215
+```
+
+Выход на четвёртом баре зоны в среднем теряет `0.103` ATR. Перемешанные бары выхода теряют
+больше, `0.239`, но так же плохо или лучше выходит в 21,5 % перестановок. Значит, сам выбор
+бара выхода здесь ничего не даёт.
 
 ## Стоп и издержки
 

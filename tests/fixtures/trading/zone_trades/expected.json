@@ -220,6 +220,48 @@
    "stop": null,
    "costs": "none"
   },
+  "exit_at_none": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "exit_at"
+   },
+   "stop": null,
+   "costs": "none"
+  },
+  "exit_at_stop2": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "exit_at"
+   },
+   "stop": {
+    "kind": "fixed_atr",
+    "value": 2.0
+   },
+   "costs": "none"
+  },
+  "exit_at_stopcol_cost": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "exit_at"
+   },
+   "stop": {
+    "kind": "column",
+    "column": "stop_atr"
+   },
+   "costs": "bar_min15_comm7"
+  },
   "zone_k0_trail05_03": {
    "entry": {
     "rule": "zone_bar_close",
@@ -408,6 +450,27 @@
    "mfe_mean": 3.330812128925,
    "mae_mean": 3.158746590743
   },
+  "exit_at_none": {
+   "n": 8,
+   "net_atr_sum": -15.628045919686,
+   "gross_atr_sum": -15.628045919686,
+   "mfe_mean": 2.378557661686,
+   "mae_mean": 3.47223379098
+  },
+  "exit_at_stop2": {
+   "n": 8,
+   "net_atr_sum": -8.639484832615,
+   "gross_atr_sum": -8.639484832615,
+   "mfe_mean": 1.948985249919,
+   "mae_mean": 1.961516297186
+  },
+  "exit_at_stopcol_cost": {
+   "n": 8,
+   "net_atr_sum": -7.459208843537,
+   "gross_atr_sum": -5.639484832615,
+   "mfe_mean": 1.948985249919,
+   "mae_mean": 1.56451634477
+  },
   "open_offset_horizon3": {
    "n": 9,
    "net_atr_sum": -1.919459679415,
@@ -572,6 +635,7 @@
  },
  "exit_reasons": {
   "against_k0_zone_change": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -580,7 +644,38 @@
    "trail": 0,
    "zone_change": 8
   },
+  "exit_at_none": {
+   "exit_at": 6,
+   "fallback": 0,
+   "horizon": 0,
+   "signal": 0,
+   "stop": 0,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 2
+  },
+  "exit_at_stop2": {
+   "exit_at": 2,
+   "fallback": 0,
+   "horizon": 0,
+   "signal": 0,
+   "stop": 6,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 0
+  },
+  "exit_at_stopcol_cost": {
+   "exit_at": 2,
+   "fallback": 0,
+   "horizon": 0,
+   "signal": 0,
+   "stop": 6,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 0
+  },
   "open_offset_horizon3": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 9,
    "signal": 0,
@@ -590,6 +685,7 @@
    "zone_change": 0
   },
   "signal_side_k0_horizon6": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 7,
    "signal": 0,
@@ -599,6 +695,7 @@
    "zone_change": 0
   },
   "zone_k0_horizon15_cap": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 7,
    "signal": 0,
@@ -608,6 +705,7 @@
    "zone_change": 1
   },
   "zone_k0_horizon3_cap": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 9,
    "signal": 0,
@@ -617,6 +715,7 @@
    "zone_change": 0
   },
   "zone_k0_horizon50_cap": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 6,
    "signal": 0,
@@ -626,6 +725,7 @@
    "zone_change": 2
   },
   "zone_k0_horizon80_cap": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -635,6 +735,7 @@
    "zone_change": 8
   },
   "zone_k0_signal07": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 8,
@@ -644,6 +745,7 @@
    "zone_change": 0
   },
   "zone_k0_stop2": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -653,6 +755,7 @@
    "zone_change": 3
   },
   "zone_k0_stop_col": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -662,6 +765,7 @@
    "zone_change": 2
   },
   "zone_k0_take03_stop03": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -671,6 +775,7 @@
    "zone_change": 0
   },
   "zone_k0_take15": {
+   "exit_at": 0,
    "fallback": 1,
    "horizon": 0,
    "signal": 0,
@@ -680,6 +785,7 @@
    "zone_change": 0
   },
   "zone_k0_take15_stop1": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -689,6 +795,7 @@
    "zone_change": 0
   },
   "zone_k0_take_share05": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -698,6 +805,7 @@
    "zone_change": 0
   },
   "zone_k0_trail05_03": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -707,6 +815,7 @@
    "zone_change": 0
   },
   "zone_k0_trail07_1": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -716,6 +825,7 @@
    "zone_change": 0
   },
   "zone_k0_trail07_1_stop2": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -725,6 +835,7 @@
    "zone_change": 0
   },
   "zone_k0_zone_change": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -734,6 +845,7 @@
    "zone_change": 8
   },
   "zone_k0_zone_change_cost": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -743,6 +855,7 @@
    "zone_change": 8
   },
   "zone_k0_zone_change_swap": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 0,
    "signal": 0,
@@ -752,6 +865,7 @@
    "zone_change": 8
   },
   "zone_k20_horizon6": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 7,
    "signal": 0,
@@ -761,6 +875,7 @@
    "zone_change": 0
   },
   "zone_k2_horizon6": {
+   "exit_at": 0,
    "fallback": 0,
    "horizon": 9,
    "signal": 0,
@@ -770,6 +885,7 @@
    "zone_change": 0
   },
   "zone_k2_signal07": {
+   "exit_at": 0,
    "fallback": 1,
    "horizon": 0,
    "signal": 7,
@@ -779,6 +895,7 @@
    "zone_change": 0
   },
   "zone_k2_trail07_1": {
+   "exit_at": 0,
    "fallback": 1,
    "horizon": 0,
    "signal": 0,
@@ -788,7 +905,142 @@
    "zone_change": 0
   }
  },
- "skipped": 47,
+ "exit_at_sets": {
+  "file": "exit_at_sets.csv",
+  "shape": [
+   5,
+   10
+  ],
+  "row0_equals": "exit_at.csv",
+  "net": {
+   "exit_at_none": [
+    [
+     null,
+     2.544683754034,
+     -1.283699090417,
+     -2.764283874155,
+     0.815831413351,
+     -0.043994126428,
+     -11.16946385456,
+     null,
+     -0.738697673251,
+     -2.98842246826
+    ],
+    [
+     null,
+     3.265872928564,
+     -0.943692304307,
+     1.151784947565,
+     1.84340533093,
+     -1.437141463301,
+     -1.908424949984,
+     1.392817850861,
+     -0.738697673251,
+     -3.327579622045
+    ],
+    [
+     null,
+     1.330975143239,
+     1.942895920632,
+     -0.406964014806,
+     2.136108204422,
+     -0.263964758565,
+     0.628744654065,
+     2.315003185906,
+     -1.214589443518,
+     -3.327579622045
+    ],
+    [
+     null,
+     3.875658897273,
+     -0.915936648298,
+     -1.512677564468,
+     1.718850916678,
+     1.583788551393,
+     -1.974997913356,
+     1.672653400806,
+     -1.491601070987,
+     -3.116406299877
+    ],
+    [
+     null,
+     3.535585953185,
+     null,
+     1.236249177053,
+     -0.448395891307,
+     0.865217819742,
+     -1.324062271501,
+     -0.50879190899,
+     -1.09384078539,
+     null
+    ]
+   ],
+   "exit_at_stop2": [
+    [
+     null,
+     2.544683754034,
+     -2.0,
+     -2.0,
+     0.815831413351,
+     -2.0,
+     -2.0,
+     null,
+     -2.0,
+     -2.0
+    ],
+    [
+     null,
+     3.265872928564,
+     -0.943692304307,
+     1.151784947565,
+     1.84340533093,
+     -1.437141463301,
+     -2.0,
+     1.392817850861,
+     -2.0,
+     -2.0
+    ],
+    [
+     null,
+     1.330975143239,
+     1.942895920632,
+     -0.406964014806,
+     2.136108204422,
+     -0.263964758565,
+     0.628744654065,
+     2.315003185906,
+     -2.0,
+     -2.0
+    ],
+    [
+     null,
+     3.875658897273,
+     -0.915936648298,
+     -1.512677564468,
+     1.718850916678,
+     -2.0,
+     -2.0,
+     1.672653400806,
+     -2.0,
+     -2.0
+    ],
+    [
+     null,
+     3.535585953185,
+     null,
+     1.236249177053,
+     -0.448395891307,
+     -2.0,
+     -1.324062271501,
+     -0.50879190899,
+     -2.0,
+     null
+    ]
+   ]
+  },
+  "note": "матрица net по наборам × зонам; NaN — exit_idx <= j или x >= n или ATR NaN; стоп как у одиночного правила"
+ },
+ "skipped": 53,
  "stop_and_take_same_bar_cases": 1,
  "tolerance": 1e-09,
  "exact": [
