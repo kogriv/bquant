@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-11-04
+
 **Издержки сделки и ATR Уайлдера** — заказ лаборатории стратегий, нужен двум потребителям.
 - `bquant.analysis.evaluation.rollover_nights(entry_time, exit_time, *, triple_weekday=2)` считает ночи
   свопа по календарю сервера. Ночи после субботы и воскресенья не начисляются, ночь после
