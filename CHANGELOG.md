@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-11-04
+
 **Горизонт с пределом по смене зоны** — заказ лаборатории №5. `Horizon(h, cap=ZoneChange())`
 выходит на возрасте `h`, но не позже смены зоны; ровно на границе причина выхода — `zone_change`.
 Без `cap` правило прежнее.

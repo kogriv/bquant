@@ -131,7 +131,7 @@ support it; `research/` and `scripts/` hold notebook-style studies and automatio
 ## Status
 
 Beta. The public API changes between releases without deprecation windows — renames are
-carried through in one change. **Pin an exact version:** `bquant>=0.0.25,<0.0.26`.
+carried through in one change. **Pin an exact version:** `bquant>=0.0.26,<0.0.27`.
 
 Breaking changes ship in the patch number, and the dangerous ones do not raise: when a
 defect in a calculation is fixed, nothing fails to import — your numbers change, and the
