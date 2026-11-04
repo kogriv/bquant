@@ -153,3 +153,16 @@
 
   Мутации двух последних фикстура не различала.
 - Сторож — `tests/unit/test_trades_from_zones_reproduce_the_reference.py`.
+
+
+## Дополнение 2026-11-04 — гейты исследования
+
+Заказ лаборатории №3. `BeatsBase`, `Placebo`, `Holds`, `HoldsFolds` — правила строки, как
+прежние. Три решения стыка приняты пакетом:
+- **Столбцы.** `MinEffect(column=)` и `YearsStable(positive=)` с прежними умолчаниями: строка
+  исследования несёт `mean_diff`/`years_pos`, а не `excess_mean`/`years_net_pos`.
+- **Готовый `q` только по явному `m_total=None`.** Контракт предлагал брать готовый, «если
+  столбец есть»; тогда устаревший `q` проходил бы молча.
+- **Свой флаг у `HoldsFolds`** — `ok_holds_folds`, а не общий с `Holds` `ok_holds`.
+
+Сторож — `tests/unit/test_study_gates_reproduce_the_reference.py`.

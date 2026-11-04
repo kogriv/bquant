@@ -26,11 +26,15 @@ from .baseline import attach_random_baseline, random_entry_baseline
 from .bootstrap import BlockBootstrap
 from .costs import CostModel, rollover_nights
 from .criterion import (
+    BeatsBase,
     BeatsRandom,
+    Holds,
+    HoldsFolds,
     Criterion,
     MinEffect,
     MinTrades,
     NetPositive,
+    Placebo,
     Rule,
     YearsStable,
     apply_rules,
@@ -56,6 +60,7 @@ __all__ = [
     "random_entry_baseline", "attach_random_baseline",
     "trial_stats", "benjamini_hochberg",
     "Rule", "MinTrades", "NetPositive", "YearsStable", "BeatsRandom", "MinEffect",
+    "BeatsBase", "Placebo", "Holds", "HoldsFolds",
     "apply_rules", "Criterion", "default_criterion",
     "evaluate_procedure", "ProcedureResult",
     "quarterly_summary", "QuartersPositive", "QuarterMedian", "WorstQuarter",

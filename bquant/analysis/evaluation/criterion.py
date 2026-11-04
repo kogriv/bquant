@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
-from typing import Any, ClassVar, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -202,17 +202,22 @@ class NetPositive(Rule):
 
 @dataclass(frozen=True)
 class YearsStable(Rule):
-    """``years_n >= min_years`` and ``years_net_pos >= ceil(share * years_n - 1e-9)``."""
+    """``years_n >= min_years`` and ``<positive> >= ceil(share * years_n - 1e-9)``.
+
+    ``positive`` names the column of years with a positive result: ``years_net_pos``
+    in a :func:`trial_stats` row, ``years_pos`` in a row of a study table.
+    """
 
     share: float = 2 / 3
     min_years: int = 2
+    positive: str = "years_net_pos"
     name: ClassVar[str] = "years_stable"
 
     def check(self, row):
         years_n = _get(row, "years_n")
         if np.isnan(years_n) or years_n < self.min_years:
             return False
-        return bool(_get(row, "years_net_pos") >= np.ceil(self.share * years_n - 1e-9))
+        return bool(_get(row, self.positive) >= np.ceil(self.share * years_n - 1e-9))
 
 
 @dataclass(frozen=True)
@@ -231,13 +236,102 @@ class BeatsRandom(Rule):
 
 @dataclass(frozen=True)
 class MinEffect(Rule):
-    """``excess_mean >= threshold`` — the advantage is worth having, not merely non-zero."""
+    """``<column> >= threshold`` — the advantage is worth having, not merely non-zero.
+
+    ``column`` is ``excess_mean`` (over the random entry) in a :func:`trial_stats` row,
+    ``mean_diff`` (over the base) in a row of a study table.
+    """
 
     threshold: float
+    column: str = "excess_mean"
     name: ClassVar[str] = "min_effect"
 
     def check(self, row):
-        return bool(_get(row, "excess_mean") >= self.threshold)
+        return bool(_get(row, self.column) >= self.threshold)
+
+
+def _finite(value: Any) -> bool:
+    try:
+        return bool(np.isfinite(float(value)))
+    except (TypeError, ValueError):
+        return False
+
+
+@dataclass(frozen=True)
+class BeatsBase(Rule):
+    """``q < alpha`` for the paired difference against the base (exactly ``alpha`` fails).
+
+    ``q`` is the Benjamini–Hochberg value of the row's ``p`` — the variant against its
+    base, not against a random entry; see :meth:`Criterion.evaluate` for where it comes
+    from. A missing ``q`` fails.
+    """
+
+    alpha: float = 0.05
+    name: ClassVar[str] = "beats_base"
+
+    def check(self, row):
+        q = _get(row, "q")
+        return bool(_finite(q) and q < self.alpha)
+
+
+@dataclass(frozen=True)
+class Placebo(Rule):
+    """The effect disappears when what it rests on is shuffled.
+
+    With a finite ``placebo_p``: ``placebo_p < alpha``. Without it (one permutation, no
+    distribution) the fallback: ``placebo_mean_diff < mean_diff / 2`` — the placebo keeps
+    less than half of the effect; exactly half fails. Neither — fails.
+    """
+
+    alpha: float = 0.05
+    name: ClassVar[str] = "placebo"
+
+    def check(self, row):
+        p = _get(row, "placebo_p")
+        if _finite(p):
+            return bool(p < self.alpha)
+        placebo, effect = _get(row, "placebo_mean_diff"), _get(row, "mean_diff")
+        return bool(_finite(placebo) and _finite(effect) and placebo < effect / 2)
+
+
+@dataclass(frozen=True)
+class Holds(Rule):
+    """On the validation segment ``val_mean_diff >= threshold`` and ``val_p < alpha``.
+
+    The ``val_*`` columns are the validation result joined to the selection row by the
+    caller; without them the rule fails — not tested is not held.
+    """
+
+    threshold: float = 0.1
+    alpha: float = 0.05
+    name: ClassVar[str] = "holds"
+
+    def check(self, row):
+        effect, p = _get(row, "val_mean_diff"), _get(row, "val_p")
+        return bool(_finite(effect) and _finite(p) and effect >= self.threshold and p < self.alpha)
+
+
+@dataclass(frozen=True)
+class HoldsFolds(Rule):
+    """Exactly ``k`` folds, each with a result above zero (a zero fails, so do fewer folds).
+
+    ``column`` holds the per-fold results — signs or the differences themselves — as a
+    sequence in each row.
+    """
+
+    k: int
+    column: str = "fold_signs"
+    name: ClassVar[str] = "holds_folds"
+
+    def check(self, row):
+        folds = row.get(self.column)
+        if folds is None or isinstance(folds, (str, bytes)):
+            return False
+        try:
+            values = [float(v) for v in folds]
+        except (TypeError, ValueError):
+            return False
+        return len(values) == self.k and all(np.isfinite(v) and v > 0 for v in values)
 
 
 def apply_rules(row: Mapping[str, Any], rules: Sequence[Rule]) -> dict[str, bool]:
@@ -254,7 +348,7 @@ class Criterion:
     rules: list = field(default_factory=list)
     name: str = "criterion"
 
-    def evaluate(self, table: pd.DataFrame, m_total: int) -> pd.DataFrame:
+    def evaluate(self, table: pd.DataFrame, m_total: Optional[int]) -> pd.DataFrame:
         """Add ``q`` (Benjamini–Hochberg over ``m_total`` tests), ``m_total``, one
         ``ok_<rule>`` column per rule and ``pass`` to a copy of ``table``.
 
@@ -262,14 +356,26 @@ class Criterion:
         ``p = NaN`` **before** the correction: its ``p`` rests on a bootstrap over a few
         months and is not ranked — but it stays inside ``m_total``, so the correction is
         only stricter for having tried it.
+
+        ``m_total=None`` keeps the table's own ``q`` instead — for a study whose caller
+        has already corrected over a wider family (variants plus what was tried before on
+        the series). Then the table must have a ``q`` column; a ``q`` already in the table
+        is never kept silently when ``m_total`` is given.
         """
         out = table.copy()
-        p = out["p"].to_numpy(dtype=float).copy() if "p" in out else np.full(len(out), np.nan)
-        min_trades = next((r for r in self.rules if isinstance(r, MinTrades)), None)
-        if min_trades is not None and "n" in out:
-            p[out["n"].fillna(0).to_numpy(dtype=float) < min_trades.n] = np.nan
-        out["q"] = benjamini_hochberg(p, m_total)
-        out["m_total"] = int(m_total)
+        if m_total is None:
+            if "q" not in out:
+                raise ValueError(
+                    "m_total=None keeps the table's own q, and the table has no q column; "
+                    "pass m_total to correct p here"
+                )
+        else:
+            p = out["p"].to_numpy(dtype=float).copy() if "p" in out else np.full(len(out), np.nan)
+            min_trades = next((r for r in self.rules if isinstance(r, MinTrades)), None)
+            if min_trades is not None and "n" in out:
+                p[out["n"].fillna(0).to_numpy(dtype=float) < min_trades.n] = np.nan
+            out["q"] = benjamini_hochberg(p, m_total)
+            out["m_total"] = int(m_total)
         rows = out.to_dict("records")
         flags = [apply_rules(row, self.rules) for row in rows]
         for key in (list(flags[0].keys()) if flags else [f"ok_{r.name}" for r in self.rules] + ["pass"]):

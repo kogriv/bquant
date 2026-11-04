@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Гейты исследования** — заказ лаборатории №3. Новые правила `Criterion` для таблицы исследования,
+где вариант сравнивается со своей базой:
+- `BeatsBase(alpha)` — `q < alpha`;
+- `Placebo(alpha)` — `placebo_p < alpha` или запасная форма «плацебо меньше половины эффекта»;
+- `Holds(threshold, alpha)` — итог на проверке;
+- `HoldsFolds(k)` — все `k` фолдов выше нуля.
+
+Что изменилось в старом:
+- `MinEffect` и `YearsStable` принимают столбец (`column=`, `positive=`), умолчания прежние;
+- `Criterion.evaluate(table, m_total=None)` берёт готовый `q` из таблицы, а без столбца `q`
+  отказывает. С `m_total`, как и раньше, `q` пересчитывается.
+
+Синтетическая фикстура лаборатории воспроизводится флаг в флаг.
+
 **Сделки из зон — `bquant.analysis.trading`.** Заказ лаборатории стратегий: блок, который она
 трижды переписывала у себя.
 - `zone_trades(bars, zones, *, point, entry, exit, stop, costs, signals, atr)` строит по одной

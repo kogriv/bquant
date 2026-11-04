@@ -10,7 +10,7 @@
 | контракт | что такое сделка | `validate_trades`, `month_key`, `months_between`, `month_label` |
 | блочный бутстреп | какова ширина результата при перекрывающихся сделках | `BlockBootstrap` |
 | случайный базис | сколько дал бы тот же вход на случайном баре того же года | `random_entry_baseline`, `attach_random_baseline` |
-| сводка и критерий | выживает ли преимущество после поправки на всё опробованное | `trial_stats`, `benjamini_hochberg`, `Rule`, `MinTrades`, `NetPositive`, `YearsStable`, `BeatsRandom`, `MinEffect`, `apply_rules`, `Criterion`, `default_criterion` |
+| сводка и критерий | выживает ли преимущество после поправки на всё опробованное | `trial_stats`, `benjamini_hochberg`, `Rule`, `MinTrades`, `NetPositive`, `YearsStable`, `BeatsRandom`, `MinEffect`, `BeatsBase`, `Placebo`, `Holds`, `HoldsFolds`, `apply_rules`, `Criterion`, `default_criterion` |
 | процедура по окнам | лучше ли подбор, чем его отсутствие | `evaluate_procedure`, `ProcedureResult` |
 | квартальная мерка | размазан ли результат по времени или сделан одним отрезком | `quarterly_summary`, `QuartersPositive`, `QuarterMedian`, `WorstQuarter`, `QuarterMeanOverStd`, `default_quarter_rules` |
 
@@ -105,6 +105,62 @@ print(round(verdict.loc[0, 'q'], 3), verdict.loc[0, 'ok_beats_random'], verdict.
 сделок ниже `MinTrades` получает `p = NaN` **до** поправки (её `p` стоит на бутстрепе по
 нескольким месяцам и не ранжируется), но в `m_total` входит. `default_criterion()` — четыре
 правила выше с порогами `100`, `2/3`, `0.05`.
+
+### Гейты исследования
+
+Исследование сравнивает вариант не со случайным входом, а со своей **базой**: та же сделка
+без правила варианта. Строка его таблицы несёт парную разность `mean_diff`, её `p` и `q`,
+плацебо и итог на проверке, присоединённый к строке подбора (`val_mean_diff`, `val_p`).
+Четыре правила читают эти столбцы:
+- `BeatsBase(alpha)` — `q < alpha`;
+- `Placebo(alpha)` — `placebo_p < alpha`, а без `placebo_p` (одна перестановка) — запасная форма
+  `placebo_mean_diff < mean_diff / 2`;
+- `Holds(threshold, alpha)` — `val_mean_diff ≥ threshold` и `val_p < alpha`;
+- `HoldsFolds(k)` — ровно `k` фолдов, все выше нуля.
+
+Два прежних правила читают в такой строке другие столбцы: `MinEffect(t, column='mean_diff')`
+и `YearsStable(positive='years_pos')`. Без этих параметров они читают то же, что и раньше.
+
+```python
+import pandas as pd
+
+from bquant.analysis.evaluation import (
+    BeatsBase, Criterion, Holds, HoldsFolds, MinEffect, Placebo, YearsStable,
+)
+
+# one row per variant of a study: the paired difference against its base on the selection
+# segment, its corrected q, the placebo, the years, and the validation result joined to it
+table = pd.DataFrame({
+    'variant':           ['a', 'b', 'c'],
+    'mean_diff':         [0.25, 0.30, 0.08],
+    'q':                 [0.01, 0.04, 0.02],
+    'placebo_p':         [0.00, float('nan'), 0.30],
+    'placebo_mean_diff': [0.02, 0.16, 0.05],
+    'years_n':           [4, 3, 4],
+    'years_pos':         [3, 2, 4],
+    'val_mean_diff':     [0.18, 0.21, 0.12],
+    'val_p':             [0.01, 0.03, 0.20],
+})
+gates = Criterion([
+    BeatsBase(0.05), Placebo(0.05), MinEffect(0.1, column='mean_diff'),
+    YearsStable(2 / 3, positive='years_pos'), Holds(threshold=0.1, alpha=0.05),
+])
+verdict = gates.evaluate(table, m_total=None)        # q is already corrected by the caller
+print(verdict.filter(regex='variant|ok_|pass').to_string(index=False))
+print(HoldsFolds(4).check({'fold_signs': [1, 1, -1, 1]}))
+# variant  ok_beats_base  ok_placebo  ok_min_effect  ok_years_stable  ok_holds  pass
+#       a           True        True           True             True      True  True
+#       b           True       False           True             True      True False
+#       c           True       False          False             True     False False
+# False
+```
+
+`b` не прошёл плацебо по запасной форме: `0.16` не меньше половины `0.30`. `c` не прошёл
+плацебо (`0.30`), минимальный эффект и проверку. `evaluate(table, m_total=None)` берёт `q` из
+таблицы — для исследования, где поправку на всё опробованное (варианты плюс прежние проходы по
+ряду) уже сделал вызывающий. Если столбца `q` нет — отказ. Если передан `m_total`, `q`
+пересчитывается всегда, даже когда столбец есть: устаревший `q` молча не проходит. Ничьи и
+`NaN` правила не проходят.
 
 ## Случайный базис
 

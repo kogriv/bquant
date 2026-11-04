@@ -17,6 +17,12 @@ against_k0_zone_change,9,exit_beyond_data
 open_offset_horizon3,0,atr_nan_at_decision_bar
 zone_k0_signal07,0,atr_nan_at_decision_bar
 zone_k0_signal07,9,exit_beyond_data
+zone_k2_signal07,0,atr_nan_at_decision_bar
+zone_k2_signal07,9,exit_beyond_data
+zone_k2_trail07_1,0,atr_nan_at_decision_bar
+zone_k2_trail07_1,9,exit_beyond_data
+zone_k0_trail05_03,0,atr_nan_at_decision_bar
+zone_k0_trail05_03,9,exit_beyond_data
 zone_k0_trail07_1,0,atr_nan_at_decision_bar
 zone_k0_trail07_1,9,exit_beyond_data
 zone_k0_take15,0,atr_nan_at_decision_bar
