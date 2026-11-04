@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Вариант против базы** — заказ лаборатории №4 по просьбе внешнего потребителя.
+- `paired_stats(variant, base, *, key, boot_months)` — парная разность по ключу единицы
+  (inner join со счётчиками), блочный бутстреп по месяцам, `p` двух видов (`boot_share`,
+  `normal`), годы для `YearsStable`.
+- `contrast_stats` — разность средних двух групп, годы внутри года.
+- `permutation_placebo` со статистиками `SignFlip` (сбалансированные знаки), `PermuteFlags`,
+  `PermuteColumn`.
+
+Синтетическая фикстура лаборатории воспроизводится до `1e-9`.
+
 ## [0.0.24] - 2026-11-04
 
 **Гейты исследования** — заказ лаборатории №3. Новые правила `Criterion` для таблицы исследования,

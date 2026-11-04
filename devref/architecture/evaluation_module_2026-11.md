@@ -166,3 +166,16 @@
 - **Свой флаг у `HoldsFolds`** — `ok_holds_folds`, а не общий с `Holds` `ok_holds`.
 
 Сторож — `tests/unit/test_study_gates_reproduce_the_reference.py`.
+
+
+## Дополнение 2026-11-04 — вариант против базы
+
+Заказ №4: `paired.py` в `evaluation` — `paired_stats`, `contrast_stats`, `permutation_placebo`
+и статистики `SignFlip`/`PermuteFlags`/`PermuteColumn`. Выход `paired_stats` — строка, которую
+читают гейты исследования (`mean_diff`, `p`, `years_pos`; `q` — от `benjamini_hochberg`).
+Отступлений от контракта нет. Сверх фикстуры добавлены:
+- случай с точным нулём среднего повтора — непрерывные данные фикстуры не различают `≤ 0` и
+  `< 0`;
+- проверка сопоставления по ключу числами.
+
+Сторож — `tests/unit/test_paired_statistics_reproduce_the_reference.py`.

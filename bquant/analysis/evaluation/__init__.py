@@ -13,6 +13,11 @@ four questions a single backtest number cannot:
   and is a run's result spread over **quarters** or made in one stretch
   (:func:`quarterly_summary`).
 
+A variant against its base — the paired difference, a contrast of two groups and a
+permutation placebo — is :func:`paired_stats`, :func:`contrast_stats` and
+:func:`permutation_placebo`; the study gates (:class:`BeatsBase`, :class:`Placebo`,
+:class:`Holds`) read their output.
+
 What a round trip costs — spread, commission and swap over the nights held — is
 :class:`CostModel` with :func:`rollover_nights`; the outcome functions the baseline
 averages are where it usually goes.
@@ -42,6 +47,14 @@ from .criterion import (
     default_criterion,
     trial_stats,
 )
+from .paired import (
+    PermuteColumn,
+    PermuteFlags,
+    SignFlip,
+    contrast_stats,
+    paired_stats,
+    permutation_placebo,
+)
 from .procedure import ProcedureResult, evaluate_procedure
 from .quarters import (
     QuarterMeanOverStd,
@@ -62,6 +75,7 @@ __all__ = [
     "Rule", "MinTrades", "NetPositive", "YearsStable", "BeatsRandom", "MinEffect",
     "BeatsBase", "Placebo", "Holds", "HoldsFolds",
     "apply_rules", "Criterion", "default_criterion",
+    "paired_stats", "contrast_stats", "permutation_placebo", "SignFlip", "PermuteFlags", "PermuteColumn",
     "evaluate_procedure", "ProcedureResult",
     "quarterly_summary", "QuartersPositive", "QuarterMedian", "WorstQuarter",
     "QuarterMeanOverStd", "default_quarter_rules",

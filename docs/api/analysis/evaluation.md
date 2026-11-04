@@ -11,6 +11,7 @@
 | блочный бутстреп | какова ширина результата при перекрывающихся сделках | `BlockBootstrap` |
 | случайный базис | сколько дал бы тот же вход на случайном баре того же года | `random_entry_baseline`, `attach_random_baseline` |
 | сводка и критерий | выживает ли преимущество после поправки на всё опробованное | `trial_stats`, `benjamini_hochberg`, `Rule`, `MinTrades`, `NetPositive`, `YearsStable`, `BeatsRandom`, `MinEffect`, `BeatsBase`, `Placebo`, `Holds`, `HoldsFolds`, `apply_rules`, `Criterion`, `default_criterion` |
+| вариант против базы | лучше ли правило той же сделки без него | `paired_stats`, `contrast_stats`, `permutation_placebo`, `SignFlip`, `PermuteFlags`, `PermuteColumn` |
 | процедура по окнам | лучше ли подбор, чем его отсутствие | `evaluate_procedure`, `ProcedureResult` |
 | квартальная мерка | размазан ли результат по времени или сделан одним отрезком | `quarterly_summary`, `QuartersPositive`, `QuarterMedian`, `WorstQuarter`, `QuarterMeanOverStd`, `default_quarter_rules` |
 
@@ -161,6 +162,62 @@ print(HoldsFolds(4).check({'fold_signs': [1, 1, -1, 1]}))
 ряду) уже сделал вызывающий. Если столбца `q` нет — отказ. Если передан `m_total`, `q`
 пересчитывается всегда, даже когда столбец есть: устаревший `q` молча не проходит. Ничьи и
 `NaN` правила не проходят.
+
+## Вариант против базы
+
+Исследование спрашивает не «зарабатывает ли правило», а «лучше ли оно **той же сделки без
+него**», единица за единицей (зона, бар):
+- `paired_stats(variant, base, *, key, boot_months)` сопоставляет кадры по `key` (inner join;
+  непарные отбрасываются и считаются в `n_variant`, `n_base`, `n`) и берёт `d = variant − base`;
+  `boot_months` — **все** месяцы отрезка, включая пустые;
+- `se` — по блочному бутстрепу по месяцам;
+- `p` — одностороннее для `mean_diff > 0`: при `p_kind='boot_share'` это доля повторов со
+  средним `≤ 0`, при `'normal'` — `1 − Φ(mean_diff / se)`. Без разброса (`se < 1e-12`) `p` —
+  `NaN`;
+- `years`, `years_n` и `years_pos` (годы, где не меньше `min_year_units` единиц) читает
+  `YearsStable(positive='years_pos')`.
+
+```python
+import numpy as np
+import pandas as pd
+
+from bquant.analysis.evaluation import (
+    SignFlip, months_between, month_key, paired_stats, permutation_placebo,
+)
+
+rng = np.random.default_rng(1)
+n = 240
+entry = pd.Timestamp('2023-01-02') + pd.to_timedelta(np.sort(rng.integers(0, 2 * 365, n)), 'D')
+base = pd.DataFrame({'zone_id': np.arange(n), 'month': month_key(entry), 'net': rng.normal(0.0, 1.0, n)})
+variant = base.assign(net=base['net'] + rng.normal(0.12, 0.5, n))   # the same zones with the variant's rule
+
+boot = months_between('2023-01-01', '2024-12-31')
+row = paired_stats(variant, base, key='zone_id', boot_months=boot, seed=1)
+print(row['n'], round(row['mean_diff'], 4), round(row['se'], 4), round(row['p'], 4), row['years_n'], row['years_pos'])
+
+d = (variant['net'] - base['net']).to_numpy()
+placebo = permutation_placebo(row['mean_diff'], SignFlip(d), n_perm=200, seed=1)
+print(round(placebo['placebo_mean_diff'], 4), placebo['placebo_p'])
+# 240 0.1458 0.0294 0.0 2 2
+# 0.0003 0.0
+```
+
+`contrast_stats(x, flag_a, flag_b, *, month, boot_months)` — разность средних двух групп тех же
+единиц, через центрированные индикаторы на том же бутстрепе. Годы для неё считаются внутри
+каждого года, а группа меньше `min_group_units` даёт `NaN`. Флаги групп и пороги квантилей
+считает вызывающий: два расчёта одного порога разными библиотеками могут разойтись в последнем
+бите и перенести единицу через порог.
+
+`permutation_placebo(observed, statistic, *, n_perm, seed)` пересчитывает статистику на
+перемешанных единицах: ровно один `rng.permutation(N)` на шаг, `placebo_p` — доля значений
+`≥ observed`, без поправки `+1`. Статистики:
+- `SignFlip(d)` — **сбалансированный** переворот знаков парных разностей: ровно `N // 2` плюсов
+  на перестановку, не независимые ±1;
+- `PermuteFlags(x, a, b)` — тасует флаги групп;
+- `PermuteColumn(frame, column, statistic)` — общий случай для вызывающего, который
+  пересобирает сделки по перемешанному сигналу.
+
+Плацебо в примере держится около нуля, а наблюдаемая разность выше всех 200 перестановок.
 
 ## Случайный базис
 
