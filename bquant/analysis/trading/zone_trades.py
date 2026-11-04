@@ -288,7 +288,33 @@ def zone_trades(
             trades.append(builder.trade(zone, entry, exit, stop))
         except _Skip as why:
             skipped.append({"zone_id": zone.zone_id, "reason": why.reason})
-    return ZoneTrades(
-        trades=pd.DataFrame(trades, columns=list(TRADE_COLUMNS)),
-        skipped=pd.DataFrame(skipped, columns=list(SKIPPED_COLUMNS)),
-    )
+    if trades:
+        trade_frame = pd.DataFrame(trades, columns=list(TRADE_COLUMNS))
+    else:
+        trade_frame = empty_trades(bars.index, frame["zone_id"].dtype)
+    skipped_frame = pd.DataFrame({
+        "zone_id": np.array([row["zone_id"] for row in skipped], dtype=frame["zone_id"].dtype),
+        "reason": np.array([row["reason"] for row in skipped], dtype=object),
+    }, columns=list(SKIPPED_COLUMNS))
+    return ZoneTrades(trades=trade_frame, skipped=skipped_frame)
+
+
+def empty_trades(index: pd.DatetimeIndex, zone_dtype) -> pd.DataFrame:
+    """A trade frame with no rows and the column types a frame with rows has.
+
+    An empty frame built from no records types every column ``object``; a caller that
+    concatenates or compares frames would then see two schemas for one result.
+    """
+    times = index[:0]
+    floats = np.array([], dtype=float)
+    ints = np.array([], dtype=np.int64)
+    texts = np.array([], dtype=object)
+    columns = {
+        "zone_id": np.array([], dtype=zone_dtype), "k": ints, "side": ints,
+        "decision_time": times, "entry_time": times, "exit_time": times, "hold": ints,
+        "mode": texts, "exit_reason": texts, "entry_price": floats, "exit_price": floats,
+        "atr_points": floats, "gross_points": floats, "cost_points": floats, "nights": ints,
+        "net_points": floats, "gross": floats, "net": floats, "mfe": floats, "mae": floats,
+        "dur": ints, "stop_and_take_same_bar": np.array([], dtype=bool),
+    }
+    return pd.DataFrame(columns, columns=list(TRADE_COLUMNS))

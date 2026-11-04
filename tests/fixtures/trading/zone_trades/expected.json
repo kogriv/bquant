@@ -346,6 +346,21 @@
    },
    "costs": "none"
   },
+  "zone_k0_stop02_decision_bar": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "zone_change"
+   },
+   "stop": {
+    "kind": "fixed_atr",
+    "value": 0.2
+   },
+   "costs": "none"
+  },
   "zone_k0_stop_col": {
    "entry": {
     "rule": "zone_bar_close",
@@ -519,6 +534,13 @@
    "gross_atr_sum": 5.90481403689,
    "mfe_mean": 1.682952383477,
    "mae_mean": 0.444566312558
+  },
+  "zone_k0_stop02_decision_bar": {
+   "n": 8,
+   "net_atr_sum": 4.791672913041,
+   "gross_atr_sum": 4.791672913041,
+   "mfe_mean": 2.075499602341,
+   "mae_mean": 0.67758700108
   },
   "zone_k0_stop2": {
    "n": 8,
@@ -743,6 +765,16 @@
    "take": 0,
    "trail": 0,
    "zone_change": 0
+  },
+  "zone_k0_stop02_decision_bar": {
+   "exit_at": 0,
+   "fallback": 0,
+   "horizon": 0,
+   "signal": 0,
+   "stop": 7,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 1
   },
   "zone_k0_stop2": {
    "exit_at": 0,
@@ -1036,12 +1068,75 @@
      -2.0,
      null
     ]
+   ],
+   "exit_at_stop02": [
+    [
+     null,
+     2.544683754034,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2,
+     null,
+     -0.2,
+     -0.2
+    ],
+    [
+     null,
+     3.265872928564,
+     -0.2,
+     1.151784947565,
+     1.84340533093,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2
+    ],
+    [
+     null,
+     1.330975143239,
+     -0.2,
+     -0.2,
+     2.136108204422,
+     -0.2,
+     0.628744654065,
+     -0.2,
+     -0.2,
+     -0.2
+    ],
+    [
+     null,
+     3.875658897273,
+     -0.2,
+     -0.2,
+     1.718850916678,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2
+    ],
+    [
+     null,
+     3.535585953185,
+     null,
+     1.236249177053,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2,
+     -0.2,
+     null
+    ]
    ]
   },
   "note": "матрица net по наборам × зонам; NaN — exit_idx <= j или x >= n или ATR NaN; стоп как у одиночного правила"
  },
- "skipped": 53,
+ "skipped": 55,
  "stop_and_take_same_bar_cases": 1,
+ "decision_bar_crosses_stop_cases": 5,
  "tolerance": 1e-09,
  "exact": [
   "hold",

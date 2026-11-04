@@ -61,9 +61,12 @@ def test_one_set_reproduces_the_fixture_and_the_rowwise_path_bit_for_bit(name):
     assert fast.skipped["reason"].tolist() == SKIPPED[SKIPPED["variant"] == name]["reason"].tolist()
 
 
-@pytest.mark.parametrize("name", ["exit_at_none", "exit_at_stop2"])
+MATRICES = {"exit_at_none": dict(), "exit_at_stop2": dict(stop=FixedAtrStop(2.0)), "exit_at_stop02": dict(stop=FixedAtrStop(0.2))}
+
+
+@pytest.mark.parametrize("name", list(MATRICES))
 def test_many_sets_give_the_expected_matrix(name):
-    got = _vector(SETS.to_numpy(), **VARIANTS[name])
+    got = _vector(SETS.to_numpy(), **MATRICES[name])
     assert isinstance(got, ExitMatrix) and got.net.shape == tuple(REF["exit_at_sets"]["shape"])
     want = np.array([[np.nan if v is None else v for v in row] for row in REF["exit_at_sets"]["net"][name]])
     assert np.array_equal(np.isnan(got.net), np.isnan(want))
@@ -137,3 +140,21 @@ def test_exit_at_reads_its_bar_from_the_zone_frame():
         class Zone:
             zone_id, type, start_idx, end_idx = 0, "bull", 20, 30
         zone_trades(BARS, [Zone()], point=POINT, exit=ExitAt())
+
+
+@pytest.mark.parametrize("case", ["no_trades", "no_skips"])
+def test_empty_frames_carry_the_same_types_on_both_paths(case):
+    # found by the install check of 0.0.27: an empty `skipped` from the row-by-row path was
+    # typed `object` and the vector one `int64` — one result, two schemas
+    zones = ZONES.iloc[1:9].reset_index(drop=True)                 # zones 1..8: none skipped at k=0
+    if case == "no_trades":
+        exit_idx = zones["start_idx"].to_numpy() - 1                 # every exit before the decision
+    else:
+        exit_idx = zones["start_idx"].to_numpy() + 2
+    fast = trades_at_exit(BARS, zones, exit_idx, point=POINT)
+    slow = zone_trades(BARS, zones.assign(exit_idx=exit_idx), point=POINT, exit=ExitAt())
+    assert (len(fast.trades) == 0) == (case == "no_trades") and (len(fast.skipped) == 0) == (case == "no_skips")
+    pd.testing.assert_frame_equal(fast.trades, slow.trades, check_exact=True)
+    pd.testing.assert_frame_equal(fast.skipped, slow.skipped, check_exact=True)
+    assert slow.skipped["zone_id"].dtype == zones["zone_id"].dtype
+    assert slow.trades["net"].dtype == float and slow.trades["entry_time"].dtype == BARS.index.dtype

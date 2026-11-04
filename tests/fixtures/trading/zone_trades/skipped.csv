@@ -44,6 +44,8 @@ zone_k0_take_share05,0,atr_nan_at_decision_bar
 zone_k0_take_share05,9,exit_beyond_data
 zone_k0_stop2,0,atr_nan_at_decision_bar
 zone_k0_stop2,9,exit_beyond_data
+zone_k0_stop02_decision_bar,0,atr_nan_at_decision_bar
+zone_k0_stop02_decision_bar,9,exit_beyond_data
 zone_k0_stop_col,0,atr_nan_at_decision_bar
 zone_k0_stop_col,9,exit_beyond_data
 zone_k0_take15_stop1,0,atr_nan_at_decision_bar
