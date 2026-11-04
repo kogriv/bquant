@@ -168,3 +168,6 @@
 
 [not_included] [Technical] `HEAD 18e58f1`. pandas 3.1.0 — **4287 / 34** (14:25), pandas 2.3.3 — **4286 / 35** (14:00), оба rc=0; собрано **4321** в обоих плечах. Батарея 36 / 0. Контракт rc=0, `layered (7)`, `forbidden (8)`, «The graph matches its source tree», `"version": "0.0.26"`; `paired_stats`, `contrast_stats`, `permutation_placebo`, `SignFlip` в графе есть
 [not_included] [Changed] Релизный коммит — версия, `uv.lock`, раздел `[0.0.25]` в CHANGELOG, пин и каденция в `docs/versioning.md` и README
+[not_included] [Technical] **Опубликован 0.0.25** — сборка `df5b4ae`, тег `v0.0.25`, оба зеркала; `twine check` PASSED, `tests/`/`docs/`/`devref/` в колесо не попали
+[not_included] [Technical] **Установочная проверка 0.0.25 — 9 из 9**: пакет из site-packages; пример «Вариант против базы» печатает обещанное; `SignFlip` — ровно `N // 2` плюсов; постоянная разность — `p = NaN`; примеры 0.0.22–0.0.24 на месте; импорт при read-only и `bquant list`. **Контроль:** пример на 0.0.24 — `ImportError: cannot import name 'SignFlip'`. Ожидание сошлось
+[not_included] [Technical] Объявлено после выпуска: потребителю — запись в его трекере и напрямую; лаборатории — напрямую. Подъём пина — их решение
