@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-11-04
+
 **Гейты исследования** — заказ лаборатории №3. Новые правила `Criterion` для таблицы исследования,
 где вариант сравнивается со своей базой:
 - `BeatsBase(alpha)` — `q < alpha`;
