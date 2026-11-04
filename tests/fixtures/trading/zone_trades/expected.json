@@ -164,6 +164,62 @@
    "stop": null,
    "costs": "none"
   },
+  "zone_k0_horizon3_cap": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "horizon",
+    "h": 3,
+    "cap": "zone_change"
+   },
+   "stop": null,
+   "costs": "none"
+  },
+  "zone_k0_horizon50_cap": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "horizon",
+    "h": 50,
+    "cap": "zone_change"
+   },
+   "stop": null,
+   "costs": "none"
+  },
+  "zone_k0_horizon80_cap": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "horizon",
+    "h": 80,
+    "cap": "zone_change"
+   },
+   "stop": null,
+   "costs": "none"
+  },
+  "zone_k0_horizon15_cap": {
+   "entry": {
+    "rule": "zone_bar_close",
+    "k": 0,
+    "side": "zone"
+   },
+   "exit": {
+    "rule": "horizon",
+    "h": 15,
+    "cap": "zone_change"
+   },
+   "stop": null,
+   "costs": "none"
+  },
   "zone_k0_trail05_03": {
    "entry": {
     "rule": "zone_bar_close",
@@ -366,6 +422,34 @@
    "mfe_mean": 2.442404987808,
    "mae_mean": 0.675865840396
   },
+  "zone_k0_horizon15_cap": {
+   "n": 8,
+   "net_atr_sum": 3.999981781239,
+   "gross_atr_sum": 3.999981781239,
+   "mfe_mean": 2.334903712021,
+   "mae_mean": 1.456519023214
+  },
+  "zone_k0_horizon3_cap": {
+   "n": 9,
+   "net_atr_sum": 2.680294725581,
+   "gross_atr_sum": 2.680294725581,
+   "mfe_mean": 1.213290284206,
+   "mae_mean": 0.836134607092
+  },
+  "zone_k0_horizon50_cap": {
+   "n": 8,
+   "net_atr_sum": 3.683231621677,
+   "gross_atr_sum": 3.683231621677,
+   "mfe_mean": 3.158746590743,
+   "mae_mean": 2.242029524634
+  },
+  "zone_k0_horizon80_cap": {
+   "n": 8,
+   "net_atr_sum": -9.440574596655,
+   "gross_atr_sum": -9.440574596655,
+   "mfe_mean": 3.158746590743,
+   "mae_mean": 3.330812128925
+  },
   "zone_k0_signal07": {
    "n": 8,
    "net_atr_sum": 5.90481403689,
@@ -513,6 +597,42 @@
    "take": 0,
    "trail": 0,
    "zone_change": 0
+  },
+  "zone_k0_horizon15_cap": {
+   "fallback": 0,
+   "horizon": 7,
+   "signal": 0,
+   "stop": 0,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 1
+  },
+  "zone_k0_horizon3_cap": {
+   "fallback": 0,
+   "horizon": 9,
+   "signal": 0,
+   "stop": 0,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 0
+  },
+  "zone_k0_horizon50_cap": {
+   "fallback": 0,
+   "horizon": 6,
+   "signal": 0,
+   "stop": 0,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 2
+  },
+  "zone_k0_horizon80_cap": {
+   "fallback": 0,
+   "horizon": 0,
+   "signal": 0,
+   "stop": 0,
+   "take": 0,
+   "trail": 0,
+   "zone_change": 8
   },
   "zone_k0_signal07": {
    "fallback": 0,
@@ -668,7 +788,7 @@
    "zone_change": 0
   }
  },
- "skipped": 40,
+ "skipped": 47,
  "stop_and_take_same_bar_cases": 1,
  "tolerance": 1e-09,
  "exact": [

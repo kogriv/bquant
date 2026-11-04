@@ -21,6 +21,13 @@ zone_k2_signal07,0,atr_nan_at_decision_bar
 zone_k2_signal07,9,exit_beyond_data
 zone_k2_trail07_1,0,atr_nan_at_decision_bar
 zone_k2_trail07_1,9,exit_beyond_data
+zone_k0_horizon3_cap,0,atr_nan_at_decision_bar
+zone_k0_horizon50_cap,0,atr_nan_at_decision_bar
+zone_k0_horizon50_cap,9,exit_beyond_data
+zone_k0_horizon80_cap,0,atr_nan_at_decision_bar
+zone_k0_horizon80_cap,9,exit_beyond_data
+zone_k0_horizon15_cap,0,atr_nan_at_decision_bar
+zone_k0_horizon15_cap,9,exit_beyond_data
 zone_k0_trail05_03,0,atr_nan_at_decision_bar
 zone_k0_trail05_03,9,exit_beyond_data
 zone_k0_trail07_1,0,atr_nan_at_decision_bar

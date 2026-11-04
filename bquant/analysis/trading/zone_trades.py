@@ -175,10 +175,12 @@ class _Builder:
                 raise _Skip("exit_beyond_data")
             return x, self.c[x], "zone_change"
         if isinstance(rule, Horizon):
-            x = j + rule.h
+            x, reason = j + rule.h, "horizon"
+            if rule.cap is not None and x >= zone.end_idx + 1:
+                x, reason = zone.end_idx + 1, "zone_change"     # not later than the zone change
             if x >= self.n:
                 raise _Skip("exit_beyond_data")
-            return x, self.c[x], "horizon"
+            return x, self.c[x], reason
         x_fb, price_fb, _ = self.rule_exit(zone, rule.fallback, j, k, entry_idx, entry_price, side, unit)
         if isinstance(rule, (SignalThreshold, TrailingAfterSignal)):
             x_s = self._first_signal_bar(zone, k, rule)

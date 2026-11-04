@@ -95,13 +95,22 @@ class ZoneChange:
 
 @dataclass(frozen=True)
 class Horizon:
-    """Leave at the close of bar ``x = j + h``."""
+    """Leave at the close of bar ``x = j + h``.
+
+    With ``cap=ZoneChange()`` not later than the zone change: ``x = j + h`` while
+    ``j + h < e + 1`` (reason ``horizon``), otherwise ``x = e + 1`` (reason
+    ``zone_change``; exactly on the boundary too). Only the bar actually left at has to be
+    inside the data. ``mode`` stays ``horizon`` either way.
+    """
 
     h: int = 1
+    cap: Optional["ZoneChange"] = None
     name: str = field(default="horizon", init=False)
 
     def __post_init__(self) -> None:
         _check_count(self.h, "h", 1)
+        if self.cap is not None and not isinstance(self.cap, ZoneChange):
+            raise ValueError(f"cap must be ZoneChange() or None, got {self.cap!r}")
 
 
 Fallback = Union[ZoneChange, Horizon]

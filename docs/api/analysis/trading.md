@@ -91,12 +91,13 @@ print(trades[['entry_time', 'side', 'hold', 'exit_reason', 'net']].head(3).round
 |---|---|---|---|
 | `ZoneChange()` | `e + 1` | закрытие | `zone_change` |
 | `Horizon(h)` | `j + h` | закрытие | `horizon` |
+| `Horizon(h, cap=ZoneChange())` | `j + h`, но не позже `e + 1` | закрытие | `horizon`; при пределе (и ровно на границе) — `zone_change` |
 | `SignalThreshold(signal, thr, k_min=1, require={}, fallback=ZoneChange())` | первый возраст `k' ≥ k_min`, `k' > k`, где `signal ≥ thr` и выполнены все `require` | закрытие | `signal` |
 | `TrailingAfterSignal(signal, thr, s_atr, …)` | с бара сигнала (включительно) — первый бар, где закрытие отдало `s_atr` от лучшего | закрытие | `trail` |
 | `TakeProfit(level_atr=… \| share_of_forecast=…, forecast=…)` | первый бар окна, чей high (покупка) или low (продажа) достал цель | цель | `take` |
 
 Если сигнала, отката или цели нет до бара `fallback` (`ZoneChange` или `Horizon`), сделка
-выходит по нему с причиной `fallback`. Если выход приходится за концом данных, сделки нет:
+выходит по нему с причиной `fallback`. У `Horizon` с пределом за концом данных должен лежать именно бар выхода, а не любой из двух. Если выход приходится за концом данных, сделки нет:
 причина `exit_beyond_data`, а не укороченная сделка. В `mode` всегда стоит **имя правила
 выхода**, одно на вызов: это метка для `random_entry_baseline`, и задаётся она решением, а не
 исходом. Чем сделка закрылась на самом деле, показывает `exit_reason`.

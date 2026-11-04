@@ -52,7 +52,7 @@ def _exit(spec):
     if rule == "zone_change":
         return ZoneChange()
     if rule == "horizon":
-        return Horizon(spec["h"])
+        return Horizon(spec["h"], cap=_fallback(spec["cap"]) if spec.get("cap") else None)
     if rule == "signal_threshold":
         return SignalThreshold(spec["signal"], spec["thr"], k_min=spec["k_min"], require=spec["require"],
                                fallback=_fallback(spec["fallback"]))
@@ -191,6 +191,7 @@ def test_a_bar_spread_model_needs_the_spread_column():
     lambda: TakeProfit(level_atr=1.0, share_of_forecast=0.5, forecast="f"),
     lambda: TakeProfit(share_of_forecast=0.5),
     lambda: Horizon(0),
+    lambda: Horizon(5, cap=Horizon(3)),
     lambda: ZoneBarClose(k=-1),
     lambda: ZoneBarClose(side="long"),
     lambda: FixedAtrStop(0),
@@ -238,3 +239,18 @@ def test_the_trailing_path_starts_at_the_signal_bar_itself():
                       signals=signals, atr=atr)
     row = got.trades.iloc[0]
     assert (row["exit_reason"], row["exit_time"]) == ("trail", bars.index[16])
+
+
+def test_a_capped_horizon_without_the_cap_is_the_old_horizon():
+    plain = zone_trades(BARS, ZONES, point=REF["point"], exit=Horizon(6)).trades
+    for name in ("zone_k2_horizon6",):
+        assert REF["variants"][name]["exit"] == {"rule": "horizon", "h": 6}
+    capped = zone_trades(BARS, ZONES, point=REF["point"], exit=Horizon(6, cap=ZoneChange())).trades
+    longer = capped["hold"] < plain["hold"]
+    assert (capped.loc[~longer].drop(columns="exit_reason").equals(plain.loc[~longer].drop(columns="exit_reason")))
+    assert set(capped.loc[longer, "exit_reason"]) <= {"zone_change"}
+
+
+def test_a_capped_horizon_serves_as_a_fallback():
+    got = zone_trades(BARS, ZONES, point=REF["point"], exit=TakeProfit(level_atr=50.0, fallback=Horizon(5, cap=ZoneChange())))
+    assert set(got.trades["exit_reason"]) == {"fallback"} and set(got.trades["mode"]) == {"take_profit"}
