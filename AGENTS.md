@@ -36,6 +36,8 @@ BQuant is a quantitative research toolkit for financial markets, starting with M
 - **`zones/`**: **Universal Zone Analysis Pipeline v2.1** — `analyze_zones()` fluent builder (`pipeline.py`); pluggable zone-detection strategies (`detection/`: zero_crossing, threshold, line_crossing, preloaded, combined); metric strategies (`strategies/`: swing, shape, divergence, volatility, volume); zone models (`models.py`), presets (`presets.py`), feature extraction (`zone_features.py`), sequence analysis (`sequence_analysis.py`)
 - **`statistical/`**: Statistical analysis and hypothesis testing
 - **`validation/`**: `ValidationSuite` (out-of-sample, walk-forward, sensitivity, Monte Carlo) over a `MetricSpec`
+- **`evaluation/`**: evaluation of a trade frame — month-block bootstrap, random-entry baseline, `Criterion` rules, procedure over windows, quarters, `CostModel` / `rollover_nights`
+- **`trading/`**: `zone_trades()` — zones + bars (+ signals) → trade frame by rule objects (entry, exit, stop) and a `CostModel`
 - **`technical/`, `chart/`, `candlestick/`, `timeseries/`**: stubs (`is_stub = True`); `analyze()` raises `NotImplementedError`, and the factory catalog lists only executable analyzers
 
 ### Visualization (`bquant/visualization/`)

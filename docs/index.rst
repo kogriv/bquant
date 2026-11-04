@@ -39,6 +39,7 @@ BQuant — инструментарий количественного иссл�
    api/analysis/strategies
    api/analysis/statistical
    api/analysis/evaluation
+   api/analysis/trading
    api/analysis/zones/global_swings_models
    api/analysis/zones/global_swings_pipeline
    api/analysis/zones/global_swings_strategies

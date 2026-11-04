@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Сделки из зон — `bquant.analysis.trading`.** Заказ лаборатории стратегий: блок, который она
+трижды переписывала у себя.
+- `zone_trades(bars, zones, *, point, entry, exit, stop, costs, signals, atr)` строит по одной
+  сделке на зону и возвращает кадр сделок для `evaluation` (`net`/`gross` в ATR бара решения,
+  `mode` — имя правила выхода, `exit_reason`, MFE/MAE, ночи, издержки). Зоны без сделки
+  возвращаются отдельно, каждая с причиной.
+- Правила — объекты:
+  - вход: `ZoneBarClose(k, side)`, `NextOpen(side)`;
+  - выход: `ZoneChange`, `Horizon(h)`, `SignalThreshold`, `TrailingAfterSignal`, `TakeProfit`;
+  - стоп: `FixedAtrStop`, `ColumnStop`.
+- Стоп выигрывает свой бар, потому что порядок внутри бара неизвестен.
+- Строковые выражения не исполняются.
+- Фикстура лаборатории (17 вариантов, 136 сделок, 34 пропуска) воспроизводится построчно до `1e-9`.
+
 ## [0.0.23] - 2026-11-04
 
 **Издержки сделки и ATR Уайлдера** — заказ лаборатории стратегий, нужен двум потребителям.
