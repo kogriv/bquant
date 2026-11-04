@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-11-04
+
 **Вариант против базы** — заказ лаборатории №4 по просьбе внешнего потребителя.
 - `paired_stats(variant, base, *, key, boot_months)` — парная разность по ключу единицы
   (inner join со счётчиками), блочный бутстреп по месяцам, `p` двух видов (`boot_share`,
